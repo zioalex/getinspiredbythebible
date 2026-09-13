@@ -1,4 +1,4 @@
-"""Tests for the retrieval-eval metric + normalization core (BITB-043).
+"""Tests for the retrieval-eval metric + normalization core (BITB-139).
 
 Pure functions, no database — runs in the standard backend-tests CI job.
 """

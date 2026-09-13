@@ -1,4 +1,4 @@
-# BITB-043: Product Analytics Dashboard (Metabase)
+# BITB-137: Product Analytics Dashboard (Metabase)
 
 **Priority:** P2 — Medium. Follows the weekly digest email (which ships the
 same metrics now); this is the longer-term, interactive successor.

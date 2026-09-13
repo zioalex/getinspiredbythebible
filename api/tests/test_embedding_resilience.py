@@ -1,5 +1,5 @@
 """
-Tests for ResilientEmbeddingProvider (BITB-057 Phase 2).
+Tests for ResilientEmbeddingProvider (BITB-143 Phase 2).
 
 Mirrors the mocking approach used in test_llama_guard.py's timeout/error tests:
 mock the wrapped provider's methods directly (no real network calls) and assert

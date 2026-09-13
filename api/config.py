@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     embedding_model: str = "mxbai-embed-large"  # Multilingual model (100+ languages)
     embedding_dimensions: int = 1024  # mxbai-embed-large dimension (was 768 for nomic)
 
-    # Embedding resilience (BITB-057 Phase 2). Mirrors the circuit-breaker/timeout
+    # Embedding resilience (BITB-143 Phase 2). Mirrors the circuit-breaker/timeout
     # pattern already used for OpenRouter (providers/openrouter.py) and Llama Guard
     # (providers/llama_guard.py), applied to the embedding call path via
     # providers/embedding_resilience.py::ResilientEmbeddingProvider.
@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     embedding_retry_max_attempts: int = 2  # Total attempts (including the first) per embed call
     embedding_retry_base_delay_seconds: float = 0.5  # Base for jittered exponential backoff
 
-    # Embedding cache (BITB-057 Phase 2). In-process only - no Redis or other
+    # Embedding cache (BITB-143 Phase 2). In-process only - no Redis or other
     # shared cache exists anywhere in this stack, so a hit on one replica does
     # not help another. See providers/embedding_cache.py::CachingEmbeddingProvider.
     embedding_cache_enabled: bool = True

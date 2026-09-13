@@ -1,4 +1,4 @@
-# BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
+# BITB-139: Search Retrieval-Evaluation Harness (golden set + scorer)
 
 **Status:** 🚧 In Progress (P0–P3 + P4a landed; P4b todo)
 **Priority:** P1 (High) — without it we cannot tell whether the now-enabled query
@@ -72,7 +72,7 @@ differently (Psalm superscriptions counted as v1, Joel/Malachi chapter splits, 3
 etc.), so a *correct* hit in a non-English translation can be scored as a miss when its
 `chapter:verse` is offset from the English-canonical key. Read per-language scores with
 this in mind. Closing the underlying book-name/reference normalization gaps (and
-deciding versification handling) is tracked in **BITB-052**.
+deciding versification handling) is tracked in **BITB-140**.
 
 ## Phased delivery (one PR each)
 

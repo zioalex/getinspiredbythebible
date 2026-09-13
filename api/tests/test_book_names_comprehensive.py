@@ -701,12 +701,12 @@ class TestNormalizeEdgeCases:
 
 
 # ===========================================================================
-# BITB-052 — English aliases and case-insensitive normalization
+# BITB-140 — English aliases and case-insensitive normalization
 # ===========================================================================
 
 
 class TestEnglishAliases:
-    """New ENGLISH_ALIASES entries added for BITB-052."""
+    """New ENGLISH_ALIASES entries added for BITB-140."""
 
     # Song of Solomon alternate titles
     def test_song_of_songs(self):
@@ -797,7 +797,7 @@ class TestCaseInsensitiveNormalization:
 
 
 class TestConcreteFailingCases:
-    """Exact citations that returned [] before BITB-052 (verified against backlog story)."""
+    """Exact citations that returned [] before BITB-140 (verified against backlog story)."""
 
     def test_1_cor_normalizes(self):
         """'1 Cor' should resolve to '1 Corinthians'."""
@@ -814,7 +814,7 @@ class TestConcreteFailingCases:
 
 class TestDiacriticInsensitiveNormalization:
     """normalize_book_name must match localized names with diacritics dropped
-    (BITB-052 item 2) — common when users type on non-accented keyboards or
+    (BITB-140 item 2) — common when users type on non-accented keyboards or
     use voice-to-text."""
 
     @pytest.mark.parametrize(

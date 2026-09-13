@@ -1,4 +1,4 @@
-# BITB-043: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
+# BITB-138: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
 
 **Status:** 🚧 In Progress
 **Priority:** P2
@@ -110,7 +110,7 @@ than guessing what the problem was.
 | `frontend/messages/*.json` | `emailLabel` + 6 reason keys in all 11 locales |
 | `frontend/src/components/FeedbackControls.test.tsx` | New chip coverage tests |
 | `docs/BACKLOG.md` | Summary entry |
-| `docs/BACKLOG_STORIES/BITB-043-*.md` | This file |
+| `docs/BACKLOG_STORIES/BITB-138-*.md` | This file |
 
 ## Out of Scope
 

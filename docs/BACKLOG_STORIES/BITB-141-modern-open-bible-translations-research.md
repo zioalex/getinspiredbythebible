@@ -1,4 +1,4 @@
-# BITB-053: Modern Open-Licensed Bible Translations Research (DBS / SWORD / unfoldingWord)
+# BITB-141: Modern Open-Licensed Bible Translations Research (DBS / SWORD / unfoldingWord)
 
 **Status:** 🎯 Todo
 **Priority:** P2 (Medium) — content freshness across all languages

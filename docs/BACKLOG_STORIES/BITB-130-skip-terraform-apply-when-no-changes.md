@@ -1,4 +1,4 @@
-# BITB-017: Skip Terraform Apply When No Changes Detected
+# BITB-130: Skip Terraform Apply When No Changes Detected
 
 **Priority:** P2 (Medium)
 **Status:** ✅ Done (has_changes == 'true' gate in azure-deploy.yml line 738)

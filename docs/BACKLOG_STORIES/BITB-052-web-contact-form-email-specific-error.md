@@ -85,4 +85,4 @@ actionable, email-specific message would close the loop.
 ## Related
 
 - `BITB-051` — Android contact/diagnostic email error; this is its web follow-up.
-- `BITB-043` — made the contact email required server-side.
+- `BITB-138` — made the contact email required server-side.

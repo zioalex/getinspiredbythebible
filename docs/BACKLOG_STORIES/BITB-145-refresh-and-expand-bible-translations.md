@@ -1,4 +1,4 @@
-# BITB-068: Refresh & Expand Bible Translations from Bible SuperSearch
+# BITB-145: Refresh & Expand Bible Translations from Bible SuperSearch
 
 **Status:** 📋 Backlog
 **Priority:** P2 (Medium) — content/coverage enhancement; several languages ship only one century-old version

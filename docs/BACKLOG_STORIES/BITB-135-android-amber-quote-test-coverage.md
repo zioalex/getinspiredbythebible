@@ -1,4 +1,4 @@
-# BITB-037: Android Amber Quote Chip — Test Coverage Follow-up
+# BITB-135: Android Amber Quote Chip — Test Coverage Follow-up
 
 **Status:** ✅ Done (PR #677 + this PR)
 

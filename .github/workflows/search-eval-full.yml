@@ -1,6 +1,6 @@
 name: Search Eval — Full
 
-# BITB-051 P4a: nightly + manual live exercise of the retrieval-eval harness
+# BITB-139 P4a: nightly + manual live exercise of the retrieval-eval harness
 # (api/search_eval/, scripts/run_search_eval.py). Per-PR CI only ever runs
 # `--validate` (test_update.yml's search-eval-validate job) — no DB, no
 # secrets, works on forks. This workflow is where the harness actually talks
@@ -22,7 +22,7 @@ name: Search Eval — Full
 #
 # Route B (`eval-corpus`: full 11-translation rebuild in a cached pgvector,
 # for a reproducible-corpus A/B independent of prod drift) is intentionally
-# NOT implemented here — tracked as BITB-051 P4b. See the story file for why
+# NOT implemented here — tracked as BITB-139 P4b. See the story file for why
 # it's deferred (GitHub Actions cache-eviction risk to unrelated per-PR
 # caches, unbounded first-run duration, and new cache-correctness surface
 # with no test coverage yet).
@@ -691,7 +691,7 @@ jobs:
             echo ""
             echo "Route B (\`eval-corpus\` — full 11-translation rebuild in a cached"
             echo "pgvector, for a reproducible-corpus A/B independent of prod drift)"
-            echo "is **not implemented** — tracked as BITB-051 P4b."
+            echo "is **not implemented** — tracked as BITB-139 P4b."
             echo ""
             echo "Result artifacts (JSON + log) are attached to this run, retained 30 days."
           } >> "$GITHUB_STEP_SUMMARY"

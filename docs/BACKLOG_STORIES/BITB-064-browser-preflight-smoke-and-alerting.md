@@ -129,7 +129,7 @@ rotatable if it ever needs to be revoked without touching the other probes.
 - Azure availability test to mirror/extend: `deployment/main.tf:267-286` (`/health/ready` web test) and the
   alert wiring in `deployment/monitoring.tf`. The Telegram bridge (`ops_email` action group +
   `logic_app_workflow.telegram_alert`, BITB-056) already reposts Azure alerts to Telegram.
-- Related: **BITB-055 / BITB-056 / BITB-057** — this is the same "make it loud" observability thread; the
+- Related: **BITB-055 / BITB-056 / BITB-143** — this is the same "make it loud" observability thread; the
   new signal here is _browser-shaped_ traffic, which none of those covered.
 
 ## Out of Scope

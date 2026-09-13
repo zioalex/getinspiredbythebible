@@ -1,5 +1,5 @@
 """
-Resilience wrapper for embedding providers (BITB-057 Phase 2).
+Resilience wrapper for embedding providers (BITB-143 Phase 2).
 
 Gives the embedding call path the same circuit-breaker/timeout/retry treatment
 already applied to OpenRouter (providers/openrouter.py) and Llama Guard

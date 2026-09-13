@@ -1,4 +1,4 @@
-"""Aggregation and rendering for retrieval-evaluation runs (BITB-051 P3).
+"""Aggregation and rendering for retrieval-evaluation runs (BITB-139 P3).
 
 Pure post-processing over ``QueryResult``/``RunResult`` — no DB, no network,
 so this module is trivially unit-testable.
