@@ -39,17 +39,27 @@ BUILTIN_AGENTS = {
 }
 
 # Fallback routing is executed by this plugin; without it `fallback_models`
-# is inert.
+# is inert. 401/402/403 are included because a provider returning an auth or
+# quota error (e.g. GitHub Copilot subscription credits exhausted → 403, or
+# the PAT-rejected "not supported for this endpoint" 400) must still fail over
+# to a different provider rather than hard-failing the agent.
 PLUGIN = [
     [
         "opencode-runtime-fallback@0.2.4",
         {
             "enabled": True,
-            "retry_on_errors": [429, 500, 502, 503, 504],
+            "retry_on_errors": [400, 401, 402, 403, 429, 500, 502, 503, 504],
             "retryable_error_patterns": [
                 "upstream error",
                 "temporarily overloaded",
                 "service temporarily unavailable",
+                "subscription",
+                "quota",
+                "credits",
+                "exceeded",
+                "insufficient",
+                "not supported for this endpoint",
+                "bad request",
             ],
             "max_fallback_attempts": 2,
             "cooldown_seconds": 120,

@@ -8,6 +8,10 @@
       {
         "enabled": true,
         "retry_on_errors": [
+          400,
+          401,
+          402,
+          403,
           429,
           500,
           502,
@@ -17,7 +21,14 @@
         "retryable_error_patterns": [
           "upstream error",
           "temporarily overloaded",
-          "service temporarily unavailable"
+          "service temporarily unavailable",
+          "subscription",
+          "quota",
+          "credits",
+          "exceeded",
+          "insufficient",
+          "not supported for this endpoint",
+          "bad request"
         ],
         "max_fallback_attempts": 2,
         "cooldown_seconds": 120,

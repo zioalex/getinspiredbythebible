@@ -23,8 +23,9 @@ documents the model tiering held in that generated `agent` section (primary
 
 Fallbacks are served by the `opencode-runtime-fallback@0.2.4` plugin, configured
 in the generated `opencode.json` (retry on
-`[429, 500, 502, 503, 504]`, **2 attempts**, 120 s cooldown, 45 s timeout, notify on
-fallback).
+`[400, 401, 402, 403, 429, 500, 502, 503, 504]` — auth/quota 4xx included so an
+exhausted-subscription provider still fails over, **2 attempts**, 120 s cooldown,
+45 s timeout, notify on fallback).
 
 ## Cross-provider resilience (2-hop fallback)
 
