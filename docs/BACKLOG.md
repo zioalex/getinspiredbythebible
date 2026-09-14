@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-12 (BITB-123 in progress; BITB-124 created)
+**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -194,6 +194,36 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🚧 BITB-154: KubeOpenCode Multi-Provider Resilience — Cross-Provider Fallback + Survive Provider Outage
+
+**Status:** 🚧 In Progress (PR #1077)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-14
+
+Every agent had a single-provider fallback (`opencode/muse-spark` only), and the
+`opencode-runtime-fallback` plugin retried only `[429, 500, 502, 503, 504]` — so a
+full OpenCode Zen outage would kill the whole graph, and GitHub Copilot subscription
+credit exhaustion (a 401/402/403 auth/quota error) never triggered failover at all.
+The three Copilot-pinned agents (orchestrator, verifier, risk-auditor) returned empty
+responses instead of degrading. Fix: 2-hop cross-provider fallback on all 19 agent
+slots, move the three Copilot primaries to `opencode/nemotron-3-ultra-free`, add
+`400/401/402/403` + quota patterns to the retry list, and raise `max_fallback_attempts`
+`1 → 2`.
+
+**Acceptance Criteria (summary):**
+
+- [x] All 19 agent slots (12 custom + 7 built-in) have `fallback_models` spanning ≥2 providers
+- [x] orchestrator/verifier/risk-auditor moved off `github-copilot/claude-opus-5` → `opencode/nemotron-3-ultra-free`
+- [x] Fallback plugin retries auth/quota 4xx; `max_fallback_attempts: 2`
+- [x] Generator tests 19/19; `opencode.json` in sync (no drift)
+- [ ] PR #1077 merged
+- [ ] Live cluster synced (`make sync-opencode-configmap` + pod restart, needs write RBAC)
+
+Full story: [`BITB-154-kubeopencode-multi-provider-resilience.md`](BACKLOG_STORIES/BITB-154-kubeopencode-multi-provider-resilience.md)
+
+---
 
 ### 🚧 BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
 
