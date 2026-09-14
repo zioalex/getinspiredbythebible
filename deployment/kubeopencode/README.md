@@ -214,10 +214,56 @@ kubectl -n kubeopencode-system get secret github-copilot-auth
 kubectl -n kubeopencode-system describe agent default-wf2
 ```
 
+## Persistence (BITB-128)
+
+`spec.persistence` in `agent.yaml` backs the agent with operator-managed PVCs.
+Without it the workspace is an `EmptyDir`, so the `kubectl delete pod` step above
+— which this runbook *requires* after every config sync — destroys the clone, any
+uncommitted work, and the conversation history. (It preserves files and the
+session DB — not Copilot auth, which is covered in the section above.)
+
+```yaml
+persistence:
+  workspace: # spec.workspaceDir (/workspace): clone, branches, in-progress work
+    size: 20Gi
+  sessions: # OpenCode session SQLite DB: conversation history
+    size: 2Gi
+```
+
+- The **operator creates and owns** these PVCs — there is no `pvc.yaml` to apply,
+  and no `volumeMounts`/`fsGroup` to configure.
+- `storageClassName` is intentionally omitted so the cluster default applies.
+  Pin it per volume only if the default is unsuitable.
+- **`/tmp` is not persisted.** Only `spec.workspaceDir` is. Place git worktrees
+  under `${WORKSPACE_DIR}/worktrees` (see `AGENTS.md` → *Git Worktree Pattern*);
+  `worktrees/` is gitignored because the repo is checked out at `$WORKSPACE_DIR`.
+- Access mode is chosen by the operator. Verify it supports multi-attach before
+  scaling the agent past one replica.
+
+Check what was provisioned:
+
+```bash
+kubectl -n kubeopencode-system get pvc
+```
+
+### Resetting a corrupted or bloated workspace
+
+Persistence means stale branches and build caches accumulate. To start clean,
+delete the PVC and let the operator re-provision it (the init containers
+re-clone):
+
+```bash
+kubectl -n kubeopencode-system delete pod <agent-pod>   # release the mount first
+kubectl -n kubeopencode-system delete pvc <workspace-pvc>
+```
+
+> **Push before you reset.** Anything not pushed to a remote branch is gone.
+
 ## Files
 
 - `agent.yaml` — the `Agent` CRD (`default-wf2`): `configRef` pointing at the
-  `opencode-config` ConfigMap, plus credentials wiring
+  `opencode-config` ConfigMap, credentials wiring (incl. the GitHub Copilot
+  OAuth token), and `spec.persistence` (workspace + sessions PVCs)
 - `agents.md` — documented 12-agent model table (mirrors the `agent` section of
   the generated `opencode.json`)
 
