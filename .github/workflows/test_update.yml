@@ -74,6 +74,10 @@ jobs:
           fi
           echo "Guard passed: enable_application_insights is not disabled in terraform.tfvars"
 
+      - name: Guard — backlog index status stays in sync with story files (BITB-153)
+        run: |
+          python3 scripts/check_backlog_status_sync.py
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
         with:
