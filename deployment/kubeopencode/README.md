@@ -216,9 +216,9 @@ kubectl -n kubeopencode-system describe agent default-wf2
 
 ## Cross-provider Resilience
 
-Every agent uses a **2-hop fallback chain across 3 providers** (OpenCode Zen,
-OpenRouter, GitHub Copilot). The `opencode-runtime-fallback@0.2.4` plugin
-retries on `[429, 500, 502, 503, 504]` with `max_fallback_attempts: 2`:
+Every agent uses a **2-hop fallback chain across 2 providers** (OpenCode Zen,
+OpenRouter). The `opencode-runtime-fallback@0.2.4` plugin retries on
+`[429, 500, 502, 503, 504]` with `max_fallback_attempts: 2`:
 
 ```text
 Primary model ──429/5xx──▶ Tier 1 fallback ──429/5xx──▶ Tier 2 fallback
@@ -226,13 +226,19 @@ Primary model ──429/5xx──▶ Tier 1 fallback ──429/5xx──▶ Tier
 
 | Agent group | Tier 1 | Tier 2 | Covers |
 |---|---|---|---|
-| Builders (nemotron/mimo) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenCode Zen outage |
-| Paid primaries (GitHub Copilot) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | GitHub outage → OpenCode → OpenRouter |
-| Paid primaries (OpenRouter) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenRouter outage → OpenCode → back to OpenRouter |
+| All agents (nemotron/mimo prim) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenCode Zen outage |
+| android-gemini (OpenRouter prim) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenRouter outage → OpenCode → back to OpenRouter |
 
-In the worst case (2 of 3 providers down), agents survive on the last remaining
-provider rather than hard-failing. `OPENROUTER_API_KEY` is therefore required
-for **runtime resilience**, not just for `android-gemini`'s paid primary.
+In the worst case (both providers degrade), agents survive on the last
+responding model rather than hard-failing. `OPENROUTER_API_KEY` is therefore
+required for **runtime resilience**, not just for `android-gemini`'s paid
+primary.
+
+> **Note (2026-09-14):** `github-copilot/claude-opus-5` was the primary for
+> orchestrator, verifier, and risk-auditor until Copilot subscription credits
+> were exhausted; those agents now use `opencode/nemotron-3-ultra-free`.
+> GitHub Copilot remains wired in `agent.yaml` and can be re-enabled as a
+> primary (or as a third fallback hop) when access returns.
 
 ## Files
 
