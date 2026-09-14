@@ -69,7 +69,9 @@ def test_every_md_agent_has_fallback_models(config, md_agents):
 def test_builtin_agents_have_fallback_models(config):
     for name in BUILTINS:
         assert name in config["agent"], f"builtin {name} missing"
-        assert config["agent"][name].get("fallback_models") == [FALLBACK]
+        fallbacks = config["agent"][name].get("fallback_models")
+        assert FALLBACK in fallbacks, f"builtin {name} missing primary fallback"
+        assert len(fallbacks) >= 2, f"builtin {name} missing cross-provider fallback"
 
 
 def test_builtin_primary_modes_preserved(config):

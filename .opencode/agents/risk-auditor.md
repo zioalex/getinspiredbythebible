@@ -4,6 +4,7 @@ mode: subagent
 model: github-copilot/claude-opus-5
 fallback_models:
   - opencode/muse-spark-1.3-contributor-free
+  - openrouter/google/gemma-3-27b-it:free
 permission:
   edit: deny
   bash:

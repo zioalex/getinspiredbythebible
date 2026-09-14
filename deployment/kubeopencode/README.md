@@ -214,6 +214,26 @@ kubectl -n kubeopencode-system get secret github-copilot-auth
 kubectl -n kubeopencode-system describe agent default-wf2
 ```
 
+## Cross-provider Resilience
+
+Every agent uses a **2-hop fallback chain across 3 providers** (OpenCode Zen,
+OpenRouter, GitHub Copilot). The `opencode-runtime-fallback@0.2.4` plugin
+retries on `[429, 500, 502, 503, 504]` with `max_fallback_attempts: 2`:
+
+```text
+Primary model ──429/5xx──▶ Tier 1 fallback ──429/5xx──▶ Tier 2 fallback
+```
+
+| Agent group | Tier 1 | Tier 2 | Covers |
+|---|---|---|---|
+| Builders (nemotron/mimo) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenCode Zen outage |
+| Paid primaries (GitHub Copilot) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | GitHub outage → OpenCode → OpenRouter |
+| Paid primaries (OpenRouter) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenRouter outage → OpenCode → back to OpenRouter |
+
+In the worst case (2 of 3 providers down), agents survive on the last remaining
+provider rather than hard-failing. `OPENROUTER_API_KEY` is therefore required
+for **runtime resilience**, not just for `android-gemini`'s paid primary.
+
 ## Files
 
 - `agent.yaml` — the `Agent` CRD (`default-wf2`): `configRef` pointing at the
