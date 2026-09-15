@@ -23,8 +23,8 @@ DEFAULT_SMALL_MODEL = "opencode/nemotron-3-ultra-free"
 DEFAULT_FALLBACK = "opencode/muse-spark-1.3-contributor-free"
 # Cross-provider fallback activates when OpenCode Zen itself is down (the
 # DEFAULT_FALLBACK shares the same provider, so it fails too on a full
-# provider outage). OpenRouter's gemma-3-27b-it:free is the safety net.
-CROSS_PROVIDER_FALLBACK = "openrouter/google/gemma-3-27b-it:free"
+# provider outage). OpenRouter's gemma-4-31b-it:free is the safety net.
+CROSS_PROVIDER_FALLBACK = "openrouter/google/gemma-4-31b-it:free"
 
 # Built-in (non-.md) agents still need a fallback so they degrade instead of
 # hard-failing when the primary provider returns 429/5xx.

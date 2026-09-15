@@ -4,7 +4,7 @@ mode: primary
 model: opencode/nemotron-3-ultra-free
 fallback_models:
   - opencode/muse-spark-1.3-contributor-free
-  - openrouter/google/gemma-3-27b-it:free
+  - openrouter/google/gemma-4-31b-it:free
 tools:
   bash: true
   read: true
