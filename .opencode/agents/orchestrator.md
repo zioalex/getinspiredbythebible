@@ -1,9 +1,10 @@
 ---
 description: High-level planner and coordinator. Starts every session by planning, decomposes tasks, delegates implementation to specialist subagents, verifies work, and reports to user. Can self-improve by updating AGENTS.md and opencode.json.
 mode: primary
-model: github-copilot/claude-opus-5
+model: opencode/nemotron-3-ultra-free
 fallback_models:
   - opencode/muse-spark-1.3-contributor-free
+  - openrouter/google/gemma-3-27b-it:free
 tools:
   bash: true
   read: true
