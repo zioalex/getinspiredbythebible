@@ -119,11 +119,11 @@ cloudflare_origin_cert_password = ""
 llm_provider = "openrouter"
 
 # OpenRouter API key (get FREE at https://openrouter.ai/keys)
-# OpenRouter offers free models like google/gemma-4-31b-it:free
+# OpenRouter offers free models like openai/gpt-oss-120b:free
 openrouter_api_key = "sk-or-v1-..."  # pragma: allowlist secret
 
 # OpenRouter model (free models available!)
-# Free options: meta-llama/llama-3.3-70b-instruct:free, google/gemma-4-31b-it:free
+# Free options: meta-llama/llama-3.3-70b-instruct:free, openai/gpt-oss-120b:free
 openrouter_model = "meta-llama/llama-3.3-70b-instruct:free"
 
 # OpenRouter fallback configuration (when free model is rate limited)

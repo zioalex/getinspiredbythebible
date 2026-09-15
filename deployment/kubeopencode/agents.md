@@ -8,18 +8,18 @@ documents the model tiering held in that generated `agent` section (primary
 
 | Agent | Primary model | Fallback 1 | Fallback 2 (cross-provider) | Notes |
 |---|---|---|---|---|---|
-| orchestrator | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Primary planner; 2-hop fallback |
-| android-expert | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Kotlin/Compose builder; cross-provider resilient |
-| fullstack-engineer | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | FastAPI/Next.js/PG builder; cross-provider resilient |
-| infra-engineer | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Azure/Terraform/CI builder; cross-provider resilient |
-| android-gemini | `openrouter/qwen/qwen3-coder` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Paid-tier coder (BITB-023); needs `OPENROUTER_API_KEY` |
-| data-engineer | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | pgvector/Alembic/embeddings; cross-provider resilient |
-| verse-parity-keeper | `opencode/mimo-v2.5-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | 3 parsers in sync, 11 languages; cross-provider resilient |
-| i18n-qa | `opencode/mimo-v2.5-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Locales/translations QA; cross-provider resilient |
-| verifier | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Read-only test runner; 2-hop fallback |
-| risk-auditor | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Read-only audit; 2-hop fallback |
-| failure-forecaster | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Read-only 12-month forecast; cross-provider resilient |
-| seo-auditor | `opencode/nemotron-3-ultra-free` | `opencode/muse-spark-1.3-contributor-free` | `openrouter/google/gemma-4-31b-it:free` | Read-only SEO audit; cross-provider resilient |
+| orchestrator | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Primary planner; 2-hop fallback |
+| android-expert | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Kotlin/Compose builder; cross-provider resilient |
+| fullstack-engineer | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | FastAPI/Next.js/PG builder; cross-provider resilient |
+| infra-engineer | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Azure/Terraform/CI builder; cross-provider resilient |
+| android-gemini | `openrouter/qwen/qwen3-coder` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Paid-tier coder (BITB-023); needs `OPENROUTER_API_KEY` |
+| data-engineer | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | pgvector/Alembic/embeddings; cross-provider resilient |
+| verse-parity-keeper | `opencode/mimo-v2.5-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | 3 parsers in sync, 11 languages; cross-provider resilient |
+| i18n-qa | `opencode/mimo-v2.5-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Locales/translations QA; cross-provider resilient |
+| verifier | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Read-only test runner; 2-hop fallback |
+| risk-auditor | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Read-only audit; 2-hop fallback |
+| failure-forecaster | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Read-only 12-month forecast; cross-provider resilient |
+| seo-auditor | `opencode/nemotron-3-ultra-free` | `opencode/nemotron-3-super-free` | `openrouter/openai/gpt-oss-120b:free` | Read-only SEO audit; cross-provider resilient |
 
 Fallbacks are served by the `opencode-runtime-fallback@0.2.4` plugin, configured
 in the generated `opencode.json` (retry on
@@ -32,17 +32,17 @@ exhausted-subscription provider still fails over, **2 attempts**, 120 s cooldown
 Every agent now has a **2-hop fallback chain spanning two providers** so a
 single provider outage cannot take down the entire agent graph:
 
-1. **Tier 1**: `opencode/muse-spark-1.3-contributor-free` (OpenCode Zen) —
-   fastest recovery within the same provider family.
-2. **Tier 2**: `openrouter/google/gemma-4-31b-it:free` (OpenRouter) —
-   cross-provider free model that activates only if Tier 1 also fails (e.g.
+1. **Tier 1**: `opencode/nemotron-3-super-free` (OpenCode Zen) —
+   same Nemotron family on Zen (Ultra -> Super, 120B class).
+2. **Tier 2**: `openrouter/openai/gpt-oss-120b:free` (OpenRouter) —
+   same-120B-class cross-provider safety net that activates only if Tier 1 also fails (e.g.
    OpenCode Zen is entirely down).
 
 The 3-tier coverage matrix:
 
 | Failure scenario | All agents (OpenCode prim) | android-gemini (OpenRouter prim) |
 |---|---|---|
-| OpenCode Zen down | Falls back to OpenRouter (gemma) | Unaffected |
+| OpenCode Zen down | Falls back to OpenRouter (gpt-oss-120b) | Unaffected |
 | OpenRouter down | Unaffected | Falls back to OpenCode → OpenRouter |
 | Both down | Survives on last remaining provider | Survives on last remaining provider |
 
@@ -62,7 +62,7 @@ acceptable.
 
 `AGENTS.md` assigns the Build stage to Sonnet and final verification to Opus.
 This graph uses free-tier models throughout (`nemotron-3-ultra-free`,
-`mimo-v2.5-free`) for every stage, with `qwen3-coder` (OpenRouter) as the sole
+`mimo-v2.5-free`) and same-family `nemotron-3-super-free` fallback for every stage, with `qwen3-coder` (OpenRouter) as the sole
 paid primary for the Google/Jetpack-heavy Android agent. No paid Opus is
 currently reserved for orchestration/verification because Copilot access is
 unavailable; `nemotron-3-ultra-free` is the strongest free model and covers

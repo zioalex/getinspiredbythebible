@@ -3,8 +3,8 @@ description: Forward-looking 12-month failure forecast — dependency rot, EOL c
 mode: subagent
 model: opencode/nemotron-3-ultra-free
 fallback_models:
-  - opencode/muse-spark-1.3-contributor-free
-  - openrouter/google/gemma-4-31b-it:free
+  - opencode/nemotron-3-super-free
+  - openrouter/openai/gpt-oss-120b:free
 permission:
   edit: deny
   bash:

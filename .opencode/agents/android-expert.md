@@ -3,8 +3,8 @@ description: Expert Android engineer specializing in Kotlin, Jetpack Compose, MV
 mode: subagent
 model: opencode/nemotron-3-ultra-free
 fallback_models:
-  - opencode/muse-spark-1.3-contributor-free
-  - openrouter/google/gemma-4-31b-it:free
+  - opencode/nemotron-3-super-free
+  - openrouter/openai/gpt-oss-120b:free
 tools:
   bash: true
   read: true
