@@ -148,9 +148,9 @@ subscription_id   = "your-subscription-id"
 location          = "northeurope"  # or eastus, westus2
 resource_suffix   = "mb0172"
 
-# LLM Provider - OpenRouter recommended (has free models)
+# LLM Provider - OpenRouter recommended (broad model choice, ZDR-compatible options)
 llm_provider     = "openrouter"
-openrouter_model = "meta-llama/llama-3.3-70b-instruct:free"
+openrouter_model = "meta-llama/llama-3.3-70b-instruct"
 
 # Budget alerts
 budget_alert_emails = ["your-email@example.com"]
