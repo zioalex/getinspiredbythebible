@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-128/129 in progress)
+**Last Updated:** 2026-09-15 (BITB-155 created — OpenRouter paid Llama primary + Gemma 4 31B fallback; BITB-154 created; BITB-128/129 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -194,6 +194,31 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🚧 BITB-155: OpenRouter Model Refresh — Paid Llama 3.3 Primary + Gemma 4 31B Cross-Provider Fallback
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-15
+
+The configured primary `meta-llama/llama-3.3-70b-instruct:free` was removed by
+OpenRouter (July 2026 deprecation wave), and the fallback was the same model on
+the same provider — no real resilience. ZDR (no training on user data) is a hard
+constraint, which eliminates all NVIDIA/Google free tiers. Decision: paid Llama
+3.3 70B primary + paid Gemma 4 31B fallback (Google provider, $0.09/$0.34 per 1M,
+live-tested on biblical Q&A across EN/DE/IT).
+
+**Acceptance Criteria (summary):**
+
+- [x] No dead-model references in live config (grep-clean)
+- [x] Primary = paid Llama 3.3 70B; fallback = paid Gemma 4 31B (different provider, ZDR ✅)
+- [x] Backend provider tests pass
+- [ ] PR merged
+
+Full story: [`BITB-155-openrouter-gemma4-fallback.md`](BACKLOG_STORIES/BITB-155-openrouter-gemma4-fallback.md)
+
+---
 
 ### 🚧 BITB-154: KubeOpenCode Multi-Provider Resilience — Cross-Provider Fallback + Survive Provider Outage
 

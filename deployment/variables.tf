@@ -311,9 +311,9 @@ variable "telegram_chat_id" {
 }
 
 variable "openrouter_model" {
-  description = "OpenRouter model name (e.g., meta-llama/llama-3.3-70b-instruct:free)"
+  description = "OpenRouter model name (e.g., meta-llama/llama-3.3-70b-instruct)"
   type        = string
-  default     = "meta-llama/llama-3.3-70b-instruct:free"
+  default     = "meta-llama/llama-3.3-70b-instruct"
 }
 
 variable "openrouter_base_url" {
@@ -431,7 +431,7 @@ variable "content_safety_mode" {
 variable "openrouter_fallback_models" {
   description = "Comma-separated list of fallback models for OpenRouter"
   type        = string
-  default     = "meta-llama/llama-3.3-70b-instruct"
+  default     = "google/gemma-4-31b-it"
 }
 
 variable "openrouter_allow_fallbacks" {
