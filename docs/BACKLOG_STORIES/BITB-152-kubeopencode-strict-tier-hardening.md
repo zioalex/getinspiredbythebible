@@ -12,6 +12,8 @@ Agent sandbox has full egress, LAN-reachable `0.0.0.0:4096` with unauthenticated
 * Strict egress: public `443/53` OK, RFC1918 + `169.254/16` blocked
 * `localhost:11434` Ollama keeps working, LAN opt-in via annotation
 * API key via `0400` file mount, `env` clean, `/api/session` requires auth
+* Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
+  (verified via `kubectl auth can-i`)
 * Rollout documented, running agents drain via `30m` standby timeout
 * `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
 * `scripts/validate-env.py` passes (k8s-only secret kept out of app env manifest)

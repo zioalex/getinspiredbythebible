@@ -10,6 +10,10 @@ spec:
   profile: "Friendly desktop assistant. Explain simply, confirm before running commands."
   workspaceDir: /workspace
   port: 4096
+  # Least-privilege SA: bound by role-agent.yaml/rolebinding-agent.yaml so the
+  # agent cannot patch its own annotations or create NetworkPolicies
+  # (see docs/SECURITY-KUBEOPENCODE.md).
+  serviceAccountName: kubeopencode-agent
   # Hardening: operator should bind serve to 127.0.0.1, mount
   # secret/opencode-api-key as 0400 /run/secrets/opencode/api-key,
   # prefer OPENCODE_API_KEY_FILE over ENV, and unset ENV after start.
