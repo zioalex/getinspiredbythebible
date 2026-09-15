@@ -69,7 +69,9 @@ def test_every_md_agent_has_fallback_models(config, md_agents):
 def test_builtin_agents_have_fallback_models(config):
     for name in BUILTINS:
         assert name in config["agent"], f"builtin {name} missing"
-        assert config["agent"][name].get("fallback_models") == [FALLBACK]
+        fallbacks = config["agent"][name].get("fallback_models")
+        assert FALLBACK in fallbacks, f"builtin {name} missing primary fallback"
+        assert len(fallbacks) >= 2, f"builtin {name} missing cross-provider fallback"
 
 
 def test_builtin_primary_modes_preserved(config):
@@ -106,7 +108,9 @@ def test_top_level_model_and_plugin_present(config):
 def test_plugin_retry_options(config):
     opts = config["plugin"][0][1]
     assert opts["enabled"] is True
-    assert opts["retry_on_errors"] == [429, 500, 502, 503, 504]
+    # Must include auth/quota 4xx codes so an exhausted-subscription provider
+    # (e.g. GitHub Copilot credits out → 403) still fails over cross-provider.
+    assert opts["retry_on_errors"] == [400, 401, 402, 403, 429, 500, 502, 503, 504]
 
 
 def test_provider_timeouts_present(config):
