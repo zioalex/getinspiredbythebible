@@ -246,6 +246,7 @@ localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
 - [ ] API key via `0400` file mount, `env` clean, `/api/session` requires auth
 - [ ] Zero-downtime rollout (egress-allow before default-deny, 30m standby drain)
 - [ ] `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
+- [ ] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
 - [ ] `scripts/validate-env.py` passes
 
 Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/BITB-152-kubeopencode-strict-tier-hardening.md)

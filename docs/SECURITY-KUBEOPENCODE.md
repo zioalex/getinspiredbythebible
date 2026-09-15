@@ -34,6 +34,14 @@ metadata:
 
 Add a supplemental `NetworkPolicy` opening only that IP:port.
 
+> **Operator-only boundary.** `allow-lan` is a meaningful gate only because the
+> agent cannot set it itself: `k8s/kubeopencode/role-agent.yaml` (bound by
+> `rolebinding-agent.yaml`) gives the agent SA (`kubeopencode-agent`) a least-privilege `Role` granting read-only pod
+> access and no write on `networkpolicies`, `agents`, `secrets`, or
+> `pods/patch`. If the agent SA were granted those, a compromised agent could
+> patch its own annotation or create an allow-everything `NetworkPolicy` and
+> bypass the whole strict tier. Verify with `kubectl auth can-i` (see *Verify*).
+
 ## API key: file, not ENV
 
 `valueFrom.secretKeyRef` still leaks via `/proc/1/environ`, `env`, crash dumps.
@@ -51,6 +59,7 @@ Use:
 
 ```bash
 kubectl apply -f secret-opencode-api-key.yaml
+kubectl apply -f role-agent.yaml -f rolebinding-agent.yaml
 kubectl apply -f networkpolicy-egress-strict.yaml
 kubectl apply -f networkpolicy-allow-server-ingress.yaml
 # verify new agent: LLM OK, LAN blocked, /api/session -> 401, env clean
@@ -74,4 +83,6 @@ curl -s localhost:4096/api/session # 401
 timeout 3 bash -c "echo > /dev/tcp/192.168.178.200/6443" # fail
 curl -s https://openrouter.ai/api/v1/models | head # OK
 kubectl auth can-i list pods -n kubeopencode-system # no
+kubectl auth can-i create networkpolicies -n kubeopencode-system # no (operator-only)
+kubectl auth can-i patch agents -n kubeopencode-system # no (agent can't self-escalate allow-lan)
 ```
