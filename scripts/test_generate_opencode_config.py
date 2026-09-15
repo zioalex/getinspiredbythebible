@@ -22,7 +22,8 @@ GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
 AGENTS_DOC = REPO_ROOT / "deployment" / "kubeopencode" / "agents.md"
 
-FALLBACK = "opencode/muse-spark-1.3-contributor-free"
+FALLBACK = "opencode/nemotron-3-super-free"
+CROSS_FALLBACK = "openrouter/openai/gpt-oss-120b:free"
 BUILTINS = ("build", "plan", "general", "explore", "compaction", "title", "summary")
 PLUGIN_NAME = "opencode-runtime-fallback@0.2.4"
 
@@ -64,6 +65,7 @@ def test_every_md_agent_has_fallback_models(config, md_agents):
         fallbacks = config["agent"][name].get("fallback_models")
         assert fallbacks, f"{name} has no fallback_models"
         assert FALLBACK in fallbacks, f"{name} missing {FALLBACK}"
+        assert CROSS_FALLBACK in fallbacks, f"{name} missing {CROSS_FALLBACK}"
 
 
 def test_builtin_agents_have_fallback_models(config):
@@ -71,6 +73,7 @@ def test_builtin_agents_have_fallback_models(config):
         assert name in config["agent"], f"builtin {name} missing"
         fallbacks = config["agent"][name].get("fallback_models")
         assert FALLBACK in fallbacks, f"builtin {name} missing primary fallback"
+        assert CROSS_FALLBACK in fallbacks, f"builtin {name} missing cross-provider fallback"
         assert len(fallbacks) >= 2, f"builtin {name} missing cross-provider fallback"
 
 
