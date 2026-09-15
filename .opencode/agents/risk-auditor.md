@@ -1,9 +1,10 @@
 ---
 description: Adversarial architecture and risk audit across backend, frontend, Android, and infra. Severity-ranked, evidence-backed report. Read-only.
 mode: subagent
-model: github-copilot/claude-opus-5
+model: opencode/nemotron-3-ultra-free
 fallback_models:
   - opencode/muse-spark-1.3-contributor-free
+  - openrouter/google/gemma-3-27b-it:free
 permission:
   edit: deny
   bash:
