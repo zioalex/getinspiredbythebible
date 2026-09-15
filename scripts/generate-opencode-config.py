@@ -21,6 +21,10 @@ SCHEMA = "https://opencode.ai/config.json"
 DEFAULT_MODEL = "opencode/nemotron-3-ultra-free"
 DEFAULT_SMALL_MODEL = "opencode/nemotron-3-ultra-free"
 DEFAULT_FALLBACK = "opencode/muse-spark-1.3-contributor-free"
+# Cross-provider fallback activates when OpenCode Zen itself is down (the
+# DEFAULT_FALLBACK shares the same provider, so it fails too on a full
+# provider outage). OpenRouter's gemma-3-27b-it:free is the safety net.
+CROSS_PROVIDER_FALLBACK = "openrouter/google/gemma-3-27b-it:free"
 
 # Built-in (non-.md) agents still need a fallback so they degrade instead of
 # hard-failing when the primary provider returns 429/5xx.
@@ -35,19 +39,29 @@ BUILTIN_AGENTS = {
 }
 
 # Fallback routing is executed by this plugin; without it `fallback_models`
-# is inert.
+# is inert. 401/402/403 are included because a provider returning an auth or
+# quota error (e.g. GitHub Copilot subscription credits exhausted → 403, or
+# the PAT-rejected "not supported for this endpoint" 400) must still fail over
+# to a different provider rather than hard-failing the agent.
 PLUGIN = [
     [
         "opencode-runtime-fallback@0.2.4",
         {
             "enabled": True,
-            "retry_on_errors": [429, 500, 502, 503, 504],
+            "retry_on_errors": [400, 401, 402, 403, 429, 500, 502, 503, 504],
             "retryable_error_patterns": [
                 "upstream error",
                 "temporarily overloaded",
                 "service temporarily unavailable",
+                "subscription",
+                "quota",
+                "credits",
+                "exceeded",
+                "insufficient",
+                "not supported for this endpoint",
+                "bad request",
             ],
-            "max_fallback_attempts": 1,
+            "max_fallback_attempts": 2,
             "cooldown_seconds": 120,
             "timeout_seconds": 45,
             "notify_on_fallback": True,
@@ -153,7 +167,7 @@ def main():
         agent["prompt"] = agent["prompt"] + shared
 
     builtins = {
-        name: {**spec, "fallback_models": [DEFAULT_FALLBACK]}
+        name: {**spec, "fallback_models": [DEFAULT_FALLBACK, CROSS_PROVIDER_FALLBACK]}
         for name, spec in BUILTIN_AGENTS.items()
     }
 
