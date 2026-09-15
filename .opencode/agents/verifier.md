@@ -1,9 +1,10 @@
 ---
 description: Independent verification agent. Runs backend, frontend, and Android test suites and reviews diffs against acceptance criteria. Read-only — never edits code.
 mode: subagent
-model: github-copilot/claude-opus-5
+model: opencode/nemotron-3-ultra-free
 fallback_models:
   - opencode/muse-spark-1.3-contributor-free
+  - openrouter/google/gemma-3-27b-it:free
 permission:
   edit: deny
   bash:
