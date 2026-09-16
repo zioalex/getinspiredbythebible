@@ -34,7 +34,46 @@ describe("ServerConfigProvider", () => {
     });
 
     expect(result.current.maxMessageLength).toBe(500);
+    expect(result.current.sessionMaxRequests).toBe(10);
   });
+
+  // BITB-118: the per-session message cap follows the same server-config /
+  // fail-open pattern as max_message_length above.
+  it("adopts the server session_max_requests value when /config succeeds", async () => {
+    const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ chat: { session_max_requests: 25 } }),
+    });
+
+    const { result } = renderHook(() => useServerConfig(), {
+      wrapper: wrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.sessionMaxRequests).toBe(25);
+    });
+  });
+
+  it.each([0, -5, 12.5, "10", null, undefined])(
+    "keeps the sessionMaxRequests fallback when the value is invalid (%p)",
+    async (invalidValue) => {
+      const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ chat: { session_max_requests: invalidValue } }),
+      });
+
+      const { result } = renderHook(() => useServerConfig(), {
+        wrapper: wrapper(),
+      });
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalled();
+      });
+      expect(result.current.sessionMaxRequests).toBe(10);
+    },
+  );
 
   it("adopts the server value when /config succeeds", async () => {
     const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;

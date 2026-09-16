@@ -195,6 +195,57 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### 🎯 BITB-156: Android Server-Driven Session Limit + BITB-118 Instrumentation/IP-Cap Follow-Up
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-09-16
+
+**As** an Android user hitting the session message cap, **I want** the same non-destructive
+"Continue this conversation" option and server-driven limit copy the web app now has, **so that**
+I don't lose my conversation just because I'm on the app instead of the browser. This is the
+Android half of BITB-118, deliberately split out once the web/backend slice shipped so each PR
+stays reviewable.
+
+**Scope:**
+
+- Replace `const val MAX_INTERACTIONS = 10` in
+  `android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt:171`
+  (also read at lines ~316 and ~590) with a value sourced from `GET /config` →
+  `chat.session_max_requests` (now published by the backend), falling back to 10 if the fetch
+  hasn't resolved yet — mirroring the web `useServerConfig()` pattern.
+- Convert `error_session_limit` in `android/app/src/main/res/values/strings.xml:199` and all 11
+  `values-*/strings.xml` locale copies from a literal "10" to a `%1$d` format argument.
+- Add a non-destructive `continueConversation()` action alongside the existing
+  `startNewConversation()` in `ChatViewModel.kt`: rotates the persisted session id only, leaves
+  `messages`/`currentConversationId` untouched, and a matching button in `ChatScreen.kt` next to
+  the existing "Start New Session" button.
+- The deferred acceptance criteria from BITB-118 that this PR did not attempt: privacy-reviewed
+  instrumentation (threshold hits, continue-vs-restart selection, post-threshold depth) deployed
+  and validated *before* any change to the default of 10; trusted-ingress verification and
+  shared-IP/NAT measurement before any per-IP daily cap; and the Postgres idle-purge-horizon
+  hardcoding noted in the BITB-118 story ("Idle expiry has one defined production behavior").
+
+**Acceptance Criteria (summary):**
+
+- [ ] Android reads `session_max_requests` from `/config`; no hardcoded `10` left in
+      `ChatViewModel.kt` or any locale's `strings.xml`
+- [ ] Android offers "Continue this conversation" alongside "Start New Session"; continuing
+      preserves `messages`/`currentConversationId` and the next send succeeds
+- [ ] Instrumentation for threshold hits / continue vs. restart / post-threshold depth is deployed,
+      privacy-reviewed, and produces a real observation window before any default-value change
+- [ ] Trusted-proxy chain for `X-Forwarded-For`/`X-Real-IP` is verified and shared-IP/NAT exposure
+      is measured before any per-IP daily cap is proposed
+- [ ] The Postgres idle-purge horizon (`scripts/migrations/010_schedule_rate_limit_purge.sql`,
+      hardcoded `interval '1 hour'`) either reads `rate_limit_session_ttl_seconds` or the mismatch
+      is explicitly documented and tested
+
+**Full Story:**
+`docs/BACKLOG_STORIES/BITB-156-android-server-driven-session-limit-and-instrumentation.md`
+
+---
+
 ### 🚧 BITB-154: KubeOpenCode Multi-Provider Resilience — Cross-Provider Fallback + Survive Provider Outage
 
 **Status:** 🚧 In Progress (PR #1077)
@@ -2539,9 +2590,10 @@ via the keyboard mic; this story buys discoverability and locale control, not a 
 
 ---
 
-### 🎯 BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
+### 🚧 BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 Partially Shipped — backend + web slice; Android + instrumentation + IP cap in
+BITB-156
 **Size:** M (1–2 days, backend + web + Android + 11 locales)
 **Created:** 2026-09-04
 
@@ -2563,11 +2615,15 @@ threshold, and consider an IP ceiling only after trusted-ingress and shared-NAT 
 **Acceptance Criteria (summary):**
 
 - [ ] Instrumentation deployed and validated before threshold/NAT data selects either limit
-- [ ] Limit genuinely tunable — no literal "10" left in any locale, count interpolated everywhere
-- [ ] "Continue this conversation" preserves the thread and the next message returns 200
-- [ ] Clients read the limit from the server (header/config), never a client-side constant
+- [x] Limit genuinely tunable, no literal "10", count interpolated — **web only**; Android in
+      BITB-156
+- [x] "Continue this conversation" preserves the thread and the next message returns 200 — web only
+- [x] Clients read the limit from the server (header/config), never a client-side constant — web
+      only
 - [ ] Trusted proxy chain precedes any IP cap; shared-IP false positives are measured and mitigated
 - [ ] Config scope covers API, Terraform/env manifest, web/Android clients, usage and security docs
+
+Remaining scope tracked in BITB-156.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-118-flexible-session-message-limit.md`
 
