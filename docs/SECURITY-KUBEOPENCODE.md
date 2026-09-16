@@ -47,10 +47,12 @@ Add a supplemental `NetworkPolicy` opening only that IP:port.
 `valueFrom.secretKeyRef` still leaks via `/proc/1/environ`, `env`, crash dumps.
 Use:
 
-1. `secret/opencode-api-key` mounted `0400` at `/run/secrets/opencode/api-key`
+1. `secret/opencode-api-key` (created imperatively, never committed to git)
+   mounted `0400` at `/run/secrets/opencode/api-key`
 2. Server reads `OPENCODE_API_KEY_FILE`, wrapper unsets `OPENCODE_API_KEY`
    after start and binds `--hostname 127.0.0.1`
-3. Per-agent keys, rotate via annotation `kubeopencode.io/rotate: "true"`
+3. Per-agent keys; rotate by re-running the imperative `create secret` below
+   (the `kubeopencode.io/rotate: "true"` annotation marks rotation intent)
 4. Enforce auth on `/api/session` (currently unauthenticated)
 
 ## Zero-downtime rollout
@@ -58,7 +60,13 @@ Use:
 `NetworkPolicy` enforces on apply, no audit mode. Apply in order:
 
 ```bash
-kubectl apply -f secret-opencode-api-key.yaml
+# Secret created imperatively (real value only in the operator's shell env,
+# never in git -- same pattern as deployment/kubeopencode/README.md):
+kubectl -n kubeopencode-system create secret generic opencode-api-key \
+  --from-literal=api-key="$OPENCODE_API_KEY" \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n kubeopencode-system label secret opencode-api-key --overwrite app.kubernetes.io/part-of=kubeopencode
+kubectl -n kubeopencode-system annotate secret opencode-api-key --overwrite kubeopencode.io/rotate=true
 kubectl apply -f role-agent.yaml -f rolebinding-agent.yaml
 kubectl apply -f networkpolicy-egress-strict.yaml
 kubectl apply -f networkpolicy-allow-server-ingress.yaml

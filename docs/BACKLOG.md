@@ -244,6 +244,7 @@ localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
 - [ ] Strict egress: public `443/53` OK, RFC1918 + `169.254/16` blocked, K8s API still reachable
 - [ ] `localhost:11434` Ollama keeps working, LAN opt-in via annotation
 - [ ] API key via `0400` file mount, `env` clean, `/api/session` requires auth
+- [ ] No committed secret value: `opencode-api-key` created imperatively
 - [ ] Zero-downtime rollout (egress-allow before default-deny, 30m standby drain)
 - [ ] `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
 - [ ] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies

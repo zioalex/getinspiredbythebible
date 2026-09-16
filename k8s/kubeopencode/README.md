@@ -12,7 +12,8 @@ Use
 Apply in order (strict tier, zero-downtime — see `docs/SECURITY-KUBEOPENCODE.md`):
 
 ```bash
-kubectl apply -f secret-opencode-api-key.yaml
+# Secret created imperatively first (full recipe in docs/SECURITY-KUBEOPENCODE.md):
+kubectl -n kubeopencode-system create secret generic opencode-api-key --from-literal=api-key="$OPENCODE_API_KEY" --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f role-agent.yaml -f rolebinding-agent.yaml
 kubectl apply -f networkpolicy-egress-strict.yaml -f networkpolicy-allow-server-ingress.yaml
 # verify new agent works, then:

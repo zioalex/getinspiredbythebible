@@ -15,8 +15,9 @@ spec:
   # (see docs/SECURITY-KUBEOPENCODE.md).
   serviceAccountName: kubeopencode-agent
   # Hardening: operator should bind serve to 127.0.0.1, mount
-  # secret/opencode-api-key as 0400 /run/secrets/opencode/api-key,
-  # prefer OPENCODE_API_KEY_FILE over ENV, and unset ENV after start.
+  # secret/opencode-api-key (created imperatively, see SECURITY doc) as 0400
+  # /run/secrets/opencode/api-key, prefer OPENCODE_API_KEY_FILE over ENV,
+  # and unset ENV after start.
   # LAN access is opt-in via kubeopencode.io/allow-lan (e.g. "ollama:11434").
   persistence:
     sessions:
