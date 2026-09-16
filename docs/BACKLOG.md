@@ -195,7 +195,6 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-<<<<<<< HEAD
 ### 🎯 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
 
 **Status:** 🎯 Todo
@@ -225,7 +224,7 @@ ship `it` (where we have a real report) and do not invent cultural notes for ten
 - [ ] `it` vs `en`/`de` negative-feedback rate baselined before rollout
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-151-culturally-tuned-pastoral-tone.md`
-=======
+
 ### 🚧 BITB-154: KubeOpenCode Multi-Provider Resilience — Cross-Provider Fallback + Survive Provider Outage
 
 **Status:** 🚧 In Progress (PR #1077)
@@ -253,7 +252,6 @@ slots, move the three Copilot primaries to `opencode/nemotron-3-ultra-free`, add
 - [ ] Live cluster synced (`make sync-opencode-configmap` + pod restart, needs write RBAC)
 
 Full story: [`BITB-154-kubeopencode-multi-provider-resilience.md`](BACKLOG_STORIES/BITB-154-kubeopencode-multi-provider-resilience.md)
->>>>>>> origin/main
 
 ---
 
