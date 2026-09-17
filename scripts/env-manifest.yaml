@@ -173,6 +173,15 @@ variables:
     description: Backend API URL for frontend
     default: http://localhost:8000
 
+  # Optional: Footer.tsx has a hardcoded placeholder fallback, so this is not
+  # wired into docker-compose.yml or Terraform (required_in intentionally
+  # omitted from {local, remote, both} so validate-env.py doesn't require it
+  # anywhere). A human sets the real value via env var when ready (BITB-074).
+  NEXT_PUBLIC_DONATE_URL:
+    required_in: none
+    description: Ko-fi/support URL for the Footer "Support us" link (placeholder until a human sets the real one)
+    default: https://ko-fi.com/voxquieta
+
   NODE_ENV:
     required_in: remote
     description: Node environment

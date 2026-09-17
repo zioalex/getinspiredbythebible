@@ -181,6 +181,7 @@
     <string name="settings_terms_of_service">Conditions d\'utilisation</string>
     <string name="settings_changelog_title">Nouveautés</string>
     <string name="settings_changelog_link">Nouveautés</string>
+    <string name="settings_support_us">Soutenez Vox Quieta</string>
     <string name="changelog_empty">Aucune note de version n\'est disponible pour le moment.</string>
     <string name="whats_new_title">Nouveautés</string>
     <string name="whats_new_dismiss">J\'ai compris</string>

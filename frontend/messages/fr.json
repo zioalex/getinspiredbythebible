@@ -282,7 +282,8 @@
   "Footer": {
     "changelog": "Changelog",
     "getApp": "Obtenir l'app",
-    "about": "À propos"
+    "about": "À propos",
+    "supportUs": "Soutenez-nous"
   },
   "App": {
     "metaTitle": "Obtenez l'application Vox Quieta",
