@@ -30,15 +30,15 @@ describe("Footer", () => {
 
   it("labels the Support us link with the translated Footer.supportUs copy", () => {
     renderWithIntl(<Footer />);
-    expect(
-      screen.getByText(enMessages.Footer.supportUs),
-    ).toBeInTheDocument();
+    expect(screen.getByText(enMessages.Footer.supportUs)).toBeInTheDocument();
   });
 
   it("opens the Support us link in a new tab without leaking a referrer/opener", () => {
     renderWithIntl(<Footer />);
 
-    const supportLink = screen.getByText(enMessages.Footer.supportUs).closest("a");
+    const supportLink = screen
+      .getByText(enMessages.Footer.supportUs)
+      .closest("a");
     expect(supportLink).not.toBeNull();
     expect(supportLink).toHaveAttribute("target", "_blank");
     expect(supportLink).toHaveAttribute("rel", "noopener noreferrer");
@@ -47,7 +47,9 @@ describe("Footer", () => {
   it("renders the other five links as internal (no target/rel attributes)", () => {
     renderWithIntl(<Footer />);
 
-    const internalLink = screen.getByText(enMessages.Footer.getApp).closest("a");
+    const internalLink = screen
+      .getByText(enMessages.Footer.getApp)
+      .closest("a");
     expect(internalLink).not.toBeNull();
     expect(internalLink).not.toHaveAttribute("target");
     expect(internalLink).not.toHaveAttribute("rel");
