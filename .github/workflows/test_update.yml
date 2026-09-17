@@ -313,8 +313,8 @@ jobs:
           cat > .env << EOF
           LLM_PROVIDER=openrouter
           OPENROUTER_API_KEY=${{ secrets.TF_VAR_OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct:free
-          OPENROUTER_FALLBACK_MODELS=meta-llama/llama-3.3-70b-instruct
+          OPENROUTER_MODEL=meta-llama/llama-3.3-70b-instruct
+          OPENROUTER_FALLBACK_MODELS=google/gemma-4-31b-it
           OPENROUTER_ALLOW_FALLBACKS=true
           # docker-compose.yml already defaults to this, but pin it explicitly so this
           # job keeps working even if that default changes. This ephemeral, single-
