@@ -181,6 +181,7 @@
     <string name="settings_terms_of_service">Условия обслуживания</string>
     <string name="settings_changelog_title">Что нового</string>
     <string name="settings_changelog_link">Что нового</string>
+    <string name="settings_support_us">Поддержать Vox Quieta</string>
     <string name="changelog_empty">Заметки о выпуске пока недоступны.</string>
     <string name="whats_new_title">Что нового</string>
     <string name="whats_new_dismiss">Понятно</string>

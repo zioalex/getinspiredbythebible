@@ -181,6 +181,7 @@
     <string name="settings_terms_of_service">Términos de servicio</string>
     <string name="settings_changelog_title">Novedades</string>
     <string name="settings_changelog_link">Novedades</string>
+    <string name="settings_support_us">Apoya a Vox Quieta</string>
     <string name="changelog_empty">Aún no hay notas de versión disponibles.</string>
     <string name="whats_new_title">Novedades</string>
     <string name="whats_new_dismiss">Entendido</string>

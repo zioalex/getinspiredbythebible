@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-128/129 in progress)
+**Last Updated:** 2026-09-17 (BITB-157 created — wire donate URL into deployment, follow-up from BITB-074/PR #1084)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -4022,6 +4022,25 @@ Basic Android app scaffold with Kotlin, Jetpack Compose, and Ollama embedding pr
 Includes chat interface, verse display, and local-first architecture.
 
 **PR:** #156
+
+---
+
+### 🎯 BITB-157: Wire `NEXT_PUBLIC_DONATE_URL` Into Docker Compose / Dockerfile / Azure Deploy
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-17
+
+**As** the maintainer, **I want** `NEXT_PUBLIC_DONATE_URL` to actually reach a built/deployed
+frontend, **so that** changing the Support-Us donate URL doesn't require a source edit.
+
+BITB-074 (PR #1084) documented this var in `.env.*.example` / `scripts/env-manifest.yaml`, but it
+is not forwarded by `docker-compose.yml`'s `frontend` service, declared in `frontend/Dockerfile`,
+or passed as a build arg in `azure-deploy.yml` — so today it has no effect anywhere; the effective
+donate URL is the hardcoded fallback in `Footer.tsx`.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-157-wire-donate-url-into-deployment.md`
 
 ---
 

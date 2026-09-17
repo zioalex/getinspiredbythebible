@@ -282,7 +282,8 @@
   "Footer": {
     "changelog": "변경 로그",
     "getApp": "앱 다운로드",
-    "about": "소개"
+    "about": "소개",
+    "supportUs": "후원하기"
   },
   "App": {
     "metaTitle": "Vox Quieta 앱 받기",

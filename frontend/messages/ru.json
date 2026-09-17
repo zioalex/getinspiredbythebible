@@ -282,7 +282,8 @@
   "Footer": {
     "changelog": "Журнал изменений",
     "getApp": "Установить приложение",
-    "about": "О нас"
+    "about": "О нас",
+    "supportUs": "Поддержать нас"
   },
   "App": {
     "metaTitle": "Скачайте приложение Vox Quieta",
