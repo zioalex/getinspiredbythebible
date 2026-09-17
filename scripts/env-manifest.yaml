@@ -5,7 +5,11 @@
 # Used by validate-env.py to ensure docker-compose and Terraform stay in sync.
 #
 # Fields:
-#   - required_in: where this variable must be set (local, remote, both)
+#   - required_in: where this variable must be set (local, remote, both, none)
+#     `none` documents a var that validate-env.py never requires anywhere
+#     (e.g. one with a hardcoded source-level fallback, not yet wired into
+#     docker-compose/Terraform) — it's still listed here so it isn't flagged
+#     as an unmanifested stray var.
 #   - condition: optional condition for when the variable is needed
 #   - default: default value in config.py (for documentation)
 #   - description: what this variable does

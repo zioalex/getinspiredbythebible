@@ -2,8 +2,12 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 
 // Placeholder Ko-fi page — a human must replace this with the real,
-// permanent support URL (via NEXT_PUBLIC_DONATE_URL) before relying on it
-// (BITB-074).
+// permanent support URL before relying on it (BITB-074). NEXT_PUBLIC_DONATE_URL
+// is documented in .env.*.example / scripts/env-manifest.yaml but is NOT YET
+// wired into docker-compose.yml, frontend/Dockerfile, or azure-deploy.yml's
+// build args — Next.js inlines NEXT_PUBLIC_* at build time, so setting the
+// env var alone has no effect on a built/deployed app today. Until that
+// plumbing lands, edit the fallback string below directly.
 const DONATE_URL =
   process.env.NEXT_PUBLIC_DONATE_URL || "https://ko-fi.com/voxquieta";
 
