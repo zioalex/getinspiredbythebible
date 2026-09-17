@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-128/129 in progress)
+**Last Updated:** 2026-09-14 (BITB-153 created and done: fixed status drift on BITB-029, 030,
+047, 062, 100 and added a CI guard against recurrence; BITB-154 created — KubeOpenCode
+multi-provider resilience; BITB-128/129 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -464,10 +466,10 @@ misreported as a generic 500.
 
 ---
 
-### 🚧 BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
+### ✅ BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
 
-**Status:** 🚧 In Progress — candidate-pool CTE + topics HNSW index + FTS rewrite shipped; persisted
-`tsvector` column and the deployed perf re-run deferred (see full story's Scope Note)
+**Status:** ✅ Done (2026-08-18) — candidate-pool CTE, topics index, FTS rewrite, and the
+persisted `tsvector` column all shipped (see full story for detail)
 **Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
 **Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — S2 (context: S5, S7)
@@ -1775,6 +1777,29 @@ orphaned story files exist with no backlog section (e.g. `BITB-025-verse-linking
 
 ---
 
+### ✅ BITB-153: docs/BACKLOG.md Status Drifts From Finished Story Files
+
+**Status:** ✅ Done
+**Priority:** P2
+**Size:** S
+**Created:** 2026-09-14
+
+**As** the scheduled session picking up the next backlog story, **I want** this index's status to
+be trustworthy, **so that** "is this already done?" is answerable without opening every candidate
+story's own file. A first guard run found five stories (BITB-029, 030, 047, 062, 100) marked ✅
+Done in their own file while this index still showed them open — the same *shape* of problem as
+BITB-111, but drifted status rather than a colliding ID.
+
+**Acceptance Criteria (summary):**
+
+- [x] CI guard flags a `✅ Done` story file whose `BACKLOG.md` entry is not also `✅`
+      (`scripts/check_backlog_status_sync.py`), skipping ids BITB-111 still owns (multi-file ids)
+- [x] The five confirmed drifted entries fixed in this same PR
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-153-backlog-status-index-drift.md`
+
+---
+
 ### 🚧 BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
 
 **Status:** 🚧 In Progress — automation + coverage alarm shipped; AC5 (production rows observed)
@@ -2063,9 +2088,9 @@ rotation is the trigger, and rotations happen during incident response.
 
 ---
 
-### 🎯 BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
+### ✅ BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-08-25)
 **Priority:** P2
 **Size:** S–M
 
@@ -2698,9 +2723,9 @@ only public-domain / freely redistributable texts (NIV, ESV, CEI 2008 excluded).
 
 ---
 
-### 🎯 BITB-047: One-Tap Copy of the User's Prompt (Web + Android)
+### ✅ BITB-047: One-Tap Copy of the User's Prompt (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-12
 
@@ -2910,9 +2935,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-029: Surface Bible Version Information More Clearly
+### ✅ BITB-029: Surface Bible Version Information More Clearly
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — amber chip badge in top header bar (web); backend prompt guidance already
+wired (`BIBLE_VERSION_GUIDANCE`)
 **Size:** S (< 4 hours)
 **Created:** 2026-05-10
 
@@ -3585,9 +3611,10 @@ submission is rejected for an invalid email, **so that** I can fix it instead of
 
 ---
 
-### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
+### ✅ BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (ChatTopBarPolicy.kt enforces Language + Bible version only; extras moved to
+drawer; verified 2026-05-24)
 **Size:** S (< 4 hours)
 **Created:** 2026-05-10
 
