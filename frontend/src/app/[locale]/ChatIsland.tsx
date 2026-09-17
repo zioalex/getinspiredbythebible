@@ -103,7 +103,7 @@ export default function ChatIsland({
     isEnabled: turnstileEnabled,
     configLoaded: turnstileConfigLoaded,
   } = useTurnstile();
-  const { maxMessageLength } = useServerConfig();
+  const { maxMessageLength, sessionMaxRequests } = useServerConfig();
   // Block submissions until /config has resolved: until then we don't yet
   // know whether Turnstile is enabled, and a fast click could fire a POST
   // without an X-Turnstile-Token header and get bounced as 403.
@@ -731,7 +731,11 @@ export default function ChatIsland({
 
       // Handle session limit error specifically
       if (error instanceof SessionLimitError) {
-        showError(tChat("sessionLimitMessage"));
+        showError(
+          tChat("sessionLimitMessage", {
+            max: error.limit ?? sessionMaxRequests,
+          }),
+        );
         setShowSessionLimitButton(true);
         setIsLoading(false);
         return;
@@ -849,6 +853,17 @@ export default function ChatIsland({
         versesCited: m.versesCited,
       })),
     );
+  };
+
+  // BITB-118: the non-destructive default for a session-limit hit. Rotates
+  // only the rate-limit key (a fresh session_id gets a fresh server-side
+  // quota) — unlike handleNewSession below, it deliberately does NOT touch
+  // messages/conversationId/verses/etc., so the visible thread survives and
+  // the very next send just works (no more 429).
+  const handleContinueConversation = () => {
+    const newSessionId = resetSessionId(); // generate + persist new ID
+    setSessionId(newSessionId); // update state so next API call uses it
+    setShowSessionLimitButton(false);
   };
 
   const handleNewSession = () => {
@@ -1168,12 +1183,22 @@ export default function ChatIsland({
 
         {/* Input Area */}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4">
-          {/* Session Limit Button */}
+          {/* Session Limit Buttons: "Continue" (non-destructive, keeps the
+              visible thread) is the primary default; "Start New Session"
+              (wipes the thread) stays available as a secondary, explicit
+              opt-in for a genuine clean slate. */}
           {showSessionLimitButton && (
-            <div className="mb-4 flex justify-center">
+            <div className="mb-4 flex flex-col sm:flex-row justify-center gap-2">
+              <button
+                onClick={handleContinueConversation}
+                className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors flex items-center gap-2 justify-center"
+              >
+                <RefreshCw className="w-5 h-5" />
+                {tChat("continueConversation")}
+              </button>
               <button
                 onClick={handleNewSession}
-                className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors flex items-center gap-2"
+                className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2 justify-center"
               >
                 <RefreshCw className="w-5 h-5" />
                 {tChat("startNewSession")}
