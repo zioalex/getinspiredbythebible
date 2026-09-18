@@ -105,13 +105,77 @@ pods differently, fix both `podSelector`s before relying on the tier --
 ## Verify
 
 ```bash
-env | grep -i key # empty
-curl -s localhost:4096/api/session # 401
-timeout 3 bash -c "echo > /dev/tcp/192.168.178.200/6443" # fail
-curl -s https://openrouter.ai/api/v1/models | head # OK
-kubectl auth can-i list pods -n kubeopencode-system # no
-kubectl auth can-i create networkpolicies -n kubeopencode-system # no (operator-only)
-kubectl auth can-i patch agents -n kubeopencode-system # no (agent can't self-escalate allow-lan)
+make verify-kubeopencode-netpol      # or: bash scripts/verify-kubeopencode-netpol.sh
+```
+
+Exits non-zero if any guarantee below is broken, so it drops straight into a
+pipeline stage that has a kubeconfig. It stands up three throwaway pods and one
+Service, then deletes them (`KEEP_PROBES=1` to leave them for debugging).
+`NAMESPACE`, `LAN_TARGET`, `PUBLIC_URL`, `CURL_IMAGE`, `LISTENER_IMAGE` and
+`TIMEOUT` are env overrides.
+
+It uses purpose-built probes rather than exec-ing into a live agent for two
+reasons. Agents scale to zero on `standby.idleTimeout`, so a suite pinned to a
+real agent fails with `error: timed out waiting for the condition` depending on
+who used the cluster last. And the probes wear the two label sets *deliberately*
+-- absent vs. present `managed-by` -- which is what the policies select on, so
+the suite tests the policy rather than one pod's current labels.
+
+| from | to | expected |
+| --- | --- | --- |
+| platform | workspace `:4096` | reachable |
+| platform | kubernetes API | reachable |
+| agent | kubernetes API | reachable |
+| agent | public HTTPS | reachable |
+| agent | LAN (`192.168.178.200:6443`) | blocked |
+| agent | cloud metadata (`169.254.169.254`) | blocked |
+| agent | another agent `:4096` | blocked |
+
+Plus the RBAC half of the `allow-lan` trust boundary, impersonating the agent SA:
+`list pods` yes; `patch pods`, `create networkpolicies`, `patch agents` and
+`get secrets` no.
+
+A blocked result is a connection that never completed (`curl` exit 7 or 28). The
+script separates that from a name that did not resolve (exit 6) on purpose: a
+broken-DNS regression must not be able to masquerade as a passing "blocked"
+assertion, which is exactly how the outage above would have slipped through.
+
+The selector invariants are also checked without a cluster, in CI:
+
+```bash
+make test-kubeopencode-netpol        # scripts/test_kubeopencode_netpol.py
+```
+
+### Manual spot checks
+
+These run *inside* a pod, and the shell there is dash/busybox -- `/dev/tcp` is a
+bash builtin and fails with "Directory nonexistent" whatever the policy does, so
+use `curl` and read the exit code:
+
+```bash
+POD=$(kubectl -n kubeopencode-system get pod -l app.kubernetes.io/managed-by=kubeopencode \
+  -o jsonpath='{.items[0].metadata.name}')
+kubectl -n kubeopencode-system exec "$POD" -- sh -c 'env | grep -i key'          # empty
+kubectl -n kubeopencode-system exec "$POD" -- \
+  curl -s -o /dev/null -w '%{http_code}\n' localhost:4096/api/session            # 401
+kubectl -n kubeopencode-system exec "$POD" -- \
+  sh -c 'curl -sk -m 3 -o /dev/null -w "%{http_code}\n" https://192.168.178.200:6443/version; echo exit=$?'
+                                                                                 # 000, exit=7 or 28
+kubectl -n kubeopencode-system exec "$POD" -- \
+  curl -s -o /dev/null -w '%{http_code}\n' https://openrouter.ai/api/v1/models    # 200
+```
+
+RBAC has to impersonate the agent service account. Without `--as=` these answer
+for whoever runs them, which is normally a cluster admin -- every answer is yes
+and the check is worthless:
+
+```bash
+SA=system:serviceaccount:kubeopencode-system:kubeopencode-agent
+kubectl auth can-i list pods -n kubeopencode-system --as=$SA              # yes (role-agent.yaml grants it)
+kubectl auth can-i patch pods -n kubeopencode-system --as=$SA             # no (no self-annotation)
+kubectl auth can-i create networkpolicies -n kubeopencode-system --as=$SA # no (operator-only)
+kubectl auth can-i patch agents.kubeopencode.io -n kubeopencode-system --as=$SA # no (no allow-lan self-escalation)
+kubectl auth can-i get secrets -n kubeopencode-system --as=$SA            # no
 ```
 
 ## Troubleshooting
