@@ -259,9 +259,8 @@ docker run -d --rm --name bitb106-pg -e POSTGRES_USER=bible \
   -e POSTGRES_PASSWORD=bible123 -e POSTGRES_DB=bibledb \
   -p 127.0.0.1:55432:5432 pgvector/pgvector:pg16   # pragma: allowlist secret
 export DATABASE_URL="postgresql+asyncpg://bible:bible123@127.0.0.1:55432/bibledb"   # pragma: allowlist secret
-psql "postgresql://bible:bible123@127.0.0.1:55432/bibledb" -f scripts/init.sql
-psql "postgresql://bible:bible123@127.0.0.1:55432/bibledb" \
-  -f scripts/migrations/004_add_topic_boosting_schema.sql
+psql "postgresql://bible:bible123@127.0.0.1:55432/bibledb" -f scripts/init.sql   # pragma: allowlist secret
+psql "postgresql://bible:bible123@127.0.0.1:55432/bibledb" -f scripts/migrations/004_add_topic_boosting_schema.sql   # pragma: allowlist secret
 python scripts/load_bible.py --translation ita1927
 python scripts/load_bible.py --translation ls1910
 python scripts/populate_verse_topics.py --dry-run --verbose
