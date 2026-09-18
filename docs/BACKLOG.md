@@ -195,6 +195,36 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### 🎯 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M (`it` only; each further locale is S)
+**Created:** 2026-09-12
+**Reported by:** product owner, relaying Italian users — "the answers are too cold"
+
+**As** someone writing about something painful in my own language, **I want** the reply to carry
+warmth the way my culture carries it, **so that** it reads as a person being close to me — while a
+plain Bible question still gets the same clear, neutral answer it gets today.
+
+**Approach:** gate cultural tone on the *intent that already exists*. `COMFORT`/`GUIDANCE` get a
+short per-locale pastoral-register addendum layered onto the persona (the
+`COMPASSIONATE_RESPONSE_ADDENDUM` pattern); `CURIOSITY`/`VERSE_LOOKUP`/`GENERAL`/`OFF_TOPIC`/
+`NEEDS_CLARIFICATION` are untouched. No extra LLM call — `_detect_intent()` already runs and is on by
+default. Registry empty by default: a locale with no entry behaves byte-identically to today, so we
+ship `it` (where we have a real report) and do not invent cultural notes for ten other languages.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Addendum present for `COMFORT`/`GUIDANCE` + registry locale; absent for informational intents
+- [ ] No registry entry, or flag off ⇒ system prompt byte-identical to today
+- [ ] Same gate on both the blocking and streaming chat paths; crisis addendum still last and unchanged
+- [ ] Verse-grounding / citation suites pass unchanged; ~10 Italian before/after samples reviewed by a
+  native speaker who is not the author
+- [ ] `it` vs `en`/`de` negative-feedback rate baselined before rollout
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-151-culturally-tuned-pastoral-tone.md`
+
 ### 🚧 BITB-154: KubeOpenCode Multi-Provider Resilience — Cross-Provider Fallback + Survive Provider Outage
 
 **Status:** 🚧 In Progress (PR #1077)
