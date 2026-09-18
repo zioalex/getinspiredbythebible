@@ -15,8 +15,8 @@ Apply in order (strict tier, zero-downtime — see `docs/SECURITY-KUBEOPENCODE.m
 # Secret created imperatively first (full recipe in docs/SECURITY-KUBEOPENCODE.md):
 kubectl -n kubeopencode-system create secret generic opencode-api-key --from-literal=api-key="$OPENCODE_API_KEY" --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f role-agent.yaml -f rolebinding-agent.yaml
-kubectl apply -f networkpolicy-egress-strict.yaml -f networkpolicy-allow-server-ingress.yaml
-# verify new agent works, then:
+kubectl apply -f networkpolicy-egress-strict.yaml -f networkpolicy-egress-server.yaml -f networkpolicy-allow-server-ingress.yaml
+# verify new agent works AND the server still resolves DNS, then:
 kubectl apply -f networkpolicy-default-deny.yaml
 kubectl apply -f agent-desktop.yaml -f ingress-server.yaml
 ```

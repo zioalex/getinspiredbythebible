@@ -13,13 +13,23 @@ spec:
   policyTypes:
     - Egress
   egress:
+    # Cluster DNS. Two peers on purpose:
+    #   1. the CoreDNS pods, matched by the label the API server adds to every
+    #      namespace (`kubernetes.io/metadata.name`). A bare `name: kube-system`
+    #      label is NOT set by default on k3s or upstream k8s, so selecting on it
+    #      matches zero peers and every lookup dies with `i/o timeout`.
+    #   2. the kube-dns ClusterIP, for CNIs that evaluate egress before DNAT.
+    #      Verify per cluster:
+    #      kubectl -n kube-system get svc kube-dns -o jsonpath='{.spec.clusterIP}'
     - to:
         - namespaceSelector:
             matchLabels:
-              name: kube-system
+              kubernetes.io/metadata.name: kube-system
           podSelector:
             matchLabels:
               k8s-app: kube-dns
+        - ipBlock:
+            cidr: 10.43.0.10/32
       ports:
         - port: 53
           protocol: UDP

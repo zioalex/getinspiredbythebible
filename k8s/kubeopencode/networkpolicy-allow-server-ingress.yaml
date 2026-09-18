@@ -20,9 +20,12 @@ spec:
         - port: 4096
           protocol: TCP
     - from:
+        # `kubernetes.io/metadata.name` is set by the API server on every
+        # namespace; a bare `name` label is not, and selecting on it would
+        # silently match zero peers.
         - namespaceSelector:
             matchLabels:
-              name: kube-system
+              kubernetes.io/metadata.name: kube-system
       ports:
         - port: 4096
           protocol: TCP
