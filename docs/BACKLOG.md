@@ -1707,9 +1707,9 @@ separator/range grammar and script-class alternations.
 
 ---
 
-### 🎯 BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
+### ✅ BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2
 **Size:** M
 **Created:** 2026-08-22
@@ -1725,13 +1725,20 @@ unblocked the moment #983 merges.
 consumer must not assume `citations` is exhaustive — the regex fallback has to stay reachable
 per-message, or Arabic users silently lose links.
 
+**Implementation note:** web-only. `frontend/src/lib/citationSpans.ts` (`linkifyWithCitations`)
+prefers each valid `citations` span and re-runs the existing regex linkifier over every gap a span
+doesn't (validly) cover — so an absent field, an empty array, a corrupt span, or a citation the
+backend's known Arabic gap omitted all degrade to the pre-existing regex behavior for that stretch of
+text. Gated by `NEXT_PUBLIC_CITATION_SPANS_ENABLED` (`frontend/src/lib/featureFlags.ts`), default off.
+Android and iOS are unaffected.
+
 **Acceptance Criteria (summary):**
 
-- [ ] Web consumes `citations` behind a flag; regex path used when the field is absent
-- [ ] Byte-identical output vs. the regex path across the shared corpus
-- [ ] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
-- [ ] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
-- [ ] A vocalized-Arabic message still renders links via the fallback
+- [x] Web consumes `citations` behind a flag; regex path used when the field is absent
+- [x] Byte-identical output vs. the regex path across the shared corpus
+- [x] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
+- [x] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
+- [x] A vocalized-Arabic message still renders links via the fallback
 
 **Depends on:** PR #983 merging.
 
@@ -2112,9 +2119,9 @@ Retrospective: `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
 
 ---
 
-### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
+### 🚧 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — decision recorded, implementation in progress
 **Priority:** P2
 **Size:** S–M
 
@@ -2128,11 +2135,43 @@ against the production URL. Traffic is encrypted but the server is unauthenticat
 certificate, any server, any hostname is accepted, against an internet-reachable endpoint.
 
 This is **deliberate** — it is what `sslmode=require` means in libpq, and BITB-016 chose it
-knowingly. What is missing is anyone having decided it is *acceptable*. The story forces that
-decision: move to `verify-full` with the Azure CA bundle, or keep `require` and record the threat
-model. Not an Alembic issue; filed separately.
+knowingly. What is missing is anyone having decided it is *acceptable*. **Decision (2026-09-09):**
+move to `verify-full`, relying on the Python/OS default CA trust store — Azure's server cert
+chains to a public root already in every standard trust store, so no CA bundle needs to be
+vendored. Every DSN that builds `sslmode=require` for the real production host moves to
+`sslmode=verify-full`; the SSL-context-building logic itself needs no change since it already
+handles `verify-full` correctly. Not an Alembic issue; filed separately.
+
+Implemented in PR #1058, independently verified (unit tests pass, no unintended logic change,
+scope complete). **Stays In Progress through merge** — the one unproven acceptance criterion is a
+live `verify-full` connection to production, which only happens on the post-merge `main` deploy
+(`run-migrations` is skipped on PRs); flip to Done once that deploy succeeds. The verify pass also
+surfaced a related-but-separate latent gap in the migration-utils mirror helper, filed as BITB-125.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
+
+---
+
+### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+
+**As a** maintainer relying on `get_migration_connection_params()` and `get_async_database_url()`
+being true mirrors of each other, **I want** the asyncpg-spelled `?ssl=...` parameter handled
+identically in both, **so that** a DSN using that spelling can't silently connect with no TLS at
+all.
+
+`get_migration_connection_params()` only checks `ssl_param == "require"`; `?ssl=verify-ca` or
+`?ssl=verify-full` fails its build condition entirely, so no `ssl` kwarg is set and asyncpg
+connects in plaintext — a worse outcome than `sslmode=require`'s merely-unverified `CERT_NONE`.
+`get_async_database_url()` doesn't have this gap (`sslmode = sslmode or ssl_param` before
+branching). Latent — no DSN in this repo currently uses that spelling — but
+`docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
+makes it easy for an operator to stumble into by hand.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 
@@ -3520,6 +3559,48 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
       (`docs/audits/2026-07-adversarial-audit.md:174`) — now re-raises and crash-loops
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-090-remove-create-all-once-alembic-owns-schema.md`
+
+---
+
+### 🎯 BITB-150: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
+
+**Status:** 🎯 Todo
+**Size:** M (the analysis is the deliverable; each fix it authorises is its own small story)
+**Created:** 2026-09-12
+**Prompted by:** Owner's spend review — "monitoring is ~25% of the cost, the DB is ~50%"
+
+**As** the person paying the Azure invoice, **I want** the monitoring and database spend broken
+down to the meter and each driver traced to the Terraform or application line that creates it,
+**so that** I can cut cost against evidence instead of guessing which knob is the expensive one.
+
+The 25/50 split is an owner-side estimate, and the published cost table in `deployment/README.md`
+is stale (it still prices a **B1ms**; `main.tf:405` has been `B_Standard_B2s` since the partial-HNSW
+upgrade). Phase 0 is a blocking meter-level attribution — nothing is changed on the estimate.
+Structural drivers already identified from the repo: Log Analytics `PerGB2018` with **no
+`daily_quota_gb` cap**, `configure_azure_monitor()` with **no sampling**, 2 web tests × 3 geos ×
+5 min = **51,840 executions/month**, 32 alert rules (17 log rules at `PT5M`), and on the database
+side **no reserved capacity**, a one-way `auto_grow_enabled` storage ratchet that Terraform can no
+longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, and 1536-dim
+4-byte vectors over 403,856 verses (`halfvec` would halve both).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Phase 0 cost table (resource → meter → 3 monthly totals) pasted into the PR with the exact
+      `az` command, reconciled against the real invoice; the 25/50 estimate confirmed or corrected
+- [ ] Log Analytics billable GB per `DataType` and App Insights records per `itemType` captured
+- [ ] **Resolved:** whether a Postgres diagnostic setting exists outside Terraform (drift to codify,
+      or ingestion to remove) — `log_connections = on` with no `azurerm_monitor_diagnostic_setting`
+      anywhere in `deployment/`
+- [ ] Real provisioned `storage_mb`, DB size, top-10 tables/indexes, and 90 days of CPU/memory
+      captured from production, with `stats_reset` alongside `idx_scan`
+- [ ] Every lever carries a saving derived from the Phase 0 table (not list prices) plus a risk
+      note; ranked by saving ÷ risk, with declines explained so they are not re-litigated
+- [ ] A follow-up story filed for each accepted lever touching schema, indexes, sampling or SKU —
+      **none implemented in this story's PR**
+- [ ] `deployment/README.md`'s stale cost table corrected; `monthly_budget = 50` reviewed against
+      actual spend
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-150-azure-cost-analysis-monitoring-and-database.md`
 
 ---
 

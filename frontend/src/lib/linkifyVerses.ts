@@ -29,7 +29,7 @@ export const VERSE_SCHEME = "verse://";
  *   - existing links      [text](url)
  * Fenced code is listed before inline code so a ``` fence wins over a single `.
  */
-const PROTECTED_REGION_SOURCE =
+export const PROTECTED_REGION_SOURCE =
   "```[\\s\\S]*?```|`[^`]*`|<!--[\\s\\S]*?-->|\\[[^\\]]*\\]\\([^)]*\\)";
 
 /**
