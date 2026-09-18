@@ -19,8 +19,8 @@ from collections import Counter
 import pytest
 
 from chat.topic_tagging import (
-    COVERAGE_GUIDELINE_PCT,
     CORPUS_KEYWORD_DENYLIST,
+    COVERAGE_GUIDELINE_PCT,
     KEYWORD_GUIDELINE_PCT,
     SUBSTRING_MATCH_LANGUAGES,
     build_keyword_matchers,

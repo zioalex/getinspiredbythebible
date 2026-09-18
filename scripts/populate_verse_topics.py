@@ -88,7 +88,10 @@ from chat.topic_tagging import (  # noqa: E402
     match_topic_keywords,
     match_topics,
 )
-from chat.topics import SUPPORTED_TOPIC_LANGUAGES, TOPIC_KEYWORDS_BY_LANGUAGE  # noqa: E402
+from chat.topics import (  # noqa: E402
+    SUPPORTED_TOPIC_LANGUAGES,
+    TOPIC_KEYWORDS_BY_LANGUAGE,
+)
 
 
 def _load_migration_utils():
@@ -369,7 +372,9 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Delete a translation's existing verse_topics rows before re-tagging it.",
     )
-    parser.add_argument("--limit", type=int, help="Only process the first N verses per translation (debugging).")
+    parser.add_argument(
+        "--limit", type=int, help="Only process the first N verses per translation (debugging)."
+    )
     parser.add_argument(
         "--batch-size",
         type=int,
