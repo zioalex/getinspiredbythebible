@@ -7,14 +7,25 @@ metadata:
     app.kubernetes.io/part-of: kubeopencode
     kubeopencode.io/tier: strict
 spec:
-  # The operator/server is caught by `default-deny-all` (podSelector: {}) but is
-  # NOT an agent pod, so `agent-egress-strict` never restores its egress. Without
-  # this policy it loses DNS and cannot reach the workspaces it proxies:
+  # Platform components (`kubeopencode-server` gateway, `kubeopencode-controller`)
+  # are caught by `default-deny-all` (podSelector: {}) but are NOT agents, so
+  # `agent-egress-strict` never restores their egress. Without this policy the
+  # gateway loses DNS and cannot reach the workspaces it proxies:
   #   dial tcp: lookup <workspace>.kubeopencode-system.svc.cluster.local
   #   on 10.43.0.10:53: i/o timeout
+  #
+  # Selected by the ABSENCE of `managed-by`, not by a name, because the two label
+  # sets in this namespace are easy to mix up:
+  #   platform:  name=kubeopencode,        instance=kubeopencode,  no managed-by
+  #   workspace: name=kubeopencode-server, instance=<agent>,       managed-by=kubeopencode
+  # `name: kubeopencode-server` is the WORKSPACE pods (already covered by
+  # agent-egress-strict), not the gateway. Keying on DoesNotExist also means every
+  # pod in the namespace is covered by exactly one of the two egress policies, so a
+  # new platform component cannot land here with no egress at all.
   podSelector:
-    matchLabels:
-      app.kubernetes.io/name: kubeopencode-server
+    matchExpressions:
+      - key: app.kubernetes.io/managed-by
+        operator: DoesNotExist
   policyTypes:
     - Egress
   egress:

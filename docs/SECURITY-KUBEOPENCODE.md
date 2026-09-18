@@ -81,21 +81,101 @@ kubectl apply -f agent-desktop.yaml
 Running agents drain via `standby.idleTimeout: 30m`. If a workload breaks,
 add a temporary tier exception annotation, never remove default-deny.
 
-> Verify the operator labels agent pods `app.kubernetes.io/managed-by:
-> kubeopencode` (`kubectl get pods -l app.kubernetes.io/managed-by=kubeopencode
-> -n kubeopencode-system`). If labels differ, `agent-egress-strict` selects
-> nothing and is silently unenforced — update `podSelector` before relying on it.
+### Label taxonomy
+
+Two label sets share the namespace, and mixing them up is the single easiest way
+to break this tier. Check yours with
+`kubectl -n kubeopencode-system get pods --show-labels`:
+
+| | platform (gateway, controller) | workspace (per agent) |
+| --- | --- | --- |
+| `app.kubernetes.io/name` | `kubeopencode` | `kubeopencode-server` |
+| `app.kubernetes.io/instance` | `kubeopencode` | the agent name |
+| `app.kubernetes.io/managed-by` | *absent* | `kubeopencode` |
+
+So `name: kubeopencode-server` is a **workspace** pod, not the gateway. The
+policies key on `managed-by` instead: present selects workspaces
+(`agent-egress-strict`), absent selects the platform (`server-egress-strict`).
+Every pod in the namespace therefore falls under exactly one egress policy, and a
+new platform component cannot land with no egress at all. If your operator labels
+pods differently, fix both `podSelector`s before relying on the tier --
+`agent-egress-strict` selecting nothing is silently unenforced, and
+`server-egress-strict` selecting nothing is a total outage for the gateway.
 
 ## Verify
 
 ```bash
-env | grep -i key # empty
-curl -s localhost:4096/api/session # 401
-timeout 3 bash -c "echo > /dev/tcp/192.168.178.200/6443" # fail
-curl -s https://openrouter.ai/api/v1/models | head # OK
-kubectl auth can-i list pods -n kubeopencode-system # no
-kubectl auth can-i create networkpolicies -n kubeopencode-system # no (operator-only)
-kubectl auth can-i patch agents -n kubeopencode-system # no (agent can't self-escalate allow-lan)
+make verify-kubeopencode-netpol      # or: bash scripts/verify-kubeopencode-netpol.sh
+```
+
+Exits non-zero if any guarantee below is broken, so it drops straight into a
+pipeline stage that has a kubeconfig. It stands up three throwaway pods and one
+Service, then deletes them (`KEEP_PROBES=1` to leave them for debugging).
+`NAMESPACE`, `LAN_TARGET`, `PUBLIC_URL`, `CURL_IMAGE`, `LISTENER_IMAGE` and
+`TIMEOUT` are env overrides.
+
+It uses purpose-built probes rather than exec-ing into a live agent for two
+reasons. Agents scale to zero on `standby.idleTimeout`, so a suite pinned to a
+real agent fails with `error: timed out waiting for the condition` depending on
+who used the cluster last. And the probes wear the two label sets *deliberately*
+-- absent vs. present `managed-by` -- which is what the policies select on, so
+the suite tests the policy rather than one pod's current labels.
+
+| from | to | expected |
+| --- | --- | --- |
+| platform | workspace `:4096` | reachable |
+| platform | kubernetes API | reachable |
+| agent | kubernetes API | reachable |
+| agent | public HTTPS | reachable |
+| agent | LAN (`192.168.178.200:6443`) | blocked |
+| agent | cloud metadata (`169.254.169.254`) | blocked |
+| agent | another agent `:4096` | blocked |
+
+Plus the RBAC half of the `allow-lan` trust boundary, impersonating the agent SA:
+`list pods` yes; `patch pods`, `create networkpolicies`, `patch agents` and
+`get secrets` no.
+
+A blocked result is a connection that never completed (`curl` exit 7 or 28). The
+script separates that from a name that did not resolve (exit 6) on purpose: a
+broken-DNS regression must not be able to masquerade as a passing "blocked"
+assertion, which is exactly how the outage above would have slipped through.
+
+The selector invariants are also checked without a cluster, in CI:
+
+```bash
+make test-kubeopencode-netpol        # scripts/test_kubeopencode_netpol.py
+```
+
+### Manual spot checks
+
+These run *inside* a pod, and the shell there is dash/busybox -- `/dev/tcp` is a
+bash builtin and fails with "Directory nonexistent" whatever the policy does, so
+use `curl` and read the exit code:
+
+```bash
+POD=$(kubectl -n kubeopencode-system get pod -l app.kubernetes.io/managed-by=kubeopencode \
+  -o jsonpath='{.items[0].metadata.name}')
+kubectl -n kubeopencode-system exec "$POD" -- sh -c 'env | grep -i key'          # empty
+kubectl -n kubeopencode-system exec "$POD" -- \
+  curl -s -o /dev/null -w '%{http_code}\n' localhost:4096/api/session            # 401
+kubectl -n kubeopencode-system exec "$POD" -- \
+  sh -c 'curl -sk -m 3 -o /dev/null -w "%{http_code}\n" https://192.168.178.200:6443/version; echo exit=$?'
+                                                                                 # 000, exit=7 or 28
+kubectl -n kubeopencode-system exec "$POD" -- \
+  curl -s -o /dev/null -w '%{http_code}\n' https://openrouter.ai/api/v1/models    # 200
+```
+
+RBAC has to impersonate the agent service account. Without `--as=` these answer
+for whoever runs them, which is normally a cluster admin -- every answer is yes
+and the check is worthless:
+
+```bash
+SA=system:serviceaccount:kubeopencode-system:kubeopencode-agent
+kubectl auth can-i list pods -n kubeopencode-system --as=$SA              # yes (role-agent.yaml grants it)
+kubectl auth can-i patch pods -n kubeopencode-system --as=$SA             # no (no self-annotation)
+kubectl auth can-i create networkpolicies -n kubeopencode-system --as=$SA # no (operator-only)
+kubectl auth can-i patch agents.kubeopencode.io -n kubeopencode-system --as=$SA # no (no allow-lan self-escalation)
+kubectl auth can-i get secrets -n kubeopencode-system --as=$SA            # no
 ```
 
 ## Troubleshooting
@@ -113,9 +193,11 @@ pods a later policy re-allows get it back. Two ways this bites:
    `0.0.0.0/0:53` rule does not cover the gap -- CoreDNS lives at `10.43.0.10`,
    inside the `except: 10.0.0.0/8` block.
 2. **The pod is not an agent.** `agent-egress-strict` only selects
-   `app.kubernetes.io/managed-by: kubeopencode`. The operator/server pod is caught
-   by the deny and restored by `networkpolicy-egress-server.yaml` instead. If your
-   server pod carries different labels, fix that policy's `podSelector` first.
+   `app.kubernetes.io/managed-by: kubeopencode`. The gateway and controller are
+   caught by the deny and restored by `networkpolicy-egress-server.yaml` instead,
+   which selects on `managed-by` being *absent*. Resolve the source IP to a pod
+   first, then check its labels against *Label taxonomy* above -- a selector that
+   names `kubeopencode-server` is matching workspaces, not the gateway.
 
 Confirm before changing anything:
 
