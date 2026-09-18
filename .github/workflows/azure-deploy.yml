@@ -1672,13 +1672,13 @@ jobs:
           DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
           echo "::add-mask::${DB_PASS_ENC}"
           export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS_ENC}"
-          export DATABASE_URL="${DATABASE_URL}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="${DATABASE_URL}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
           cd scripts/migrations
           python run_migrations.py
 
       # Alembic (api/alembic/versions/) is the current migration system.
       #
-      # SSL: the URL below says `sslmode=require`, not `ssl=require`. Alembic's
+      # SSL: the URL below says `sslmode=verify-full`, not `ssl=verify-full`. Alembic's
       # env.py connects through scripture.database.get_async_database_url(),
       # which converts a libpq-style sslmode into an asyncpg SSL context. That
       # helper strips both spellings (covered by api/tests/
@@ -1703,7 +1703,7 @@ jobs:
           DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
           echo "::add-mask::${DB_PASS_ENC}"
           export DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS_ENC}"
-          export DATABASE_URL="${DATABASE_URL}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="${DATABASE_URL}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
           cd api
           echo "=== alembic current (before) ==="
           CURRENT="$(alembic current | tail -n1 | tr -d '[:space:]')"
@@ -1861,7 +1861,7 @@ jobs:
           # "Run legacy migrations" above for the failure mode this guards).
           DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
           echo "::add-mask::${DB_PASS_ENC}"
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
           cd scripts
           python load_bible.py --status
 
@@ -1882,7 +1882,7 @@ jobs:
           # BITB-112: see "Run legacy migrations" above.
           DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
           echo "::add-mask::${DB_PASS_ENC}"
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
           cd scripts
 
           FORCE_FLAG=""
@@ -2008,7 +2008,7 @@ jobs:
           # BITB-112: see "Run legacy migrations" above.
           DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
           echo "::add-mask::${DB_PASS_ENC}"
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
           set +e
           python scripts/populate_verse_topics.py
           status=$?
@@ -2035,7 +2035,7 @@ jobs:
           # BITB-112: see "Run legacy migrations" above.
           DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
           echo "::add-mask::${DB_PASS_ENC}"
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
           # Exits 0 even when it alarms (BITB-105 decision: alarm, do not
           # fail the deploy). --strict makes violations fatal; used for the
           # documented negative rehearsal.
@@ -2076,7 +2076,7 @@ jobs:
           # BITB-112: see "Run legacy migrations" above.
           DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
           echo "::add-mask::${DB_PASS_ENC}"
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
           cd scripts
           echo "Generating embeddings with Azure OpenAI..."
           python create_azure_embeddings.py
@@ -2097,7 +2097,7 @@ jobs:
           # BITB-112: see "Run legacy migrations" above.
           DB_PASS_ENC=$(python -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["DB_PASS"], safe=""))')
           echo "::add-mask::${DB_PASS_ENC}"
-          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=require"
+          export DATABASE_URL="postgresql://${DB_USER}:${DB_PASS_ENC}@${DB_HOST}:5432/${DB_NAME}?sslmode=verify-full"
           cd scripts
           python load_bible.py --status
           # Fail the job if no verses were loaded at all

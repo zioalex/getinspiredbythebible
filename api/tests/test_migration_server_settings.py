@@ -15,7 +15,9 @@ pattern `test_deploy_workflow_migrations.py` already uses for the workflow
 YAML.
 """
 
+import importlib.util
 import re
+import ssl
 from pathlib import Path
 
 import yaml
@@ -26,6 +28,28 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _ENV_PY_PATH = _REPO_ROOT / "api" / "alembic" / "env.py"
 _UTILS_PY_PATH = _REPO_ROOT / "scripts" / "migrations" / "utils.py"
 _WORKFLOW_PATH = _REPO_ROOT / ".github" / "workflows" / "azure-deploy.yml"
+
+
+def _load_migration_utils_module():
+    """Load `scripts/migrations/utils.py` directly by file path.
+
+    Can't `sys.path.insert` + `import utils`, unlike
+    `test_load_bible_data_path.py`'s `scripts/` import: `api/utils/` is
+    already an importable package named `utils` (pulled in transitively by
+    `scripture.database` above), and it's cached in `sys.modules` by the time
+    this module is collected -- a plain `import utils` would silently resolve
+    to the wrong package instead of `scripts/migrations/utils.py`. Loading by
+    explicit spec under a distinct module name sidesteps the collision
+    entirely; the function itself has no import-time side effects (unlike
+    `api/alembic/env.py`, see module docstring).
+    """
+    spec = importlib.util.spec_from_file_location("migration_utils", _UTILS_PY_PATH)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+get_migration_connection_params = _load_migration_utils_module().get_migration_connection_params
 
 
 def _guc_duration_to_minutes(value: str) -> float:
@@ -119,3 +143,46 @@ def test_statement_timeout_is_strictly_below_the_job_timeout():
         "gives up, orphaning the statement under its lock instead of rolling "
         "it back cleanly"
     )
+
+
+class TestGetMigrationConnectionParamsSsl:
+    """BITB-099 regression guard for `scripts/migrations/utils.py`'s
+    `get_migration_connection_params()`, mirroring
+    `test_database_church_coverage.py::TestGetAsyncDatabaseUrl`'s coverage of
+    the sibling `api/scripture/database.py::get_async_database_url()`. Both
+    helpers must agree: `require` stays unverified, `verify-ca`/`verify-full`
+    verify fully -- production now uses `verify-full`."""
+
+    def test_sslmode_require_still_unverified(self):
+        url = "postgresql://user:pass@host/db?sslmode=require"  # pragma: allowlist secret
+        clean_url, kwargs = get_migration_connection_params(url)
+
+        assert "sslmode" not in clean_url
+        assert "ssl" in kwargs
+        ssl_context = kwargs["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_NONE
+        assert ssl_context.check_hostname is False
+
+    def test_sslmode_verify_ca_is_verified(self):
+        url = "postgresql://user:pass@host/db?sslmode=verify-ca"  # pragma: allowlist secret
+        clean_url, kwargs = get_migration_connection_params(url)
+
+        assert "sslmode" not in clean_url
+        assert "ssl" in kwargs
+        ssl_context = kwargs["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_REQUIRED
+        assert ssl_context.check_hostname is True
+
+    def test_sslmode_verify_full_is_verified(self):
+        """BITB-099: this is the mode production DSNs now use."""
+        url = "postgresql://user:pass@host/db?sslmode=verify-full"  # pragma: allowlist secret
+        clean_url, kwargs = get_migration_connection_params(url)
+
+        assert "sslmode" not in clean_url
+        assert "ssl" in kwargs
+        ssl_context = kwargs["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_REQUIRED
+        assert ssl_context.check_hostname is True
