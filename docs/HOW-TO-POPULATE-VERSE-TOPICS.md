@@ -26,8 +26,32 @@ matches "trusted" without every inflected form needing to be spelled out in
 the map) — see the module docstring in `api/chat/topic_tagging.py` for the
 exact algorithm and why it's stricter than the query-side `detect_topics()`.
 
-Translations in unsupported languages (`ru`, `zh`, `hi`, `ko`, ...) are
-skipped and reported — there's no keyword vocabulary to tag them with.
+Translations in `ru`, `zh`, `hi`, `ko` are skipped and reported — see
+"Scope" below.
+
+## Scope
+
+Topic tagging is a **seven-language feature** (`en`, `it`, `de`, `es`, `fr`,
+`pt`, `ar`), not an eleven-language one with four gaps. This is a recorded
+decision (BITB-106, 2026-09-18), not a pending TODO: `ru`, `zh`, `hi`, `ko`
+have no keyword vocabulary in `TOPIC_KEYWORDS_BY_LANGUAGE`, and none is
+planned by hand-authoring more keywords, because the matching mechanism
+(word-boundary regex with a bounded suffix allowance) doesn't fit those
+languages — `zh` has no whitespace word boundaries, `ko` is agglutinative
+with particles fused to the stem, and `hi`/`ru` are inflected enough that a
+hand-authored list would need to be either huge or a real morphological
+analyzer. See the comment above `SUPPORTED_TOPIC_LANGUAGES` in
+`api/chat/topics.py`. LLM-assisted tagging (see "Not covered by this
+script" below) is language-agnostic and would revisit this in one move
+instead of extending the keyword list four languages at a time.
+
+This matters for evaluation, not just tagging: these four languages account
+for 20 of the golden set's 58 cases (34%, BITB-103), so a topic-boost
+measurement that averages across all languages is diluted by a third of
+cases that structurally cannot move. `scripts/check_verse_topic_coverage.py`
+and `api/search_eval/report.py` both surface this per-translation/per-
+language rather than only in this script's skip log — see "Coverage check"
+below and `docs/SEARCH_EVAL_HOWTO.md`.
 
 **This script does not enable topic boosting.** `topic_boosting_enabled`
 stays `false` and `topic_boost_factor` is untouched. It only makes the
@@ -76,7 +100,7 @@ It reads `verse_topics` **back out of the database** rather than trusting the
 population run's own tally — a check built on that tally would pass even if
 every insert silently did nothing, which is the exact failure class here.
 
-Per supported-language translation it reports one of six statuses:
+Per translation it reports one of seven statuses:
 
 | Status | Alarms | Meaning |
 |---|---|---|
@@ -86,14 +110,19 @@ Per supported-language translation it reports one of six statuses:
 | `above_ceiling` | **yes** | Coverage over the ceiling (default 60%) |
 | `small_sample` | no | Under 1,000 verses — the percentage isn't meaningful yet |
 | `no_verses` | no | Translation not seeded; the existing verse-count gate owns this |
+| `out_of_scope` | no | Language is not one of the seven tagged by design (BITB-106) — never alarms |
 
 **Thresholds.** BITB-044 measured 18.3% (KJV/en) and 12.3% (Luther 1912/de).
-The 5% floor sits well below both on purpose: five of the seven supported
-languages have never been validated against a real corpus (BITB-106), so the
-floor exists to catch zero and near-total collapse, not to police quality.
-The 60% ceiling is a *different* metric from the per-topic 25% denylist
-guideline above — overall coverage stacks 13 topics, so ~18% overall is
-consistent with no single topic above ~3.2%.
+BITB-106 (2026-09-18) measured the other five supported languages against
+real corpora and found the same band: it 10.2%, es 12.2%, fr 14.9%, pt
+11.3%, ar 7.7% (see "Tuning the denylist" below for the full table). The 5%
+floor sits below all seven of these measured numbers on purpose — it exists
+to catch zero and near-total collapse, not to police quality, and the
+lowest real measurement (ar, post-denylist) still clears it by 2.7 points.
+The 60% ceiling is a *different* metric from the per-topic 25%
+(`COVERAGE_GUIDELINE_PCT`) denylist guideline above — overall coverage
+stacks 13 topics, so ~18% overall is consistent with no single topic above
+~3.8%.
 
 **Exit code.** 0 even when it alarms, unless `--strict`. This is the recorded
 blast-radius decision: a tagging failure degrades ranking quality behind a
@@ -156,9 +185,9 @@ kjv (en): 31,100 verses, 5,695 tagged (18.3%), 6,537 pairs -> 6,537 inserted, 0 
 - **pairs**: total `(verse, topic)` matches (a verse can match more than
   one topic).
 - Per-topic lines show what share of the translation's verses matched that
-  topic. If any topic exceeds **25%**, that's a sign a keyword is too
-  generic for corpus-scale matching (fine for a single user message, noisy
-  across ~31k verses) — see "Tuning the denylist" below.
+  topic. If any topic exceeds `COVERAGE_GUIDELINE_PCT` (25%), that's a sign a
+  keyword is too generic for corpus-scale matching (fine for a single user
+  message, noisy across ~31k verses) — see "Tuning the denylist" below.
 
 ## Tuning the denylist
 
@@ -167,18 +196,84 @@ keywords from **corpus** tagging only; `detect_topics()` on the query side
 always keeps the full vocabulary, since a false positive there just adds an
 extra boost term to one message.
 
-As of this script's introduction, a dry run against the real KJV (`en`,
-31,100 verses) and Luther 1912 (`de`, 31,102 verses) corpora found no topic
-above ~3.2% coverage and no single keyword above ~2% — well under the 25%
-guideline — so the denylist starts empty. The other supported languages
-(`it`, `es`, `fr`, `pt`, `ar`) have not been validated the same way in this
-repo (no local corpus data was available); run `--dry-run --verbose` for
-those translations and check the top-keyword breakdown before trusting an
-empty denylist for them too.
+**All seven supported languages are now validated against real corpora**
+(BITB-106, 2026-09-18):
 
-To add an entry: run `--dry-run --verbose`, find the offending
-`topic: keyword count (%)`, add it to `CORPUS_KEYWORD_DENYLIST` with a
-comment recording the observed count, then re-run with `--replace`.
+| lang | corpus scanned | verses | tagged | highest topic |
+|---|---|---|---|---|
+| en | KJV (in-repo, exact production edition) | 31,100 | 18.3% | guidance 3.23% |
+| de | Luther 1912 (in-repo, exact production edition) | 31,102 | 12.3% | love 1.89% |
+| it | Riveduta (OSIS) — stand-in for production's `ita1927` | 31,102 | 10.2% | anger 1.26% |
+| es | Reina-Valera — matches production's `valera` exactly | 31,102 | 12.2% | guidance 3.27% |
+| fr | fr_apee — stand-in for production's `ls1910` | 30,975 | 14.9% | guidance 2.62% |
+| pt | Almeida Atualizada — matches production's `almeida` | 31,104 | 11.3% | guidance 3.33% |
+| ar | Smith & Van Dyke — matches production's `arabicsv` | 31,102 | 7.7%* | love 0.72%* |
+
+\* After the four Arabic keywords below are denylisted; 12.0% / love 3.78%
+before.
+
+No topic on any of the seven breaches the 25% guideline — the highest is
+`ar` "love" at 3.78% *pre*-denylist, still well under 25%. So the denylist
+is not extended for a 25%-guideline breach anywhere. It does gain four
+Arabic entries for a *different*, keyword-level reason: Arabic is matched by
+substring (see `SUBSTRING_MATCH_LANGUAGES`), and a short root can fire
+inside unrelated words while its topic still stays under 25%. `حب` (love)
+alone matched 1,071 verses (3.44%) — mostly a different word entirely
+(`صاحبه` "his companion", the proper names `رحبعام`/`حبرون`, `فحبلت` "she
+conceived"), not the intended `حب`/`محبة`. See the worked examples in
+`CORPUS_KEYWORD_DENYLIST`'s comment in `api/chat/topic_tagging.py` for all
+four (`حب`, `أمل`, `يأس`, `عفو`, `قلق`).
+
+**Reproducing this without a database.** `scripts/populate_verse_topics.py
+--dry-run --verbose` needs `DATABASE_URL` pointed at a translation already
+loaded, plus `pydantic`/`pydantic-settings` installed (it imports
+`api/chat/topics.py`, which pulls those in). Neither is available in every
+environment. `scripts/measure_topic_coverage.py` answers the identical
+question — using the *same* matching code, loaded directly by file path so
+it can never silently drift from what the population script does — against
+a translation fetched fresh over HTTPS, with no database and no extra
+dependencies:
+
+```bash
+python3 scripts/measure_topic_coverage.py --language ar --top-keywords 10
+python3 scripts/measure_topic_coverage.py --all --json > coverage.json
+```
+
+Its docstring documents the calibration proof (reproducing BITB-044's
+original en numbers exactly) that makes its output usable evidence for a
+new language, and `KNOWN_CORPUS_SOURCES` in that script records exactly
+which edition was scanned for each language and why (a stand-in vs. an
+exact match for production's translation code).
+
+If you do have Docker and can reach `api.getbible.net` (this repo's
+sandboxed environments sometimes cannot — check
+`scripts/load_bible.py --translation <code>` first), a DB-backed dry run
+against the *exact* production editions (`ita1927`, `ls1910`) is the
+stronger confirmation for `it`/`fr`. Use a throwaway container that shares
+nothing with the dev stack — **never** `make docker-up-dev` (it uses the
+persistent `postgres_data_dev` volume) and never a `DATABASE_URL` that isn't
+`127.0.0.1`:
+
+```bash
+docker run -d --rm --name bitb106-pg -e POSTGRES_USER=bible \
+  -e POSTGRES_PASSWORD=bible123 -e POSTGRES_DB=bibledb \
+  -p 127.0.0.1:55432:5432 pgvector/pgvector:pg16   # pragma: allowlist secret
+export DATABASE_URL="postgresql+asyncpg://bible:bible123@127.0.0.1:55432/bibledb"   # pragma: allowlist secret
+psql "postgresql://bible:bible123@127.0.0.1:55432/bibledb" -f scripts/init.sql
+psql "postgresql://bible:bible123@127.0.0.1:55432/bibledb" \
+  -f scripts/migrations/004_add_topic_boosting_schema.sql
+python scripts/load_bible.py --translation ita1927
+python scripts/load_bible.py --translation ls1910
+python scripts/populate_verse_topics.py --dry-run --verbose
+docker rm -f bitb106-pg   # throwaway container, nothing persists
+```
+
+To add a denylist entry: find the offending `topic: keyword count (%)` from
+either tool's `--verbose`/`--top-keywords` output, add it to
+`CORPUS_KEYWORD_DENYLIST` with a comment recording the observed count, then
+re-run `populate_verse_topics.py --replace` against the real database (a
+denylist edit does not retract already-inserted rows on its own, and is not
+in the `bible_scripts` CI path filter — see "Not covered by this script").
 
 ## Not covered by this script (deliberate follow-ups)
 
@@ -196,9 +291,11 @@ comment recording the observed count, then re-run with `--replace`.
   keyword you just denylisted, so auto-triggering on a map edit would produce
   a half-applied re-tag that looks like it worked. A map edit needs a manual
   `--replace` run for now.
-- **Per-language coverage floors.** The check uses a single 5% floor because
-  five of the seven supported languages are unmeasured; tighten it under
-  BITB-106.
+- **Per-language coverage floors.** The check uses a single 5% floor,
+  deliberately kept single even after BITB-106 measured all seven languages:
+  the lowest real number (`ar`, 7.7% post-denylist) clears a single 5% floor
+  by 2.7 points, so per-language floors would add complexity without
+  changing which runs alarm.
 - **A scheduled coverage check independent of deploys.** Today the alarm only
   fires when a seed runs, so a truncation or a bad restore stays invisible
   until the next `bible_scripts` change.

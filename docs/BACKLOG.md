@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-128/129 in progress)
+**Last Updated:** 2026-09-18 (BITB-106 done — corpus tagging validated for all seven supported
+languages, ru/zh/hi/ko scope decision recorded, BITB-156 filed as a follow-up; BITB-154 created —
+KubeOpenCode multi-provider resilience; BITB-128/129 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -1915,9 +1917,10 @@ and factor-sweep numbers, **so that** topic boosting ships (or stays off) on evi
 
 ---
 
-### 🎯 BITB-106: Corpus Tagging Is Validated for Two Languages and Impossible for Four
+### ✅ BITB-106: Corpus Tagging Is Validated for Two Languages and Impossible for Four
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-09-18) — all seven supported languages validated against real corpora;
+`ru`/`zh`/`hi`/`ko` scope decision recorded (not new vocabulary); coverage guard added
 **Priority:** P2 — quality and scope honesty, not a correctness bug
 **Size:** M
 **Created:** 2026-08-21
@@ -1929,9 +1932,8 @@ two-language feature in an eleven-language product.
 
 | tier | languages | status |
 |---|---|---|
-| corpus-validated | `en`, `de` | 18.3% KJV / 12.3% Luther tagged, no topic above ~3.2% |
-| vocabulary exists, never run on a corpus | `it`, `es`, `fr`, `pt`, `ar` | `CORPUS_KEYWORD_DENYLIST` empty and **unverified** |
-| no vocabulary | `ru`, `zh`, `hi`, `ko` | skipped; 34% of the golden set |
+| corpus-validated | `en`, `it`, `de`, `es`, `fr`, `pt`, `ar` | 7.7%-18.3% tagged per language, no topic above ~3.8% (BITB-106, 2026-09-18) |
+| out of scope by decision | `ru`, `zh`, `hi`, `ko` | skipped; 34% of the golden set; revisit under LLM-assisted tagging |
 
 An over-firing keyword in an unvalidated language fails quietly: a topic matches a third of the
 corpus, the boost stops discriminating, search gets worse with no error. Arabic carries extra risk —
@@ -1939,18 +1941,48 @@ it uses substring matching for attached clitics, the mechanism most likely to ov
 
 **Acceptance Criteria (summary):**
 
-- [ ] `it`/`es`/`fr`/`pt`/`ar` each run against a real corpus, per-topic coverage recorded
-- [ ] Denylist extended for any topic breaching the 25% guideline, or confirmed empty per language
-- [ ] Arabic substring matching specifically reviewed for over-firing
-- [ ] A recorded decision on `ru`/`zh`/`hi`/`ko`: vocabulary authored, or scope documented
-- [ ] A guard prevents a future keyword silently pushing a topic past the guideline
+- [x] `it`/`es`/`fr`/`pt`/`ar` each run against a real corpus, per-topic coverage recorded
+      (`scripts/measure_topic_coverage.py`, no DB needed — see the story for why the DB-backed
+      `--dry-run` couldn't run in this sandbox, and how to get the exact production editions)
+- [x] Denylist confirmed empty for the 25% guideline everywhere; four Arabic keywords denylisted
+      for a different, keyword-level over-firing reason (documented in `api/chat/topic_tagging.py`)
+- [x] Arabic substring matching specifically reviewed for over-firing — worked examples in
+      `CORPUS_KEYWORD_DENYLIST`'s comment
+- [x] Recorded decision on `ru`/`zh`/`hi`/`ko`: scope documented as a seven-language feature (no
+      new vocabulary authored) — see `api/chat/topics.py` and the "Scope" section of
+      `docs/HOW-TO-POPULATE-VERSE-TOPICS.md`
+- [x] A guard (`api/tests/test_topic_coverage_guard.py`) prevents a future keyword silently
+      pushing a topic (or a single keyword) past the guideline, with a negative rehearsal
 
 **Deferred here:** LLM-assisted tagging (BITB-044's remaining list). Keyword seeding already tags
 18.3% of KJV — enough to measure whether boosting helps at all. Improving tag recall before
 establishing the boost is worth having would be optimising an unvalidated feature; revisit once
 BITB-104 has numbers.
 
+**Follow-up filed:** BITB-156 — Arabic morphology-aware topic matching, to recover the recall
+traded away by this story's denylist (deferred, not required for this story to be done).
+
 **Full Story:** `docs/BACKLOG_STORIES/BITB-106-corpus-tagging-validated-for-two-of-eleven-languages.md`
+
+---
+
+### 🎯 BITB-156: Arabic Morphology-Aware Topic Matching
+
+**Status:** 🎯 Todo
+**Priority:** P3 — recall improvement on an already-shipped, already-safe feature
+**Size:** M
+**Created:** 2026-09-18
+
+BITB-106 denylisted five Arabic keywords (`حب`, `أمل`, `يأس`, `عفو`, `قلق`) rather than fix the
+underlying bare-substring matching that made them over-fire (measured on the real Smith & Van
+Dyke corpus: `حب` alone matched 1,071 verses, mostly unrelated words and proper nouns like
+`رحبعام`/Rehoboam and `حبرون`/Hebron). This story is the deferred harder fix — a clitic/affix-aware
+matcher (or a real morphological analyzer) to recover that recall without reintroducing the noise.
+A clitic-anchored experiment during BITB-106 helped (`حب` 1,071 → 793) but did not solve it.
+Depends on BITB-116's boosting A/B numbers to justify the investment — a recall fix on a feature
+not yet proven to help is low value.
+
+**Full Story:** [`BITB-156-arabic-morphology-aware-topic-matching.md`](BACKLOG_STORIES/BITB-156-arabic-morphology-aware-topic-matching.md)
 
 ---
 
