@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.55.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.54.0...v1.55.0) (2026-09-18)
+
+
+### Features
+
+* **agents:** multi-provider resilience — cross-provider fallback + move off exhausted Copilot ([#1077](https://github.com/zioalex/getinspiredbythebible/issues/1077)) ([4a45a9c](https://github.com/zioalex/getinspiredbythebible/commit/4a45a9cd69f59aa5704d2edd04a4b264e4309424))
+* **kubeopencode:** persist copilot auth via OAuth token (PATs are rejected) ([#1066](https://github.com/zioalex/getinspiredbythebible/issues/1066)) ([b73c558](https://github.com/zioalex/getinspiredbythebible/commit/b73c5581a03a0b8b7c5e9f206d6cf320ece50e91))
+* **kubeopencode:** strict-tier sandbox hardening (BITB-152) ([#1045](https://github.com/zioalex/getinspiredbythebible/issues/1045)) ([eb1e271](https://github.com/zioalex/getinspiredbythebible/commit/eb1e2719dcf925fca102a790fea75800f7a04a96))
+* **web:** consume server citation spans for verse linkification (BITB-109) ([#1055](https://github.com/zioalex/getinspiredbythebible/issues/1055)) ([27ed2e7](https://github.com/zioalex/getinspiredbythebible/commit/27ed2e7c730fd1f32a0a4710e10781209e0ff1f5))
+
+
+### Bug Fixes
+
+* **android:** bound Alt-1 numbered-prefix trailing-word group to close residual ReDoS gap (BITB-117) ([#1047](https://github.com/zioalex/getinspiredbythebible/issues/1047)) ([da831a1](https://github.com/zioalex/getinspiredbythebible/commit/da831a19edd42b984062ed656d20e34d385f3b76))
+* **db:** verify the Postgres server certificate on every connection (BITB-099) ([#1058](https://github.com/zioalex/getinspiredbythebible/issues/1058)) ([899f6e3](https://github.com/zioalex/getinspiredbythebible/commit/899f6e3b59a1a84e897a789652e70bc1ca7f6024))
+* **web,android:** scope Bible-translation preference per UI language (BITB-115) ([#1044](https://github.com/zioalex/getinspiredbythebible/issues/1044)) ([f8e4352](https://github.com/zioalex/getinspiredbythebible/commit/f8e4352845f645a947f7ed154b7bf507707493b8))
+
+
+### Documentation
+
+* add BITB-151 story for intent-gated cultural tone tuning ([#1065](https://github.com/zioalex/getinspiredbythebible/issues/1065)) ([e5d0cc9](https://github.com/zioalex/getinspiredbythebible/commit/e5d0cc935895f998cf69d0d3192982807389b52f))
+* **backlog:** add BITB-150 Azure cost analysis story (monitoring + database) ([#1064](https://github.com/zioalex/getinspiredbythebible/issues/1064)) ([c1eaf6b](https://github.com/zioalex/getinspiredbythebible/commit/c1eaf6bdd1d6f264571ec109cf18af9df5c1be2d))
+
 ## [1.54.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.53.0...v1.54.0) (2026-09-05)
 
 ### Features
