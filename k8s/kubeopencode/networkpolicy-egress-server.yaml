@@ -1,0 +1,65 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: server-egress-strict
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: kubeopencode
+    kubeopencode.io/tier: strict
+spec:
+  # The operator/server is caught by `default-deny-all` (podSelector: {}) but is
+  # NOT an agent pod, so `agent-egress-strict` never restores its egress. Without
+  # this policy it loses DNS and cannot reach the workspaces it proxies:
+  #   dial tcp: lookup <workspace>.kubeopencode-system.svc.cluster.local
+  #   on 10.43.0.10:53: i/o timeout
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kubeopencode-server
+  policyTypes:
+    - Egress
+  egress:
+    # Cluster DNS -- same two peers as agent-egress-strict, see the note there.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+        - ipBlock:
+            cidr: 10.43.0.10/32
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Kubernetes API ClusterIP (watch/reconcile Agent resources).
+    - to:
+        - ipBlock:
+            cidr: 10.43.0.1/32
+      ports:
+        - port: 443
+          protocol: TCP
+    # Control plane path: server -> workspace pods. This is the egress half of
+    # allow-server-ingress; NetworkPolicy needs both sides. Workspace pod IPs sit
+    # in the pod CIDR, which the strict `except: 10.0.0.0/8` block denies, so the
+    # peer has to be expressed as a podSelector rather than an ipBlock.
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/managed-by: kubeopencode
+      ports:
+        - port: 4096
+          protocol: TCP
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+              - 127.0.0.0/8
+      ports:
+        - port: 443
+          protocol: TCP
