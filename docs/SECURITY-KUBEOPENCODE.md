@@ -81,10 +81,26 @@ kubectl apply -f agent-desktop.yaml
 Running agents drain via `standby.idleTimeout: 30m`. If a workload breaks,
 add a temporary tier exception annotation, never remove default-deny.
 
-> Verify the operator labels agent pods `app.kubernetes.io/managed-by:
-> kubeopencode` (`kubectl get pods -l app.kubernetes.io/managed-by=kubeopencode
-> -n kubeopencode-system`). If labels differ, `agent-egress-strict` selects
-> nothing and is silently unenforced — update `podSelector` before relying on it.
+### Label taxonomy
+
+Two label sets share the namespace, and mixing them up is the single easiest way
+to break this tier. Check yours with
+`kubectl -n kubeopencode-system get pods --show-labels`:
+
+| | platform (gateway, controller) | workspace (per agent) |
+| --- | --- | --- |
+| `app.kubernetes.io/name` | `kubeopencode` | `kubeopencode-server` |
+| `app.kubernetes.io/instance` | `kubeopencode` | the agent name |
+| `app.kubernetes.io/managed-by` | *absent* | `kubeopencode` |
+
+So `name: kubeopencode-server` is a **workspace** pod, not the gateway. The
+policies key on `managed-by` instead: present selects workspaces
+(`agent-egress-strict`), absent selects the platform (`server-egress-strict`).
+Every pod in the namespace therefore falls under exactly one egress policy, and a
+new platform component cannot land with no egress at all. If your operator labels
+pods differently, fix both `podSelector`s before relying on the tier --
+`agent-egress-strict` selecting nothing is silently unenforced, and
+`server-egress-strict` selecting nothing is a total outage for the gateway.
 
 ## Verify
 
@@ -113,9 +129,11 @@ pods a later policy re-allows get it back. Two ways this bites:
    `0.0.0.0/0:53` rule does not cover the gap -- CoreDNS lives at `10.43.0.10`,
    inside the `except: 10.0.0.0/8` block.
 2. **The pod is not an agent.** `agent-egress-strict` only selects
-   `app.kubernetes.io/managed-by: kubeopencode`. The operator/server pod is caught
-   by the deny and restored by `networkpolicy-egress-server.yaml` instead. If your
-   server pod carries different labels, fix that policy's `podSelector` first.
+   `app.kubernetes.io/managed-by: kubeopencode`. The gateway and controller are
+   caught by the deny and restored by `networkpolicy-egress-server.yaml` instead,
+   which selects on `managed-by` being *absent*. Resolve the source IP to a pod
+   first, then check its labels against *Label taxonomy* above -- a selector that
+   names `kubeopencode-server` is matching workspaces, not the gateway.
 
 Confirm before changing anything:
 

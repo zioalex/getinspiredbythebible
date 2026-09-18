@@ -12,10 +12,16 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # The platform gateway, selected by the absence of `managed-by` (see the note
+    # in networkpolicy-egress-server.yaml). `name: kubeopencode-server` would be
+    # wrong twice over: it matches the workspace pods, so it would open the
+    # agent-to-agent :4096 path the strict tier means to deny, while leaving the
+    # gateway -- which carries `name: kubeopencode` -- unable to reach them.
     - from:
         - podSelector:
-            matchLabels:
-              app.kubernetes.io/name: kubeopencode-server
+            matchExpressions:
+              - key: app.kubernetes.io/managed-by
+                operator: DoesNotExist
       ports:
         - port: 4096
           protocol: TCP
