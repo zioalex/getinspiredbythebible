@@ -2503,6 +2503,34 @@ Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORI
 
 ---
 
+### 🎯 BITB-133: KubeOpenCode Agent File-Mount Support for Copilot Auth
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S (docs + upstream request; implementation size unknown — may be upstream)
+**Created:** 2026-09-13
+
+Follow-up to #1066. The README's preferred Copilot-auth option (mounting
+`auth.json`, which self-refreshes) is not wirable: the `Agent` CRD exposes
+only `credentials[].secretRef` → `env`, with no `volumes`/`volumeMounts`, and
+`spec.persistence` covers `workspaceDir`/`sessions`, not the OpenCode data
+dir. That limitation was established from manifests only — never verified
+against the live CRD, which may already persist enough via `sessions`.
+Meanwhile the working option (a `gho_…` token via `GITHUB_TOKEN`) dies with
+the user's `gh` session, so every revocation breaks the provider until
+someone re-runs the device flow and rotates the secret.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Live-CRD gate recorded: `explain` output pasted in the story; sessions-volume coverage of the data dir checked on-cluster
+- [ ] Covered already → `auth.json` secret + placement documented, Option A marked working, supported fields only
+- [ ] Not covered → upstream issue filed and linked; Option B stays supported with a rotation runbook
+- [ ] No secret material in git; `detect-secrets` green
+
+Full story: [`BITB-133-kubeopencode-agent-file-mount-copilot-auth.md`](BACKLOG_STORIES/BITB-133-kubeopencode-agent-file-mount-copilot-auth.md)
+
+---
+
 ### 🚧 BITB-128: Persistent KubeOpenCode Workspace Volume
 
 **Status:** 🚧 In Progress
