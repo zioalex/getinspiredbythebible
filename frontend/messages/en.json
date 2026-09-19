@@ -394,5 +394,10 @@
     "importDone": "Imported {count} conversation(s).",
     "importFailed": "Import failed. Is this a valid history file?",
     "wrongPassphrase": "Wrong passphrase or corrupt file."
+  },
+  "Offline": {
+    "title": "You're offline",
+    "description": "Vox Quieta needs an internet connection to answer your questions. Check your connection and try again.",
+    "retry": "Try again"
   }
 }
