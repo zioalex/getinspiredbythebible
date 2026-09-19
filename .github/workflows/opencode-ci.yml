@@ -21,7 +21,11 @@ run-name: >-
       - "scripts/generate-opencode-config.py"
       - "scripts/test_generate_opencode_config.py"
       - "scripts/test_kubeopencode_manifests.py"
+      - "scripts/test_kubeopencode_netpol.py"
+      - "scripts/verify-kubeopencode-netpol.sh"
       - "deployment/kubeopencode/**"
+      - "k8s/kubeopencode/**"
+      - "docs/SECURITY-KUBEOPENCODE.md"
       - ".github/workflows/opencode-ci.yml"
   push:
     branches:
@@ -32,7 +36,11 @@ run-name: >-
       - "scripts/generate-opencode-config.py"
       - "scripts/test_generate_opencode_config.py"
       - "scripts/test_kubeopencode_manifests.py"
+      - "scripts/test_kubeopencode_netpol.py"
+      - "scripts/verify-kubeopencode-netpol.sh"
       - "deployment/kubeopencode/**"
+      - "k8s/kubeopencode/**"
+      - "docs/SECURITY-KUBEOPENCODE.md"
       - ".github/workflows/opencode-ci.yml"
 
 permissions:
@@ -63,6 +71,14 @@ jobs:
 
       - name: Manifest and committed-artifact tests
         run: python -m pytest scripts/test_kubeopencode_manifests.py -v
+
+      # BITB-152. The strict tier took the cluster down twice, both times because
+      # a podSelector named the wrong label and the pods it missed were left with
+      # no egress at all. These assert the selector invariants without a cluster;
+      # `make verify-kubeopencode-netpol` checks the same guarantees against a
+      # live one, which CI has no kubeconfig for.
+      - name: NetworkPolicy selector tests
+        run: python -m pytest scripts/test_kubeopencode_netpol.py -v
 
       # Guards the 12-agent count, fallback_models on every agent, and the
       # runtime-fallback plugin. Without the plugin, fallback_models is inert.
