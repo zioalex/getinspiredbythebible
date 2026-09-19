@@ -44,7 +44,7 @@
 
 ## Extended Rankings: GLM, Kimi, NVIDIA Nemotron, Qwen3-Coder, and More
 
-*Models not on Aider leaderboard but with SWE-bench / other benchmark data*
+*Models not on Aider leaderboard but with SWE-bench / other benchmark data.*
 
 | Model | Provider | SWE-bench Verified (agent) | SWE-bench (mini-SWE) | LiveCodeBench / BigCodeBench | Context | Open Weights | Notes |
 |-------|----------|---------------------------|---------------------|------------------------------|---------|--------------|-------|
@@ -105,7 +105,7 @@
 | **GLM-4.6** | — | ~45% | 128K | ✅ | 2025 |
 | **GLM-4.5** | — | ~42% | 128K | ✅ | 2025 |
 
-*Note: GLM models not yet on Aider leaderboard; SWE-bench scores with various agents*
+*Note: GLM models not yet on Aider leaderboard; SWE-bench scores with various agents.*
 
 ---
 
@@ -136,7 +136,7 @@
 | **Nemotron-3-Nano-Omni-30B-A3B-Reasoning** | 3B / 30B | MoE | — | ✅ | Multimodal + reasoning |
 | **Nemotron-3-Embed-1B** | 1B | Embedding | N/A | ✅ | Retrieval/RAG |
 
-*Nemotron-CORTEXA is NVIDIA's agentic system using Nemotron models; not a standalone model*
+*Nemotron-CORTEXA is NVIDIA's agentic system using Nemotron models; not a standalone model.*
 
 ---
 
