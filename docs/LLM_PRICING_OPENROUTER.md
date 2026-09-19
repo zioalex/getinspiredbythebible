@@ -5,6 +5,7 @@
 **Self-Hosted:** Open weights models (DeepSeek, Qwen, Nemotron, GLM, Llama, Mistral)
 
 **Data Sources:**
+
 - **Aider Polyglot** — 225 Exercism exercises across 6 languages (repo context editing)
 - **SWE-bench Verified** — 500 GitHub issues (mini-SWE-agent, OpenHands, etc.)
 - **LiveBench** — Contamination-free, monthly updated, objective scoring (coding + overall)

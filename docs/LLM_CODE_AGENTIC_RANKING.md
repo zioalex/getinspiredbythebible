@@ -1,6 +1,7 @@
 # LLM Model Ranking for Code Agentic Capabilities (Comprehensive)
 
 **Data Sources:**
+
 - **Primary:** Aider Polyglot Benchmark (225 Exercism exercises across 6 languages) — measures real-world code editing in a repository context
 - **Secondary:** SWE-bench Verified (500 human-verified GitHub issues) with various agents (mini-SWE-agent, OpenHands, SWE-agent, etc.)
 - **Tertiary:** LiveCodeBench, BigCodeBench, EvalPlus (HumanEval+/MBPP+), Chatbot Arena
