@@ -344,7 +344,9 @@ test-dns-watchdog: ## Static checks on the CoreDNS watchdog RBAC/script/deployme
 
 deploy-dns-watchdog: ## Deploy the CoreDNS watchdog to the LIVE cluster (BITB-155)
 	@echo "$(BLUE)Deploying CoreDNS watchdog...$(NC)"
-	@kubectl apply -f k8s/dns-watchdog/rbac.yaml -f k8s/dns-watchdog/configmap-watchdog.yaml -f k8s/dns-watchdog/deployment.yaml
+	@kubectl apply -f k8s/dns-watchdog/serviceaccount-watchdog.yaml \
+		-f k8s/dns-watchdog/role-watchdog.yaml -f k8s/dns-watchdog/rolebinding-watchdog.yaml \
+		-f k8s/dns-watchdog/configmap-watchdog.yaml -f k8s/dns-watchdog/deployment.yaml
 	@echo "$(GREEN)✓ dns-watchdog deployed$(NC)"
 
 validate-env: install-deps ## Validate env vars between docker-compose and Terraform

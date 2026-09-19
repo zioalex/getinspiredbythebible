@@ -39,7 +39,11 @@ README = K8S_DIR / "README.md"
 MAKEFILE = REPO_ROOT / "Makefile"
 
 CONFIGMAP_PATH = K8S_DIR / "configmap-watchdog.yaml"
-RBAC_PATH = K8S_DIR / "rbac.yaml"
+RBAC_PATHS = [
+    K8S_DIR / "serviceaccount-watchdog.yaml",
+    K8S_DIR / "role-watchdog.yaml",
+    K8S_DIR / "rolebinding-watchdog.yaml",
+]
 DEPLOYMENT_PATH = K8S_DIR / "deployment.yaml"
 
 PROBE_ENV_VARS = {
@@ -81,10 +85,11 @@ def watchdog_script(configmap_doc):
 
 @pytest.fixture(scope="module")
 def rbac_docs():
-    """Every manifest in rbac.yaml, keyed by (kind, name)."""
+    """Every RBAC manifest, keyed by (kind, name)."""
     out = {}
-    for doc in _load_all(RBAC_PATH):
-        out[(doc["kind"], doc["metadata"]["name"])] = doc
+    for path in RBAC_PATHS:
+        for doc in _load_all(path):
+            out[(doc["kind"], doc["metadata"]["name"])] = doc
     return out
 
 
@@ -400,7 +405,7 @@ def test_readme_documents_verification_commands(readme_text):
 
 
 def test_readme_documents_deploy_command(readme_text):
-    assert "rbac.yaml" in readme_text
+    assert "role-watchdog.yaml" in readme_text
     assert "configmap-watchdog.yaml" in readme_text
     assert "deployment.yaml" in readme_text
 
@@ -412,3 +417,13 @@ def test_make_targets_exist():
     text = MAKEFILE.read_text()
     assert "test-dns-watchdog:" in text
     assert "deploy-dns-watchdog:" in text
+
+
+@pytest.mark.parametrize("path", sorted(K8S_DIR.glob("*.yaml")), ids=lambda p: p.name)
+def test_every_manifest_is_a_single_document(path):
+    """The repo's check-yaml pre-commit hook runs without
+    --allow-multiple-documents, so a `---`-separated manifest fails CI even
+    though yamllint and kubectl both accept it. One object per file, matching
+    the k8s/kubeopencode/ convention."""
+    docs = list(yaml.safe_load_all(path.read_text()))
+    assert len(docs) == 1, f"{path.name} has {len(docs)} documents; split it"

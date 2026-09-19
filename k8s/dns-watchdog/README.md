@@ -13,7 +13,8 @@ writeup and acceptance criteria.
 ## Deploy
 
 ```bash
-kubectl apply -f rbac.yaml -f configmap-watchdog.yaml -f deployment.yaml
+kubectl apply -f serviceaccount-watchdog.yaml -f role-watchdog.yaml \
+  -f rolebinding-watchdog.yaml -f configmap-watchdog.yaml -f deployment.yaml
 ```
 
 Or `make deploy-dns-watchdog` from the repo root.
@@ -112,7 +113,7 @@ TLS with the projected `ca.crt` -- see `watchdog.sh` in
 
 ## RBAC
 
-`rbac.yaml` grants the `dns-watchdog` ServiceAccount, scoped to `kube-system`
+`role-watchdog.yaml` grants the `dns-watchdog` ServiceAccount, scoped to `kube-system`
 only (no ClusterRole/ClusterRoleBinding):
 
 - `get` on `apps/deployments` (unscoped -- reading state isn't sensitive)
