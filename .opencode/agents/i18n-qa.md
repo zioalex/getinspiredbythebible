@@ -3,8 +3,8 @@ description: i18n QA across all 11 UI languages — translation completeness, lo
 mode: subagent
 model: opencode/mimo-v2.5-free
 fallback_models:
-  - opencode/muse-spark-1.3-contributor-free
-  - openrouter/google/gemma-3-27b-it:free
+  - opencode/nemotron-3-super-free
+  - openrouter/openai/gpt-oss-120b:free
 tools:
   bash: true
   read: true
