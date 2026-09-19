@@ -1,0 +1,76 @@
+# BITB-155. The DNS watchdog: probes cluster DNS end-to-end on an interval,
+# captures a four-leg diagnostic bundle at failure time, Events it, and
+# optionally restarts CoreDNS after sustained failure. See README.md for the
+# env-var reference and how to read the structured log line.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dns-watchdog
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: dns-watchdog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dns-watchdog
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: dns-watchdog
+    spec:
+      serviceAccountName: dns-watchdog
+      priorityClassName: system-cluster-critical
+      containers:
+        - name: dns-watchdog
+          # Alpine-based: ships curl plus busybox nslookup and nc, which is
+          # all four probe legs from one image. Already used by
+          # scripts/verify-kubeopencode-netpol.sh.
+          image: curlimages/curl:8.5.0
+          command: ["/bin/sh", "/opt/watchdog/watchdog.sh"]
+          env:
+            - name: PROBE_INTERVAL
+              value: "30"
+            - name: PROBE_TIMEOUT
+              value: "5"
+            - name: EXTERNAL_NAME
+              value: "cloudflare.com"
+            - name: INTERNAL_NAME
+              value: "kubernetes.default.svc.cluster.local"
+            - name: UPSTREAM_DNS
+              value: "8.8.8.8"
+            - name: TCP_CONTROL_HOST
+              value: "1.1.1.1"
+            - name: TCP_CONTROL_PORT
+              value: "443"
+            - name: FAILURE_THRESHOLD
+              value: "3"
+            - name: AUTO_RESTART
+              value: "true"
+            - name: RESTART_COOLDOWN_SECONDS
+              value: "1800"
+          volumeMounts:
+            - name: watchdog-script
+              mountPath: /opt/watchdog
+              readOnly: true
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+      volumes:
+        - name: watchdog-script
+          configMap:
+            name: dns-watchdog-script
+            defaultMode: 0755

@@ -331,6 +331,14 @@ verify-kubeopencode-netpol: ## Verify strict-tier NetworkPolicies against the LI
 	@echo "$(BLUE)Verifying KubeOpenCode strict-tier NetworkPolicies...$(NC)"
 	@bash scripts/verify-kubeopencode-netpol.sh
 
+test-dns-watchdog: ## Static checks on the CoreDNS watchdog RBAC/script/deployment (no cluster needed, BITB-155)
+	@$(PYTHON_VERSION) -m pytest scripts/test_dns_watchdog.py -q
+
+deploy-dns-watchdog: ## Deploy the CoreDNS watchdog to the LIVE cluster (BITB-155)
+	@echo "$(BLUE)Deploying CoreDNS watchdog...$(NC)"
+	@kubectl apply -f k8s/dns-watchdog/rbac.yaml -f k8s/dns-watchdog/configmap-watchdog.yaml -f k8s/dns-watchdog/deployment.yaml
+	@echo "$(GREEN)✓ dns-watchdog deployed$(NC)"
+
 validate-env: install-deps ## Validate env vars between docker-compose and Terraform
 	@echo "$(BLUE)Validating environment variable consistency...$(NC)"
 	@$(CURDIR)/$(PYTHON) scripts/validate-env.py
