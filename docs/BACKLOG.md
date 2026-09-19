@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-152 created; BITB-128/129 in progress)
+**Last Updated:** 2026-09-19 (BITB-155 created — in-cluster CoreDNS watchdog after the 2026-09-19 DNS outage; BITB-154 created; BITB-152 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -281,6 +281,42 @@ localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
 - [ ] `scripts/validate-env.py` passes
 
 Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/BITB-152-kubeopencode-strict-tier-hardening.md)
+
+---
+
+### 🎯 BITB-155: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-19
+
+Cluster DNS stopped resolving external names on 2026-09-19; agents failed with
+`curl: (6) Could not resolve host` and a CoreDNS restart fixed it. CoreDNS's own
+`/health` and `/ready` probes stayed green the whole time — they check the process
+and its plugins, never that forwarding resolves anything, so a wedged-but-alive
+CoreDNS is invisible to them. The root cause was never established because the
+evidence had to be reconstructed after recovery, and what was gathered fits no
+single mechanism (a fresh pod could not do UDP/53 to `8.8.8.8` while TCP/443 and
+ICMP worked; the node resolved fine; flannel's MASQUERADE rule was correct).
+`prod-monitor.yml` cannot cover this — it runs in GitHub Actions and cannot reach
+the homelab LAN. Add an in-cluster watchdog that probes DNS end to end, captures a
+diagnostic bundle *at failure time*, and optionally restarts CoreDNS.
+
+**Acceptance Criteria (summary):**
+
+- [ ] End-to-end DNS probe on a fixed interval, in-cluster
+- [ ] Failure-time diagnostic bundle in one structured line: cluster DNS, direct
+      UDP/53 to upstream, TCP control, internal name — names the broken layer
+- [ ] Kubernetes `Warning` Event on failure and a recovery Event on fail→pass
+- [ ] CoreDNS restart after N consecutive failures, gated by `AUTO_RESTART` and
+      rate-limited by a cooldown
+- [ ] Least-privilege RBAC: patch scoped to the `coredns` deployment via
+      `resourceNames`, plus event creation; no other write verbs
+- [ ] Static tests runnable in CI with no cluster
+- [ ] `yamllint` + `shellcheck` + `markdownlint` clean
+
+Full story: [`BITB-155-coredns-dns-watchdog.md`](BACKLOG_STORIES/BITB-155-coredns-dns-watchdog.md)
 
 ---
 
