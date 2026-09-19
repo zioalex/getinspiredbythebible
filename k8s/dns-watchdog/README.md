@@ -33,7 +33,7 @@ with `kubectl -n kube-system set env deploy/dns-watchdog KEY=VALUE`.
 | `TCP_CONTROL_HOST` | `1.1.1.1` | Host used for the TCP control probe (no DNS involved -- an IP literal). |
 | `TCP_CONTROL_PORT` | `443` | Port for the TCP control probe. |
 | `FAILURE_THRESHOLD` | `3` | Consecutive primary-probe failures before an auto-restart is considered. |
-| `AUTO_RESTART` | `true` | When `true`, restart CoreDNS once the threshold and cooldown both allow it. Set to `false` to only observe/alert. |
+| `AUTO_RESTART` | `false` | When `true`, restart CoreDNS once the threshold and cooldown both allow it. Off by default -- see *Why restart is off by default*. |
 | `RESTART_COOLDOWN_SECONDS` | `1800` | Minimum seconds between restarts the watchdog performs itself. Prevents a restart loop if CoreDNS stays wedged. |
 
 ## Reading the structured failure line
@@ -84,7 +84,7 @@ successful primary probe.
 To disable auto-restart (observe/alert only):
 
 ```bash
-kubectl -n kube-system set env deploy/dns-watchdog AUTO_RESTART=false
+kubectl -n kube-system set env deploy/dns-watchdog AUTO_RESTART=true
 ```
 
 ## Verifying it works
@@ -122,3 +122,21 @@ only (no ClusterRole/ClusterRoleBinding):
 
 A compromised watchdog process can restart CoreDNS and emit Events. It
 cannot touch any other Deployment, read Secrets, or exec into pods.
+
+## Why restart is off by default
+
+The incident this watchdog was built for (2026-09-19) looked like CoreDNS being
+wedged: every external name failed, CoreDNS logged upstream timeouts, and a
+restart appeared to fix it. None of that was the real fault.
+
+A packet capture showed the upstream resolver accepting queries and never
+answering, while the LAN resolver answered the identical query in under a
+millisecond. Both were listed in the node's `/etc/resolv.conf`, CoreDNS forwards
+to that file, and `forward`'s default policy is `random` -- so roughly half of
+all lookups picked the dead upstream and stalled. Restarting CoreDNS changed
+which coin flips happened next, nothing more.
+
+An auto-restart would have fired repeatedly against a healthy CoreDNS, added
+churn, and masked the signal that actually mattered: `upstream_udp=fail` next to
+`tcp_control=ok` in the diagnostic line. Read that line first. Turn the restart
+on only once you have a failure mode a restart demonstrably fixes.

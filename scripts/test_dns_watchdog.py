@@ -293,7 +293,7 @@ def test_deployment_env_defaults_match_story(deployment_env):
         "TCP_CONTROL_HOST": "1.1.1.1",
         "TCP_CONTROL_PORT": "443",
         "FAILURE_THRESHOLD": "3",
-        "AUTO_RESTART": "true",
+        "AUTO_RESTART": "false",
         "RESTART_COOLDOWN_SECONDS": "1800",
     }
     for key, value in expected.items():
@@ -373,8 +373,24 @@ def test_readme_documents_every_deployment_env_var(readme_text, var):
     assert var in readme_text, f"README does not document {var}"
 
 
-def test_readme_documents_auto_restart_disable_command(readme_text):
-    assert "AUTO_RESTART=false" in readme_text
+def test_readme_documents_how_to_enable_auto_restart(readme_text):
+    """Restart is off by default, so the README owes the reader the opt-in."""
+    assert "AUTO_RESTART=true" in readme_text
+
+
+def test_auto_restart_is_off_by_default(deployment_env):
+    """The 2026-09-19 incident: the upstream resolver had stopped answering and
+    CoreDNS was picking it at random for ~half of all queries. Restarting
+    CoreDNS would have changed nothing -- it was the messenger, and an
+    auto-restart would have fired repeatedly against a healthy pod. Shipping
+    this on by default makes the tool add churn to an incident it cannot fix."""
+    assert deployment_env["AUTO_RESTART"] == "false"
+
+
+def test_readme_justifies_the_auto_restart_default(readme_text):
+    """A surprising default with no stated reason gets flipped by the next
+    person who reads it."""
+    assert "Why restart is off by default" in readme_text
 
 
 def test_readme_documents_verification_commands(readme_text):

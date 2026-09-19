@@ -45,8 +45,14 @@ spec:
               value: "443"
             - name: FAILURE_THRESHOLD
               value: "3"
+            # Default off, from the 2026-09-19 incident: the cluster's upstream
+            # resolver had silently stopped answering, and CoreDNS was picking it
+            # at random (forward's default policy) for roughly half of all
+            # queries. Restarting CoreDNS would have changed nothing -- it was
+            # the messenger. Observe first, then turn this on only for failure
+            # modes a restart actually fixes.
             - name: AUTO_RESTART
-              value: "true"
+              value: "false"
             - name: RESTART_COOLDOWN_SECONDS
               value: "1800"
           volumeMounts:
