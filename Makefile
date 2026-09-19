@@ -331,6 +331,14 @@ verify-kubeopencode-netpol: ## Verify strict-tier NetworkPolicies against the LI
 	@echo "$(BLUE)Verifying KubeOpenCode strict-tier NetworkPolicies...$(NC)"
 	@bash scripts/verify-kubeopencode-netpol.sh
 
+test-cluster-triage: ## Static checks on the cluster triage tooling (no cluster needed)
+	@$(PYTHON_VERSION) -m pytest scripts/test_cluster_triage.py -q
+
+collect-k8s-diagnostics: ## Collect cluster state for incident triage (usage: NAMESPACE=ns POD_IP=10.42.0.9)
+	@bash scripts/collect-k8s-diagnostics.sh \
+		$(if $(NAMESPACE),--namespace $(NAMESPACE)) \
+		$(if $(POD_IP),--pod-ip $(POD_IP))
+
 test-dns-watchdog: ## Static checks on the CoreDNS watchdog RBAC/script/deployment (no cluster needed, BITB-155)
 	@$(PYTHON_VERSION) -m pytest scripts/test_dns_watchdog.py -q
 

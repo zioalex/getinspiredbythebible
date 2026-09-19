@@ -23,6 +23,9 @@ run-name: >-
       - "scripts/test_kubeopencode_manifests.py"
       - "scripts/test_kubeopencode_netpol.py"
       - "scripts/verify-kubeopencode-netpol.sh"
+      - "scripts/test_cluster_triage.py"
+      - "scripts/collect-k8s-diagnostics.sh"
+      - "docs/RUNBOOK-CLUSTER-TRIAGE.md"
       - "deployment/kubeopencode/**"
       - "k8s/kubeopencode/**"
       - "docs/SECURITY-KUBEOPENCODE.md"
@@ -40,6 +43,9 @@ run-name: >-
       - "scripts/test_kubeopencode_manifests.py"
       - "scripts/test_kubeopencode_netpol.py"
       - "scripts/verify-kubeopencode-netpol.sh"
+      - "scripts/test_cluster_triage.py"
+      - "scripts/collect-k8s-diagnostics.sh"
+      - "docs/RUNBOOK-CLUSTER-TRIAGE.md"
       - "deployment/kubeopencode/**"
       - "k8s/kubeopencode/**"
       - "docs/SECURITY-KUBEOPENCODE.md"
@@ -89,6 +95,11 @@ jobs:
       # four probe legs present, and every AUTO_RESTART/FAILURE_THRESHOLD/
       # RESTART_COOLDOWN_SECONDS knob wired in both the script and the
       # Deployment env. No cluster needed.
+      # BITB-156. Guards the collector against leaking Secret values and the
+      # runbook against losing traps that each cost hours to find.
+      - name: Cluster triage tooling tests
+        run: python -m pytest scripts/test_cluster_triage.py -v
+
       - name: DNS watchdog tests
         run: python -m pytest scripts/test_dns_watchdog.py -v
 

@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-19 (BITB-155 created — in-cluster CoreDNS watchdog after the 2026-09-19 DNS outage; BITB-154 created; BITB-152 in progress)
+**Last Updated:** 2026-09-19 (BITB-156 created — cluster triage collector and runbook; BITB-155 created — in-cluster CoreDNS watchdog; BITB-152 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -317,6 +317,36 @@ diagnostic bundle *at failure time*, and optionally restarts CoreDNS.
 - [ ] `yamllint` + `shellcheck` + `markdownlint` clean
 
 Full story: [`BITB-155-coredns-dns-watchdog.md`](BACKLOG_STORIES/BITB-155-coredns-dns-watchdog.md)
+
+---
+
+### 🎯 BITB-156: Cluster Triage Collector And Runbook
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-09-19
+
+The 2026-09-19 outage took most of a day and produced five wrong diagnoses before
+the right one. Every wrong turn came from reasoning about what the manifests should
+do; every real answer came from runtime state and arrived in a single command —
+resolving an IP to a pod, reading an error body instead of its status code, probing
+from a namespace no policy touches, a `tcpdump` on both sides of the hop, dumping a
+pod's `KUBE-POD-FW-*` chain. Add a one-pass collector and an ordered runbook so the
+next incident starts from a command rather than a conversation.
+
+**Acceptance Criteria (summary):**
+
+- [ ] One-pass collector, tolerant of per-command failure, resolves a pod by IP
+- [ ] Gathers enforced state (iptables/ipset) alongside declared state (kubectl)
+- [ ] Never renders Secret values — names only
+- [ ] Runbook orders checks cheapest-and-most-decisive first
+- [ ] Records the traps already paid for (DNAT, namespace labels, CoreDNS probes,
+      `policy random`, endpoint-less Service REJECT)
+- [ ] States that `connection refused` can be a NetworkPolicy (kube-router REJECTs)
+- [ ] Static tests, `shellcheck`/`yamllint`/`markdownlint` clean, wired into CI
+
+Full story: [`BITB-156-cluster-triage-runbook.md`](BACKLOG_STORIES/BITB-156-cluster-triage-runbook.md)
 
 ---
 
