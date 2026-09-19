@@ -16,18 +16,21 @@ kind: Deployment
 metadata:
   name: cloudflared
   namespace: kubeopencode-system
-  labels: { app: cloudflared }
+  labels:
+    app: cloudflared
 spec:
   replicas: 1
   selector:
-    matchLabels: { app: cloudflared }
+    matchLabels:
+      app: cloudflared
   template:
     metadata:
-      labels: { app: cloudflared }
+      labels:
+        app: cloudflared
     spec:
       containers:
         - name: cloudflared
-          image: cloudflare/cloudflared:2026.8.1   # pin a real tag; :latest also works
+          image: cloudflare/cloudflared:2026.8.1 # pin a real tag; :latest also works
           args: ["tunnel", "--no-autoupdate", "run"]
           env:
             - name: TUNNEL_TOKEN
@@ -36,11 +39,17 @@ spec:
                   name: cloudflared-token
                   key: token
           resources:
-            requests: { cpu: "25m",  memory: "48Mi" }
-            limits:   { cpu: "150m", memory: "128Mi" }
+            requests:
+              cpu: "25m"
+              memory: "48Mi"
+            limits:
+              cpu: "150m"
+              memory: "128Mi"
           livenessProbe:
-            httpGet: { path: /ready, port: 2000 }
+            httpGet:
+              path: /ready
+              port: 2000
             initialDelaySeconds: 10
             periodSeconds: 30
-      # metrics/health endpoint
-      # (cloudflared serves /ready on :2000 by default)
+            # metrics/health endpoint
+            # (cloudflared serves /ready on :2000 by default)

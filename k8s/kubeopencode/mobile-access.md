@@ -16,13 +16,15 @@ Two remote paths are built in parallel: **Cloudflare (WARP + private route)** an
 
 **Epic:** Operate my self-hosted AI coding agent from a mobile thin client.
 
-**User story**
+### User story
+
 > *As the operator of a single-node k3s cluster on my QNAP, I want to connect the
 > opencode Android app to my `default-wf2` agent, so that I can drive agent sessions
 > from my phone — on my home Wi‑Fi and remotely — without exposing a shell-capable
 > server to the public internet.*
 
-**Acceptance criteria**
+### Acceptance criteria
+
 1. The `default-wf2` opencode server requires a password (no unsecured server).
 2. On home Wi‑Fi, the app connects to the agent and `/global/health` is green.
 3. Remotely, the app connects with **no service on a public hostname**:
@@ -39,6 +41,7 @@ Two remote paths are built in parallel: **Cloudflare (WARP + private route)** an
 
 The app speaks **HTTP Basic auth only** — it is not a browser and cannot send custom
 headers. So:
+
 - Your existing **public hostname + Cloudflare Access (Gmail)** pattern **cannot gate
   this app** (no interactive Google SSO, no `CF-Access-Client-Id` service-token header).
 - Putting it on a public hostname would leave a **shell server protected by one
@@ -112,6 +115,7 @@ kubectl -n kubeopencode-system get svc default-wf2 -o jsonpath='{.spec.selector}
 kubectl apply -f service-mobile.yaml
 kubectl -n kubeopencode-system get svc default-wf2-mobile -o wide   # note CLUSTER-IP
 ```
+
 Record the **ClusterIP** (e.g. `10.43.210.96`) — Cloudflare's private route targets it.
 Pinning it (uncomment `clusterIP:` in the manifest) is recommended so the route never
 drifts.
@@ -128,12 +132,15 @@ port-forward, and connect the app:
 kubectl -n kubeopencode-system patch svc default-wf2-mobile \
   -p '{"spec":{"type":"NodePort","ports":[{"name":"http","port":4096,"targetPort":4096,"nodePort":30096}]}}'
 ```
+
 App fields:
+
 - **Server URL:** `http://192.168.178.200:30096`
 - **Username:** *(blank — defaults to `opencode`)*
 - **Password:** the value from Phase 1
 
 Green `/global/health` = the app↔agent chain works. Then revert to ClusterIP:
+
 ```bash
 kubectl -n kubeopencode-system patch svc default-wf2-mobile \
   -p '{"spec":{"type":"ClusterIP"}}'
@@ -146,11 +153,13 @@ kubectl -n kubeopencode-system patch svc default-wf2-mobile \
 You have a tunnel + public hostnames + Access already, but not WARP/private networking.
 Here we add a private route and gate device enrollment by your Gmail.
 
-**A. Dashboard — create the tunnel + token**
+### A. Dashboard — create the tunnel + token
+
 1. Zero Trust → **Networks → Tunnels → Create a tunnel** (name `k3s-qnap`), type
    *Cloudflared*. Copy the **tunnel token**.
 
-**B. Deploy the connector in-cluster**
+### B. Deploy the connector in-cluster
+
 ```bash
 kubectl -n kubeopencode-system create secret generic cloudflared-token \
   --from-literal=token='<PASTE_TUNNEL_TOKEN>'
@@ -176,8 +185,9 @@ kubectl -n kubeopencode-system rollout status deploy/cloudflared
 **E. Phone**
 6. Install **Cloudflare One / WARP** app → sign in with your Gmail → connect.
 7. In the opencode app:
-   - **Server URL:** `http://10.43.210.96:4096`  *(the Service ClusterIP)*
-   - **Username:** blank · **Password:** Phase‑1 password
+
+- **Server URL:** `http://10.43.210.96:4096`  *(the Service ClusterIP)*
+- **Username:** blank · **Password:** Phase‑1 password
 
 *Gmail gates who can enroll a device into the tunnel; nothing is on a public hostname;
 opencode password is the second layer.*
@@ -186,11 +196,13 @@ opencode password is the second layer.*
 
 ## Phase 4b — Tailscale: operator + exposed Service (in-cluster)
 
-**A. Tailscale admin console**
+### A. Tailscale admin console
+
 1. **Settings → OAuth clients → Generate** a client with tag `tag:k8s-operator`
    (create the tag under **Access controls** first if needed). Copy id + secret.
 
-**B. Install the operator (Helm, in-cluster)**
+### B. Install the operator (Helm, in-cluster)
+
 ```bash
 helm repo add tailscale https://pkgs.tailscale.com/helmcharts
 helm repo update
@@ -206,6 +218,7 @@ kubectl -n tailscale rollout status deploy/operator
 The `default-wf2-mobile` Service already carries the annotations
 (`tailscale.com/expose: "true"`, `tailscale.com/hostname: opencode-mobile`).
 The operator creates a proxy pod and a tailnet device:
+
 ```bash
 kubectl -n kubeopencode-system get svc default-wf2-mobile -o yaml | grep -A3 annotations
 # a device "opencode-mobile" should appear in your Tailscale admin console
@@ -214,9 +227,10 @@ kubectl -n kubeopencode-system get svc default-wf2-mobile -o yaml | grep -A3 ann
 **D. Phone**
 2. Install **Tailscale** app → sign in **with your Google account** → connect.
 3. In the opencode app:
-   - **Server URL:** `http://opencode-mobile:4096`  *(MagicDNS)* — or the device's
+
+- **Server URL:** `http://opencode-mobile:4096`  *(MagicDNS)* — or the device's
      `100.x.y.z` tailnet IP if MagicDNS isn't on
-   - **Username:** blank · **Password:** Phase‑1 password
+- **Username:** blank · **Password:** Phase‑1 password
 
 *Only devices in your tailnet (enrolled via your Google identity) can reach it.*
 
@@ -224,15 +238,18 @@ kubectl -n kubeopencode-system get svc default-wf2-mobile -o yaml | grep -A3 ann
 
 ## Phase 5 — Verify & rollback
 
-**Verify both**
+### Verify both
+
 ```bash
 kubectl -n kubeopencode-system get pods            # cloudflared + tailscale proxy Running
 kubectl -n kubeopencode-system get agent default-wf2   # READY
 ```
+
 From the phone on each transport, the app's `/global/health` should be green and a
 session should start on `default-wf2`.
 
-**Rollback (per path, non-destructive)**
+### Rollback (per path, non-destructive)
+
 ```bash
 # Cloudflare off:
 kubectl -n kubeopencode-system delete deploy cloudflared

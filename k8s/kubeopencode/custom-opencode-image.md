@@ -1,8 +1,3 @@
----
-title: Running a newer opencode (custom agent image)
-sidebar_position: 60
----
-
 # Running a newer opencode version (custom agent image)
 
 The opencode binary is **baked into the agent image** (`agentImage`,
@@ -22,7 +17,7 @@ kubectl -n kubeopencode-system logs $POD -c opencode-init | grep -i version
 # e.g. [opencode-init] OpenCode binary installed successfully (version 1.17.11).
 ```
 
-Compare with the latest opencode release (https://opencode.ai/changelog).
+Compare with the latest opencode release (<https://opencode.ai/changelog>).
 
 ## 2. Build a custom agent image
 
