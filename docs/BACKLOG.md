@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-128/129 in progress)
+**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-152 created; BITB-128/129 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -195,6 +195,36 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### 🎯 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M (`it` only; each further locale is S)
+**Created:** 2026-09-12
+**Reported by:** product owner, relaying Italian users — "the answers are too cold"
+
+**As** someone writing about something painful in my own language, **I want** the reply to carry
+warmth the way my culture carries it, **so that** it reads as a person being close to me — while a
+plain Bible question still gets the same clear, neutral answer it gets today.
+
+**Approach:** gate cultural tone on the *intent that already exists*. `COMFORT`/`GUIDANCE` get a
+short per-locale pastoral-register addendum layered onto the persona (the
+`COMPASSIONATE_RESPONSE_ADDENDUM` pattern); `CURIOSITY`/`VERSE_LOOKUP`/`GENERAL`/`OFF_TOPIC`/
+`NEEDS_CLARIFICATION` are untouched. No extra LLM call — `_detect_intent()` already runs and is on by
+default. Registry empty by default: a locale with no entry behaves byte-identically to today, so we
+ship `it` (where we have a real report) and do not invent cultural notes for ten other languages.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Addendum present for `COMFORT`/`GUIDANCE` + registry locale; absent for informational intents
+- [ ] No registry entry, or flag off ⇒ system prompt byte-identical to today
+- [ ] Same gate on both the blocking and streaming chat paths; crisis addendum still last and unchanged
+- [ ] Verse-grounding / citation suites pass unchanged; ~10 Italian before/after samples reviewed by a
+  native speaker who is not the author
+- [ ] `it` vs `en`/`de` negative-feedback rate baselined before rollout
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-151-culturally-tuned-pastoral-tone.md`
+
 ### 🚧 BITB-154: KubeOpenCode Multi-Provider Resilience — Cross-Provider Fallback + Survive Provider Outage
 
 **Status:** 🚧 In Progress (PR #1077)
@@ -222,6 +252,35 @@ slots, move the three Copilot primaries to `opencode/nemotron-3-ultra-free`, add
 - [ ] Live cluster synced (`make sync-opencode-configmap` + pod restart, needs write RBAC)
 
 Full story: [`BITB-154-kubeopencode-multi-provider-resilience.md`](BACKLOG_STORIES/BITB-154-kubeopencode-multi-provider-resilience.md)
+
+---
+
+### 🎯 BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-09-06
+
+Agent sandbox has full egress, LAN-reachable `0.0.0.0:4096` with unauthenticated
+`/api/session`, and `OPENCODE_API_KEY` exposed via ENV. Harden to strict-tier:
+default-deny egress (public 443/53 only, RFC1918/169.254 denied, K8s API ClusterIP
+explicitly allowed), LAN opt-in via `kubeopencode.io/allow-lan` annotation with
+localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
+`OPENCODE_API_KEY_FILE`, auth enforcement on `/api/session`, bind `--hostname 127.0.0.1`.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Strict egress: public `443/53` OK, RFC1918 + `169.254/16` blocked, K8s API still reachable
+- [ ] `localhost:11434` Ollama keeps working, LAN opt-in via annotation
+- [ ] API key via `0400` file mount, `env` clean, `/api/session` requires auth
+- [ ] No committed secret value: `opencode-api-key` created imperatively
+- [ ] Zero-downtime rollout (egress-allow before default-deny, 30m standby drain)
+- [ ] `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
+- [ ] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
+- [ ] `scripts/validate-env.py` passes
+
+Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/BITB-152-kubeopencode-strict-tier-hardening.md)
 
 ---
 
@@ -1678,9 +1737,9 @@ separator/range grammar and script-class alternations.
 
 ---
 
-### 🎯 BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
+### ✅ BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2
 **Size:** M
 **Created:** 2026-08-22
@@ -1696,13 +1755,20 @@ unblocked the moment #983 merges.
 consumer must not assume `citations` is exhaustive — the regex fallback has to stay reachable
 per-message, or Arabic users silently lose links.
 
+**Implementation note:** web-only. `frontend/src/lib/citationSpans.ts` (`linkifyWithCitations`)
+prefers each valid `citations` span and re-runs the existing regex linkifier over every gap a span
+doesn't (validly) cover — so an absent field, an empty array, a corrupt span, or a citation the
+backend's known Arabic gap omitted all degrade to the pre-existing regex behavior for that stretch of
+text. Gated by `NEXT_PUBLIC_CITATION_SPANS_ENABLED` (`frontend/src/lib/featureFlags.ts`), default off.
+Android and iOS are unaffected.
+
 **Acceptance Criteria (summary):**
 
-- [ ] Web consumes `citations` behind a flag; regex path used when the field is absent
-- [ ] Byte-identical output vs. the regex path across the shared corpus
-- [ ] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
-- [ ] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
-- [ ] A vocalized-Arabic message still renders links via the fallback
+- [x] Web consumes `citations` behind a flag; regex path used when the field is absent
+- [x] Byte-identical output vs. the regex path across the shared corpus
+- [x] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
+- [x] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
+- [x] A vocalized-Arabic message still renders links via the fallback
 
 **Depends on:** PR #983 merging.
 
@@ -2083,9 +2149,9 @@ Retrospective: `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
 
 ---
 
-### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
+### 🚧 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — decision recorded, implementation in progress
 **Priority:** P2
 **Size:** S–M
 
@@ -2099,11 +2165,43 @@ against the production URL. Traffic is encrypted but the server is unauthenticat
 certificate, any server, any hostname is accepted, against an internet-reachable endpoint.
 
 This is **deliberate** — it is what `sslmode=require` means in libpq, and BITB-016 chose it
-knowingly. What is missing is anyone having decided it is *acceptable*. The story forces that
-decision: move to `verify-full` with the Azure CA bundle, or keep `require` and record the threat
-model. Not an Alembic issue; filed separately.
+knowingly. What is missing is anyone having decided it is *acceptable*. **Decision (2026-09-09):**
+move to `verify-full`, relying on the Python/OS default CA trust store — Azure's server cert
+chains to a public root already in every standard trust store, so no CA bundle needs to be
+vendored. Every DSN that builds `sslmode=require` for the real production host moves to
+`sslmode=verify-full`; the SSL-context-building logic itself needs no change since it already
+handles `verify-full` correctly. Not an Alembic issue; filed separately.
+
+Implemented in PR #1058, independently verified (unit tests pass, no unintended logic change,
+scope complete). **Stays In Progress through merge** — the one unproven acceptance criterion is a
+live `verify-full` connection to production, which only happens on the post-merge `main` deploy
+(`run-migrations` is skipped on PRs); flip to Done once that deploy succeeds. The verify pass also
+surfaced a related-but-separate latent gap in the migration-utils mirror helper, filed as BITB-125.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
+
+---
+
+### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+
+**As a** maintainer relying on `get_migration_connection_params()` and `get_async_database_url()`
+being true mirrors of each other, **I want** the asyncpg-spelled `?ssl=...` parameter handled
+identically in both, **so that** a DSN using that spelling can't silently connect with no TLS at
+all.
+
+`get_migration_connection_params()` only checks `ssl_param == "require"`; `?ssl=verify-ca` or
+`?ssl=verify-full` fails its build condition entirely, so no `ssl` kwarg is set and asyncpg
+connects in plaintext — a worse outcome than `sslmode=require`'s merely-unverified `CERT_NONE`.
+`get_async_database_url()` doesn't have this gap (`sslmode = sslmode or ssl_param` before
+branching). Latent — no DSN in this repo currently uses that spelling — but
+`docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
+makes it easy for an operator to stumble into by hand.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 
@@ -2353,6 +2451,38 @@ attributed to Android or broadly backfilled.
 > speak the answer, and ask by voice. They share remote rollout/configuration and locale work,
 > but are split because output and microphone input have independent APIs, permissions, data
 > flows, failure modes and release risk. Each can ship or be withdrawn independently.
+
+---
+
+### 🚧 BITB-126: Diagnose a Database Stamped Ahead of the Deploy Checkout
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** S (preflight script + workflow wiring + tests)
+**Created:** 2026-09-09
+**Reported by:** deploy failure triage — [run 33369807581](https://github.com/zioalex/getinspiredbythebible/actions/runs/33369807581)
+
+A re-run of an older workflow run deploys a commit whose `api/alembic/versions/`
+predates the revision production is stamped at. Alembic cannot resolve that
+stamp, so `alembic current` dies on the *read* — `Can't locate revision
+identified by 'r0006'`, exit 255 — with no indication that the database is
+healthy and the checkout is simply old. The step's existing unstamped preflight
+could not help: it parsed `alembic current`'s output, so it sat downstream of
+the command that had already exited. `scripts/alembic_preflight.py` reads
+`alembic_version` with a plain `SELECT` and classifies the stamp against the
+checkout's revision graph *before* any `alembic` command runs.
+
+**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`):**
+
+- [x] A stamp absent from the checkout fails naming the revision, the head, that
+      the database is not broken, and that re-running cannot succeed
+- [x] BITB-089's `alembic stamp r0001` remedy preserved for an unstamped database
+- [x] The preflight provably runs before the first `alembic` command
+- [x] Success path reports the true pending-revision count
+- [x] Verified end-to-end against a real PostgreSQL 16 across five stamp states
+- [ ] Green CI on the PR
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`
 
 ---
 
@@ -3491,6 +3621,48 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
       (`docs/audits/2026-07-adversarial-audit.md:174`) — now re-raises and crash-loops
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-090-remove-create-all-once-alembic-owns-schema.md`
+
+---
+
+### 🎯 BITB-150: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
+
+**Status:** 🎯 Todo
+**Size:** M (the analysis is the deliverable; each fix it authorises is its own small story)
+**Created:** 2026-09-12
+**Prompted by:** Owner's spend review — "monitoring is ~25% of the cost, the DB is ~50%"
+
+**As** the person paying the Azure invoice, **I want** the monitoring and database spend broken
+down to the meter and each driver traced to the Terraform or application line that creates it,
+**so that** I can cut cost against evidence instead of guessing which knob is the expensive one.
+
+The 25/50 split is an owner-side estimate, and the published cost table in `deployment/README.md`
+is stale (it still prices a **B1ms**; `main.tf:405` has been `B_Standard_B2s` since the partial-HNSW
+upgrade). Phase 0 is a blocking meter-level attribution — nothing is changed on the estimate.
+Structural drivers already identified from the repo: Log Analytics `PerGB2018` with **no
+`daily_quota_gb` cap**, `configure_azure_monitor()` with **no sampling**, 2 web tests × 3 geos ×
+5 min = **51,840 executions/month**, 32 alert rules (17 log rules at `PT5M`), and on the database
+side **no reserved capacity**, a one-way `auto_grow_enabled` storage ratchet that Terraform can no
+longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, and 1536-dim
+4-byte vectors over 403,856 verses (`halfvec` would halve both).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Phase 0 cost table (resource → meter → 3 monthly totals) pasted into the PR with the exact
+      `az` command, reconciled against the real invoice; the 25/50 estimate confirmed or corrected
+- [ ] Log Analytics billable GB per `DataType` and App Insights records per `itemType` captured
+- [ ] **Resolved:** whether a Postgres diagnostic setting exists outside Terraform (drift to codify,
+      or ingestion to remove) — `log_connections = on` with no `azurerm_monitor_diagnostic_setting`
+      anywhere in `deployment/`
+- [ ] Real provisioned `storage_mb`, DB size, top-10 tables/indexes, and 90 days of CPU/memory
+      captured from production, with `stats_reset` alongside `idx_scan`
+- [ ] Every lever carries a saving derived from the Phase 0 table (not list prices) plus a risk
+      note; ranked by saving ÷ risk, with declines explained so they are not re-litigated
+- [ ] A follow-up story filed for each accepted lever touching schema, indexes, sampling or SKU —
+      **none implemented in this story's PR**
+- [ ] `deployment/README.md`'s stale cost table corrected; `monthly_budget = 50` reviewed against
+      actual spend
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-150-azure-cost-analysis-monitoring-and-database.md`
 
 ---
 
