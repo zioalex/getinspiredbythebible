@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-15 (BITB-155 created — KubeOpenCode dev image; BITB-154 created; BITB-128/129 in progress)
+**Last Updated:** 2026-09-21 (BITB-157 created — KubeOpenCode dev image, renumbered from BITB-155 due to ID collision with #1081; BITB-154 created; BITB-128/129 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -195,7 +195,7 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-155: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
+### 🎯 BITB-157: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
 
 **Status:** 🎯 Todo
 **Priority:** P1
@@ -215,7 +215,7 @@ Python 3.12, hook versions) with pre-warmed hook caches on the PVC.
 - [ ] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
 - [ ] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
 
-Full story: [`BITB-155-kubeopencode-dev-image.md`](BACKLOG_STORIES/BITB-155-kubeopencode-dev-image.md)
+Full story: [`BITB-157-kubeopencode-dev-image.md`](BACKLOG_STORIES/BITB-157-kubeopencode-dev-image.md)
 
 ---
 
