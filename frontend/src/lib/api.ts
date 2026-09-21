@@ -4,6 +4,7 @@
 
 import { reportClientError } from "./clientErrorReporter";
 import { getSmokeSecret } from "./smoke";
+import { CitationSpan } from "./citationSpans";
 
 // In production builds, NEXT_PUBLIC_API_URL must be set at build time.
 // The fallback is only for local development.
@@ -335,6 +336,7 @@ export function resetSessionId(): string {
 export interface Message {
   role: "user" | "assistant";
   content: string;
+  citations?: CitationSpan[];
 }
 
 export interface Verse {
@@ -379,6 +381,9 @@ export interface ChatResponse {
   model: string;
   detected_translation?: string;
   translation_info?: TranslationInfo;
+  /** BITB-080: suggested follow-up questions, in the user's own voice. Absent
+   * when suppressed (crisis/off-topic/error turns) or on an older backend. */
+  follow_ups?: string[];
 }
 
 export interface FeedbackRequest {
@@ -584,11 +589,18 @@ export interface StreamChunk {
   // merged into the verse pool so the filter has cards to match for verses
   // outside the semantic search results.
   resolved_verses?: Verse[];
+  // Server-authoritative citation spans for linkification (BITB-086/109) —
+  // offsets into the rendered message text. Absent on older/cached
+  // responses; the web client falls back to its regex linkifier then.
+  citations?: CitationSpan[];
   // Set only when post-generation grounding rewrote a fabricated/mismatched
   // inline verse quote to the canonical scripture text. When present, it is the
   // authoritative full message body and should replace the streamed content.
   corrected_message?: string;
   corrections?: { reference: string; reason: string }[];
+  // BITB-080: 2-3 suggested follow-up questions, in the user's own voice.
+  // Absent when suppressed (crisis/off-topic/error turns) or on an older backend.
+  follow_ups?: string[];
 }
 
 /**

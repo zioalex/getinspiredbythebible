@@ -135,6 +135,7 @@
     "contentBlockedMessage": "لم أتمكن من الرد على هذه الرسالة — فقد أوقفها نظام السلامة لدينا، وربما يكون قد أساء فهم كلماتك. حاول إعادة صياغة فكرتك من فضلك، وإذا شعرت أن هناك خطأً، تواصل معنا على contact@voxquieta.org. سعداء بوجودك هنا.",
     "scrollToBottom": "التمرير للأسفل",
     "stopGenerating": "إيقاف التوليد",
+    "followUpsLabel": "أسئلة متابعة مقترحة",
     "languageSwitchSuggestion": "يبدو أنك تكتب بـ {language}. هل تريد التبديل؟",
     "languageSwitchAction": "تبديل",
     "languageSwitchDismiss": "تجاهل",
