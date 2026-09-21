@@ -2520,6 +2520,38 @@ attributed to Android or broadly backfilled.
 
 ---
 
+### 🚧 BITB-126: Diagnose a Database Stamped Ahead of the Deploy Checkout
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** S (preflight script + workflow wiring + tests)
+**Created:** 2026-09-09
+**Reported by:** deploy failure triage — [run 33369807581](https://github.com/zioalex/getinspiredbythebible/actions/runs/33369807581)
+
+A re-run of an older workflow run deploys a commit whose `api/alembic/versions/`
+predates the revision production is stamped at. Alembic cannot resolve that
+stamp, so `alembic current` dies on the *read* — `Can't locate revision
+identified by 'r0006'`, exit 255 — with no indication that the database is
+healthy and the checkout is simply old. The step's existing unstamped preflight
+could not help: it parsed `alembic current`'s output, so it sat downstream of
+the command that had already exited. `scripts/alembic_preflight.py` reads
+`alembic_version` with a plain `SELECT` and classifies the stamp against the
+checkout's revision graph *before* any `alembic` command runs.
+
+**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`):**
+
+- [x] A stamp absent from the checkout fails naming the revision, the head, that
+      the database is not broken, and that re-running cannot succeed
+- [x] BITB-089's `alembic stamp r0001` remedy preserved for an unstamped database
+- [x] The preflight provably runs before the first `alembic` command
+- [x] Success path reports the true pending-revision count
+- [x] Verified end-to-end against a real PostgreSQL 16 across five stamp states
+- [ ] Green CI on the PR
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`
+
+---
+
 ### 🚧 BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
 
 **Status:** 🚧 In Progress (PR #1042)
