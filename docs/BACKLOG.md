@@ -2,8 +2,8 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-18 (BITB-106 done — corpus tagging validated for all seven supported
-languages, ru/zh/hi/ko scope decision recorded, BITB-156 filed as a follow-up; BITB-154 created —
+**Last Updated:** 2026-09-21 (BITB-161 renumbered from BITB-156 — collision with #1083; BITB-106 done — corpus tagging validated for all seven supported
+languages, ru/zh/hi/ko scope decision recorded, BITB-161 filed as a follow-up; BITB-154 created —
 KubeOpenCode multi-provider resilience; BITB-128/129 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
@@ -1959,14 +1959,14 @@ it uses substring matching for attached clitics, the mechanism most likely to ov
 establishing the boost is worth having would be optimising an unvalidated feature; revisit once
 BITB-104 has numbers.
 
-**Follow-up filed:** BITB-156 — Arabic morphology-aware topic matching, to recover the recall
+**Follow-up filed:** BITB-161 — Arabic morphology-aware topic matching, to recover the recall
 traded away by this story's denylist (deferred, not required for this story to be done).
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-106-corpus-tagging-validated-for-two-of-eleven-languages.md`
 
 ---
 
-### 🎯 BITB-156: Arabic Morphology-Aware Topic Matching
+### 🎯 BITB-161: Arabic Morphology-Aware Topic Matching
 
 **Status:** 🎯 Todo
 **Priority:** P3 — recall improvement on an already-shipped, already-safe feature
@@ -1982,7 +1982,7 @@ A clitic-anchored experiment during BITB-106 helped (`حب` 1,071 → 793) but d
 Depends on BITB-116's boosting A/B numbers to justify the investment — a recall fix on a feature
 not yet proven to help is low value.
 
-**Full Story:** [`BITB-156-arabic-morphology-aware-topic-matching.md`](BACKLOG_STORIES/BITB-156-arabic-morphology-aware-topic-matching.md)
+**Full Story:** [`BITB-161-arabic-morphology-aware-topic-matching.md`](BACKLOG_STORIES/BITB-161-arabic-morphology-aware-topic-matching.md)
 
 ---
 

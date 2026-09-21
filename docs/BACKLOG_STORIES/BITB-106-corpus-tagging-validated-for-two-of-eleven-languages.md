@@ -53,7 +53,7 @@ examples with real match counts in `api/chat/topic_tagging.py`'s `CORPUS_KEYWORD
 comment): `حب` (love, 1,071 verses — mostly `صاحبه` "companion", the names `رحبعام`/`حبرون`,
 `فحبلت` "conceived"), `أمل` and `يأس` (hope, 397 and 74 verses — mostly unrelated roots meaning
 "complete"/"bearer"/"worker"/"widows" and "measure"/"rulership"), `عفو` (forgiveness, 15 verses),
-`قلق` (anxiety, 26 verses). Follow-up filed as **BITB-156** to fix the mechanism itself and recover
+`قلق` (anxiety, 26 verses). Follow-up filed as **BITB-161** to fix the mechanism itself and recover
 this recall.
 
 ### The ru/zh/hi/ko decision
@@ -194,9 +194,9 @@ confirm it trips.
   reported separately
 - **BITB-104** — the measurement this feeds; also the gate on whether LLM-assisted tagging is worth
   doing at all
-- **BITB-116** — the topic-boosting A/B decision; also gates whether BITB-156's recall fix is worth
+- **BITB-116** — the topic-boosting A/B decision; also gates whether BITB-161's recall fix is worth
   doing
-- **BITB-156** (new) — Arabic morphology-aware matching, filed to recover the recall this story's
+- **BITB-161** (new) — Arabic morphology-aware matching, filed to recover the recall this story's
   denylist traded away
 - `api/chat/topic_tagging.py`, `api/chat/topics.py`, `scripts/populate_verse_topics.py`,
   `scripts/measure_topic_coverage.py` (new), `scripts/check_verse_topic_coverage.py`,

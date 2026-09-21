@@ -112,7 +112,7 @@ CORPUS_KEYWORD_DENYLIST: dict[str, set[str]] = {
 # "يتعطف", "استعطف"), "غضب" (anger, 3%), "سلام" (peace, 4%), "محبة" (love,
 # 0%), "حكمة" (guidance, 0%), "إيمان" (trust, 0%).
 #
-# Follow-up filed as BITB-156: bare substring matching cannot separate
+# Follow-up filed as BITB-161: bare substring matching cannot separate
 # "legitimate derivation" from "unrelated word containing the same three
 # letters" in general — a clitic/affix-aware matcher would recover the
 # denylisted keywords' recall without the noise (measured: "حب" 1,071 -> 793,

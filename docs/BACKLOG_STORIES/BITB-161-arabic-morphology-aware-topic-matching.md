@@ -1,6 +1,7 @@
-# BITB-156: Arabic Morphology-Aware Topic Matching
+# BITB-161: Arabic Morphology-Aware Topic Matching
 
 **Status:** 🎯 Todo
+**Renumbered:** 2026-09-21 from BITB-156 — ID collision with the Android session-limit story (#1083), which claimed BITB-156 first
 **Priority:** P3 — recall improvement on an already-shipped, already-safe feature
 **Size:** M (a clitic/affix-aware matcher plus re-validation is more than a keyword edit, less
 than a full morphological analyzer)
