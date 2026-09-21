@@ -1,5 +1,5 @@
 #!/bin/bash
-# One-pass cluster state collector for incident triage (BITB-156).
+# One-pass cluster state collector for incident triage (BITB-160).
 #
 # Usage (normally via the Makefile — `make collect-k8s-diagnostics`):
 #   bash scripts/collect-k8s-diagnostics.sh [--namespace NS] [--pod-ip IP] [--out FILE]

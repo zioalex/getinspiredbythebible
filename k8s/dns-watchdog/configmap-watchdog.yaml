@@ -1,4 +1,4 @@
-# BITB-155. The watchdog's probe loop, shipped as a ConfigMap so the image
+# BITB-159. The watchdog's probe loop, shipped as a ConfigMap so the image
 # (curlimages/curl, chosen for busybox nslookup/nc + curl in one image) needs
 # no custom build. Mounted read-only at /opt/watchdog by deployment.yaml and
 # run as `/bin/sh /opt/watchdog/watchdog.sh` -- that shell is busybox ash, so
@@ -14,7 +14,7 @@ metadata:
 data:
   watchdog.sh: |
     #!/bin/sh
-    # CoreDNS watchdog probe loop (BITB-155). Runs as /bin/sh (busybox ash)
+    # CoreDNS watchdog probe loop (BITB-159). Runs as /bin/sh (busybox ash)
     # inside curlimages/curl, so this is strict POSIX sh: no non-POSIX shell
     # extensions, no arrays.
     #

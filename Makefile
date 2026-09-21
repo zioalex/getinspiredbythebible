@@ -339,10 +339,10 @@ collect-k8s-diagnostics: ## Collect cluster state for incident triage (usage: NA
 		$(if $(NAMESPACE),--namespace $(NAMESPACE)) \
 		$(if $(POD_IP),--pod-ip $(POD_IP))
 
-test-dns-watchdog: ## Static checks on the CoreDNS watchdog RBAC/script/deployment (no cluster needed, BITB-155)
+test-dns-watchdog: ## Static checks on the CoreDNS watchdog RBAC/script/deployment (no cluster needed, BITB-159)
 	@$(PYTHON_VERSION) -m pytest scripts/test_dns_watchdog.py -q
 
-deploy-dns-watchdog: ## Deploy the CoreDNS watchdog to the LIVE cluster (BITB-155)
+deploy-dns-watchdog: ## Deploy the CoreDNS watchdog to the LIVE cluster (BITB-159)
 	@echo "$(BLUE)Deploying CoreDNS watchdog...$(NC)"
 	@kubectl apply -f k8s/dns-watchdog/serviceaccount-watchdog.yaml \
 		-f k8s/dns-watchdog/role-watchdog.yaml -f k8s/dns-watchdog/rolebinding-watchdog.yaml \

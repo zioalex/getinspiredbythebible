@@ -1,4 +1,4 @@
-# DNS watchdog (BITB-155)
+# DNS watchdog (BITB-159)
 
 In-cluster watchdog that probes cluster DNS end-to-end on an interval,
 captures a four-leg diagnostic bundle **at failure time**, emits Kubernetes
@@ -7,7 +7,7 @@ failure. Built after a 2026-09-19 incident where CoreDNS stopped forwarding
 upstream while its own `/health` and `/ready` probes stayed green, and the
 evidence needed to root-cause it had to be reconstructed after the fact.
 
-See `docs/BACKLOG_STORIES/BITB-155-coredns-dns-watchdog.md` for the incident
+See `docs/BACKLOG_STORIES/BITB-159-coredns-dns-watchdog.md` for the incident
 writeup and acceptance criteria.
 
 ## Deploy

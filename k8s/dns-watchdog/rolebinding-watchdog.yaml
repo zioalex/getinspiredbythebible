@@ -1,4 +1,4 @@
-# BITB-155. Binds the least-privilege Role (role-watchdog.yaml) to the
+# BITB-159. Binds the least-privilege Role (role-watchdog.yaml) to the
 # watchdog ServiceAccount. See role-watchdog.yaml for the rationale.
 # One Kubernetes object per file: the repo's check-yaml pre-commit hook runs
 # without --allow-multiple-documents, so a multi-document manifest fails CI.

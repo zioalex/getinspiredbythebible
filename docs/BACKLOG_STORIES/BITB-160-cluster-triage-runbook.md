@@ -1,6 +1,7 @@
-# BITB-156: Cluster triage collector and runbook
+# BITB-160: Cluster triage collector and runbook
 
 **Status:** 🎯 Todo | **Priority:** P2 | **Size:** S | **Date:** 2026-09-19
+**Renumbered:** 2026-09-21 from BITB-156 — ID collision with the Android session-limit story (#1083), which claimed BITB-156 first
 
 ## Problem
 
@@ -57,4 +58,4 @@ conversation instead of a command.
 ## Out of scope
 
 Automating the ladder. The collector gathers; a human reads. The DNS-specific
-rungs are already automated in BITB-155's watchdog diagnostic line.
+rungs are already automated in BITB-159's watchdog diagnostic line.

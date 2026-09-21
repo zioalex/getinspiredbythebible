@@ -1,4 +1,4 @@
-# BITB-155. The DNS watchdog: probes cluster DNS end-to-end on an interval,
+# BITB-159. The DNS watchdog: probes cluster DNS end-to-end on an interval,
 # captures a four-leg diagnostic bundle at failure time, Events it, and
 # optionally restarts CoreDNS after sustained failure. See README.md for the
 # env-var reference and how to read the structured log line.

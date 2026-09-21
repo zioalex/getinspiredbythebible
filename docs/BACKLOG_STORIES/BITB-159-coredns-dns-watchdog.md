@@ -1,6 +1,7 @@
-# BITB-155: In-cluster CoreDNS watchdog with failure-time diagnostics
+# BITB-159: In-cluster CoreDNS watchdog with failure-time diagnostics
 
 **Status:** 🎯 Todo | **Priority:** P1 | **Size:** S | **Date:** 2026-09-19
+**Renumbered:** 2026-09-21 from BITB-155 — ID collision with the OpenRouter model refresh story (#1081), which claimed BITB-155 first
 
 ## Problem
 

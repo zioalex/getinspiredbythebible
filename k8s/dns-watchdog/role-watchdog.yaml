@@ -1,4 +1,4 @@
-# BITB-155. Least-privilege RBAC for the DNS watchdog, namespaced to
+# BITB-159. Least-privilege RBAC for the DNS watchdog, namespaced to
 # kube-system (no ClusterRole / ClusterRoleBinding -- the watchdog only ever
 # needs to touch things inside kube-system).
 #

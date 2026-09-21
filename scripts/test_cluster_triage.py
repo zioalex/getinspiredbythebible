@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the cluster triage tooling (BITB-156).
+"""Tests for the cluster triage tooling (BITB-160).
 
 The 2026-09-19 outage took most of a day and produced five wrong diagnoses
 before the right one. The collector and runbook exist so the next incident

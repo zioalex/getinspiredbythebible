@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the CoreDNS watchdog in k8s/dns-watchdog/ (BITB-155).
+"""Tests for the CoreDNS watchdog in k8s/dns-watchdog/ (BITB-159).
 
 These run without a cluster, so CI catches the mistakes a live rollout would
 only surface after DNS is already broken -- exactly the failure mode this
@@ -188,7 +188,7 @@ def test_role_and_binding_are_namespaced_to_kube_system(rbac_docs):
 
 
 def test_script_never_reaches_api_server_by_dns_name(watchdog_script):
-    """The whole point of BITB-155: a watchdog that needs DNS to report DNS
+    """The whole point of BITB-159: a watchdog that needs DNS to report DNS
     is down is useless. It must build the API URL from the kubelet-injected
     IP/port env vars, never a hostname."""
     assert "kubernetes.default" not in watchdog_script, (

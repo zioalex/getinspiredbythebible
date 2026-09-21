@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-19 (BITB-156 created — cluster triage collector and runbook; BITB-155 created — in-cluster CoreDNS watchdog; BITB-152 in progress)
+**Last Updated:** 2026-09-21 (BITB-159/BITB-160 renumbered from BITB-155/BITB-156 — ID collisions with #1081 and #1083; BITB-152 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -284,7 +284,7 @@ Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/B
 
 ---
 
-### 🎯 BITB-155: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
+### 🎯 BITB-159: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
 
 **Status:** 🎯 Todo
 **Priority:** P1
@@ -316,11 +316,11 @@ diagnostic bundle *at failure time*, and optionally restarts CoreDNS.
 - [ ] Static tests runnable in CI with no cluster
 - [ ] `yamllint` + `shellcheck` + `markdownlint` clean
 
-Full story: [`BITB-155-coredns-dns-watchdog.md`](BACKLOG_STORIES/BITB-155-coredns-dns-watchdog.md)
+Full story: [`BITB-159-coredns-dns-watchdog.md`](BACKLOG_STORIES/BITB-159-coredns-dns-watchdog.md)
 
 ---
 
-### 🎯 BITB-156: Cluster Triage Collector And Runbook
+### 🎯 BITB-160: Cluster Triage Collector And Runbook
 
 **Status:** 🎯 Todo
 **Priority:** P2
@@ -346,7 +346,7 @@ next incident starts from a command rather than a conversation.
 - [ ] States that `connection refused` can be a NetworkPolicy (kube-router REJECTs)
 - [ ] Static tests, `shellcheck`/`yamllint`/`markdownlint` clean, wired into CI
 
-Full story: [`BITB-156-cluster-triage-runbook.md`](BACKLOG_STORIES/BITB-156-cluster-triage-runbook.md)
+Full story: [`BITB-160-cluster-triage-runbook.md`](BACKLOG_STORIES/BITB-160-cluster-triage-runbook.md)
 
 ---
 
