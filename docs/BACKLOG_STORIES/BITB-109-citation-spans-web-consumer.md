@@ -1,6 +1,6 @@
 # BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2 — until a client consumes `citations`, the backend contract is shipped but unused,
 and its correctness is only asserted by its own tests
 **Size:** M
@@ -66,15 +66,30 @@ silently lose links the old path would have rendered. Worth an explicit test.
 
 ## Acceptance Criteria
 
-- [ ] Web consumes `citations` behind a flag; regex path retained and used when the field is absent
-- [ ] Byte-identical rendered output vs. the regex path across the shared corpus
-- [ ] Corrupt spans (bad offsets, mismatched `text`, overlapping ranges) render plain text — no
-      crash, no duplicated content — asserted by adversarial tests
-- [ ] The self-verification path (`message[start:end] == text`, else locate by `occurrence`) is
-      implemented and tested, not just documented
-- [ ] A vocalized-Arabic message still renders links via the fallback, proving `citations` is not
-      assumed exhaustive
-- [ ] `docs/AUDIT_PLAYBOOK.md` records which clients consume the server path
+- [x] Web consumes `citations` behind a flag; regex path retained and used when the field is absent
+      — `frontend/src/lib/citationSpans.ts` (`linkifyWithCitations`), gated by
+      `frontend/src/lib/featureFlags.ts` (`citationSpansEnabled`, reading
+      `NEXT_PUBLIC_CITATION_SPANS_ENABLED`), wired into `ChatMessage.tsx`
+- [x] Byte-identical rendered output vs. the regex path across the shared corpus — see
+      `frontend/src/lib/citationSpans.test.ts`'s "corpus parity" suite (31 of the corpus's 33 cases
+      produced a real comparison; the other 2 are `expectNone` negative cases). One deviation from
+      the letter of this AC: the parity spans are built with `book` taken from the regex match itself
+      (not the corpus's normalized-lowercase `expected.book`), because a real backend span's `book` is
+      the canonical English name (e.g. `"John"`), which is a *different string* from a non-English
+      match's own localized text (e.g. `"Matthäus"`) — the two are only equivalent in what they
+      resolve to via `normalize_book_name()`, never in bytes. Testing genuine byte-identity requires
+      giving the span the same book string the regex path would put in its own href; see the code
+      comment in the test file for the full reasoning.
+- [x] Corrupt spans (bad offsets, mismatched `text`, overlapping ranges) render plain text — no
+      crash, no duplicated content — asserted by adversarial tests — see the "corrupt spans
+      (adversarial)" describe block in `citationSpans.test.ts`
+- [x] The self-verification path (`message[start:end] == text`, else locate by `occurrence`) is
+      implemented and tested, not just documented — `resolveSpan()` in `citationSpans.ts`; tested by
+      the "self-verification failure + occurrence recovery" suite
+- [x] A vocalized-Arabic message still renders links via the fallback, proving `citations` is not
+      assumed exhaustive — see "vocalized-Arabic fallback" test, calling
+      `linkifyWithCitations(text, [])` to simulate the server's documented gap
+- [x] `docs/AUDIT_PLAYBOOK.md` records which clients consume the server path
 
 ## Dependencies
 

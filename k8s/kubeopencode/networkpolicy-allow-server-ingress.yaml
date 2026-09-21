@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-server-ingress
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: kubeopencode
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: kubeopencode
+  policyTypes:
+    - Ingress
+  ingress:
+    # The platform gateway, selected by the absence of `managed-by` (see the note
+    # in networkpolicy-egress-server.yaml). `name: kubeopencode-server` would be
+    # wrong twice over: it matches the workspace pods, so it would open the
+    # agent-to-agent :4096 path the strict tier means to deny, while leaving the
+    # gateway -- which carries `name: kubeopencode` -- unable to reach them.
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/managed-by
+                operator: DoesNotExist
+      ports:
+        - port: 4096
+          protocol: TCP
+    - from:
+        # `kubernetes.io/metadata.name` is set by the API server on every
+        # namespace; a bare `name` label is not, and selecting on it would
+        # silently match zero peers.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 4096
+          protocol: TCP
