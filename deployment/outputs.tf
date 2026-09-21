@@ -59,7 +59,7 @@ output "postgresql_fqdn" {
 
 output "postgresql_connection_string" {
   description = "PostgreSQL connection string (without password)"
-  value       = "postgresql://${var.db_admin_username}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/${var.db_name}?sslmode=require"
+  value       = "postgresql://${var.db_admin_username}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/${var.db_name}?sslmode=verify-full"
 }
 
 output "postgresql_database" {

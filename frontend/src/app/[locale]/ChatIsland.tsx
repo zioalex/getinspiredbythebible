@@ -59,6 +59,7 @@ import {
   updateBookNames,
 } from "@/lib/verseExtraction";
 import { updateMultiWordNames } from "@/lib/versePatterns";
+import { CitationSpan } from "@/lib/citationSpans";
 import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
 import { useServerConfig } from "@/lib/serverConfig";
@@ -83,6 +84,11 @@ interface ChatMessage {
   messageId?: string; // Only present for assistant messages
   userMessage?: string; // User message that prompted this response
   versesCited?: string[];
+  // Live-render-only (BITB-109): deliberately not persisted to conversation
+  // history/storage, so a restored conversation falls back to the regex
+  // linkifier — correct, since offsets are only valid for the response that
+  // produced them.
+  citations?: CitationSpan[];
   model?: string;
 }
 
@@ -648,6 +654,19 @@ export default function ChatIsland({
           if (chunk.follow_ups?.length) {
             setFollowUps(chunk.follow_ups);
           }
+          if (chunk.citations) {
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  citations: chunk.citations,
+                };
+              }
+              return updated;
+            });
+          }
         }
       }
 
@@ -1134,7 +1153,11 @@ export default function ChatIsland({
               {messages.map((message, index) => (
                 <div key={index}>
                   <ChatMessage
-                    message={{ role: message.role, content: message.content }}
+                    message={{
+                      role: message.role,
+                      content: message.content,
+                      citations: message.citations,
+                    }}
                     messageId={message.messageId}
                     userMessage={message.userMessage}
                     onVerseClick={handleVerseClick}

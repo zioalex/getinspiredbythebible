@@ -324,6 +324,13 @@ sync-opencode-configmap: verify-opencode-config ## Update KubeOpenCode ConfigMap
 		--dry-run=client -o yaml | kubectl apply -f -
 	@echo "$(GREEN)✓ ConfigMap updated$(NC)"
 
+test-kubeopencode-netpol: ## Static checks on the strict-tier NetworkPolicies (no cluster needed)
+	@$(PYTHON_VERSION) -m pytest scripts/test_kubeopencode_netpol.py -q
+
+verify-kubeopencode-netpol: ## Verify strict-tier NetworkPolicies against the LIVE cluster (BITB-152)
+	@echo "$(BLUE)Verifying KubeOpenCode strict-tier NetworkPolicies...$(NC)"
+	@bash scripts/verify-kubeopencode-netpol.sh
+
 validate-env: install-deps ## Validate env vars between docker-compose and Terraform
 	@echo "$(BLUE)Validating environment variable consistency...$(NC)"
 	@$(CURDIR)/$(PYTHON) scripts/validate-env.py
