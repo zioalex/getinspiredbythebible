@@ -1,10 +1,10 @@
-# BITB-157: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
+# BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
 
 **Status:** 🎯 Todo
 **Priority:** P1
 **Size:** M (Dockerfile + build/push pipeline + docs; no app code)
 **Created:** 2026-09-15
-**Renumbered:** 2026-09-21 from BITB-155 — ID collision with the OpenRouter model refresh story (#1081), which claimed BITB-155 first
+**Renumbered:** 2026-09-21 from BITB-155 — ID collision with the OpenRouter model refresh story (#1081), which claimed BITB-155 first. A first renumber to BITB-157 collided with the wire-donate-URL story in #1084 (claimed Sept 17); final ID is BITB-158.
 **Related:** BITB-123 (agent graph), BITB-152 (sandbox hardening), BITB-154 (multi-provider resilience), PR #1079 (fallback review that exposed the gaps)
 
 ---
