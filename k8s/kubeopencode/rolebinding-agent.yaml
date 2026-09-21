@@ -1,0 +1,17 @@
+# Binds the least-privilege Role (role-agent.yaml) to the agent service
+# account. See role-agent.yaml for the trust-boundary rationale (BITB-152).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeopencode-agent
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: kubeopencode
+subjects:
+  - kind: ServiceAccount
+    name: kubeopencode-agent
+    namespace: kubeopencode-system
+roleRef:
+  kind: Role
+  name: kubeopencode-agent
+  apiGroup: rbac.authorization.k8s.io
