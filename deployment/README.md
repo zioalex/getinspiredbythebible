@@ -319,7 +319,7 @@ DB_HOST=$(terraform output -raw postgresql_fqdn)
 DB_PASSWORD="your-db-password"  # pragma: allowlist secret
 
 # Set environment variables for scripts
-export DATABASE_URL="postgresql://bibleadmin:${DB_PASSWORD}@${DB_HOST}:5432/bibleapp?sslmode=require"
+export DATABASE_URL="postgresql://bibleadmin:${DB_PASSWORD}@${DB_HOST}:5432/bibleapp?sslmode=verify-full"
 
 # For Azure OpenAI embeddings (get from Azure Portal)
 export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
@@ -350,7 +350,7 @@ cd scripts
 DATABASE_URL="postgresql://bible:bible123@localhost:5432/bibledb" python load_bible.py --all  # pragma: allowlist secret
 
 # 2. Once verified, run against Azure DB (replace PASSWORD with your actual password)
-export DATABASE_URL="postgresql://bibleadmin:PASSWORD@your-db.postgres.database.azure.com:5432/bibleapp?sslmode=require"  # pragma: allowlist secret
+export DATABASE_URL="postgresql://bibleadmin:PASSWORD@your-db.postgres.database.azure.com:5432/bibleapp?sslmode=verify-full"  # pragma: allowlist secret
 python load_bible.py --all
 python create_azure_embeddings.py
 ```
@@ -997,7 +997,7 @@ az postgres flexible-server firewall-rule list \
   --name bible-app-db-xxx
 
 # Test connection
-psql "host=bible-app-db-xxx.postgres.database.azure.com dbname=bibleapp user=bibleadmin sslmode=require"
+psql "host=bible-app-db-xxx.postgres.database.azure.com dbname=bibleapp user=bibleadmin sslmode=verify-full"
 ```
 
 ### Cold Start Too Slow

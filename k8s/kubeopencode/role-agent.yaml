@@ -1,0 +1,37 @@
+# Least-privilege Role for the KubeOpenCode agent service account (BITB-152).
+#
+# Trust boundary: the strict-tier `kubeopencode.io/allow-lan` opt-in is only a
+# security boundary because the agent process cannot set it on itself. The
+# egress-strict NetworkPolicy must keep the K8s API reachable, so network
+# reachability alone does not stop self-escalation -- this Role does, by
+# granting read-only pod access and nothing else (RBAC is deny-by-default).
+# Bound to SA `kubeopencode-agent` by rolebinding-agent.yaml.
+#
+# NOTE: no ServiceAccount manifest lives in this repo. The only reference is
+# `serviceAccountName: kubeopencode-agent` in deployment/kubeopencode/agent.yaml,
+# so the operator (KubeOpenCode CRD controller) owns and creates the SA. The
+# operator must ensure the SA exists and that no other RoleBindings grant it
+# anything beyond this Role.
+#
+# Deliberately absent from `rules` below (deny-by-default): networkpolicies
+# (would let the agent widen its own egress), pods/patch and pods/update
+# (would let it set kubeopencode.io/allow-lan on itself), the kubeopencode.io
+# agents CRD, secrets, and configmaps. Documented here so a future edit does
+# not silently widen this Role.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubeopencode-agent
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: kubeopencode
+rules:
+  # Read-only self-diagnosis: find its own pod, read status. No write verbs
+  # on pods or pods/* anywhere in this file.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  # kubectl logs on its own pod. Get-only: no exec, attach, or portforward.
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
