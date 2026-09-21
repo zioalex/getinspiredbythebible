@@ -22,6 +22,7 @@ import VerseCard from "@/components/VerseCard";
 import ChapterModal from "@/components/ChapterModal";
 import ChurchFinderBanner from "@/components/ChurchFinderBanner";
 import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
+import FollowUpSuggestions from "@/components/FollowUpSuggestions";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
 import LanguageSwitcher, { localeLabels } from "@/components/LanguageSwitcher";
@@ -58,6 +59,7 @@ import {
   updateBookNames,
 } from "@/lib/verseExtraction";
 import { updateMultiWordNames } from "@/lib/versePatterns";
+import { CitationSpan } from "@/lib/citationSpans";
 import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
 import { useServerConfig } from "@/lib/serverConfig";
@@ -82,6 +84,11 @@ interface ChatMessage {
   messageId?: string; // Only present for assistant messages
   userMessage?: string; // User message that prompted this response
   versesCited?: string[];
+  // Live-render-only (BITB-109): deliberately not persisted to conversation
+  // history/storage, so a restored conversation falls back to the regex
+  // linkifier — correct, since offsets are only valid for the response that
+  // produced them.
+  citations?: CitationSpan[];
   model?: string;
 }
 
@@ -122,6 +129,11 @@ export default function ChatIsland({
   const [backendReady, setBackendReady] = useState<boolean | null>(null);
   const [relevantVerses, setRelevantVerses] = useState<Verse[]>([]);
   const [showOnlyReferenced, setShowOnlyReferenced] = useState(true);
+  // BITB-080: suggested follow-up questions for the LATEST assistant message
+  // only. Deliberately not part of the ChatMessage interface below -- that
+  // interface is persisted to local history and restored on load, and stale
+  // chips from a past session would be wrong.
+  const [followUps, setFollowUps] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const versesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -477,6 +489,7 @@ export default function ChatIsland({
     setIsUserNearBottom(true); // Reset auto-scroll when user sends a new message
     setInput("");
     setIsLoading(true);
+    setFollowUps([]); // BITB-080: clear chips from the previous turn immediately
     setIsWarmingUp(false);
     setBackendReady(true); // Streaming doesn't have cold start issues with min_replicas=1
 
@@ -635,6 +648,24 @@ export default function ChatIsland({
             setRelevantVerses((prev) =>
               mergeVerses(prev, chunk.resolved_verses),
             );
+          }
+          // BITB-080: absent when suppressed (crisis/off-topic/error turns) or
+          // on an older backend -- render nothing rather than an empty row.
+          if (chunk.follow_ups?.length) {
+            setFollowUps(chunk.follow_ups);
+          }
+          if (chunk.citations) {
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  citations: chunk.citations,
+                };
+              }
+              return updated;
+            });
           }
         }
       }
@@ -808,6 +839,7 @@ export default function ChatIsland({
   const handleNewChat = () => {
     setMessages([]);
     setRelevantVerses([]);
+    setFollowUps([]); // BITB-080: no stale chips across a chat/session switch
     setDetectedTranslation(null);
     setLanguageSuggestion(null);
     setLanguageSuggestionDismissed(false);
@@ -829,6 +861,7 @@ export default function ChatIsland({
     if (id === conversationId) return;
     const stored = await getMessages(id);
     setRelevantVerses([]);
+    setFollowUps([]); // BITB-080: no stale chips across a chat/session switch
     setDetectedTranslation(null);
     setLanguageSuggestion(null);
     setLanguageSuggestionDismissed(false);
@@ -856,6 +889,7 @@ export default function ChatIsland({
     setSessionId(newSessionId); // update state so next API call uses it
     setMessages([]);
     setRelevantVerses([]);
+    setFollowUps([]); // BITB-080: no stale chips across a chat/session switch
     setDetectedTranslation(null);
     setLanguageSuggestion(null);
     setLanguageSuggestionDismissed(false);
@@ -1119,7 +1153,11 @@ export default function ChatIsland({
               {messages.map((message, index) => (
                 <div key={index}>
                   <ChatMessage
-                    message={{ role: message.role, content: message.content }}
+                    message={{
+                      role: message.role,
+                      content: message.content,
+                      citations: message.citations,
+                    }}
                     messageId={message.messageId}
                     userMessage={message.userMessage}
                     onVerseClick={handleVerseClick}
@@ -1147,6 +1185,20 @@ export default function ChatIsland({
                       onDismiss={handleInlinePromptDismiss}
                     />
                   )}
+                  {/* BITB-080: chips under the LATEST assistant message only --
+                      structural via the index check, not extra per-message state. */}
+                  {index === messages.length - 1 &&
+                    message.role === "assistant" &&
+                    !isLoading && (
+                      <FollowUpSuggestions
+                        suggestions={followUps}
+                        onSelect={(suggestion) =>
+                          void submitMessage(suggestion)
+                        }
+                        disabled={turnstileBlocked}
+                        label={tChat("followUpsLabel")}
+                      />
+                    )}
                 </div>
               ))}
 
