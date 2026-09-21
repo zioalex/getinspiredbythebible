@@ -1,9 +1,53 @@
 # BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (backend + web) — see "Delivered / Deferred" below; Android is **BITB-149**
 **Priority:** P2
 **Size:** M (1–2 days, backend + web + Android)
 **Created:** 2026-07-25
+
+## Delivered / Deferred (this pass)
+
+Scoped to backend + web, same split BITB-078 used: Android touches a surface a repo-only agent
+pass can't validate end-to-end in a day, so it is its own follow-up (**BITB-149**) rather than a
+second build of the same mechanism guessed blind.
+
+**Shipped:**
+
+- `api/chat/follow_ups.py` — `split_follow_ups()`, a pure parser/sanitizer for the
+  `<!-- FOLLOWUPS: q1|q2|q3 -->` trailer: strips every occurrence, splits on `|`/fullwidth `｜`
+  (falling back to newlines), drops empty/over-length/markup-bearing/duplicate suggestions, caps
+  at 3, and collapses to `[]` if fewer than 2 survive (never shows a single orphan chip).
+- `FOLLOW_UP_SUGGESTIONS_GUIDANCE` (`api/chat/prompts.py`) — appended conditionally in
+  `_build_messages`, never baked into `SYSTEM_PROMPT_TEMPLATE`/`OFF_TOPIC_PROMPT`/
+  `CLARIFICATION_PROMPT` directly, since neither of the latter two strip a trailer.
+- `_wants_follow_ups()` (`api/chat/service.py`) gate, mirroring `_wants_clarification()`: off by
+  default (`chat_follow_ups_enabled`), and off on a compassionate/crisis turn.
+- Both `chat()` and `chat_stream()` strip the trailer **before** citation extraction and verse
+  grounding see the text (matches the fix for BITB-053-class bugs: a suggestion mentioning a verse
+  must never leak into `verses_cited`/the Cited panel). A suggestion citing a reference outside
+  what the answer actually cited is dropped as fabricated, re-applying the "2-3 or none" rule.
+- `corrected_message` is now emitted whenever the authoritative body differs from what was already
+  streamed — either grounding rewrote a quote, or a trailer was stripped — so the client's citation
+  offsets never point at text containing "<!-- FOLLOWUPS -->".
+- Web: `frontend/src/components/FollowUpSuggestions.tsx`, a generic
+  `{ suggestions, onSelect, disabled, label }` chip row (deliberately not app-specific) rendered by
+  `ChatIsland.tsx` under the **last** assistant message only (index check against
+  `messages.length - 1`, not per-message state) — cleared on submit, new chat, new session, and
+  conversation switch.
+- i18n: `Chat.followUpsLabel` (aria-label) added to all 11 locales; the chip text itself is
+  model-generated in the conversation's language and intentionally not translated.
+- Tests: `api/tests/test_chat_follow_ups.py` (parser edge cases, the gate, prompt injection,
+  `chat()`/`chat_stream()` suppression and fabrication-filter paths),
+  `frontend/src/components/FollowUpSuggestions.test.tsx`, `frontend/src/lib/api.test.ts`
+  (`follow_ups` passthrough), and a `page.test.tsx` describe block covering "last message only",
+  tap-to-send, and clear-on-next-turn end to end.
+
+**Deferred (separate follow-up story, BITB-149):**
+
+- Android chip UI (`ChatViewModel.kt`, `ChatScreen.kt`, `ChatMessageItem.kt`) — parse `follow_ups`
+  from the stream, render chips under the last assistant item, send on tap.
+- The BITB-024 (10-message session limit) interaction check — worth doing once both platforms
+  exist, so it's checked once against the real UX rather than twice.
 
 ## User Story
 
@@ -81,17 +125,19 @@ nothing. No spinner, no empty row.
 
 ## Acceptance Criteria
 
-- [ ] After a normal answer, 2–3 follow-up buttons appear under the last assistant message on web
-      and Android.
-- [ ] Tapping one sends it immediately as a user message — no second tap, no manual send.
-- [ ] Suggestions are in the conversation's language.
-- [ ] Chips appear only under the **latest** assistant message and disappear when the next turn
+- [x] After a normal answer, 2–3 follow-up buttons appear under the last assistant message on web.
+      Android — deferred to BITB-149.
+- [x] Tapping one sends it immediately as a user message — no second tap, no manual send.
+- [x] Suggestions are in the conversation's language.
+- [x] Chips appear only under the **latest** assistant message and disappear when the next turn
       starts.
-- [ ] No follow-ups on off-topic replies, crisis-flagged turns, or errors.
-- [ ] A client on an older backend (no `follow_ups` field) is unaffected.
-- [ ] The follow-up trailer never leaks into the visible answer text.
-- [ ] Perceived end-of-turn latency does not regress measurably (check the stage timings).
-- [ ] The suggestion row is keyboard accessible on web and screen-reader labelled on both platforms.
+- [x] No follow-ups on off-topic replies, crisis-flagged turns, or errors.
+- [x] A client on an older backend (no `follow_ups` field) is unaffected.
+- [x] The follow-up trailer never leaks into the visible answer text.
+- [ ] Perceived end-of-turn latency does not regress measurably (check the stage timings) — ships
+      dark behind `chat_follow_ups_enabled`; measure before flipping the flag on.
+- [x] The suggestion row is keyboard accessible on web (native `<button>` elements). Android
+      screen-reader labelling — deferred to BITB-149.
 
 ## Tests to Add
 
