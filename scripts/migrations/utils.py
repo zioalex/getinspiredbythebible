@@ -32,6 +32,16 @@ def get_migration_connection_params(database_url: str) -> tuple[str, dict]:
         >>> url = "postgresql://user:pass@host/db?ssl=require"  # pragma: allowlist secret
         >>> clean_url, kwargs = get_migration_connection_params(url)
         >>> conn = await asyncpg.connect(clean_url, **kwargs)
+
+    BITB-099 decision: this mirrors `api/scripture/database.py`'s
+    `get_async_database_url()` -- production DSNs now use
+    `sslmode=verify-full`, which already falls through unchanged to
+    `ssl.create_default_context()`'s default (`check_hostname=True`,
+    `verify_mode=CERT_REQUIRED`, default OS/Python CA trust store). The
+    `require`/`ssl=require` branch below still deliberately resolves to
+    `CERT_NONE`/`check_hostname=False` -- unchanged, correct libpq semantics,
+    just no longer what production is given. See BITB-099 for the decision
+    and BITB-016 for why `require` behaves this way in the first place.
     """
     url = database_url
     conn_kwargs: dict = {}
