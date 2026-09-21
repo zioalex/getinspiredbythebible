@@ -6,6 +6,17 @@
 **Created:** 2026-03-04
 **Completed:** 2026-03-04
 
+> **Superseded (production `sslmode` value) by BITB-099 (2026-09-09):** this
+> story's fix -- stripping `ssl`/`sslmode` out of the URL and building a real
+> `ssl.SSLContext` for asyncpg -- is unchanged and still required. What
+> changed is *which* `sslmode` value production connections ask for:
+> `require` (this story's choice, `CERT_NONE`/unverified, chosen because
+> asyncpg rejected `ssl`/`sslmode` as URL params, not as a security decision)
+> is now `verify-full` (`CERT_REQUIRED`/`check_hostname=True`) for every
+> production DSN. `sslmode=require`'s `CERT_NONE` behavior itself is left
+> exactly as this story implemented it, for any caller that still explicitly
+> opts into it. See BITB-099 for the decision.
+
 ---
 
 ## User Story
@@ -330,6 +341,9 @@ WHERE conrelid = 'contact_submissions'::regclass
 - **Related to:** BITB-014 (migration pipeline fix - completed)
 - **Related Code:** `api/scripture/database.py` (backend SSL handling)
 - **Long-term Solution:** BITB-004 (Alembic migration framework)
+- **Superseded by (production `sslmode` value only):** BITB-099 — production
+  DSNs move from this story's `sslmode=require` to `sslmode=verify-full`; the
+  URL-stripping mechanism built here is unchanged and still required.
 
 ---
 
