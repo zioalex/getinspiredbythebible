@@ -20,6 +20,7 @@ import re
 import ssl
 from pathlib import Path
 
+import pytest
 import yaml
 
 from scripture.database import get_migration_server_settings
@@ -151,7 +152,12 @@ class TestGetMigrationConnectionParamsSsl:
     `test_database_church_coverage.py::TestGetAsyncDatabaseUrl`'s coverage of
     the sibling `api/scripture/database.py::get_async_database_url()`. Both
     helpers must agree: `require` stays unverified, `verify-ca`/`verify-full`
-    verify fully -- production now uses `verify-full`."""
+    verify fully -- production now uses `verify-full`.
+
+    BITB-125 extends this to the asyncpg-spelled `?ssl=...` query parameter:
+    before that fix, `?ssl=verify-ca`/`?ssl=verify-full` fell through the
+    `sslmode`-only check with no `ssl` kwarg at all -- a fully unencrypted
+    connection, not merely an unverified one."""
 
     def test_sslmode_require_still_unverified(self):
         url = "postgresql://user:pass@host/db?sslmode=require"  # pragma: allowlist secret
@@ -186,3 +192,58 @@ class TestGetMigrationConnectionParamsSsl:
         assert isinstance(ssl_context, ssl.SSLContext)
         assert ssl_context.verify_mode == ssl.CERT_REQUIRED
         assert ssl_context.check_hostname is True
+
+    def test_ssl_param_verify_ca_is_verified(self):
+        """BITB-125: the asyncpg-spelled `?ssl=verify-ca` must build the same
+        verified SSLContext as `?sslmode=verify-ca`, not silently drop TLS."""
+        url = "postgresql://user:pass@host/db?ssl=verify-ca"  # pragma: allowlist secret
+        clean_url, kwargs = get_migration_connection_params(url)
+
+        assert "ssl=" not in clean_url
+        assert "ssl" in kwargs
+        ssl_context = kwargs["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_REQUIRED
+        assert ssl_context.check_hostname is True
+
+    def test_ssl_param_verify_full_is_verified(self):
+        """BITB-125: before this fix, `?ssl=verify-full` matched neither the
+        `sslmode in (...)` branch (sslmode is None) nor `ssl_param == "require"`,
+        so no `ssl` kwarg was added at all and asyncpg connected in plaintext --
+        silently, with no error. This is the regression guard for that gap."""
+        url = "postgresql://user:pass@host/db?ssl=verify-full"  # pragma: allowlist secret
+        clean_url, kwargs = get_migration_connection_params(url)
+
+        assert "ssl=" not in clean_url
+        assert "ssl" in kwargs
+        ssl_context = kwargs["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_REQUIRED
+        assert ssl_context.check_hostname is True
+
+    def test_ssl_param_require_still_unverified(self):
+        url = "postgresql://user:pass@host/db?ssl=require"  # pragma: allowlist secret
+        clean_url, kwargs = get_migration_connection_params(url)
+
+        assert "ssl=" not in clean_url
+        assert "ssl" in kwargs
+        ssl_context = kwargs["ssl"]
+        assert isinstance(ssl_context, ssl.SSLContext)
+        assert ssl_context.verify_mode == ssl.CERT_NONE
+        assert ssl_context.check_hostname is False
+
+    @pytest.mark.parametrize("mode", ["require", "verify-ca", "verify-full"])
+    @pytest.mark.parametrize("param_name", ["sslmode", "ssl"])
+    def test_no_encryption_mode_ever_produces_a_missing_ssl_kwarg(self, mode, param_name):
+        """BITB-125 acceptance criterion: no DSN that asks for `require`,
+        `verify-ca`, or `verify-full` -- in either the libpq (`sslmode=`) or
+        asyncpg (`ssl=`) spelling -- may end up with `conn_kwargs` lacking an
+        `ssl` key. A missing key here means an unencrypted connection with no
+        error raised."""
+        url = f"postgresql://user:pass@host/db?{param_name}={mode}"  # pragma: allowlist secret
+        _clean_url, kwargs = get_migration_connection_params(url)
+
+        assert "ssl" in kwargs, (
+            f"?{param_name}={mode} produced conn_kwargs with no 'ssl' key -- "
+            "asyncpg would connect fully unencrypted"
+        )
