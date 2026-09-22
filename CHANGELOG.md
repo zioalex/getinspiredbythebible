@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.56.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.55.0...v1.56.0) (2026-09-22)
+
+
+### Features
+
+* **alembic:** audit column types against production (BITB-094) ([#1061](https://github.com/zioalex/getinspiredbythebible/issues/1061)) ([decb22e](https://github.com/zioalex/getinspiredbythebible/commit/decb22eb6745b66b7c94cb0d08962cbaafee0414))
+* **chat:** intent-gated Italian pastoral register, merged dark (BITB-151) ([#1101](https://github.com/zioalex/getinspiredbythebible/issues/1101)) ([07fd4c2](https://github.com/zioalex/getinspiredbythebible/commit/07fd4c2e4f7c55765a8f696ea5ac88563e9437c8))
+* **chat:** non-destructive session-limit continue, server-driven cap (BITB-118) ([#1083](https://github.com/zioalex/getinspiredbythebible/issues/1083)) ([a061659](https://github.com/zioalex/getinspiredbythebible/commit/a0616598b6f0d6df91d43f40aa610e1aa011d311))
+* **chat:** suggested follow-up question chips, backend+web (BITB-080) ([#1062](https://github.com/zioalex/getinspiredbythebible/issues/1062)) ([fb25f2a](https://github.com/zioalex/getinspiredbythebible/commit/fb25f2a4eb0165ebc71dfff3b829b4b26e2cc565))
+* **chat:** validate corpus topic tagging across all seven languages (BITB-106) ([#1085](https://github.com/zioalex/getinspiredbythebible/issues/1085)) ([4243ddc](https://github.com/zioalex/getinspiredbythebible/commit/4243ddcf1ea24032367a54dab20e64ffcc078950))
+* **frontend:** versioned service worker for the PWA offline shell (BITB-102) ([#1063](https://github.com/zioalex/getinspiredbythebible/issues/1063)) ([e6f01d4](https://github.com/zioalex/getinspiredbythebible/commit/e6f01d41417a543eb2090ff29b4439ac3789a1b6))
+* **k8s:** add CoreDNS watchdog and cluster triage tooling (BITB-159, BITB-160) ([#1091](https://github.com/zioalex/getinspiredbythebible/issues/1091)) ([c9de9ab](https://github.com/zioalex/getinspiredbythebible/commit/c9de9ab2ccbcc120bbd8017352da84d26d92af59))
+* **k8s:** add kubeopencode config (default-wf2 agent, mobile access, custom image docs) ([#1089](https://github.com/zioalex/getinspiredbythebible/issues/1089)) ([867cd4c](https://github.com/zioalex/getinspiredbythebible/commit/867cd4c676186aa05a2ef352fe49f417d49f3123))
+* **opencode:** enforce openrouter as provider for paid models ([#1080](https://github.com/zioalex/getinspiredbythebible/issues/1080)) ([1d4da2f](https://github.com/zioalex/getinspiredbythebible/commit/1d4da2f84ca3098d04ec2880a00034c3b28ae728))
+* **web,android:** add Support Us funding entry points (BITB-074) ([#1084](https://github.com/zioalex/getinspiredbythebible/issues/1084)) ([eccdeb1](https://github.com/zioalex/getinspiredbythebible/commit/eccdeb1e3b9866bda6ba1ed85243ec2728417281))
+
+
+### Bug Fixes
+
+* **docs:** resolve backlog story-ID collisions and add a CI guard (BITB-111) ([#1068](https://github.com/zioalex/getinspiredbythebible/issues/1068)) ([a38c379](https://github.com/zioalex/getinspiredbythebible/commit/a38c379c19a42dc7901e35bf24b9b01aff741b73))
+* **docs:** sync backlog index status with finished stories (BITB-153) ([#1070](https://github.com/zioalex/getinspiredbythebible/issues/1070)) ([5649104](https://github.com/zioalex/getinspiredbythebible/commit/56491049c7a077bf4007571a3eb0ed48b1b4776e))
+* interpret Makefile color escape codes as real ESC bytes ([#1078](https://github.com/zioalex/getinspiredbythebible/issues/1078)) ([f77f2ff](https://github.com/zioalex/getinspiredbythebible/commit/f77f2ff04827d43c84c75b08dd5ea8add4704dc5))
+* **migrations:** stop scripts/migrations/utils.py silently dropping TLS for ?ssl=verify-ca/verify-full (BITB-125) ([#1090](https://github.com/zioalex/getinspiredbythebible/issues/1090)) ([e0087c0](https://github.com/zioalex/getinspiredbythebible/commit/e0087c06f6dcca167777adde0183490ec95399bd))
+
+
+### Documentation
+
+* add BITB-158 KubeOpenCode dev image backlog item ([#1082](https://github.com/zioalex/getinspiredbythebible/issues/1082)) ([a1ce56e](https://github.com/zioalex/getinspiredbythebible/commit/a1ce56ea44daff549e0bd3fd9c31140593036851))
+* add BITB-161 kubeopencode agent file-mount story for copilot auth ([#1069](https://github.com/zioalex/getinspiredbythebible/issues/1069)) ([f7d514f](https://github.com/zioalex/getinspiredbythebible/commit/f7d514f02f631604cbb2afeabea157fa4f4308bc))
+* add comprehensive LLM code agentic capabilities ranking analysis ([#1088](https://github.com/zioalex/getinspiredbythebible/issues/1088)) ([57fb6bd](https://github.com/zioalex/getinspiredbythebible/commit/57fb6bdbb1d9427e6f9b0b6cdda72627190e2552))
+
 ## [1.55.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.54.0...v1.55.0) (2026-09-18)
 
 ### Features
