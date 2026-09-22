@@ -310,6 +310,72 @@ Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/B
 
 ---
 
+### 🎯 BITB-159: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-19
+
+Cluster DNS stopped resolving external names on 2026-09-19; agents failed with
+`curl: (6) Could not resolve host` and a CoreDNS restart fixed it. CoreDNS's own
+`/health` and `/ready` probes stayed green the whole time — they check the process
+and its plugins, never that forwarding resolves anything, so a wedged-but-alive
+CoreDNS is invisible to them. The root cause was never established because the
+evidence had to be reconstructed after recovery, and what was gathered fits no
+single mechanism (a fresh pod could not do UDP/53 to `8.8.8.8` while TCP/443 and
+ICMP worked; the node resolved fine; flannel's MASQUERADE rule was correct).
+`prod-monitor.yml` cannot cover this — it runs in GitHub Actions and cannot reach
+the homelab LAN. Add an in-cluster watchdog that probes DNS end to end, captures a
+diagnostic bundle *at failure time*, and optionally restarts CoreDNS.
+
+**Acceptance Criteria (summary):**
+
+- [ ] End-to-end DNS probe on a fixed interval, in-cluster
+- [ ] Failure-time diagnostic bundle in one structured line: cluster DNS, direct
+      UDP/53 to upstream, TCP control, internal name — names the broken layer
+- [ ] Kubernetes `Warning` Event on failure and a recovery Event on fail→pass
+- [ ] CoreDNS restart after N consecutive failures, gated by `AUTO_RESTART` and
+      rate-limited by a cooldown
+- [ ] Least-privilege RBAC: patch scoped to the `coredns` deployment via
+      `resourceNames`, plus event creation; no other write verbs
+- [ ] Static tests runnable in CI with no cluster
+- [ ] `yamllint` + `shellcheck` + `markdownlint` clean
+
+Full story: [`BITB-159-coredns-dns-watchdog.md`](BACKLOG_STORIES/BITB-159-coredns-dns-watchdog.md)
+
+---
+
+### 🎯 BITB-160: Cluster Triage Collector And Runbook
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-09-19
+
+The 2026-09-19 outage took most of a day and produced five wrong diagnoses before
+the right one. Every wrong turn came from reasoning about what the manifests should
+do; every real answer came from runtime state and arrived in a single command —
+resolving an IP to a pod, reading an error body instead of its status code, probing
+from a namespace no policy touches, a `tcpdump` on both sides of the hop, dumping a
+pod's `KUBE-POD-FW-*` chain. Add a one-pass collector and an ordered runbook so the
+next incident starts from a command rather than a conversation.
+
+**Acceptance Criteria (summary):**
+
+- [ ] One-pass collector, tolerant of per-command failure, resolves a pod by IP
+- [ ] Gathers enforced state (iptables/ipset) alongside declared state (kubectl)
+- [ ] Never renders Secret values — names only
+- [ ] Runbook orders checks cheapest-and-most-decisive first
+- [ ] Records the traps already paid for (DNAT, namespace labels, CoreDNS probes,
+      `policy random`, endpoint-less Service REJECT)
+- [ ] States that `connection refused` can be a NetworkPolicy (kube-router REJECTs)
+- [ ] Static tests, `shellcheck`/`yamllint`/`markdownlint` clean, wired into CI
+
+Full story: [`BITB-160-cluster-triage-runbook.md`](BACKLOG_STORIES/BITB-160-cluster-triage-runbook.md)
+
+---
+
 ### 🚧 BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
 
 **Status:** 🚧 In Progress
