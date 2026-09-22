@@ -135,6 +135,7 @@
     "contentBlockedMessage": "Non sono riuscito a rispondere a questo messaggio — il nostro sistema di sicurezza lo ha trattenuto e potrebbe aver semplicemente frainteso le tue parole. Prova a riformulare il tuo pensiero, e se qualcosa non ti convince scrivici a contact@voxquieta.org. Siamo contenti che tu sia qui.",
     "scrollToBottom": "Scorri in basso",
     "stopGenerating": "Interrompi generazione",
+    "followUpsLabel": "Domande di approfondimento suggerite",
     "languageSwitchSuggestion": "Sembra che tu stia scrivendo in {language}. Vuoi cambiare?",
     "languageSwitchAction": "Cambia",
     "languageSwitchDismiss": "Ignora",
@@ -395,5 +396,10 @@
     "importDone": "Importate {count} conversazioni.",
     "importFailed": "Importazione non riuscita. È un file di cronologia valido?",
     "wrongPassphrase": "Passphrase errata o file danneggiato."
+  },
+  "Offline": {
+    "title": "Sei offline",
+    "description": "Vox Quieta ha bisogno di una connessione a internet per rispondere alle tue domande. Controlla la connessione e riprova.",
+    "retry": "Riprova"
   }
 }

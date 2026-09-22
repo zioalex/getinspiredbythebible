@@ -51,7 +51,7 @@
 #       and clustered (2 of 3 evaluations) so a single stray event never pages.
 #       Cosmetic; dormant until grounding_paraphrases_mode is set to "append" per
 #       docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-057 Phase 2)
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-143 Phase 2)
 #       Fires when the embedding provider's circuit breaker records any retry,
 #       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
 #       degrades to verse-less responses silently while this persists.
@@ -1010,7 +1010,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_parap
   tags = local.tags
 }
 
-# Embedding provider resilience alert (BITB-057 Phase 2).
+# Embedding provider resilience alert (BITB-143 Phase 2).
 # Fires when the embedding.fallback_total custom metric records any retry,
 # timeout, or circuit-open event (providers/embedding_resilience.py) in the
 # last 10 minutes. A sustained rate here means the embedding provider is

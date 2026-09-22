@@ -170,4 +170,4 @@ Arabic must read correctly RTL — the layout already sets `dir` at the `<html>`
 
 - **BITB-077** — the first-run modal that surfaces this page's message to existing users.
 - **BITB-074** — "Support us" entry points; the About page is the natural home for that ask.
-- **BITB-037** — SEO follow-ups (server-rendered pages, metadata, OG image).
+- **BITB-136** — SEO follow-ups (server-rendered pages, metadata, OG image).

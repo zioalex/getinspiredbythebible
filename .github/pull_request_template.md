@@ -1,7 +1,7 @@
 <!--
 Title must follow Conventional Commits (enforced by commitlint):
   type(scope): short imperative summary
-  e.g. feat(api): add per-language model fallback chain (BITB-068)
+  e.g. feat(api): add per-language model fallback chain (BITB-144)
 Keep the PR small and focused on a single concern.
 -->
 
