@@ -1,0 +1,34 @@
+# Agent: default-wf2 — secured for mobile access
+#
+# This adds OPENCODE_SERVER_PASSWORD so the opencode server requires Basic auth
+# (the mobile app authenticates with this password). Keep your existing spec
+# fields — the important addition is the second `credentials` entry.
+#
+# Reconcile with your live object first:
+#   kubectl -n kubeopencode-system get agent default-wf2 -o yaml
+# then apply this (adjust profile/config to match what you already run).
+apiVersion: kubeopencode.io/v1alpha1
+kind: Agent
+metadata:
+  name: default-wf2
+  namespace: kubeopencode-system
+spec:
+  profile: "General-purpose development agent"
+  workspaceDir: /workspace
+  serviceAccountName: kubeopencode-agent
+  config:
+    model: opencode/nemotron-3-ultra-free
+    small_model: opencode/nemotron-3-ultra-free
+  credentials:
+    # provider key (unchanged)
+    - name: api-key
+      secretRef:
+        name: ai-credentials
+        key: api-key
+      env: OPENCODE_API_KEY
+    # NEW: Basic-auth password for the opencode server (mobile app uses this)
+    - name: server-password
+      secretRef:
+        name: opencode-server-auth
+        key: password
+      env: OPENCODE_SERVER_PASSWORD

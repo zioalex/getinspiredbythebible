@@ -1,4 +1,4 @@
-# BITB-057: Upstream Dependency Resilience — Bounded, Self-Healing, Observable DB + Inference Calls
+# BITB-143: Upstream Dependency Resilience — Bounded, Self-Healing, Observable DB + Inference Calls
 
 **Status:** 🚧 In progress (Phases 1 & 2 — readiness fix, DB bounding, probe alert, embedding
 resilience/cache, generalized DB retry — implemented; infra (Phase 3) + observability-of-the-
