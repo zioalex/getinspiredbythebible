@@ -31,6 +31,7 @@ from utils.language import (
 from utils.logging_config import get_logger
 from utils.metrics import (
     chat_clarification_requested_counter,
+    chat_cultural_tone_applied_counter,
     chat_scripture_unavailable_counter,
     chat_verseless_responses_counter,
     scripture_pipeline_errors_counter,
@@ -58,6 +59,7 @@ from .prompts import (
     detect_intent_prompt,
     get_blocked_response,
     get_compassionate_addendum,
+    get_pastoral_register_note,
     get_prayer_lookup_prompt,
     get_scripture_unavailable_response,
     get_system_prompt,
@@ -79,6 +81,13 @@ MAX_RANGE_SPAN = 50
 # separately). Used by the fail-closed grounding guard (BITB-058): we only tell the
 # user "scripture unavailable" for requests that genuinely expect verses.
 SCRIPTURE_SEEKING_INTENTS = frozenset({"COMFORT", "GUIDANCE", "CURIOSITY", "VERSE_LOOKUP"})
+
+# Intents that indicate the person is asking for comfort or a life decision --
+# the only intents that ever receive the BITB-151 pastoral-register addendum
+# (see ChatService._wants_cultural_tone). Informational intents (CURIOSITY,
+# VERSE_LOOKUP, NEEDS_CLARIFICATION, OFF_TOPIC) and the GENERAL catch-all are
+# deliberately excluded per the story's v1 scope.
+PASTORAL_TONE_INTENTS = frozenset({"COMFORT", "GUIDANCE"})
 
 
 # Re-exported from utils.db_retry for backward compatibility — this used to be
@@ -565,6 +574,7 @@ Keep it under 120 words."""
 
         # Step 2: Build the message list
         prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
+        cultural_tone = self._cultural_tone_gate(detected_intent, effective_language)
 
         messages = self._build_messages(
             user_message=request.message,
@@ -574,6 +584,7 @@ Keep it under 120 words."""
             prompt_type=prompt_type,
             compassionate_mode=safety.compassionate,
             follow_ups_enabled=self._wants_follow_ups(safety.compassionate),
+            cultural_tone_enabled=cultural_tone,
         )
 
         # Step 3: Generate response
@@ -774,6 +785,32 @@ Keep it under 120 words."""
         prompt without a ``follow_ups_enabled`` argument.
         """
         return settings.chat_follow_ups_enabled and not compassionate
+
+    def _wants_cultural_tone(self, detected_intent: str, language_code: str) -> bool:
+        """BITB-151 gate: whether to append the pastoral-register addendum.
+
+        Enforced here in code rather than left to the classifier alone, mirroring
+        ``_wants_follow_ups``/``_wants_clarification``: only a COMFORT/GUIDANCE
+        turn, in a locale that actually has a registered note, with the flag on.
+        A locale with no entry returns "" from ``get_pastoral_register_note``, so
+        this is also where "no entry -> byte-identical to today" is guaranteed.
+        """
+        return (
+            settings.chat_cultural_tone_enabled
+            and detected_intent in PASTORAL_TONE_INTENTS
+            and bool(get_pastoral_register_note(language_code))
+        )
+
+    def _cultural_tone_gate(self, detected_intent: str, language_code: str) -> bool:
+        """Gate + metric emission in one call, shared by chat()/chat_stream() so
+        wiring BITB-151 doesn't add a branch (and McCabe complexity) at either
+        call site."""
+        cultural_tone = self._wants_cultural_tone(detected_intent, language_code)
+        if cultural_tone:
+            chat_cultural_tone_applied_counter.add(
+                1, {"language": language_code, "intent": detected_intent}
+            )
+        return cultural_tone
 
     def _filter_fabricated_follow_ups(
         self, candidates: list[str], cited_refs: set[str], compassionate: bool
@@ -1463,6 +1500,7 @@ Keep it under 120 words."""
 
         # Step 3: Build messages with appropriate prompt type
         prompt_type = self._determine_prompt_type(is_verse_lookup, prayer_ref)
+        cultural_tone = self._cultural_tone_gate(detected_intent, effective_language)
 
         messages = self._build_messages(
             user_message=request.message,
@@ -1472,6 +1510,7 @@ Keep it under 120 words."""
             prompt_type=prompt_type,
             compassionate_mode=safety.compassionate,
             follow_ups_enabled=self._wants_follow_ups(safety.compassionate),
+            cultural_tone_enabled=cultural_tone,
         )
 
         # Step 4: Stream response content and accumulate full response
@@ -1637,6 +1676,7 @@ Keep it under 120 words."""
         prompt_type: str = "default",
         compassionate_mode: bool = False,
         follow_ups_enabled: bool = False,
+        cultural_tone_enabled: bool = False,
     ) -> list[ChatMessage]:
         """
         Build the message list for the LLM.
@@ -1652,6 +1692,10 @@ Keep it under 120 words."""
             follow_ups_enabled: When True, appends FOLLOW_UP_SUGGESTIONS_GUIDANCE (BITB-080) so the
                 model appends a "<!-- FOLLOWUPS: ... -->" trailer. Callers for off_topic and
                 clarification prompt types must never pass True (see _wants_follow_ups).
+            cultural_tone_enabled: When True and prompt_type is "default", appends the BITB-151
+                pastoral-register note for language_code (a no-op if the locale has none). Callers
+                for off_topic/clarification/verse_lookup/prayer_lookup must never pass True (see
+                _wants_cultural_tone) -- enforced again below as defense in depth.
 
         Returns:
             List of ChatMessage objects for the LLM
@@ -1664,6 +1708,7 @@ Keep it under 120 words."""
                 "has_search_context": bool(search_context),
                 "compassionate_mode": compassionate_mode,
                 "follow_ups_enabled": follow_ups_enabled,
+                "cultural_tone_enabled": cultural_tone_enabled,
             },
         )
 
@@ -1680,6 +1725,13 @@ Keep it under 120 words."""
             system_prompt = get_prayer_lookup_prompt(language_code)
         else:
             system_prompt = get_system_prompt(language_code)
+
+        # BITB-151: pastoral-register addendum, informational prompt types only
+        # excluded -- prompt_type comes from _determine_prompt_type (a regex on
+        # the message) which is independent of the detected intent, so a
+        # COMFORT-classified message could still arrive here as "verse_lookup".
+        if cultural_tone_enabled and prompt_type == "default":
+            system_prompt = system_prompt + get_pastoral_register_note(language_code)
 
         if compassionate_mode:
             system_prompt = system_prompt + get_compassionate_addendum()

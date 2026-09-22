@@ -804,6 +804,59 @@ Rules:
   comment entirely rather than write a generic one like "Tell me more"."""
 
 
+# ---------------------------------------------------------------------------
+# Cultural pastoral-register addenda (BITB-151)
+# ---------------------------------------------------------------------------
+
+# Appended to the system prompt, on top of the base persona, ONLY for
+# COMFORT/GUIDANCE turns (see ChatService._wants_cultural_tone) in a locale that
+# has an entry below. A locale with no entry gets no addendum at all -- this is
+# the central safety property of the design, not an oversight: we ship a note
+# only where we have a real report from real users, and never invent cultural
+# characterisations for a language nobody has complained about. Written in
+# English, like every other addendum, since the base prompt already instructs
+# the LLM to reply in the user's language.
+#
+# Keyed on the response *language*, which is a proxy for culture, not a
+# perfect match (e.g. "it" covers both Italy and Italian-speaking
+# Switzerland). get_pastoral_register_note() resolves an exact key first, then
+# the primary subtag (e.g. "it-CH" -> "it"), so a later region-qualified key
+# (e.g. "pt-BR") can be added without restructuring.
+#
+# Registers ONLY the degree of expressed closeness, framing and formality of
+# the reply -- never verse selection, verse fidelity, the visible reference
+# format, or reply length. Those are governed elsewhere and must never move.
+PASTORAL_REGISTER_NOTES: dict[str, str] = {
+    "it": """
+
+## Pastoral Register (Italian)
+This reply speaks to someone who is hurting or facing a decision. Write as a
+native Italian pastoral voice, not as a literal translation of an English
+reply -- an accompaniment register, not a report:
+- Speak directly, in the first person, as someone close to them ("ti sono
+  vicino", not a detached third-person observation).
+- Name the feeling explicitly rather than only gesturing at it.
+- Prefer warm, flowing prose over clipped sentences or bullet lists.
+- Let warmth be expressed, not merely implied by correctness.
+This does not change which verse is chosen, how it is quoted, the visible
+reference format, or how long the reply is -- only how close it sounds."""
+}
+
+
+def get_pastoral_register_note(language_code: str = "en") -> str:
+    """BITB-151: the pastoral-register addendum for this language, or "" if none.
+
+    Deliberately does NOT fall back to English (unlike get_opening_phrase()):
+    "no entry" must mean "no addendum", not "the English note applied to
+    everyone", since a note describes a specific language's pastoral
+    conventions and a fallback would misapply it.
+    """
+    if language_code in PASTORAL_REGISTER_NOTES:
+        return PASTORAL_REGISTER_NOTES[language_code]
+    primary_subtag = language_code.split("-")[0]
+    return PASTORAL_REGISTER_NOTES.get(primary_subtag, "")
+
+
 # Pre-written localized responses for content the safety pipeline BLOCKS
 # (allowed=False).  Indexed by (category, language_code).
 # Falls back: requested language → "en" → BLOCKED_RESPONSE_TEMPLATES["generic"]["en"].

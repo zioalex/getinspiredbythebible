@@ -195,9 +195,10 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
+### 🚧 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (implemented and merged dark behind `chat_cultural_tone_enabled=False`;
+sample pack + native-speaker review + prod enablement pending)
 **Priority:** P1
 **Size:** M (`it` only; each further locale is S)
 **Created:** 2026-09-12
