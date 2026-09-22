@@ -2,10 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-094 in progress — column-type audit tooling built, static+dynamic
-passes done, production run outstanding; BITB-127 created — translations.created_at timezone-aware;
-BITB-153 guard extended: fixed further status drift on BITB-025, 027, 028, 051 on top of the earlier
-BITB-029, 030, 047, 062, 100 fixes; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
+**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
+column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
+BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
 BITB-084 Part C done via BITB-102)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -197,6 +196,30 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🎯 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-09-15
+
+PR #1079 showed the agent pod missing its dev toolchain: no `gh`, no
+`kubectl`, no `pytest`/`PyYAML`, broken `make pre-commit` (unsatisfiable
+venv deps, missing binary, wiped hook caches), no `jq`/`yq`, and an ESLint
+hook assuming NVM. Bake all of it (pinned to repo revs: Node 22.22.0,
+Python 3.12, hook versions) with pre-warmed hook caches on the PVC.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Image installs `gh`, `kubectl`, `git`, `make`, `jq`/`yq`, `rg`, Python 3.12 + `pytest`/`PyYAML`/`pre-commit`, Node 22.22.0, all hook binaries pre-warmed
+- [ ] `PRE_COMMIT_HOME` on the PVC so post-sync pod restarts don't wipe caches
+- [ ] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
+- [ ] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
+
+Full story: [`BITB-158-kubeopencode-dev-image.md`](BACKLOG_STORIES/BITB-158-kubeopencode-dev-image.md)
+
+---
 
 ### 🚧 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
 
