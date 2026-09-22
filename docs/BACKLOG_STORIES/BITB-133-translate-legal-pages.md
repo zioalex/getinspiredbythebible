@@ -1,4 +1,4 @@
-# BITB-027: Translate Privacy Policy and Terms of Service into All Supported Languages
+# BITB-133: Translate Privacy Policy and Terms of Service into All Supported Languages
 
 ## User Story
 

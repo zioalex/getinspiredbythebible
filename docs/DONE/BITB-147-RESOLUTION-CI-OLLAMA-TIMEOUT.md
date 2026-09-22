@@ -1,4 +1,4 @@
-# BITB-018: CI Ollama Timeout - Resolution Summary
+# BITB-147: CI Ollama Timeout - Resolution Summary
 
 **Date:** 2026-03-04
 **Status:** ✅ RESOLVED - No fix needed
@@ -54,7 +54,7 @@
 ### Phase 3: Document & Close (10 minutes)
 
 1. ✅ Updated analysis document with resolution
-2. ✅ Marked BITB-018 as resolved in BACKLOG.md
+2. ✅ Marked BITB-147 as resolved in BACKLOG.md
 3. ✅ Created summary in docs/DONE/
 
 ---
@@ -116,7 +116,7 @@ If CI integration tests start failing frequently with Ollama timeouts (>5% failu
 
 **What to do:**
 
-1. Reference analysis document: `docs/DONE/BITB-018-ANALYSIS-CI-OLLAMA-TIMEOUT.md`
+1. Reference analysis document: `docs/DONE/BITB-147-ANALYSIS-CI-OLLAMA-TIMEOUT.md`
 2. Follow implementation plan for pre-built image
 3. Expected time: 2-3 hours (one-time cost)
 
@@ -145,8 +145,7 @@ If CI integration tests start failing frequently with Ollama timeouts (>5% failu
 
 ## Related Documents
 
-- **Full Analysis:** `docs/DONE/BITB-018-ANALYSIS-CI-OLLAMA-TIMEOUT.md`
-- **User Story:** `docs/BACKLOG_STORIES/BITB-018-fix-ci-ollama-timeout.md` (marked resolved)
+- **Full Analysis:** `docs/DONE/BITB-147-ANALYSIS-CI-OLLAMA-TIMEOUT.md`
 - **Backlog Entry:** `docs/BACKLOG.md` (moved to Done section)
 
 ---

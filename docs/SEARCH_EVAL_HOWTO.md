@@ -1,4 +1,4 @@
-# Search-Eval Harness — How To (BITB-051)
+# Search-Eval Harness — How To (BITB-139)
 
 A repeatable scorer that measures **verse-retrieval ranking quality**
 (Precision@5 / Recall@10 / MRR) over a curated, multilingual golden set — so
@@ -79,7 +79,7 @@ English-canonical, and retrieved references are also always English-canonical
 if that translation numbers the verse differently (Psalm superscriptions,
 Joel/Malachi chapter splits, etc.). Read per-language scores with this in
 mind; closing the underlying reference-normalization gaps is tracked in
-**BITB-052**.
+**BITB-140**.
 
 **Topic-tagging caveat (BITB-103):** the keyword-based topic tagger
 (`api/chat/topics.py`) only supports `en, it, de, es, fr, pt, ar`.
@@ -161,7 +161,7 @@ set can't measure the topics that already exist".
 
 ## Satisfying the story's "Done when" bullet
 
-BITB-051 P3's acceptance criterion is: a maintainer with prod-read-only DB
+BITB-139 P3's acceptance criterion is: a maintainer with prod-read-only DB
 access and Azure credentials runs
 
 ```bash
@@ -282,6 +282,6 @@ needs no prod credential, so it deliberately stays outside the environment.
 rebuilds all 11 translations from scratch into a cached pgvector instance, for
 a reproducible-corpus A/B that doesn't drift with prod's live data. Deferred
 deliberately — see the "P4b" section of
-`docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md` for why.
+`docs/BACKLOG_STORIES/BITB-139-search-retrieval-eval-harness.md` for why.
 Until it lands, `eval-prod` is the only source of real A/B numbers, and its
 per-language scores still carry the versification caveat above.

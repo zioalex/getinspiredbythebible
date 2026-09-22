@@ -1,4 +1,4 @@
-# BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
+# BITB-136: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
 **Status:** 🚧 In Progress — homepage server-renders hero text (PR #657); `/en` word count no longer thin; favicon.ico shipped. JSON-LD + OG image landing now; sitemap→Search Console submission remains a manual operator action.
 

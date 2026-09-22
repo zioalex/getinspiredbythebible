@@ -1,4 +1,4 @@
-"""Reference normalization for the retrieval-evaluation harness (BITB-043).
+"""Reference normalization for the retrieval-evaluation harness (BITB-139).
 
 Turns Bible references — both golden-set ground truth and retrieved results —
 into canonical, comparable keys so ranking metrics can match them robustly
@@ -27,7 +27,7 @@ from utils.book_names import normalize_book_name
 # carry (the canonical target is English). It is intentionally English-only because
 # golden-set ``relevant_refs`` and retrieved ``VerseResult.reference`` are both
 # English-canonical, so localized strings rarely reach this function. (Gaps in the
-# upstream localized coverage — e.g. Italian "Salmo" singular — are tracked in BITB-052.)
+# upstream localized coverage — e.g. Italian "Salmo" singular — are tracked in BITB-140.)
 # Keys are lower-cased for case-insensitive lookup.
 _EXTRA_BOOK_ALIASES: dict[str, str] = {
     "psalm": "Psalms",
