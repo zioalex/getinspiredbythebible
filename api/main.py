@@ -402,6 +402,7 @@ async def get_config():
             "max_context_verses": settings.max_context_verses,
             "max_conversation_history": settings.max_conversation_history,
             "max_message_length": settings.max_message_length,
+            "session_max_requests": settings.rate_limit_session_max_requests,
         },
         "security": {
             "turnstile_enabled": settings.turnstile_enabled,

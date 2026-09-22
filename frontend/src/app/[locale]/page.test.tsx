@@ -24,24 +24,32 @@ vi.mock("react-markdown", () => ({
   defaultUrlTransform: (url: string) => url,
 }));
 
-// Mock the API module
-vi.mock("@/lib/api", () => ({
-  streamMessage: vi.fn(),
-  getChapter: vi.fn(),
-  getTranslations: vi.fn().mockResolvedValue([]),
-  submitFeedback: vi.fn(),
-  generateSessionId: vi.fn().mockReturnValue("test-session-id"),
-  getOrCreateSessionId: vi.fn().mockReturnValue("test-session-id"),
-  ColdStartError: class ColdStartError extends Error {},
-  MAX_MESSAGE_LENGTH: 500,
-  checkBackendReady: vi.fn().mockResolvedValue(true),
-  warmupBackend: vi.fn((onReady: () => void) => {
-    onReady();
-  }),
-  searchChurches: vi.fn(),
-  submitContactForm: vi.fn(),
-  InvalidContactEmailError: class InvalidContactEmailError extends Error {},
-}));
+// Mock the API module. SessionLimitError is the real class (via
+// importOriginal) so `error instanceof SessionLimitError` still works when a
+// test makes streamMessage throw one (BITB-118).
+vi.mock("@/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api")>();
+  return {
+    streamMessage: vi.fn(),
+    getChapter: vi.fn(),
+    getTranslations: vi.fn().mockResolvedValue([]),
+    submitFeedback: vi.fn(),
+    generateSessionId: vi.fn().mockReturnValue("test-session-id"),
+    getOrCreateSessionId: vi.fn().mockReturnValue("test-session-id"),
+    resetSessionId: vi.fn().mockReturnValue("test-session-id-2"),
+    ColdStartError: class ColdStartError extends Error {},
+    SessionLimitError: actual.SessionLimitError,
+    MAX_MESSAGE_LENGTH: 500,
+    MAX_SESSION_REQUESTS: 10,
+    checkBackendReady: vi.fn().mockResolvedValue(true),
+    warmupBackend: vi.fn((onReady: () => void) => {
+      onReady();
+    }),
+    searchChurches: vi.fn(),
+    submitContactForm: vi.fn(),
+    InvalidContactEmailError: class InvalidContactEmailError extends Error {},
+  };
+});
 
 // Use real verse extraction logic for proper testing
 vi.mock("@/lib/verseExtraction", async (importOriginal) => {
@@ -1914,5 +1922,136 @@ describe("verse citation panel — server completion event", () => {
     expect(screen.getAllByText(/John 3:16/).length).toBeGreaterThanOrEqual(1);
     // The uncited semantic neighbour should be hidden in the default "Cited" view.
     expect(screen.queryByText(/Romans 8:28/)).not.toBeInTheDocument();
+  });
+});
+
+// BITB-118: hitting the session lifetime cap used to force a destructive
+// "Start New Session" (wipes the visible thread) as the ONLY way to keep
+// chatting. "Continue this conversation" is now the non-destructive default —
+// it rotates only the rate-limit key so the very next send succeeds, without
+// touching the messages the user can see.
+describe("session limit — continue vs start new session (BITB-118)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.warmupBackend).mockImplementation((onReady: () => void) => {
+      onReady();
+    });
+    vi.mocked(api.getTranslations).mockResolvedValue([]);
+    vi.mocked(api.generateSessionId).mockReturnValue("test-session-id");
+    vi.mocked(api.resetSessionId).mockReturnValue("test-session-id-2");
+    vi.mocked(turnstile.useTurnstile).mockReturnValue({
+      isReady: true,
+      isEnabled: false,
+      token: null,
+      configLoaded: true,
+      refreshToken: vi.fn(),
+      awaitToken: vi.fn().mockResolvedValue(null),
+    });
+  });
+
+  async function triggerSessionLimit(limit?: number) {
+    vi.mocked(api.streamMessage).mockImplementation(async function* () {
+      // Read something before throwing so this looks like a real mid-stream
+      // rejection rather than a synchronous throw.
+      yield {
+        type: "metadata" as const,
+        message_id: "msg-limit",
+        scripture_context: { query: "", verses: [], passages: [] },
+        provider: "test",
+        model: "test-model",
+      };
+      throw new api.SessionLimitError("Session limit reached", limit);
+    });
+
+    const result = renderWithIntl(<Home />);
+    const input = screen.getByPlaceholderText("Share what's on your heart...");
+    await act(async () => {
+      fireEvent.change(input, { target: { value: "Hello" } });
+    });
+    const submitButton = result.container.querySelector(
+      'button[type="submit"]',
+    );
+    await act(async () => {
+      fireEvent.click(submitButton!);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /continue this conversation/i }),
+      ).toBeInTheDocument();
+    });
+
+    return result;
+  }
+
+  it("shows both Continue and Start New Session buttons", async () => {
+    await triggerSessionLimit();
+
+    expect(
+      screen.getByRole("button", { name: /continue this conversation/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /start new session/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("interpolates the server-provided limit into the banner text", async () => {
+    await triggerSessionLimit(25);
+
+    expect(screen.getByText(/25 messages/)).toBeInTheDocument();
+    expect(screen.queryByText(/10 messages/)).not.toBeInTheDocument();
+  });
+
+  it("falls back to the compiled-in limit when the error carries none", async () => {
+    await triggerSessionLimit(undefined);
+
+    // No ServerConfigProvider in this render tree, so useServerConfig()
+    // returns its default context value — MAX_SESSION_REQUESTS (10).
+    expect(screen.getByText(/10 messages/)).toBeInTheDocument();
+  });
+
+  it("Continue keeps the prior message bubble and re-enables the input", async () => {
+    await triggerSessionLimit();
+
+    // The user's own message bubble from before the limit hit is still shown.
+    expect(screen.getByText("Hello")).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText(
+      "Share what's on your heart...",
+    ) as HTMLTextAreaElement;
+    expect(input).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /continue this conversation/i }),
+      );
+    });
+
+    expect(api.resetSessionId).toHaveBeenCalledTimes(1);
+    // Both buttons are gone and the input is usable again.
+    expect(
+      screen.queryByRole("button", { name: /continue this conversation/i }),
+    ).not.toBeInTheDocument();
+    expect(input).not.toBeDisabled();
+    // The prior message is still visible — nothing was wiped.
+    expect(screen.getByText("Hello")).toBeInTheDocument();
+  });
+
+  it("Start New Session still clears the visible thread (regression guard)", async () => {
+    await triggerSessionLimit();
+
+    expect(screen.getByText("Hello")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /start new session/i }),
+      );
+    });
+
+    expect(api.resetSessionId).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText("Hello")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /start new session/i }),
+    ).not.toBeInTheDocument();
   });
 });
