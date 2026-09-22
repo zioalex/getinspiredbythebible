@@ -35,7 +35,7 @@ the safety guards — prefer them over running the raw commands by hand.
 # Connection: DATABASE_URL for the target, PGPASSWORD for the password.
 # Never put the password in the URL — the script redacts what it logs, but
 # your shell history does not.
-export DATABASE_URL='postgresql://bible@<fqdn>:5432/bibledb?sslmode=require'
+export DATABASE_URL='postgresql://bible@<fqdn>:5432/bibledb?sslmode=verify-full'
 export PGPASSWORD='...'
 ```
 
@@ -132,7 +132,7 @@ over:
 ```bash
 # Point the app at the restored server, then redeploy/restart the container app
 az containerapp update -g "$PG_RG" -n <backend-app> \
-  --set-env-vars DATABASE_URL="postgresql://<user>:<pass>@<new-fqdn>:5432/${PG_DB}?sslmode=require"
+  --set-env-vars DATABASE_URL="postgresql://<user>:<pass>@<new-fqdn>:5432/${PG_DB}?sslmode=verify-full"
 ```
 
 ⚠️ **Terraform drift.** The connection string is managed in
@@ -140,7 +140,7 @@ az containerapp update -g "$PG_RG" -n <backend-app> \
 will be reverted by the next `terraform apply`. Cutover is only finished when
 the change is reflected in Terraform/its variables.
 
-> `sslmode=require` (not `ssl=require`) — see
+> `sslmode=verify-full` (not `ssl=verify-full`) — see
 > [Rule #1 in MIGRATION_GUIDELINES.md](MIGRATION_GUIDELINES.md#-rule-1-never-pass-ssl-parameters-in-connection-url).
 
 ---
@@ -153,21 +153,21 @@ which means **downtime and a destructive step**.
 
 ```bash
 # 0. SAFETY: dump the CURRENT state first — this is your only undo
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" make db-backup
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
 
 # 1. Get the good data (e.g. from a Scenario A restored server)
-DATABASE_URL="postgresql://bible@<restored-fqdn>:5432/${PG_DB}?sslmode=require" \
+DATABASE_URL="postgresql://bible@<restored-fqdn>:5432/${PG_DB}?sslmode=verify-full" \
   make db-backup DUMP=good.dump
 
 # 2. Stop writes — scale the backend to zero so nothing writes mid-restore
 az containerapp update -g "$PG_RG" -n <backend-app> --min-replicas 0 --max-replicas 0
 
 # 3. Replace the live database. Prompts for the hostname before doing anything.
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" \
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" \
   make db-restore-same-server DUMP=good.dump
 
 # 4. Verify, then bring the backend back
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" make db-restore-verify
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-restore-verify
 az containerapp update -g "$PG_RG" -n <backend-app> --min-replicas 1 --max-replicas <n>
 ```
 
@@ -191,7 +191,7 @@ shaped data.
 
 ```bash
 # 1. Dump prod (read-only, safe)
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" make db-backup
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
 
 # 2. Bring up PG 16 + pgvector locally and restore into it
 make db-restore-local DUMP=backups/<the-file>.dump
@@ -255,7 +255,7 @@ against this copy and confirm the result before touching production.
 data. Embeddings dominate the size, and a schema rehearsal never reads a row:
 
 ```bash
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=require" make db-backup-schema
+DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup-schema
 make db-restore-local DUMP=backups/<the-file>.dump
 ```
 
@@ -405,7 +405,7 @@ az postgres flexible-server delete -g "$PG_RG" -n "$NEW_SERVER" --yes   # if you
 | Symptom                                          | Cause                                                                 |
 | ------------------------------------------------ | --------------------------------------------------------------------- |
 | `extension "vector" is not allow-listed`          | Target server lacks `vector` in `azure.extensions`. Set it *before* restoring. |
-| `parameter 'ssl' cannot be changed now`           | `?ssl=require` in an asyncpg URL. Use `sslmode=require`. See Rule #1.  |
+| `parameter 'ssl' cannot be changed now`           | `?ssl=<mode>` in an asyncpg URL. Use `sslmode=<mode>` (e.g. `verify-full`) — the param name, not the mode value, is what breaks asyncpg. See Rule #1. |
 | Restore finishes fast, searches are slow          | HNSW indexes not rebuilt / invalid. Check query 3 and 4 above.         |
 | `role "..." does not exist`                       | Missing `--no-owner --no-acl`.                                        |
 | `extension "pg_cron" is not available` (local)    | Azure-only extension in the dump. Filtered by default — see Scenario C. |

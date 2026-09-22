@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-128/129 in progress)
+**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-152 created; BITB-128/129 in progress)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
@@ -195,6 +195,36 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### 🎯 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M (`it` only; each further locale is S)
+**Created:** 2026-09-12
+**Reported by:** product owner, relaying Italian users — "the answers are too cold"
+
+**As** someone writing about something painful in my own language, **I want** the reply to carry
+warmth the way my culture carries it, **so that** it reads as a person being close to me — while a
+plain Bible question still gets the same clear, neutral answer it gets today.
+
+**Approach:** gate cultural tone on the *intent that already exists*. `COMFORT`/`GUIDANCE` get a
+short per-locale pastoral-register addendum layered onto the persona (the
+`COMPASSIONATE_RESPONSE_ADDENDUM` pattern); `CURIOSITY`/`VERSE_LOOKUP`/`GENERAL`/`OFF_TOPIC`/
+`NEEDS_CLARIFICATION` are untouched. No extra LLM call — `_detect_intent()` already runs and is on by
+default. Registry empty by default: a locale with no entry behaves byte-identically to today, so we
+ship `it` (where we have a real report) and do not invent cultural notes for ten other languages.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Addendum present for `COMFORT`/`GUIDANCE` + registry locale; absent for informational intents
+- [ ] No registry entry, or flag off ⇒ system prompt byte-identical to today
+- [ ] Same gate on both the blocking and streaming chat paths; crisis addendum still last and unchanged
+- [ ] Verse-grounding / citation suites pass unchanged; ~10 Italian before/after samples reviewed by a
+  native speaker who is not the author
+- [ ] `it` vs `en`/`de` negative-feedback rate baselined before rollout
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-151-culturally-tuned-pastoral-tone.md`
+
 ### 🚧 BITB-154: KubeOpenCode Multi-Provider Resilience — Cross-Provider Fallback + Survive Provider Outage
 
 **Status:** 🚧 In Progress (PR #1077)
@@ -222,6 +252,35 @@ slots, move the three Copilot primaries to `opencode/nemotron-3-ultra-free`, add
 - [ ] Live cluster synced (`make sync-opencode-configmap` + pod restart, needs write RBAC)
 
 Full story: [`BITB-154-kubeopencode-multi-provider-resilience.md`](BACKLOG_STORIES/BITB-154-kubeopencode-multi-provider-resilience.md)
+
+---
+
+### 🎯 BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-09-06
+
+Agent sandbox has full egress, LAN-reachable `0.0.0.0:4096` with unauthenticated
+`/api/session`, and `OPENCODE_API_KEY` exposed via ENV. Harden to strict-tier:
+default-deny egress (public 443/53 only, RFC1918/169.254 denied, K8s API ClusterIP
+explicitly allowed), LAN opt-in via `kubeopencode.io/allow-lan` annotation with
+localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
+`OPENCODE_API_KEY_FILE`, auth enforcement on `/api/session`, bind `--hostname 127.0.0.1`.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Strict egress: public `443/53` OK, RFC1918 + `169.254/16` blocked, K8s API still reachable
+- [ ] `localhost:11434` Ollama keeps working, LAN opt-in via annotation
+- [ ] API key via `0400` file mount, `env` clean, `/api/session` requires auth
+- [ ] No committed secret value: `opencode-api-key` created imperatively
+- [ ] Zero-downtime rollout (egress-allow before default-deny, 30m standby drain)
+- [ ] `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
+- [ ] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
+- [ ] `scripts/validate-env.py` passes
+
+Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/BITB-152-kubeopencode-strict-tier-hardening.md)
 
 ---
 
@@ -595,13 +654,13 @@ literal matches — without waiting on new retrieval code.
 **Why P1:** Highest-ROI item on the search backlog. Query expansion is now enabled
 (#741, released 1.27.0) and hybrid search is being enabled (trimmed PR #727). The
 remaining work — a golden eval set + scorer to validate and tune these — is carved out
-into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044).
+into **BITB-139**. Topic boosting is excluded here — blocked on data (BITB-044).
 
 **Acceptance Criteria (summary — full story has detail):**
 
 - [x] Query expansion enabled by default (#741)
-- [x] Hybrid search enabled (`hybrid_search_enabled = True` in `api/config.py`, PR #727 trimmed per BITB-051 P0)
-- [x] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-051** (P0–P3 landed)
+- [x] Hybrid search enabled (`hybrid_search_enabled = True` in `api/config.py`, PR #727 trimmed per BITB-139 P0)
+- [x] Golden eval set + scorer (Precision@5 / Recall@10 / MRR) — see **BITB-139** (P0–P3 landed)
 - [ ] Baseline measured; hybrid weights tuned + documented; retrospective in `docs/DONE/`
       (needs a live run against prod data/Azure credentials — see `docs/SEARCH_EVAL_HOWTO.md`)
 
@@ -609,7 +668,7 @@ into **BITB-051**. Topic boosting is excluded here — blocked on data (BITB-044
 
 ---
 
-### 🚧 BITB-051: Search Retrieval-Evaluation Harness (golden set + scorer)
+### 🚧 BITB-139: Search Retrieval-Evaluation Harness (golden set + scorer)
 
 **Status:** 🚧 In Progress (P0–P3 + P4a landed; P4b todo)
 **Size:** L (3-5 days, 5 small PRs)
@@ -639,11 +698,11 @@ validate-only.
 - [x] P4a: `eval-prod` + `eval-smoke` automated in CI (manual + nightly, `.github/workflows/search-eval-full.yml`)
 - [ ] P4b: `eval-corpus` full-corpus rebuild (Route B) — deferred
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-051-search-retrieval-eval-harness.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-139-search-retrieval-eval-harness.md`
 
 ---
 
-### 🚧 BITB-052: Audit & Close Bible Reference-Normalization Gaps
+### 🚧 BITB-140: Audit & Close Bible Reference-Normalization Gaps
 
 **Status:** 🚧 In Progress (aliases + case/diacritic normalization + coverage audit done; versification offsets deferred)
 **Size:** M (1-2 days)
@@ -651,13 +710,13 @@ validate-only.
 
 **As the** maintainer, **I want** book/verse references to canonicalize reliably across
 all 11 languages and their common citation variants, **so that** the retrieval-eval
-metrics (BITB-051) and the app's shared verse-linking don't silently mishandle references.
+metrics (BITB-139) and the app's shared verse-linking don't silently mishandle references.
 
-**Why P2:** Surfaced during BITB-051 P1 review — `normalize_book_name` coverage is uneven:
+**Why P2:** Surfaced during BITB-139 P1 review — `normalize_book_name` coverage is uneven:
 localized singular/citation forms (Italian `Salmo`, German `Psalm`, Spanish/French/PT) and
 abbreviations are missing for several languages (Arabic/Russian have them), numbered-book
 variants and case/diacritic handling are gaps, and per-translation **versification**
-offsets can mis-score a correct hit. Low impact for BITB-051 today (its refs are
+offsets can mis-score a correct hit. Low impact for BITB-139 today (its refs are
 English-canonical) but affects localized input and the app-wide normalizer.
 
 **Acceptance Criteria (summary — full story has detail):**
@@ -677,7 +736,7 @@ numbered-book references fail to parse *with and without* parentheses —
 separators (`Johannes 3,16`) that the backend does — fold into the "robust matching" + parser-sync
 scope here.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-052-reference-normalization-gaps.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-140-reference-normalization-gaps.md`
 
 ---
 
@@ -718,32 +777,33 @@ was stale. See `docs/DONE/BITB-054-translation-data-observability.md`.
 
 ---
 
-### 🚧 BITB-050: Improve Verse Search Thematic Relevance and Response Depth
+### ✅ BITB-050: Improve Thematic Verse Search & Response Depth for Specific Questions
 
-**Status:** 🚧 In Progress
-**Size:** S (< 4 hours)
+**Status:** ✅ Done — status marker was left stale; corrected 2026-08-28 after verifying against
+`main`. Both deliverables are shipped: the justice/prophetic-theme guidance and the 120-word cap are
+in `_expand_query` (`api/chat/service.py`), and `SPECIFIC_FOCUS_GUIDANCE` ("Addressing the User's
+Specific Focus") is in `api/chat/prompts.py`, with `api/tests/test_chat_service_expansion.py`
+covering the expansion prompt.
+**Size:** S (< 4 hrs) — prompt-only; flag rollout deferred to BITB-043
 **Created:** 2026-06-12
 
-**As a** user seeking spiritual guidance, **I want** the verses surfaced for me to match
-the *theme* of what I'm facing and the reply to actually unfold that scripture, **so that**
-the answer meets me where I am instead of dropping a one-line quote.
+**As a** user asking a precise study question, **I want** related verses chosen by theme (not just
+keywords) and an answer that engages the specific point I raised, **so that** I get a substantive,
+on-target response.
 
-**Why P1:** Two prompt-only quality gaps that affect every answer. (1) The query-expansion
-prompt over-expands into off-theme terms that pull in irrelevant verses; it is rewritten to
-anchor on the 1–2 core themes. (2) The conversational system prompt is given a
-response-depth instruction (acknowledge → verse → unfold → bring home) that guards against
-padding. **Scope note:** the query-expansion flag flip + validation are owned by **BITB-043** —
+**Why P1:** A beta tester asked about Amos 7:1 and the app's answer never engaged the specific
+nuance raised, and observed the related-verses panel "seems to search by keywords, not thematic
+agreement." **Scope note:** the query-expansion flag flip + validation are owned by **BITB-043** —
 this story only changes prompt *content*, enabling no flags.
 
 **Acceptance Criteria (summary — full story has detail):**
 
-- [x] Expansion prompt is theme-focused and warns against off-theme drift
-- [x] `RESPONSE_DEPTH_GUIDANCE` wired into `get_system_prompt()` for all languages
-- [x] Depth guidance asks for substance while forbidding padding; allows short replies
-- [x] Tests cover both changes
-- [ ] Full backend test suite passes in CI
+- [x] Expansion prompt includes justice/prophetic-theme guidance; word cap raised 100 → 120
+- [x] `SPECIFIC_FOCUS_GUIDANCE` ("Addressing the User's Specific Focus") added to the system prompt
+- [x] Expansion-prompt unit tests updated for the new guidance/word cap
+- [x] No change to the default value of `query_expansion_enabled` (owned by BITB-043)
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-050-search-thematic-relevance-and-response-depth.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-050-thematic-search-and-response-depth.md`
 
 ---
 
@@ -1536,6 +1596,47 @@ loaded, **437 verses embedded**, eval ran — then all 6 query results errored (
 
 ---
 
+### 🚧 BITB-059: Unify the Verse-Reference Parser — One Spec, Three Generated Artifacts
+
+**Status:** 🚧 In Progress — Phase 1 (book-name map, Android leg) and Phase 2 (book-name map, web
+leg + registry reconciliation) shipped; Phase 3 (regex grammar) remains, tracked by BITB-108/113
+**Priority:** P1 (High) — top-ranked finding of the 2026-07 adversarial audit (A1, CRITICAL);
+recurring cross-platform drift already shipping user-visible bugs
+**Size:** L (spec + generator + migration of three call sites; the existing giant test suites
+become the safety net)
+**Created:** 2026-07-03
+
+**As a** maintainer, **I want** the verse-reference grammar (regex patterns + localized book-name
+maps) defined **once** and consumed by web, Android, and the backend, **so that** fixing a
+citation edge case in one place fixes it everywhere — instead of the current routine of three
+hand-synchronized implementations drifting apart until a user reports dead verse links.
+
+**Why P1:** The verse-parsing engine exists three times, in two regex dialects (Kotlin, TypeScript,
+Python). The 737-line `LocalizedBookToEnglish.kt` was a self-described "parity copy — do not edit
+by hand" of the web map, guarded only by an entry-count test. The drift is not hypothetical: PRs
+799, 801, and 804 were all cross-platform drift repairs.
+
+**Acceptance Criteria (summary — full story has detail):**
+
+- [x] Single source-of-truth for the localized book-name map
+      (`tests/fixtures/localized_book_map.json`), generating both the Kotlin and TypeScript
+      artifacts, reconciled with the Python registry via a contract test — the regex-grammar half
+      of the spec is Phase 3
+- [x] Build-time generation + CI guard for the Kotlin and TypeScript book-name maps
+      (`scripts/generate_localized_book_map.py --check`); the Python registry is held
+      contradiction-free by a contract test instead, by design
+- [x] Android parity test checks content equivalence against the generated map, not entry count
+- [x] Shared cross-platform regression corpus runs against all three implementations (PR #906)
+- [ ] Regex grammar itself (separator/range grammar, script-class alternations) unified across all
+      three platforms — Phase 3, carried by **BITB-108** (ReDoS safety, closed) and **BITB-113**
+      (grammar unification, open)
+- [ ] `docs/AUDIT_PLAYBOOK.md` parity-ledger row for the regex grammar updated to point at the
+      generator (the book-name-map row already does)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-059-unify-verse-parser-single-source-of-truth.md`
+
+---
+
 ### 🚧 BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
 
 **Status:** 🚧 In Progress — ReDoS safety closed **on both web and Android** (AC1–2, and the Android
@@ -1678,9 +1779,9 @@ separator/range grammar and script-class alternations.
 
 ---
 
-### 🎯 BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
+### ✅ BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2
 **Size:** M
 **Created:** 2026-08-22
@@ -1696,13 +1797,20 @@ unblocked the moment #983 merges.
 consumer must not assume `citations` is exhaustive — the regex fallback has to stay reachable
 per-message, or Arabic users silently lose links.
 
+**Implementation note:** web-only. `frontend/src/lib/citationSpans.ts` (`linkifyWithCitations`)
+prefers each valid `citations` span and re-runs the existing regex linkifier over every gap a span
+doesn't (validly) cover — so an absent field, an empty array, a corrupt span, or a citation the
+backend's known Arabic gap omitted all degrade to the pre-existing regex behavior for that stretch of
+text. Gated by `NEXT_PUBLIC_CITATION_SPANS_ENABLED` (`frontend/src/lib/featureFlags.ts`), default off.
+Android and iOS are unaffected.
+
 **Acceptance Criteria (summary):**
 
-- [ ] Web consumes `citations` behind a flag; regex path used when the field is absent
-- [ ] Byte-identical output vs. the regex path across the shared corpus
-- [ ] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
-- [ ] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
-- [ ] A vocalized-Arabic message still renders links via the fallback
+- [x] Web consumes `citations` behind a flag; regex path used when the field is absent
+- [x] Byte-identical output vs. the regex path across the shared corpus
+- [x] Corrupt spans render plain text — no crash, no duplication — asserted adversarially
+- [x] Self-verification (`message[start:end] == text`, else locate by `occurrence`) implemented and tested
+- [x] A vocalized-Arabic message still renders links via the fallback
 
 **Depends on:** PR #983 merging.
 
@@ -1744,32 +1852,47 @@ not be executed in the implementing sandbox (no network access to the Google Mav
 
 ---
 
-### 🎯 BITB-111: Fifteen Story IDs Refer to More Than One Story
+### ✅ BITB-111: Fifteen Story IDs Refer to More Than One Story
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — all 16 collisions resolved (19 files renumbered to BITB-130–147, 2 stale
+duplicates deleted), BITB-059 given a `BACKLOG.md` entry, cross-references updated, and
+`scripts/check_backlog_story_ids.py` added to CI to prevent recurrence. A follow-up fix round
+corrected BITB-018 (the CI/Ollama-timeout analysis+resolution pair it was still incorrectly
+sharing an ID with is now BITB-147) and gave BITB-132 / BITB-142 the `BACKLOG.md` entries they
+were still missing.
 **Priority:** P2
 **Size:** M
 **Created:** 2026-08-22
 **Prompted by:** the STEP 6 hygiene pass, and the BITB-092 collision caught in PR #969
 
-`AGENTS.md` requires sequential, unique story IDs. Fifteen currently name two or three unrelated
-stories: BITB-017, 018, 024, 027, 028, 037, 043, 050, 051, 052, 053, 054, 057, 068, 069.
+`AGENTS.md` requires sequential, unique story IDs. Sixteen distinct IDs ended up naming two to
+four unrelated stories each: BITB-017, 018, 024, 025, 027, 028, 037, 043, 050, 051, 052, 053, 054,
+057, 068, 069 (BITB-025 surfaced during this story's own implementation, not in the initial
+fifteen-ID sweep) — see the story's Renumbering Log for exactly where each one went.
 
 Not cosmetic: **PR #969 nearly shipped a sixteenth** (split BITB-084 Part C as "BITB-092" while a
-merged, ✅ Done BITB-092 already existed — renumbered to BITB-102 in review). A dedup pass cannot
-trust an ID: "is BITB-051 done?" has no answer. And status lies by aliasing — BITB-009 is marked ✅
-Done while four `# type: ignore` suppressions the same story requires removing are still on `main`,
-which is exactly what PR #984 fixes.
+merged, ✅ Done BITB-092 already existed — renumbered to BITB-102 in review). A dedup pass could not
+previously trust an ID: "is BITB-051 done?" had no answer before this cleanup. And status lies by
+aliasing — BITB-009 was marked ✅ Done while four `# type: ignore` suppressions the same story
+required removing were still on `main`; PR #984 (already merged) closed that gap.
 
-Two related defects: **BITB-059 has no `BACKLOG.md` entry at all** (and #983 doesn't add one), and
-orphaned story files exist with no backlog section (e.g. `BITB-025-verse-linking-android.md`).
+Two related defects, both fixed here: **BITB-059 had no `BACKLOG.md` entry at all** (now added,
+above BITB-108 in the P1 section), and the orphaned story file `BITB-025-verse-linking-android.md`
+(now `BITB-132-verse-linking-android.md`).
 
 **Acceptance Criteria (summary):**
 
-- [ ] Every `BITB-NNN` maps to exactly one story file; every story file has a `BACKLOG.md` entry
-- [ ] Cross-references updated everywhere, in-code comments included
-- [ ] **A CI check fails on a duplicate ID or a story file with no backlog entry** — the durable part
-- [ ] A renumbering table records old → new; BITB-009's status corrected
+- [x] Every `BITB-NNN` maps to exactly one story file; every story file has a `BACKLOG.md` entry
+      (19 pre-existing, unrelated gaps found by the new guard's first pass are named in a
+      documented exemption list rather than silently backfilled in this PR — see the guard
+      script and full story). A follow-up fix round tightened the guard's entry-detection from a
+      bare substring match to requiring a real heading or `**Full Story:**` link — which is what
+      caught BITB-132 / BITB-142 still having no entry (now added, above) and surfaced 4 more
+      pre-existing gaps hidden the same way (BITB-016, BITB-017, BITB-031, BITB-032; added to the
+      exemption list)
+- [x] Cross-references updated everywhere, in-code comments included
+- [x] **A CI check fails on a duplicate ID or a story file with no backlog entry** — the durable part
+- [x] A renumbering table records old → new; BITB-009's status corrected (was already correct)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-111-backlog-story-id-collisions.md`
 
@@ -1968,7 +2091,7 @@ write-rehearsal against a restored copy remains open (see story file).
 Postgres admin role
 **Size:** M
 **Created:** 2026-08-21
-**Prompted by:** PR #968 (BITB-051 P4a), which adds the first automated recurring prod-database
+**Prompted by:** PR #968 (BITB-139 P4a), which adds the first automated recurring prod-database
 access path in this repo that is not a deploy
 
 **As** the operator of a single-maintainer production service, **I want** the nightly search-eval
@@ -2083,9 +2206,9 @@ Retrospective: `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
 
 ---
 
-### 🎯 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
+### 🚧 BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — decision recorded, implementation in progress
 **Priority:** P2
 **Size:** S–M
 
@@ -2099,11 +2222,43 @@ against the production URL. Traffic is encrypted but the server is unauthenticat
 certificate, any server, any hostname is accepted, against an internet-reachable endpoint.
 
 This is **deliberate** — it is what `sslmode=require` means in libpq, and BITB-016 chose it
-knowingly. What is missing is anyone having decided it is *acceptable*. The story forces that
-decision: move to `verify-full` with the Azure CA bundle, or keep `require` and record the threat
-model. Not an Alembic issue; filed separately.
+knowingly. What is missing is anyone having decided it is *acceptable*. **Decision (2026-09-09):**
+move to `verify-full`, relying on the Python/OS default CA trust store — Azure's server cert
+chains to a public root already in every standard trust store, so no CA bundle needs to be
+vendored. Every DSN that builds `sslmode=require` for the real production host moves to
+`sslmode=verify-full`; the SSL-context-building logic itself needs no change since it already
+handles `verify-full` correctly. Not an Alembic issue; filed separately.
+
+Implemented in PR #1058, independently verified (unit tests pass, no unintended logic change,
+scope complete). **Stays In Progress through merge** — the one unproven acceptance criterion is a
+live `verify-full` connection to production, which only happens on the post-merge `main` deploy
+(`run-migrations` is skipped on PRs); flip to Done once that deploy succeeds. The verify pass also
+surfaced a related-but-separate latent gap in the migration-utils mirror helper, filed as BITB-125.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-099-postgres-tls-does-not-verify-the-server.md`
+
+---
+
+### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+
+**As a** maintainer relying on `get_migration_connection_params()` and `get_async_database_url()`
+being true mirrors of each other, **I want** the asyncpg-spelled `?ssl=...` parameter handled
+identically in both, **so that** a DSN using that spelling can't silently connect with no TLS at
+all.
+
+`get_migration_connection_params()` only checks `ssl_param == "require"`; `?ssl=verify-ca` or
+`?ssl=verify-full` fails its build condition entirely, so no `ssl` kwarg is set and asyncpg
+connects in plaintext — a worse outcome than `sslmode=require`'s merely-unverified `CERT_NONE`.
+`get_async_database_url()` doesn't have this gap (`sslmode = sslmode or ssl_param` before
+branching). Latent — no DSN in this repo currently uses that spelling — but
+`docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
+makes it easy for an operator to stumble into by hand.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 
@@ -2353,6 +2508,38 @@ attributed to Android or broadly backfilled.
 > speak the answer, and ask by voice. They share remote rollout/configuration and locale work,
 > but are split because output and microphone input have independent APIs, permissions, data
 > flows, failure modes and release risk. Each can ship or be withdrawn independently.
+
+---
+
+### 🚧 BITB-126: Diagnose a Database Stamped Ahead of the Deploy Checkout
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** S (preflight script + workflow wiring + tests)
+**Created:** 2026-09-09
+**Reported by:** deploy failure triage — [run 33369807581](https://github.com/zioalex/getinspiredbythebible/actions/runs/33369807581)
+
+A re-run of an older workflow run deploys a commit whose `api/alembic/versions/`
+predates the revision production is stamped at. Alembic cannot resolve that
+stamp, so `alembic current` dies on the *read* — `Can't locate revision
+identified by 'r0006'`, exit 255 — with no indication that the database is
+healthy and the checkout is simply old. The step's existing unstamped preflight
+could not help: it parsed `alembic current`'s output, so it sat downstream of
+the command that had already exited. `scripts/alembic_preflight.py` reads
+`alembic_version` with a plain `SELECT` and classifies the stamp against the
+checkout's revision graph *before* any `alembic` command runs.
+
+**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`):**
+
+- [x] A stamp absent from the checkout fails naming the revision, the head, that
+      the database is not broken, and that re-running cannot succeed
+- [x] BITB-089's `alembic stamp r0001` remedy preserved for an unstamped database
+- [x] The preflight provably runs before the first `alembic` command
+- [x] Success path reports the true pending-revision count
+- [x] Verified end-to-end against a real PostgreSQL 16 across five stamp states
+- [ ] Green CI on the PR
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`
 
 ---
 
@@ -2703,7 +2890,7 @@ covers the need while saving a full Bible's worth of verses/embeddings in the DB
 
 ---
 
-### 📋 BITB-068: Refresh & Expand Bible Translations from Bible SuperSearch
+### 📋 BITB-145: Refresh & Expand Bible Translations from Bible SuperSearch
 
 **Status:** 📋 Backlog
 **Size:** M (1-2 days, mostly data loading + registration)
@@ -2722,7 +2909,7 @@ only public-domain / freely redistributable texts (NIV, ESV, CEI 2008 excluded).
 - [ ] Each new translation loaded (text + embeddings), book-name coverage clean, and selectable via
       `/scripture/translations`; provenance/license note recorded
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-068-refresh-and-expand-bible-translations.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-145-refresh-and-expand-bible-translations.md`
 
 ---
 
@@ -2803,7 +2990,7 @@ too long.
 
 ---
 
-### 🚧 BITB-043: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
+### 🚧 BITB-138: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
 
 **Status:** 🚧 In Progress
 **Size:** M (1-2 days)
@@ -2828,7 +3015,7 @@ what went wrong on a thumbs-down with a single-tap reason chip,
 - [ ] All 11 locales have 6 new reason keys + updated `emailLabel`
 - [ ] Backend + frontend tests pass
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-043-require-contact-email-and-actionable-negative-feedback.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-138-require-contact-email-and-actionable-negative-feedback.md`
 
 ---
 
@@ -2910,7 +3097,7 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-037: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
+### 🎯 BITB-136: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
 **Status:** 🚧 In Progress (server-render homepage confirmed done in code; JSON-LD + OG image landing 2026-07-03; only Search-Console submission remains, a manual operator action)
 **Priority:** P1 for task 1 (server-render homepage); P3 for tasks 2–4
@@ -2932,7 +3119,7 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 - [x] `og:image` resolves and Twitter card is `summary_large_image`
 - [ ] Live check confirms `/sitemap.xml` 200, `/icon.svg` and `/favicon.ico` resolve, `/en` has canonical+OG+Twitter, `/en/privacy` hreflang points to `/it/privacy`; sitemap submitted to Search Console *(manual operator action remaining)*
 
-**Full story:** [docs/BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md](BACKLOG_STORIES/BITB-037-seo-followups-server-render-homepage.md)
+**Full story:** [docs/BACKLOG_STORIES/BITB-136-seo-followups-server-render-homepage.md](BACKLOG_STORIES/BITB-136-seo-followups-server-render-homepage.md)
 
 **References:** PR #636 (SEO metadata foundation, merged), `scripts/seo-static-check.sh`, `scripts/seo-live-check.sh`, `frontend/src/lib/seo.ts`
 
@@ -3241,7 +3428,7 @@ to `voxquieta.org/{locale}/about`, the same external-link pattern already used f
 splash-cookie "seen once ever" pattern (`MainActivity.kt:51-57`), not the What's-New
 per-version pattern, and requires making the What's New version-seen write conditional
 (currently unconditional at `MainActivity.kt:121`) so the two sheets never render on the same
-cold start — About intro wins, What's New defers to the next launch. Note: BITB-054 (first-run
+cold start — About intro wins, What's New defers to the next launch. Note: BITB-142 (first-run
 spotlight), floated as an alternative fold-in target, is still `Todo` — not available today.
 
 **Acceptance Criteria (summary):**
@@ -3292,8 +3479,11 @@ they show the pre-rename v1.0 UI — must be labeled as "then," not presented as
 ### 🚧 BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
 
 **Status:** 🚧 In Progress — backend intent routing + clarifying-question flow shipped
-(behind `chat_clarification_enabled`, default off); tappable chip UI (shared with BITB-080)
-and golden-set eval integration deferred, see story file
+(behind `chat_clarification_enabled`, default off); golden-set eval integration still deferred,
+see story file. The shared chip UI is no longer blocked: BITB-080 shipped
+`frontend/src/components/FollowUpSuggestions.tsx` as a generic
+`{ suggestions, onSelect, disabled, label }` component — reuse it here rather than building a
+second one.
 **Size:** M (1–2 days, prompt work + eval)
 **Created:** 2026-07-25
 
@@ -3314,15 +3504,15 @@ asked whether it understood the question. This makes clarification a first-class
 - [ ] At most one clarifying question per conversation; specific messages never trigger one
 - [ ] Never asked for verse lookups or `compassionate_response_needed` (crisis) turns
 - [ ] Works across en/it/de/es; clarification rate logged so rollout can be judged
-- [ ] Vague-opening cases added to the retrieval-eval harness (BITB-051)
+- [ ] Vague-opening cases added to the retrieval-eval harness (BITB-139)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-078-clarify-before-answering.md`
 
 ---
 
-### 🎯 BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
+### ✅ BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (backend + web) — Android deferred to **BITB-149**
 **Size:** M (1–2 days, backend + web + Android)
 **Created:** 2026-07-25
 
@@ -3333,18 +3523,52 @@ phone.
 The welcome screen already proves the pattern works (tap a starter prompt, it sends), and it
 disappears exactly when the user has the most to explore. The streaming `completion` event is the
 natural carrier: it already grew `resolved_verses` and `corrections` as optional fields that older
-clients ignore (`service.py:1375-1386`). v1 generates follow-ups in-prompt via a machine-readable
-trailer, mirroring the existing `<!-- VERSES: -->` mechanism — no extra call, no extra latency.
+clients ignore. v1 generates follow-ups in-prompt via a machine-readable trailer, mirroring the
+existing `<!-- VERSES: -->` mechanism — no extra call, no extra latency.
 
 **Acceptance Criteria (summary):**
 
-- [ ] 2–3 chips under the **latest** assistant message only, in the user's language; tap sends
-- [ ] Suppressed for off-topic, crisis-flagged and error turns; trailer never leaks into the answer
-- [ ] Clients on an older backend are unaffected (absent field renders nothing)
-- [ ] Shares one chip component with BITB-078; accessible on web and Android
+- [x] 2–3 chips under the **latest** assistant message only, in the user's language; tap sends
+- [x] Suppressed for off-topic, crisis-flagged and error turns; trailer never leaks into the answer
+- [x] Clients on an older backend are unaffected (absent field renders nothing)
+- [x] Shares one chip component with BITB-078 (`FollowUpSuggestions.tsx`, generic
+      `{ suggestions, onSelect, disabled, label }` props); accessible on web
+- [ ] Android chip UI — deferred, see **BITB-149**
 - [ ] Interaction with the 10-message session limit (BITB-024) checked before rollout
 
+**Implementation notes:** ships dark behind `chat_follow_ups_enabled` (default off), same rollout
+posture as BITB-078 — real model output needs a look before enabling, per the story's own "generic
+suggestions are worse than none" risk. `api/chat/follow_ups.py` parses/sanitizes the trailer
+(2–3 suggestions or none, no markup, no fabricated verse references); `_wants_follow_ups` gates both
+the prompt instruction and a second, code-level suppression on a compassionate/crisis turn.
+
 **Full Story:** `docs/BACKLOG_STORIES/BITB-080-suggested-followup-questions.md`
+
+---
+
+### 🎯 BITB-149: Android — Suggested Follow-Up Question Chips
+
+**Status:** 🎯 Todo
+**Size:** S (Android-only; the backend contract and web reference implementation already exist)
+**Created:** 2026-09-11
+**Parent ref:** BITB-080 (backend + web shipped; this is its deferred Android half)
+
+**As** an Android user who has just read an answer, **I want** the same one-tap follow-up question
+chips the web app now shows, **so that** I can keep exploring without typing on a phone keyboard.
+
+Pure consumer of the contract BITB-080 already shipped: parse the optional `follow_ups: list[str]`
+field off the stream's `completion` event (already sanitized server-side — no client-side
+validation needed), render chips under the last assistant item only, send on first tap
+(`viewModel.sendMessage(...)`), clear on the next turn.
+
+**Acceptance Criteria (summary):**
+
+- [ ] 2–3 chips under the last assistant message; tap sends on the first tap
+- [ ] Absent `follow_ups` renders nothing; chips clear when the next turn starts
+- [ ] TalkBack-labelled chip row; Compose UI test covers position + tap-to-send
+- [ ] BITB-024 (session limit) interaction checked now that both platforms exist
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-149-android-followup-question-chips.md`
 
 ---
 
@@ -3522,7 +3746,91 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
 
 ---
 
+### 🎯 BITB-142: First-Run Feature Spotlight / Coach-Marks (Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2 (Medium) — discoverability of core features
+**Size:** M (1-2 days incl. localization)
+**Created:** 2026-06-17
+
+**As a** first-time Android user, **I want** a short guided highlight of the main features on
+first launch — especially the left history/menu drawer, **so that** I discover what the app can
+do instead of missing the sliding panel entirely.
+
+First launch shows only the animated splash screen and welcome banner today; nothing points to
+the `ModalNavigationDrawer` (chat history, settings, new chat), so it goes unnoticed. Add a
+Compose spotlight overlay that highlights the drawer/menu icon, translation chip, language
+picker, and input/example prompts in turn, gated by a `tour_seen` flag independent of
+`splash_seen`, without interfering with the BITB-049 fresh-chat-on-launch behaviour.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-142-android-first-run-feature-spotlight.md`
+
+### 🎯 BITB-150: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
+
+**Status:** 🎯 Todo
+**Size:** M (the analysis is the deliverable; each fix it authorises is its own small story)
+**Created:** 2026-09-12
+**Prompted by:** Owner's spend review — "monitoring is ~25% of the cost, the DB is ~50%"
+
+**As** the person paying the Azure invoice, **I want** the monitoring and database spend broken
+down to the meter and each driver traced to the Terraform or application line that creates it,
+**so that** I can cut cost against evidence instead of guessing which knob is the expensive one.
+
+The 25/50 split is an owner-side estimate, and the published cost table in `deployment/README.md`
+is stale (it still prices a **B1ms**; `main.tf:405` has been `B_Standard_B2s` since the partial-HNSW
+upgrade). Phase 0 is a blocking meter-level attribution — nothing is changed on the estimate.
+Structural drivers already identified from the repo: Log Analytics `PerGB2018` with **no
+`daily_quota_gb` cap**, `configure_azure_monitor()` with **no sampling**, 2 web tests × 3 geos ×
+5 min = **51,840 executions/month**, 32 alert rules (17 log rules at `PT5M`), and on the database
+side **no reserved capacity**, a one-way `auto_grow_enabled` storage ratchet that Terraform can no
+longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, and 1536-dim
+4-byte vectors over 403,856 verses (`halfvec` would halve both).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Phase 0 cost table (resource → meter → 3 monthly totals) pasted into the PR with the exact
+      `az` command, reconciled against the real invoice; the 25/50 estimate confirmed or corrected
+- [ ] Log Analytics billable GB per `DataType` and App Insights records per `itemType` captured
+- [ ] **Resolved:** whether a Postgres diagnostic setting exists outside Terraform (drift to codify,
+      or ingestion to remove) — `log_connections = on` with no `azurerm_monitor_diagnostic_setting`
+      anywhere in `deployment/`
+- [ ] Real provisioned `storage_mb`, DB size, top-10 tables/indexes, and 90 days of CPU/memory
+      captured from production, with `stats_reset` alongside `idx_scan`
+- [ ] Every lever carries a saving derived from the Phase 0 table (not list prices) plus a risk
+      note; ranked by saving ÷ risk, with declines explained so they are not re-litigated
+- [ ] A follow-up story filed for each accepted lever touching schema, indexes, sampling or SKU —
+      **none implemented in this story's PR**
+- [ ] `deployment/README.md`'s stale cost table corrected; `monthly_budget = 50` reviewed against
+      actual spend
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-150-azure-cost-analysis-monitoring-and-database.md`
+
+---
+
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-148: The Backlog-ID Guard Can't Tell Two Same-Numbered Headings Apart
+
+**Status:** 🎯 Todo
+**Size:** S
+**Created:** 2026-09-13
+
+**As** the maintainer of the backlog-ID CI guard (BITB-111), **I want** it to verify a
+story's `docs/BACKLOG.md` entry is actually about that file, **so that** an unrelated
+same-numbered legacy heading can't silently satisfy the check.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `_has_backlog_entry()` cannot be satisfied by a heading that shares an ID with the
+      target file but is about a different topic
+- [ ] The known case (`BITB-024-10-interaction-session-limit.md` currently passes only
+      via an unrelated legacy `### ✅ BITB-024: Add Phase 2 Language Support` heading) is
+      resolved or explicitly allowlisted the same way `_MISSING_BACKLOG_ENTRY_EXEMPT` is
+- [ ] A test proves a same-ID, different-topic heading is rejected
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-148-backlog-guard-heading-disambiguation.md`
+
+---
 
 ### ✅ BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
 
@@ -3665,11 +3973,12 @@ skipped for `"android"`)
 **Size:** M (1-2 days)
 **Created:** 2026-04-03
 
-**Note (ID collision):** this ID number is also used by the unrelated, already-Done
-`docs/BACKLOG_STORIES/BITB-025-verse-linking-android.md`. This story's full write-up is filed
-under a collision-safe filename instead:
-`docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md`. Worth a renumbering
-pass at some point, out of scope here.
+**Note (ID collision, resolved by BITB-111):** this ID number was also used by the unrelated,
+already-Done orphan story, renumbered to
+`docs/BACKLOG_STORIES/BITB-132-verse-linking-android.md`. This story's full write-up remains at
+`docs/BACKLOG_STORIES/BITB-025-traditional-chinese-t2s-normalization.md`. See
+`docs/BACKLOG_STORIES/BITB-111-backlog-story-id-collisions.md` (Renumbering Log) for the full
+record.
 
 **Approach actually shipped (overrides the "Proposed approach" below):** neither
 opencc/hanziconv, chinese-conv, nor ICU `Transliterator` — a single hand-derived,
@@ -3990,6 +4299,24 @@ bookkeeping table.
 ---
 
 ## Done (Recent Completions)
+
+### ✅ BITB-132: Verify and Fix Verse Linking in Android Chat
+
+**Status:** ✅ Done (`buildVerseRefRegex`/`verseRefRegex` wired into `ChatMessageItem`, backed by
+`ParseVerseLinkTest` + `VerseRefLinkTest`; verified 2026-05-24)
+**Priority:** High — core user experience feature
+
+**As a** user, **I want** to tap on Bible verse references in chat messages to see the full
+chapter, **so that** I can read the complete context.
+
+Verse references in Android chat messages weren't reliably rendering as clickable links (or the
+tap handler wasn't firing) to match the web app's existing `highlightText()` behaviour. Fixed by
+wiring `injectVerseLinks()`'s markdown-link output through to `parseVerseLink()` / the chapter
+sheet in `ChatMessageItem.kt`, covered by dedicated parse/link tests.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-132-verse-linking-android.md`
+
+---
 
 ### ✅ BITB-024: Add Phase 2 Language Support (Russian, Chinese, Hindi, Korean)
 

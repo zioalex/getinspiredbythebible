@@ -49,8 +49,10 @@ from utils.verse_parser import (
     parse_structured_citations,
 )
 
+from .follow_ups import split_follow_ups
 from .prompts import (
     CLARIFICATION_PROMPT,
+    FOLLOW_UP_SUGGESTIONS_GUIDANCE,
     OFF_TOPIC_PROMPT,
     build_search_context_prompt,
     detect_intent_prompt,
@@ -129,6 +131,7 @@ class ChatResponse(BaseModel):
     detected_translation: str | None = None
     translation_info: dict | None = None
     language_suggestion: str | None = None  # Detected language differs from selected UI language
+    follow_ups: list[str] = []  # BITB-080: suggested next questions, in the user's voice
 
 
 @dataclass
@@ -570,6 +573,7 @@ Keep it under 120 words."""
             language_code=effective_language,
             prompt_type=prompt_type,
             compassionate_mode=safety.compassionate,
+            follow_ups_enabled=self._wants_follow_ups(safety.compassionate),
         )
 
         # Step 3: Generate response
@@ -620,10 +624,20 @@ Keep it under 120 words."""
                 extra={"response_preview": response.content[:200]},
             )
 
+        # BITB-080: strip the FOLLOWUPS trailer before grounding sees it -- exactly
+        # as the streaming path does, so grounding's internal citation resolution
+        # never encounters a suggested question mentioning a verse.
+        body, follow_up_candidates = split_follow_ups(response.content)
+
         # Ground the response: rewrite any fabricated/mismatched inline verse
         # quote to the canonical DB text before returning it to the client.
         message, _ = await self._apply_verse_grounding(
-            response.content, scripture_context, translation, effective_language
+            body, scripture_context, translation, effective_language
+        )
+
+        cited_set = {str(ref) for ref in extract_all_references(message)}
+        follow_ups = self._filter_fabricated_follow_ups(
+            follow_up_candidates, cited_set, safety.compassionate
         )
 
         # AC2 (BITB-055): emit the same silent-degradation SLI as the streaming
@@ -652,6 +666,7 @@ Keep it under 120 words."""
             detected_translation=translation,
             translation_info=translation_info,
             language_suggestion=language_suggestion,
+            follow_ups=follow_ups,
         )
 
     def _scripture_grounding_unavailable(
@@ -747,6 +762,37 @@ Keep it under 120 words."""
             and not compassionate
             and history_len == 0
         )
+
+    def _wants_follow_ups(self, compassionate: bool) -> bool:
+        """BITB-080 gate: whether to ask the LLM for suggested follow-up questions.
+
+        Enforced here in code rather than left to prompt wording alone, mirroring
+        ``_wants_clarification``: never offered on a compassionate/crisis turn --
+        someone in distress is not handed a menu of next questions. The other
+        exclusions (off-topic, blocked, clarification, scripture-unavailable) never
+        call this at all, since each of those early-return paths builds its own
+        prompt without a ``follow_ups_enabled`` argument.
+        """
+        return settings.chat_follow_ups_enabled and not compassionate
+
+    def _filter_fabricated_follow_ups(
+        self, candidates: list[str], cited_refs: set[str], compassionate: bool
+    ) -> list[str]:
+        """Drop any BITB-080 suggestion citing a verse reference this turn didn't cite.
+
+        Shared by ``chat()`` and ``chat_stream()`` so the fabrication check (and the
+        "2-3, or none" re-application once dropped suggestions leave fewer than 2) is
+        written once. Suppressed entirely on a compassionate/crisis turn as a second,
+        code-level guarantee alongside the prompt-level gate in ``_wants_follow_ups``.
+        """
+        if not candidates or compassionate:
+            return []
+        follow_ups = [
+            s
+            for s in candidates
+            if all(str(ref) in cited_refs for ref in extract_all_references(s))
+        ]
+        return follow_ups if len(follow_ups) >= 2 else []
 
     async def _handle_needs_clarification(
         self,
@@ -1425,6 +1471,7 @@ Keep it under 120 words."""
             language_code=effective_language,
             prompt_type=prompt_type,
             compassionate_mode=safety.compassionate,
+            follow_ups_enabled=self._wants_follow_ups(safety.compassionate),
         )
 
         # Step 4: Stream response content and accumulate full response
@@ -1447,6 +1494,16 @@ Keep it under 120 words."""
             record_stage(
                 timings, "generation", (time.perf_counter() - first_token_at) * 1000, stage_attrs
             )
+
+        # BITB-080: strip the "<!-- FOLLOWUPS: ... -->" trailer (if any) before any
+        # downstream consumer sees it -- citation extraction, grounding, and the
+        # verse-fabrication filter below must all work against the clean body, never
+        # the raw streamed text. `full_response` is reassigned to that clean body, so
+        # every existing use below it is automatically corrected; `trailer_stripped`
+        # tracks whether the client's already-streamed text needs to be replaced.
+        raw_streamed_response = full_response
+        full_response, follow_up_candidates = split_follow_ups(raw_streamed_response)
+        trailer_stripped = full_response != raw_streamed_response
 
         # Step 5: Extract cited verses (dual-source) and yield completion event
         structured = parse_structured_citations(full_response)
@@ -1523,8 +1580,13 @@ Keep it under 120 words."""
         }
         # Only sent when a quote was rewritten; older clients ignore unknown
         # fields, so this is backward compatible.
-        if corrections:
+        # Sent whenever the authoritative body differs from what the client already
+        # rendered token-by-token -- either grounding rewrote a quote (BITB-053), or
+        # a FOLLOWUPS trailer (BITB-080) was stripped from it. `corrections` keeps
+        # its own narrower meaning (only present when a quote was actually rewritten).
+        if corrections or trailer_stripped:
             completion["corrected_message"] = corrected_message
+        if corrections:
             completion["corrections"] = [
                 {"reference": c.reference, "reason": c.reason} for c in corrections
             ]
@@ -1538,6 +1600,16 @@ Keep it under 120 words."""
         completion["citations"] = [
             asdict(span) for span in extract_citation_spans(corrected_message)
         ]
+
+        # BITB-080: never offer a suggestion that cites a verse reference outside
+        # what was actually cited in this answer (verses_cited, the final
+        # post-grounding set) -- a fabricated reference in a suggestion is exactly
+        # as unacceptable as one in the answer body itself.
+        follow_ups = self._filter_fabricated_follow_ups(
+            follow_up_candidates, set(verses_cited), safety.compassionate
+        )
+        if follow_ups:
+            completion["follow_ups"] = follow_ups
 
         record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
         logger.info(
@@ -1564,6 +1636,7 @@ Keep it under 120 words."""
         language_code: str = "en",
         prompt_type: str = "default",
         compassionate_mode: bool = False,
+        follow_ups_enabled: bool = False,
     ) -> list[ChatMessage]:
         """
         Build the message list for the LLM.
@@ -1576,6 +1649,9 @@ Keep it under 120 words."""
             prompt_type: Type of prompt ("default", "verse_lookup", "prayer_lookup", "off_topic",
                 "clarification")
             compassionate_mode: When True, appends COMPASSIONATE_RESPONSE_ADDENDUM to system prompt
+            follow_ups_enabled: When True, appends FOLLOW_UP_SUGGESTIONS_GUIDANCE (BITB-080) so the
+                model appends a "<!-- FOLLOWUPS: ... -->" trailer. Callers for off_topic and
+                clarification prompt types must never pass True (see _wants_follow_ups).
 
         Returns:
             List of ChatMessage objects for the LLM
@@ -1587,6 +1663,7 @@ Keep it under 120 words."""
                 "prompt_type": prompt_type,
                 "has_search_context": bool(search_context),
                 "compassionate_mode": compassionate_mode,
+                "follow_ups_enabled": follow_ups_enabled,
             },
         )
 
@@ -1606,6 +1683,9 @@ Keep it under 120 words."""
 
         if compassionate_mode:
             system_prompt = system_prompt + get_compassionate_addendum()
+
+        if follow_ups_enabled:
+            system_prompt = system_prompt + FOLLOW_UP_SUGGESTIONS_GUIDANCE
 
         system_content = system_prompt
         if search_context:

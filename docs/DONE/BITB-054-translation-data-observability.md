@@ -92,4 +92,4 @@ Out of scope:
 ## Related
 
 - Verse grounding feature; surfaced while debugging the Italian citation report.
-- **BITB-052** — reference normalization (versification can also cause resolution misses).
+- **BITB-140** — reference normalization (versification can also cause resolution misses).

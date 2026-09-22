@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI for the retrieval-evaluation harness (BITB-051).
+"""CLI for the retrieval-evaluation harness (BITB-139).
 
 Usage
 -----
@@ -319,7 +319,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Retrieval-evaluation harness for scripture search (BITB-051)."
+        description="Retrieval-evaluation harness for scripture search (BITB-139)."
     )
     sub = parser.add_subparsers(dest="command")
 

@@ -772,6 +772,38 @@ emotional pain or thoughts of self-harm. Respond with EXTRA warmth and care:
 5. Gently encourage them to reach out to a trusted person, counselor, or pastor"""
 
 
+# ---------------------------------------------------------------------------
+# Follow-up suggestions (BITB-080)
+# ---------------------------------------------------------------------------
+
+# Appended to the system prompt when follow-up suggestions are enabled for this
+# turn (see ChatService._wants_follow_ups). Kept as a separate, conditionally
+# appended block rather than baked into SYSTEM_PROMPT_TEMPLATE, because
+# OFF_TOPIC_PROMPT and CLARIFICATION_PROMPT replies must never carry a
+# FOLLOWUPS trailer -- neither of those code paths strips it, so a trailer
+# baked into the shared template would leak into those replies verbatim.
+FOLLOW_UP_SUGGESTIONS_GUIDANCE = """
+
+## Suggested Follow-Up Questions
+After your answer, on its own line at the very end of your response -- after
+the "<!-- VERSES: -->" comment if you included one -- add exactly ONE more
+HTML comment listing 2-3 natural next questions THIS USER might ask you next:
+<!-- FOLLOWUPS: question one|question two|question three -->
+Rules:
+- Separate suggestions with "|". Write 2 or 3 -- never 1, never more than 3.
+- Write them as the USER would say them, in first person, in the SAME
+  language as your response above -- never a menu label or instruction.
+- Each suggestion must be short enough to fit on one or two lines on a phone
+  (roughly 60 characters).
+- Make them genuinely different from each other and from what was just
+  asked -- a real next step (the passage in more depth, a related prayer,
+  what to do if the feeling returns), never a rephrasing of the same question.
+- Never invent or reference a Bible verse that is not already part of your
+  answer above.
+- If nothing offers a good next question, omit the "<!-- FOLLOWUPS: -->"
+  comment entirely rather than write a generic one like "Tell me more"."""
+
+
 # Pre-written localized responses for content the safety pipeline BLOCKS
 # (allowed=False).  Indexed by (category, language_code).
 # Falls back: requested language → "en" → BLOCKED_RESPONSE_TEMPLATES["generic"]["en"].

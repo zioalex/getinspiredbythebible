@@ -1063,6 +1063,42 @@ describe("streamMessage", () => {
     ]);
   });
 
+  it("surfaces follow_ups on a completion chunk (BITB-080)", async () => {
+    (global.fetch as any).mockResolvedValueOnce(
+      streamResponseFromChunks([
+        'data: {"type":"content","content":"Peace"}\n\n' +
+          'data: {"type":"completion","verses_cited":[],"follow_ups":["What next?","Tell me more"]}\n\n' +
+          "data: [DONE]\n\n",
+      ]),
+    );
+
+    const received = [];
+    for await (const chunk of streamMessage("hi")) {
+      received.push(chunk);
+    }
+
+    const completion = received.find((c: any) => c.type === "completion");
+    expect(completion?.follow_ups).toEqual(["What next?", "Tell me more"]);
+  });
+
+  it("leaves follow_ups undefined when the completion omits the field", async () => {
+    (global.fetch as any).mockResolvedValueOnce(
+      streamResponseFromChunks([
+        'data: {"type":"content","content":"Peace"}\n\n' +
+          'data: {"type":"completion","verses_cited":[]}\n\n' +
+          "data: [DONE]\n\n",
+      ]),
+    );
+
+    const received = [];
+    for await (const chunk of streamMessage("hi")) {
+      received.push(chunk);
+    }
+
+    const completion = received.find((c: any) => c.type === "completion");
+    expect(completion?.follow_ups).toBeUndefined();
+  });
+
   it("throws MessageTooLongError on a 422 message-length rejection", async () => {
     (global.fetch as any).mockResolvedValueOnce({
       ok: false,
