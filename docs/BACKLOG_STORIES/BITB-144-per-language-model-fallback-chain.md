@@ -1,4 +1,4 @@
-# BITB-068: Per-Language Model Fallback Chain
+# BITB-144: Per-Language Model Fallback Chain
 
 **Status:** 📋 Backlog
 **Priority:** P2 (Medium) — quality follow-up to the qwen-endpoint override-resilience fix
