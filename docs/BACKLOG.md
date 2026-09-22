@@ -2,9 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-118 session-limit continue added; BITB-094 in progress — column-type audit tooling built;
-BITB-127 created — translations.created_at timezone-aware; BITB-153 guard extended;
-BITB-161 created — KubeOpenCode agent file-mount for Copilot auth; BITB-084 Part C done via BITB-102)
+**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
+column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
+BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
+BITB-084 Part C done via BITB-102)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -244,6 +245,30 @@ stays reviewable.
 
 **Full Story:**
 `docs/BACKLOG_STORIES/BITB-156-android-server-driven-session-limit-and-instrumentation.md`
+
+---
+
+### 🎯 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-09-15
+
+PR #1079 showed the agent pod missing its dev toolchain: no `gh`, no
+`kubectl`, no `pytest`/`PyYAML`, broken `make pre-commit` (unsatisfiable
+venv deps, missing binary, wiped hook caches), no `jq`/`yq`, and an ESLint
+hook assuming NVM. Bake all of it (pinned to repo revs: Node 22.22.0,
+Python 3.12, hook versions) with pre-warmed hook caches on the PVC.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Image installs `gh`, `kubectl`, `git`, `make`, `jq`/`yq`, `rg`, Python 3.12 + `pytest`/`PyYAML`/`pre-commit`, Node 22.22.0, all hook binaries pre-warmed
+- [ ] `PRE_COMMIT_HOME` on the PVC so post-sync pod restarts don't wipe caches
+- [ ] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
+- [ ] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
+
+Full story: [`BITB-158-kubeopencode-dev-image.md`](BACKLOG_STORIES/BITB-158-kubeopencode-dev-image.md)
 
 ---
 
