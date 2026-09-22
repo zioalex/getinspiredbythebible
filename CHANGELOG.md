@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.56.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.55.0...v1.56.0) (2026-09-22)
 
-
 ### Features
 
 * **alembic:** audit column types against production (BITB-094) ([#1061](https://github.com/zioalex/getinspiredbythebible/issues/1061)) ([decb22e](https://github.com/zioalex/getinspiredbythebible/commit/decb22eb6745b66b7c94cb0d08962cbaafee0414))
@@ -18,14 +17,12 @@ All notable changes to this project will be documented in this file.
 * **opencode:** enforce openrouter as provider for paid models ([#1080](https://github.com/zioalex/getinspiredbythebible/issues/1080)) ([1d4da2f](https://github.com/zioalex/getinspiredbythebible/commit/1d4da2f84ca3098d04ec2880a00034c3b28ae728))
 * **web,android:** add Support Us funding entry points (BITB-074) ([#1084](https://github.com/zioalex/getinspiredbythebible/issues/1084)) ([eccdeb1](https://github.com/zioalex/getinspiredbythebible/commit/eccdeb1e3b9866bda6ba1ed85243ec2728417281))
 
-
 ### Bug Fixes
 
 * **docs:** resolve backlog story-ID collisions and add a CI guard (BITB-111) ([#1068](https://github.com/zioalex/getinspiredbythebible/issues/1068)) ([a38c379](https://github.com/zioalex/getinspiredbythebible/commit/a38c379c19a42dc7901e35bf24b9b01aff741b73))
 * **docs:** sync backlog index status with finished stories (BITB-153) ([#1070](https://github.com/zioalex/getinspiredbythebible/issues/1070)) ([5649104](https://github.com/zioalex/getinspiredbythebible/commit/56491049c7a077bf4007571a3eb0ed48b1b4776e))
 * interpret Makefile color escape codes as real ESC bytes ([#1078](https://github.com/zioalex/getinspiredbythebible/issues/1078)) ([f77f2ff](https://github.com/zioalex/getinspiredbythebible/commit/f77f2ff04827d43c84c75b08dd5ea8add4704dc5))
 * **migrations:** stop scripts/migrations/utils.py silently dropping TLS for ?ssl=verify-ca/verify-full (BITB-125) ([#1090](https://github.com/zioalex/getinspiredbythebible/issues/1090)) ([e0087c0](https://github.com/zioalex/getinspiredbythebible/commit/e0087c06f6dcca167777adde0183490ec95399bd))
-
 
 ### Documentation
 
