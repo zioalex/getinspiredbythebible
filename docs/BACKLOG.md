@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-14 (BITB-154 created — KubeOpenCode multi-provider resilience; BITB-152 created; BITB-128/129 in progress)
+**Last Updated:** 2026-09-22 (BITB-161 created — KubeOpenCode agent file-mount for Copilot auth, renumbered from 133 to avoid the BITB-111 collision)
 
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
