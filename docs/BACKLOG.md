@@ -2,10 +2,11 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-153 guard extended: fixed further status drift on BITB-025,
-027, 028, 051 surfaced against the post-BITB-111 tree, on top of the earlier BITB-029, 030,
-047, 062, 100 fixes; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth,
-renumbered from 133; BITB-084 Part C done via BITB-102)
+**Last Updated:** 2026-09-22 (BITB-094 in progress — column-type audit tooling built, static+dynamic
+passes done, production run outstanding; BITB-127 created — translations.created_at timezone-aware;
+BITB-153 guard extended: fixed further status drift on BITB-025, 027, 028, 051 on top of the earlier
+BITB-029, 030, 047, 062, 100 fixes; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
+BITB-084 Part C done via BITB-102)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
