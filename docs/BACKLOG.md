@@ -2,8 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-161 created — KubeOpenCode agent file-mount for Copilot auth, renumbered from 133 to avoid the BITB-111 collision; BITB-084 Part C done via BITB-102)
-
+**Last Updated:** 2026-09-22 (BITB-153 guard extended: fixed further status drift on BITB-025,
+027, 028, 051 surfaced against the post-BITB-111 tree, on top of the earlier BITB-029, 030,
+047, 062, 100 fixes; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth,
+renumbered from 133; BITB-084 Part C done via BITB-102)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -523,10 +525,10 @@ misreported as a generic 500.
 
 ---
 
-### 🚧 BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
+### ✅ BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
 
-**Status:** 🚧 In Progress — candidate-pool CTE + topics HNSW index + FTS rewrite shipped; persisted
-`tsvector` column and the deployed perf re-run deferred (see full story's Scope Note)
+**Status:** ✅ Done (2026-08-18) — candidate-pool CTE, topics index, FTS rewrite, and the
+persisted `tsvector` column all shipped (see full story for detail)
 **Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
 **Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — S2 (context: S5, S7)
@@ -1307,9 +1309,9 @@ Testing & Documentation:
 
 ---
 
-### 🎯 BITB-027: Android Chat-First Navigation with History Drawer
+### ✅ BITB-027: Android Chat-First Navigation with History Drawer
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (chat-first NavHost, DataStore-backed resume, ModalNavigationDrawer with conversation list + Settings link, + New chat top-right icon added 2026-05-25)
 **Size:** M (1-2 days)
 **Created:** 2026-05-10
 
@@ -1898,6 +1900,29 @@ above BITB-108 in the P1 section), and the orphaned story file `BITB-025-verse-l
 
 ---
 
+### ✅ BITB-153: docs/BACKLOG.md Status Drifts From Finished Story Files
+
+**Status:** ✅ Done
+**Priority:** P2
+**Size:** S
+**Created:** 2026-09-14
+
+**As** the scheduled session picking up the next backlog story, **I want** this index's status to
+be trustworthy, **so that** "is this already done?" is answerable without opening every candidate
+story's own file. A first guard run found five stories (BITB-029, 030, 047, 062, 100) marked ✅
+Done in their own file while this index still showed them open — the same *shape* of problem as
+BITB-111, but drifted status rather than a colliding ID.
+
+**Acceptance Criteria (summary):**
+
+- [x] CI guard flags a `✅ Done` story file whose `BACKLOG.md` entry is not also `✅`
+      (`scripts/check_backlog_status_sync.py`), skipping ids BITB-111 still owns (multi-file ids)
+- [x] The five confirmed drifted entries fixed in this same PR
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-153-backlog-status-index-drift.md`
+
+---
+
 ### 🚧 BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
 
 **Status:** 🚧 In Progress — automation + coverage alarm shipped; AC5 (production rows observed)
@@ -2186,9 +2211,9 @@ rotation is the trigger, and rotations happen during incident response.
 
 ---
 
-### 🎯 BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
+### ✅ BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-08-25)
 **Priority:** P2
 **Size:** S–M
 
@@ -2932,9 +2957,9 @@ only public-domain / freely redistributable texts (NIV, ESV, CEI 2008 excluded).
 
 ---
 
-### 🎯 BITB-047: One-Tap Copy of the User's Prompt (Web + Android)
+### ✅ BITB-047: One-Tap Copy of the User's Prompt (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-12
 
@@ -2988,9 +3013,9 @@ begin fresh instead of landing in my last conversation (history stays reachable 
 
 ---
 
-### 🚧 BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
+### ✅ BITB-051: Android Contact Form Shows "Message Too Long" When the Real Problem Is the (Required) Email
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done
 **Size:** S (< 4 hrs)
 **Created:** 2026-06-15
 
@@ -3144,9 +3169,10 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🎯 BITB-029: Surface Bible Version Information More Clearly
+### ✅ BITB-029: Surface Bible Version Information More Clearly
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — amber chip badge in top header bar (web); backend prompt guidance already
+wired (`BIBLE_VERSION_GUIDANCE`)
 **Size:** S (< 4 hours)
 **Created:** 2026-05-10
 
@@ -3974,9 +4000,10 @@ submission is rejected for an invalid email, **so that** I can fix it instead of
 
 ---
 
-### 🚧 BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
+### ✅ BITB-030: ChatScreen Top App Bar Cleanup — Language + Bible Version Only
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (ChatTopBarPolicy.kt enforces Language + Bible version only; extras moved to
+drawer; verified 2026-05-24)
 **Size:** S (< 4 hours)
 **Created:** 2026-05-10
 
@@ -3995,9 +4022,9 @@ submission is rejected for an invalid email, **so that** I can fix it instead of
 
 ---
 
-### 🎯 BITB-028: Simplify Church Finder Headers (Banner + Bottom Sheet)
+### ✅ BITB-028: Simplify Church Finder Headers (Banner + Bottom Sheet)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (verified 2026-05-25)
 **Size:** XS (< 1 hour)
 **Created:** 2026-05-10
 
@@ -4018,11 +4045,9 @@ submission is rejected for an invalid email, **so that** I can fix it instead of
 
 ---
 
-### 🚧 BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
+### ✅ BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
 
-**Status:** 🚧 In Progress — Backend + web shipped; Android is an explicit fast-follow (tracked by
-the `zh_hant_*` / `zh_mixed_script_*` cases in `tests/fixtures/verse_reference_corpus.json`,
-skipped for `"android"`)
+**Status:** ✅ Done — Backend + web shipped here; Android fast-follow shipped by BITB-110
 **Size:** M (1-2 days)
 **Created:** 2026-04-03
 
