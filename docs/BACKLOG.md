@@ -4,9 +4,8 @@ Prioritized list of user stories and features for Vox Quieta.
 
 **Last Updated:** 2026-09-22 (BITB-153 guard extended: fixed further status drift on BITB-025,
 027, 028, 051 surfaced against the post-BITB-111 tree, on top of the earlier BITB-029, 030,
-047, 062, 100 fixes; BITB-154 created — KubeOpenCode multi-provider resilience;
-BITB-152 created; BITB-128/129 in progress)
-
+047, 062, 100 fixes; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth,
+renumbered from 133; BITB-084 Part C done via BITB-102)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -2618,6 +2617,34 @@ Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORI
 
 ---
 
+### 🎯 BITB-161: KubeOpenCode Agent File-Mount Support for Copilot Auth
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S (docs + upstream request; implementation size unknown — may be upstream)
+**Created:** 2026-09-13
+
+Follow-up to #1066. The README's preferred Copilot-auth option (mounting
+`auth.json`, which self-refreshes) is not wirable: the `Agent` CRD exposes
+only `credentials[].secretRef` → `env`, with no `volumes`/`volumeMounts`, and
+`spec.persistence` covers `workspaceDir`/`sessions`, not the OpenCode data
+dir. That limitation was established from manifests only — never verified
+against the live CRD, which may already persist enough via `sessions`.
+Meanwhile the working option (a `gho_…` token via `GITHUB_TOKEN`) dies with
+the user's `gh` session, so every revocation breaks the provider until
+someone re-runs the device flow and rotates the secret.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Live-CRD gate recorded: `explain` output pasted in the story; sessions-volume coverage of the data dir checked on-cluster
+- [ ] Covered already → `auth.json` secret + placement documented, Option A marked working, supported fields only
+- [ ] Not covered → upstream issue filed and linked; Option B stays supported with a rotation runbook
+- [ ] No secret material in git; `detect-secrets` green
+
+Full story: [`BITB-161-kubeopencode-agent-file-mount-copilot-auth.md`](BACKLOG_STORIES/BITB-161-kubeopencode-agent-file-mount-copilot-auth.md)
+
+---
+
 ### 🚧 BITB-128: Persistent KubeOpenCode Workspace Volume
 
 **Status:** 🚧 In Progress
@@ -3571,9 +3598,9 @@ validation needed), render chips under the last assistant item only, send on fir
 
 ---
 
-### 🚧 BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
+### ✅ BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, iOS Path on `/app`
 
-**Status:** 🚧 In Progress (Parts A, B, D shipped; Part C split into BITB-102)
+**Status:** ✅ Done (Parts A, B, D shipped directly; Part C delivered by BITB-102, completed 2026-09-12)
 **Size:** M (1–2 days)
 **Created:** 2026-07-29
 
@@ -3594,8 +3621,8 @@ overlap the moment the app runs standalone); and `/app` tells iPhone visitors, i
       non-zero insets, portrait + landscape, LTR **and** RTL (device/hardware verification of the
       rendered result still outstanding — see PR)
 - [x] Pinch-zoom preserved (`maximumScale: 5`; `userScalable` not disabled)
-- [ ] Service worker caches the shell + scripture `GET`s only — never chat POSTs or anything
-      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache — **split into
+- [x] Service worker caches the shell + scripture `GET`s only — never chat POSTs or anything
+      carrying the single-use `X-Turnstile-Token`; a deploy invalidates the cache — **delivered by
       BITB-102**, per this story's own guidance to carve Part C out if it threatens the timebox
 - [x] `/app` shows iOS install instructions to iPhone visitors, Play badge to everyone else, in all
       11 locales; **no** App Store badge until BITB-088
@@ -3605,9 +3632,9 @@ overlap the moment the app runs standalone); and `/app` tells iPhone visitors, i
 
 ---
 
-### 🎯 BITB-102: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
+### ✅ BITB-102: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-09-12)
 **Size:** M (1 day)
 **Created:** 2026-08-07
 **Split from:** BITB-084 Part C
@@ -3623,11 +3650,11 @@ un-versioned service worker pinning users to a stale shell.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Offline (airplane mode) opening the installed app shows a localized offline fallback, not a
+- [x] Offline (airplane mode) opening the installed app shows a localized offline fallback, not a
       browser error page
-- [ ] Chat requests and any response carrying/consuming `X-Turnstile-Token` are never cached
-- [ ] Scripture `GET` endpoints cached stale-while-revalidate
-- [ ] A new deploy invalidates the shell cache (build-id-tied cache name), proven by a test
+- [x] Chat requests and any response carrying/consuming `X-Turnstile-Token` are never cached
+- [x] Scripture `GET` endpoints cached stale-while-revalidate
+- [x] A new deploy invalidates the shell cache (build-id-tied cache name), proven by a test
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-102-pwa-offline-shell-service-worker.md`
 
@@ -4385,7 +4412,6 @@ Includes chat interface, verse display, and local-first architecture.
 - **Verse Memorization Game**: Gamified scripture memorization feature
 - **Community Prayer Requests**: Social feature for sharing prayer needs
 - **Audio Bible Integration**: Read-along audio for verses
-- **Offline Mode (Web)**: Service worker for offline scripture access
 - **Dark Mode**: User preference for light/dark theme (frontend only)
 - **Verse Sharing**: Generate shareable images of verses for social media
 
