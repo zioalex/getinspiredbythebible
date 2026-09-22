@@ -1,4 +1,4 @@
-"""Retrieval-evaluation harness for scripture search (BITB-043).
+"""Retrieval-evaluation harness for scripture search (BITB-139).
 
 Measures search *ranking* quality (Precision@K / Recall@K / MRR) over a curated
 golden set of queries, so query expansion and the hybrid/boosting levers can be

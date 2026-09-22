@@ -1,0 +1,32 @@
+# Stable Service that both Cloudflare and Tailscale target.
+#
+# It selects the same pods as the kubeopencode-managed `default-wf2` Service,
+# but is OWNED BY YOU (so the operator won't revert annotations/type on it).
+#
+# STEP 1 — read the live selector and copy it into `selector:` below:
+#   kubectl -n kubeopencode-system get svc default-wf2 -o jsonpath='{.spec.selector}'; echo
+#
+# STEP 2 — (optional) pin a stable ClusterIP so Cloudflare's private route can
+#          point at a fixed /32. Pick a free address in the 10.43.0.0/16 range.
+#          Leave `clusterIP` out to get a dynamic one (then read it after apply).
+apiVersion: v1
+kind: Service
+metadata:
+  name: default-wf2-mobile
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: mobile-access
+  # Tailscale operator reads these (used only by the Tailscale option):
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "opencode-mobile"
+spec:
+  type: ClusterIP
+  # clusterIP: 10.43.210.96          # <- uncomment + set to pin (recommended for Cloudflare)
+  selector:
+    # PASTE the key/values from STEP 1 here, e.g.:
+    kubeopencode.io/agent: default-wf2
+  ports:
+    - name: http
+      port: 4096
+      targetPort: 4096

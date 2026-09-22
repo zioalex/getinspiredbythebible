@@ -5,9 +5,11 @@
 **Size:** M (1-2 days)
 **Created:** 2026-04-03
 
-**Note (ID collision):** this ID number is also used by the unrelated, already-Done
-`docs/BACKLOG_STORIES/BITB-025-verse-linking-android.md`. Kept as a separate file rather than
-overwriting it; worth a renumbering pass at some point, out of scope here.
+**Note (ID collision, resolved by BITB-111):** this ID number was also used by the unrelated,
+already-Done orphan story, renumbered to
+`docs/BACKLOG_STORIES/BITB-132-verse-linking-android.md`. See
+`docs/BACKLOG_STORIES/BITB-111-backlog-story-id-collisions.md` (Renumbering Log) for the full
+record.
 
 ## User Story
 
