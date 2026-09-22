@@ -2405,7 +2405,7 @@ Full story: [`BITB-124-parallel-subagent-dispatch-drops-tasks.md`](BACKLOG_STORI
 
 ---
 
-### 🎯 BITB-133: KubeOpenCode Agent File-Mount Support for Copilot Auth
+### 🎯 BITB-161: KubeOpenCode Agent File-Mount Support for Copilot Auth
 
 **Status:** 🎯 Todo
 **Priority:** P2
@@ -2429,7 +2429,7 @@ someone re-runs the device flow and rotates the secret.
 - [ ] Not covered → upstream issue filed and linked; Option B stays supported with a rotation runbook
 - [ ] No secret material in git; `detect-secrets` green
 
-Full story: [`BITB-133-kubeopencode-agent-file-mount-copilot-auth.md`](BACKLOG_STORIES/BITB-133-kubeopencode-agent-file-mount-copilot-auth.md)
+Full story: [`BITB-161-kubeopencode-agent-file-mount-copilot-auth.md`](BACKLOG_STORIES/BITB-161-kubeopencode-agent-file-mount-copilot-auth.md)
 
 ---
 
