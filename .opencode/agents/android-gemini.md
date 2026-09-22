@@ -3,8 +3,8 @@ description: Android engineer with first-class familiarity with Google/Jetpack A
 mode: subagent
 model: openrouter/qwen/qwen3-coder
 fallback_models:
-  - opencode/muse-spark-1.3-contributor-free
-  - openrouter/google/gemma-3-27b-it:free
+  - opencode/nemotron-3-super-free
+  - openrouter/openai/gpt-oss-120b:free
 tools:
   bash: true
   read: true
