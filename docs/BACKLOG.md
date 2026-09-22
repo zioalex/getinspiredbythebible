@@ -2,10 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
-column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
-BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
-BITB-084 Part C done via BITB-102)
+**Last Updated:** 2026-09-22 (BITB-074 done — Support Us funding entry points, PR #1084; BITB-158
+created — KubeOpenCode dev image; BITB-094 in progress — column-type audit tooling built;
+BITB-127 created — translations.created_at timezone-aware; BITB-153 guard extended; BITB-161
+created — KubeOpenCode agent file-mount for Copilot auth; BITB-084 Part C done via BITB-102)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -3478,11 +3478,16 @@ Fixed by reordering params (DI params first), matching `get_verse`/`get_verse_ra
 
 ---
 
-### 🎯 BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
+### ✅ BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1084 merged 2026-09-22). Ko-fi/GitHub Sponsors handles in
+`.github/FUNDING.yml` and the `NEXT_PUBLIC_DONATE_URL`/`BuildConfig.DONATE_URL` fallback are
+still placeholders (`voxquieta`/`zioalex`) pending manual account setup — confirm/replace before
+relying on this for real donations. Deployment wiring for `NEXT_PUBLIC_DONATE_URL` deferred to
+BITB-157.
 **Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
 **Created:** 2026-07-21
+**Completed:** 2026-09-22
 
 **As a** supporter of Vox Quieta, **I want** a clear, low-friction way to
 financially support the project from the website, the Android app, and the
@@ -3500,15 +3505,15 @@ Developer Program Policy before shipping).
 
 **Acceptance Criteria (summary):**
 
-- [ ] `.github/FUNDING.yml` added (GitHub Sponsors + Ko-fi)
-- [ ] Web `Footer.tsx` gets a "Support us" link to the Ko-fi page; new
-      `Footer.supportUs` key added across all 10 locale files
-- [ ] Android `SettingsScreen.kt` gets a "Support Vox Quieta" row in the About
+- [x] `.github/FUNDING.yml` added (GitHub Sponsors + Ko-fi) — placeholder handles
+- [x] Web `Footer.tsx` gets a "Support us" link to the Ko-fi page; new
+      `Footer.supportUs` key added across all **11** locale files (story predates `ko.json`)
+- [x] Android `SettingsScreen.kt` gets a "Support Vox Quieta" row in the About
       section, opening the donate URL via `LocalUriHandler`
-- [ ] No payment data/webhooks handled by Vox Quieta's own code; no perks
+- [x] No payment data/webhooks handled by Vox Quieta's own code; no perks
       gated behind the donation
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-074-support-us-funding.md`
+**Full Story:** `docs/DONE/BITB-074-support-us-funding.md`
 
 ---
 
