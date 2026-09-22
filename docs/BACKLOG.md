@@ -272,9 +272,10 @@ Full story: [`BITB-158-kubeopencode-dev-image.md`](BACKLOG_STORIES/BITB-158-kube
 
 ---
 
-### 🎯 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
+### 🚧 BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (implemented and merged dark behind `chat_cultural_tone_enabled=False`;
+sample pack + native-speaker review + prod enablement pending)
 **Priority:** P1
 **Size:** M (`it` only; each further locale is S)
 **Created:** 2026-09-12
