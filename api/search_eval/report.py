@@ -14,9 +14,10 @@ from chat.topics import SUPPORTED_TOPIC_LANGUAGES
 from .runner import QueryResult, RunResult
 
 _UNTAGGABLE_FOOTNOTE = (
-    "* topic tagging not supported for this language "
-    "(scripts/populate_verse_topics.py skips it) — a flat delta here means "
-    '"not taggable", not "boosting doesn\'t help" (BITB-103).'
+    "* topic tagging is out of scope for this language by decision "
+    "(BITB-106; a seven-language feature — scripts/populate_verse_topics.py "
+    'skips it) — a flat delta here means "not taggable", not "boosting '
+    "doesn't help\" (BITB-103)."
 )
 
 

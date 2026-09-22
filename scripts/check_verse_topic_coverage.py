@@ -11,18 +11,27 @@ exactly the failure this story exists to catch (verse_topics sat empty for
 months while the population *capability* existed and nobody ran it).
 
 BITB-044 measured 18.3% verse-tagged coverage for KJV (en) and 12.3% for
-Luther 1912 (de). The default floor (5%) sits well below either measured
-value on purpose: five of the seven supported languages (it, es, fr, pt, ar)
-have never been validated against a real corpus (BITB-106), and a thinner
-keyword vocabulary can legitimately land lower. The floor exists to catch
-zero and near-total collapse, not to police quality -- tighten it with
-per-language numbers once BITB-106 supplies them.
+Luther 1912 (de). BITB-106 (2026-09-18) measured the other five supported
+languages against real corpora too: it 10.2%, es 12.2%, fr 14.9%, pt 11.3%,
+ar 7.7% (after denylisting four over-firing Arabic keywords -- see
+api/chat/topic_tagging.py). The default floor (5%) sits below all seven
+measured numbers on purpose -- even the lowest (ar) clears it by 2.7
+points -- so it exists to catch zero and near-total collapse, not to police
+quality. Kept as a single floor rather than seven per-language ones:
+per-language floors would add complexity without changing which runs alarm.
 
 The default ceiling (60%) is a different metric from the script's own
 per-topic 25%-of-verses denylist guideline: overall coverage stacks 13
-topics, so ~18% overall is consistent with no single topic exceeding ~3.2%.
+topics, so ~18% overall is consistent with no single topic exceeding ~3.8%.
 Above 60% of a translation's verses tagged means a keyword has gone generic
 corpus-wide.
+
+Translations in a language topic tagging does not cover at all (`ru`, `zh`,
+`hi`, `ko` -- a recorded scope decision, BITB-106, not a gap; see
+`docs/HOW-TO-POPULATE-VERSE-TOPICS.md` "Scope") are reported as
+`out_of_scope` rather than silently excluded from this report's query, so
+they are visible in the job summary instead of living only in
+`populate_verse_topics.py`'s skip log. They never alarm.
 
 Decision (BITB-105): a coverage violation alarms, it does not fail the
 deploy. Topic rows feed a ranking boost that is itself gated by
@@ -84,6 +93,7 @@ STATUS_BELOW_FLOOR = "below_floor"
 STATUS_ABOVE_CEILING = "above_ceiling"
 STATUS_SMALL_SAMPLE = "small_sample"
 STATUS_NO_VERSES = "no_verses"
+STATUS_OUT_OF_SCOPE = "out_of_scope"
 
 
 def log(message: str) -> None:
@@ -111,14 +121,31 @@ def evaluate_coverage(
     floor_pct: float = DEFAULT_FLOOR_PCT,
     ceiling_pct: float = DEFAULT_CEILING_PCT,
     min_verses_for_ratio: int = DEFAULT_MIN_VERSES_FOR_RATIO,
+    supported_languages: frozenset[str] = frozenset(),
 ) -> CoverageResult:
     """Classify one translation's verse_topics coverage.
 
-    Order matters: emptiness is checked (and alarmed) before the small-sample
+    Order matters: scope is checked first -- a language topic tagging does
+    not cover at all (BITB-106) can never be empty/below-floor/etc. in any
+    way that means something, so it short-circuits every other check.
+    Emptiness is then checked (and alarmed) before the small-sample
     exemption, so a handful of verses with zero tags still alarms -- only the
     *ratio* thresholds are unreliable on a small corpus, not the zero case.
     """
     coverage_pct = (100.0 * tagged_verse_count / verse_count) if verse_count else 0.0
+
+    if supported_languages and language_code not in supported_languages:
+        return CoverageResult(
+            translation,
+            language_code,
+            verse_count,
+            tagged_verse_count,
+            coverage_pct,
+            STATUS_OUT_OF_SCOPE,
+            False,
+            f"{translation} ({language_code}): topic tagging is out of scope for this "
+            f"language by decision (BITB-106; a seven-language feature)",
+        )
 
     if verse_count == 0:
         return CoverageResult(
@@ -203,6 +230,7 @@ def evaluate_all(
     floor_pct: float = DEFAULT_FLOOR_PCT,
     ceiling_pct: float = DEFAULT_CEILING_PCT,
     min_verses_for_ratio: int = DEFAULT_MIN_VERSES_FOR_RATIO,
+    supported_languages: frozenset[str] = frozenset(),
 ) -> list[CoverageResult]:
     return [
         evaluate_coverage(
@@ -213,6 +241,7 @@ def evaluate_all(
             floor_pct=floor_pct,
             ceiling_pct=ceiling_pct,
             min_verses_for_ratio=min_verses_for_ratio,
+            supported_languages=supported_languages,
         )
         for row in rows
     ]
@@ -250,9 +279,10 @@ def exit_code(results: list[CoverageResult], *, strict: bool) -> int:
     return 0
 
 
-async def fetch_coverage_rows(
-    conn: asyncpg.Connection, languages: frozenset[str], requested: list[str] | None
-) -> list[dict]:
+async def fetch_coverage_rows(conn: asyncpg.Connection, requested: list[str] | None) -> list[dict]:
+    """Every translation, regardless of language -- an out-of-scope language
+    (BITB-106) must appear in the report to be visible there, not be
+    filtered out before evaluate_all() ever sees it."""
     query = """
         SELECT t.code,
                t.language_code,
@@ -261,10 +291,9 @@ async def fetch_coverage_rows(
                   FROM verse_topics vt JOIN verses v ON v.id = vt.verse_id
                  WHERE v.translation = t.code) AS tagged_verse_count
           FROM translations t
-         WHERE t.language_code = ANY($1::text[])
          ORDER BY t.code
     """
-    rows = await conn.fetch(query, list(languages))
+    rows = await conn.fetch(query)
     if requested:
         wanted = set(requested)
         rows = [row for row in rows if row["code"] in wanted]
@@ -282,9 +311,7 @@ async def run(args: argparse.Namespace) -> int:
 
     try:
         try:
-            rows = await fetch_coverage_rows(
-                conn, frozenset(SUPPORTED_TOPIC_LANGUAGES), args.translation
-            )
+            rows = await fetch_coverage_rows(conn, args.translation)
         except asyncpg.exceptions.UndefinedTableError:
             log(
                 "::warning::verse_topics table does not exist -- has migration "
@@ -301,6 +328,7 @@ async def run(args: argparse.Namespace) -> int:
             floor_pct=args.floor,
             ceiling_pct=args.ceiling,
             min_verses_for_ratio=args.min_verses,
+            supported_languages=frozenset(SUPPORTED_TOPIC_LANGUAGES),
         )
 
         for result in results:

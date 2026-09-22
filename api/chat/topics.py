@@ -988,6 +988,18 @@ TOPIC_KEYWORDS_BY_LANGUAGE: dict[str, dict[str, list[str]]] = {
 }
 
 # Language codes with keyword coverage, in a stable canonical order.
+#
+# Decided (BITB-106, 2026-09-18): topic tagging is a seven-language feature,
+# not an eleven-language one with four gaps. ru/zh/hi/ko have no vocabulary
+# here and none is planned by hand-authoring more keywords, because the
+# matching mechanism above — word-boundary regex with a bounded suffix
+# allowance — doesn't fit those languages' morphology: zh has no whitespace
+# word boundaries at all, ko is agglutinative with particles fused to the
+# stem, and hi/ru are heavily inflected enough that a hand-authored list
+# would need to be either huge or a real morphological analyzer, i.e. a
+# different mechanism, not more keywords. Revisit under LLM-assisted tagging
+# (BITB-044's deferred item), which is language-agnostic and would cover all
+# eleven in one move instead of extending this list four languages at a time.
 SUPPORTED_TOPIC_LANGUAGES: tuple[str, ...] = ("en", "it", "de", "es", "fr", "pt", "ar")
 
 

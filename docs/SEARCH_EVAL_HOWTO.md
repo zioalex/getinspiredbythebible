@@ -85,8 +85,11 @@ mind; closing the underlying reference-normalization gaps is tracked in
 (`api/chat/topics.py`) only supports `en, it, de, es, fr, pt, ar`.
 `ru, zh, hi, ko` golden-set cases are tagged with a trailing `*` in the
 per-language breakdown and a footnote — a flat (zero-delta) result for those
-languages means **"not taggable"**, not "topic boosting doesn't help". The
-same caveat applies to `--validate`'s printed coverage summary.
+languages means **"not taggable"**, not "topic boosting doesn't help". This
+is a recorded scope decision (BITB-106), not a pending gap — see
+`docs/HOW-TO-POPULATE-VERSE-TOPICS.md` ("Scope") for why keyword seeding
+does not extend to those four languages. The same caveat applies to
+`--validate`'s printed coverage summary.
 
 **Topic boosting (BITB-104):** `topic_boosted` applies the real boost —
 `search_hybrid_boosted()`'s `verse_topics` LEFT JOIN, weighted by

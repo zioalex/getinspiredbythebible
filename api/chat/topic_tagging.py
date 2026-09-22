@@ -43,25 +43,81 @@ SUFFIX_MAX_CHARS = 3
 # instead of word-bounded patterns.
 SUBSTRING_MATCH_LANGUAGES = frozenset({"ar"})
 
+# A topic tagging more than this share of a translation's verses has stopped
+# discriminating (BITB-044's guideline; confirmed on real corpora under
+# BITB-106 — see CORPUS_KEYWORD_DENYLIST below).
+COVERAGE_GUIDELINE_PCT = 25.0
+
+# A second, narrower guideline for a single keyword. A topic can stay under
+# COVERAGE_GUIDELINE_PCT while one keyword inside it is still mostly noise
+# (BITB-106's Arabic findings below are all well under 25% by topic but a
+# large majority of hits wrong at the keyword level — see the interior-match
+# examples below). Set with ~3x headroom over the highest keyword measured
+# across all seven validated languages (Arabic "حب" at 3.44%) — high enough
+# that normal keyword variance doesn't trip it, low enough to catch another
+# keyword behaving the way "حب" did.
+KEYWORD_GUIDELINE_PCT = 10.0
+
 # Keywords excluded from CORPUS tagging only (api/chat/topics.py's
 # detect_topics() keeps the full vocabulary for query-time matching, where
-# false positives are cheap). Populated by running
-# `python scripts/populate_verse_topics.py --dry-run --verbose` and applying
-# the >25% co-occurrence rule documented in that script's docstring.
-# Structure: {topic: {keyword, ...}}.
+# false positives are cheap). Structure: {topic: {keyword, ...}}.
 #
-# Empty by design: validated against the real KJV (en, 31,100 verses) and
-# Luther 1912 (de, 31,102 verses) corpora during development of this script
-# (see docs/HOW-TO-POPULATE-VERSE-TOPICS.md), and no topic exceeded ~3.2%
-# coverage / no single keyword exceeded ~2% — well under the 25% rule. The
-# keyword map's own whole-word-plus-bounded-suffix matching is precise
-# enough on its own; the generic words a naive substring scan would have
-# over-matched on ("way", "rest", "made", ...) are exactly what the
-# word-boundary + suffix-length rules above are designed to exclude. Other
-# supported languages (it/es/fr/pt/ar) had no local corpus data available to
-# validate against in this environment — run `--dry-run --verbose` for
-# those before relying on this being empty for them too.
-CORPUS_KEYWORD_DENYLIST: dict[str, set[str]] = {}
+# Validated against real corpora for all seven supported languages under
+# BITB-106 (2026-09-18) via `scripts/measure_topic_coverage.py`, which uses
+# this exact matching code — see that script's docstring for the
+# calibration proof. Corpora: en/KJV (31,100v, in-repo), de/Luther 1912
+# (31,102v, in-repo), it/Riveduta-OSIS (31,102v), es/Reina-Valera (31,102v),
+# fr/fr_apee (30,975v — a stand-in for production's `ls1910`, which is not
+# reachable from every environment), pt/Almeida-Atualizada (31,104v),
+# ar/Smith-Van-Dyke (31,102v). No topic on any of the seven breaches
+# COVERAGE_GUIDELINE_PCT — highest was ar "love" at 3.78%, comfortably under
+# 25%. The word-boundary + bounded-suffix matching above is doing its job:
+# the generic words a naive substring scan would have over-matched on
+# ("way", "rest", "made", ...) are exactly what those rules exclude.
+#
+# Arabic is the one language matched by substring (see
+# SUBSTRING_MATCH_LANGUAGES above), and substring matching on short roots
+# fires inside unrelated words even while staying under the 25% *topic*
+# guideline — a second, keyword-level failure mode COVERAGE_GUIDELINE_PCT
+# alone cannot see. Measured on the real corpus (Smith & Van Dyke, 31,102
+# verses): of the 1,071 verses "حب" (love, 2 chars) matched, the large
+# majority are a different word entirely, not the intended standalone "حب"
+# or "محبة" — "صاحبه" ("his companion", tens of occurrences), "رحبعام" (the
+# proper name Rehoboam), "حبرون" (the place name Hebron), "فحبلت" ("she
+# conceived", 17 occurrences exactly). Every entry below is kept out of
+# corpus tagging for that reason, not for breaching the 25% topic guideline:
+CORPUS_KEYWORD_DENYLIST: dict[str, set[str]] = {
+    "love": {"حب"},
+    # "حب" (love): 1,071 verses (3.44% of the corpus) — see the worked
+    # example above. "محبة" (108 verses, no such issue — it is not a
+    # substring of any unrelated word found here) still carries this topic.
+    "hope": {"أمل", "يأس"},
+    # "أمل" (hope): 397 verses (1.28%) — mostly "كامل" ("complete"), "حامل"
+    # ("bearer/pregnant"), "عامل" ("worker"), "الارامل" ("the widows").
+    # "يأس" (despair): 74 verses (0.24%) — mostly "قياس"/"القياس" ("measure"),
+    # "رياسه" ("rulership"), the name "ابياساف" (Abiasaph). "وعد" (promise)
+    # still carries this topic.
+    "forgiveness": {"عفو"},
+    # "عفو" (pardon): 15 verses (0.05%) — mostly verb forms of a different
+    # root ("يعفو"/"تعفو"/"اعفو", "they/you double/forgive-in-a-different-
+    # sense"). "مغفرة" / "رحمة" / "مصالحة" still carry this topic.
+    "anxiety": {"قلق"},
+    # "قلق" (anxiety): 26 verses (0.08%) — includes "اللقلق" ("the stork")
+    # and verb forms of an unrelated root ("تتقلقل"/"يتقلقل", "it totters").
+}
+# Not denylisted despite a nonzero interior rate, because the interior hits
+# are legitimate Arabic verbal derivations of the same root — exactly what
+# substring matching exists to catch, not noise: "فرح" (joy, 41% interior:
+# "يفرح", "افرحوا"), "فزع" (fear, 52%: "افزعتني"), "عطف" (love, 74%:
+# "يتعطف", "استعطف"), "غضب" (anger, 3%), "سلام" (peace, 4%), "محبة" (love,
+# 0%), "حكمة" (guidance, 0%), "إيمان" (trust, 0%).
+#
+# Follow-up filed as BITB-161: bare substring matching cannot separate
+# "legitimate derivation" from "unrelated word containing the same three
+# letters" in general — a clitic/affix-aware matcher would recover the
+# denylisted keywords' recall without the noise (measured: "حب" 1,071 -> 793,
+# "أمل" 397 -> 158, "يأس" 74 -> 13 under a clitic-anchored pattern — better,
+# not sufficient, and a bigger change than this story should carry).
 
 _ARABIC_TASHKEEL_RE = re.compile("[" "ؐ-ؚ" "ً-ٟ" "ٰ" "ۖ-ۭ" "ـ" "]")
 _ARABIC_ALEF_RE = re.compile("[أإآٱ]")
@@ -136,7 +192,10 @@ def _keyword_pattern(keyword: str, language: str) -> re.Pattern[str]:
 
 
 def build_keyword_matchers(
-    language: str, *, denylist: Mapping[str, set[str]] | None = None
+    language: str,
+    *,
+    denylist: Mapping[str, set[str]] | None = None,
+    keyword_map: Mapping[str, Mapping[str, list[str]]] | None = None,
 ) -> dict[str, dict[str, re.Pattern[str]]]:
     """Return ``{topic: {keyword: compiled_pattern}}`` for one language.
 
@@ -144,11 +203,18 @@ def build_keyword_matchers(
     keywords from corpus matching without touching the query-side map in
     ``api/chat/topics.py``. Pass ``denylist={}`` to disable filtering (e.g.
     to measure what the denylist is suppressing).
+
+    ``keyword_map`` (default ``TOPIC_KEYWORDS_BY_LANGUAGE``) is the
+    injection point the coverage guard's negative test uses to rehearse an
+    over-firing keyword without editing the real vocabulary — see
+    ``api/tests/test_topic_coverage_guard.py``.
     """
     if denylist is None:
         denylist = CORPUS_KEYWORD_DENYLIST
+    if keyword_map is None:
+        keyword_map = TOPIC_KEYWORDS_BY_LANGUAGE
     matchers: dict[str, dict[str, re.Pattern[str]]] = {}
-    for topic, by_language in TOPIC_KEYWORDS_BY_LANGUAGE.items():
+    for topic, by_language in keyword_map.items():
         excluded = denylist.get(topic, set())
         topic_matchers: dict[str, re.Pattern[str]] = {}
         for keyword in by_language.get(language, []):
@@ -160,7 +226,10 @@ def build_keyword_matchers(
 
 
 def build_topic_matchers(
-    language: str, *, denylist: Mapping[str, set[str]] | None = None
+    language: str,
+    *,
+    denylist: Mapping[str, set[str]] | None = None,
+    keyword_map: Mapping[str, Mapping[str, list[str]]] | None = None,
 ) -> dict[str, re.Pattern[str]]:
     """Return ``{topic: compiled_alternation_pattern}`` for one language —
     one regex scan per topic per verse, rather than one scan per keyword.
@@ -169,7 +238,7 @@ def build_topic_matchers(
     ``match_topic_keywords`` reports as the hit when several would match the
     same span, not whether the topic matches at all.
     """
-    keyword_matchers = build_keyword_matchers(language, denylist=denylist)
+    keyword_matchers = build_keyword_matchers(language, denylist=denylist, keyword_map=keyword_map)
     topic_patterns: dict[str, re.Pattern[str]] = {}
     for topic, kw_map in keyword_matchers.items():
         if not kw_map:
