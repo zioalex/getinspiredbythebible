@@ -135,6 +135,7 @@
     "contentBlockedMessage": "I wasn't able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We're glad you're here.",
     "scrollToBottom": "Scroll to bottom",
     "stopGenerating": "Stop generating",
+    "followUpsLabel": "Suggested follow-up questions",
     "languageSwitchSuggestion": "It looks like you're writing in {language}. Switch?",
     "languageSwitchAction": "Switch",
     "languageSwitchDismiss": "Dismiss",
@@ -394,5 +395,10 @@
     "importDone": "Imported {count} conversation(s).",
     "importFailed": "Import failed. Is this a valid history file?",
     "wrongPassphrase": "Wrong passphrase or corrupt file."
+  },
+  "Offline": {
+    "title": "You're offline",
+    "description": "Vox Quieta needs an internet connection to answer your questions. Check your connection and try again.",
+    "retry": "Try again"
   }
 }

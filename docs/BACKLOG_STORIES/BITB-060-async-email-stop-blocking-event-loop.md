@@ -24,7 +24,7 @@ called directly — no `await`, no thread offload — from `async def` routes:
 
 While SMTP2GO is slow (up to the 10s timeout), the **entire event loop** on that replica is frozen:
 every in-flight SSE chat stream stalls, and health probes can time out — re-creating the
-readiness-flap failure mode that BITB-057 just fixed, via a different door.
+readiness-flap failure mode that BITB-143 just fixed, via a different door.
 
 ## Acceptance Criteria
 

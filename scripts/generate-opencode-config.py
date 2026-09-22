@@ -155,6 +155,34 @@ def parse_agent_md(path: pathlib.Path):
     return path.stem, agent
 
 
+def enforce_openrouter_for_paid(config: dict) -> None:
+    """Fail generation if a paid model is not served via OpenRouter.
+
+    Convention: free-tier models (":free" / "-free" suffix) may live on any
+    provider; anything billable must be "openrouter/..." — the only provider
+    in this graph backed by our own key/credits. This keeps a future edit
+    from silently re-attaching a paid primary elsewhere (cf. the retired
+    github-copilot/claude-opus-5 primary, which died with exhausted
+    subscription credits and returned empty responses).
+    """
+    violations = []
+    checked = {
+        "<global>/model": config["model"],
+        "<global>/small_model": config["small_model"],
+    }
+    for name, spec in config["agent"].items():
+        if spec.get("model"):
+            checked[f"{name}/model"] = spec["model"]
+        for i, fb in enumerate(spec.get("fallback_models") or []):
+            checked[f"{name}/fallback_models[{i}]"] = fb
+    for where, model_id in checked.items():
+        provider, _, model = model_id.partition("/")
+        if not (model.endswith(":free") or model.endswith("-free")) and provider != "openrouter":
+            violations.append(f"{where}={model_id}")
+    if violations:
+        raise SystemExit("Paid models must use the openrouter provider: " + ", ".join(violations))
+
+
 def main():
     agents = {}
     for md in sorted(AGENTS_DIR.glob("*.md")):
@@ -182,6 +210,7 @@ def main():
             **agents,
         },
     }
+    enforce_openrouter_for_paid(config)
     json.dump(config, sys.stdout, indent=2)
     sys.stdout.write("\n")
 

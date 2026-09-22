@@ -60,7 +60,7 @@ is why a log-based rule is required alongside the `requests`/`exceptions` rules.
 
 - The browser-preflight probe and full browser smoke test (BITB-064).
 - Frontend client-side error telemetry (BITB-066).
-- Fixing the OTel→App Insights exporter drops that can under-count metric-based alerts (BITB-057 Phase 4).
+- Fixing the OTel→App Insights exporter drops that can under-count metric-based alerts (BITB-143 Phase 4).
 
 ## Verification
 
