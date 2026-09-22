@@ -236,9 +236,7 @@ class TestChatNonStreamingCulturalTone:
         await chat_service.chat(request)
 
         answer_call = mock_llm.chat.call_args_list[1]
-        assert (
-            get_pastoral_register_note("it") not in answer_call.kwargs["messages"][0].content
-        )
+        assert get_pastoral_register_note("it") not in answer_call.kwargs["messages"][0].content
 
 
 @pytest.mark.asyncio
@@ -275,13 +273,13 @@ class TestChatStreamCulturalTone:
 
         mock_llm.chat_stream = MagicMock(return_value=mock_stream())
 
-        request = ChatRequest(message="who won the Super Bowl?", language="it", include_search=False)
+        request = ChatRequest(
+            message="who won the Super Bowl?", language="it", include_search=False
+        )
         _ = [c async for c in chat_service.chat_stream(request)]
 
         stream_call = mock_llm.chat_stream.call_args
-        assert (
-            get_pastoral_register_note("it") not in stream_call.kwargs["messages"][0].content
-        )
+        assert get_pastoral_register_note("it") not in stream_call.kwargs["messages"][0].content
 
     @patch("chat.service.settings")
     async def test_flag_disabled_never_applies_even_for_comfort_it(
@@ -300,6 +298,4 @@ class TestChatStreamCulturalTone:
         _ = [c async for c in chat_service.chat_stream(request)]
 
         stream_call = mock_llm.chat_stream.call_args
-        assert (
-            get_pastoral_register_note("it") not in stream_call.kwargs["messages"][0].content
-        )
+        assert get_pastoral_register_note("it") not in stream_call.kwargs["messages"][0].content

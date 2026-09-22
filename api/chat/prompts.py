@@ -826,8 +826,7 @@ Rules:
 # Registers ONLY the degree of expressed closeness, framing and formality of
 # the reply -- never verse selection, verse fidelity, the visible reference
 # format, or reply length. Those are governed elsewhere and must never move.
-PASTORAL_REGISTER_NOTES: dict[str, str] = {
-    "it": """
+PASTORAL_REGISTER_NOTES: dict[str, str] = {"it": """
 
 ## Pastoral Register (Italian)
 This reply speaks to someone who is hurting or facing a decision. Write as a
@@ -839,8 +838,7 @@ reply -- an accompaniment register, not a report:
 - Prefer warm, flowing prose over clipped sentences or bullet lists.
 - Let warmth be expressed, not merely implied by correctness.
 This does not change which verse is chosen, how it is quoted, the visible
-reference format, or how long the reply is -- only how close it sounds."""
-}
+reference format, or how long the reply is -- only how close it sounds."""}
 
 
 def get_pastoral_register_note(language_code: str = "en") -> str:
