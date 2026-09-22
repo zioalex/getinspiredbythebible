@@ -25,11 +25,12 @@ PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 PYTHON_VERSION := python3
 
-# Colors for output
-BLUE := \033[0;34m
-GREEN := \033[0;32m
-YELLOW := \033[0;33m
-NC := \033[0m # No Color
+# Colors for output — use $(shell printf) so the actual ESC byte is captured,
+# avoiding the literal "\033" text that echo leaves uninterpreted.
+BLUE := $(shell printf '\033[0;34m')
+GREEN := $(shell printf '\033[0;32m')
+YELLOW := $(shell printf '\033[0;33m')
+NC := $(shell printf '\033[0m') # No Color
 
 help: ## Show this help message
 	@echo '$(BLUE)Available commands:$(NC)'

@@ -91,7 +91,7 @@ describe("server-rendered homepage hero (SEO)", () => {
 
   // The hero text must be present in the server output for every locale so
   // crawlers (and AI bots) get real, localized content instead of a thin
-  // client shell — this is the core BITB-037 fix.
+  // client shell — this is the core BITB-136 fix.
   it.each(["en", "de", "it", "ar", "zh"])(
     "renders the localized welcome heading and description for /%s",
     async (locale) => {
