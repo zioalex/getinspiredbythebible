@@ -283,7 +283,8 @@
   "Footer": {
     "changelog": "Changelog",
     "getApp": "Get the app",
-    "about": "About"
+    "about": "About",
+    "supportUs": "Support us"
   },
   "App": {
     "metaTitle": "Get the Vox Quieta App",

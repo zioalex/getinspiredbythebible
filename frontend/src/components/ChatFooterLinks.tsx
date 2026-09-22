@@ -15,15 +15,27 @@ export default function ChatFooterLinks() {
       data-testid="chat-footer-links"
       className="mt-1 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-gray-400"
     >
-      {links.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className="hover:text-primary-700 transition-colors"
-        >
-          {link.label}
-        </Link>
-      ))}
+      {links.map((link) =>
+        link.external ? (
+          <a
+            key={link.href}
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary-700 transition-colors"
+          >
+            {link.label}
+          </a>
+        ) : (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="hover:text-primary-700 transition-colors"
+          >
+            {link.label}
+          </Link>
+        ),
+      )}
     </nav>
   );
 }

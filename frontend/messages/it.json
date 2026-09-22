@@ -283,7 +283,8 @@
   "Footer": {
     "changelog": "Changelog",
     "getApp": "Scarica l'app",
-    "about": "Chi siamo"
+    "about": "Chi siamo",
+    "supportUs": "Sostienici"
   },
   "App": {
     "metaTitle": "Scarica l'app Vox Quieta",

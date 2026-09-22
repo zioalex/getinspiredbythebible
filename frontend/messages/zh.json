@@ -283,7 +283,8 @@
   "Footer": {
     "changelog": "更新日志",
     "getApp": "获取应用",
-    "about": "关于"
+    "about": "关于",
+    "supportUs": "支持我们"
   },
   "App": {
     "metaTitle": "获取 Vox Quieta 应用",

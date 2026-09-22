@@ -4578,6 +4578,25 @@ Includes chat interface, verse display, and local-first architecture.
 
 ---
 
+### 🎯 BITB-157: Wire `NEXT_PUBLIC_DONATE_URL` Into Docker Compose / Dockerfile / Azure Deploy
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-17
+
+**As** the maintainer, **I want** `NEXT_PUBLIC_DONATE_URL` to actually reach a built/deployed
+frontend, **so that** changing the Support-Us donate URL doesn't require a source edit.
+
+BITB-074 (PR #1084) documented this var in `.env.*.example` / `scripts/env-manifest.yaml`, but it
+is not forwarded by `docker-compose.yml`'s `frontend` service, declared in `frontend/Dockerfile`,
+or passed as a build arg in `azure-deploy.yml` — so today it has no effect anywhere; the effective
+donate URL is the hardcoded fallback in `Footer.tsx`.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-157-wire-donate-url-into-deployment.md`
+
+---
+
 ## Icebox (Ideas for Future Consideration)
 
 - **Multi-Bible Translation Support**: Allow users to select KJV, NIV, ESV, etc.
