@@ -36,7 +36,7 @@ validate end-to-end in a day.
 
 - Tappable chip options (Proposed Behaviour #4) — shared UI mechanism with **BITB-080**; do both
   chip UIs together once BITB-080 is scoped, rather than building the mechanism twice.
-- Golden-set eval additions (`docs/SEARCH_EVAL_HOWTO.md`, BITB-051) for vague-opening cases.
+- Golden-set eval additions (`docs/SEARCH_EVAL_HOWTO.md`, BITB-139) for vague-opening cases.
 - Explicit per-language assertions beyond the prompt's built-in "ask in the user's language"
   instruction (en/it/de/es AC) — the mechanism is language-agnostic by construction (same as
   `OFF_TOPIC_PROMPT`), but no test exercises a non-English clarifying reply yet.
@@ -157,7 +157,7 @@ condition step 2 ("ground them in scripture") on having understood the request.
   and emits no `verses_cited`.
 - Service test: a second vague message in the same conversation answers rather than asking again.
 - **Golden-set / eval:** add vague-opening cases to the retrieval-eval harness
-  (`docs/SEARCH_EVAL_HOWTO.md`, **BITB-051**) so this is measured across model changes, not
+  (`docs/SEARCH_EVAL_HOWTO.md`, **BITB-139**) so this is measured across model changes, not
   spot-checked once.
 
 ## Files Likely to Change

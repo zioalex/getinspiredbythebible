@@ -1,4 +1,4 @@
-# BITB-018: CI Ollama Timeout - Critical Analysis
+# BITB-147: CI Ollama Timeout - Critical Analysis
 
 **Date:** 2026-03-04
 **Status:** ✅ RESOLVED - Confirmed as temporary GitHub network glitch
@@ -30,7 +30,7 @@ Developers can simply re-run failed CI jobs.
 
 **Action Items:**
 
-- [x] Mark BITB-018 as resolved
+- [x] Mark BITB-147 as resolved
 - [x] Move analysis to docs/DONE/ for future reference
 - [x] Update BACKLOG.md to remove this item
 - [ ] Keep pre-built image option documented as "future optimization" if CI becomes consistently slow
@@ -513,7 +513,7 @@ max_attempts=120  # 20 minutes instead of 10
 → **Accept as one-time glitch**, monitor future runs
 
 **IF** retry fails AND tests never worked reliably:
-→ **Implement pre-built image** (Option B from BITB-018)
+→ **Implement pre-built image** (Option B from BITB-147)
 
 ### Phase 3: Implementation (If needed - 2-3 hours)
 
@@ -527,7 +527,6 @@ max_attempts=120  # 20 minutes instead of 10
 
 **If we implement pre-built image:**
 
-- [ ] Update `docs/BACKLOG_STORIES/BITB-018-fix-ci-ollama-timeout.md` with decision
 - [ ] Add `docs/DOCKER_IMAGES.md` documenting custom images
 - [ ] Update `README.md` with pre-built image usage
 - [ ] Add comments in `ollama/Dockerfile` explaining why it exists
@@ -535,7 +534,7 @@ max_attempts=120  # 20 minutes instead of 10
 
 **If we don't implement it:**
 
-- [ ] Document why in `docs/DONE/BITB-018-ANALYSIS-CI-OLLAMA-TIMEOUT.md`
+- [ ] Document why in `docs/DONE/BITB-147-ANALYSIS-CI-OLLAMA-TIMEOUT.md`
 - [ ] Add note to `docs/KNOWN_ISSUES.md` about occasional Ollama timeout
 - [ ] Add retry instructions to `docs/CONTRIBUTING.md`
 

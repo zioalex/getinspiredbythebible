@@ -1,4 +1,4 @@
-# BITB-054: First-Run Feature Spotlight / Coach-Marks (Android)
+# BITB-142: First-Run Feature Spotlight / Coach-Marks (Android)
 
 **Status:** 🎯 Todo
 **Priority:** P2 (Medium) — discoverability of core features

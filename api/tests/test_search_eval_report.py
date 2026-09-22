@@ -1,4 +1,4 @@
-"""Tests for retrieval-eval report aggregation/rendering (BITB-051 P3).
+"""Tests for retrieval-eval report aggregation/rendering (BITB-139 P3).
 
 Pure functions over synthetic ``QueryResult`` lists — no database, no
 network — runs in the standard (blocking) backend-tests CI job.
