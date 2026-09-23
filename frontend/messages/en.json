@@ -131,10 +131,12 @@
     "messageTooLong": "Your message is a little long (max {max} characters). Please shorten it and try again.",
     "errorVerification": "We couldn't verify your device. Please wait a moment and try again.",
     "startNewSession": "Start New Session",
-    "sessionLimitMessage": "You've had 10 messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, start a new session below.",
+    "continueConversation": "Continue this conversation",
+    "sessionLimitMessage": "You've had {max} messages in this session! Why not take a moment to reflect on what you've received, step outside and enjoy God's creation? 🌳 When you're ready, continue below — or start a fresh session for a clean slate.",
     "contentBlockedMessage": "I wasn't able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We're glad you're here.",
     "scrollToBottom": "Scroll to bottom",
     "stopGenerating": "Stop generating",
+    "followUpsLabel": "Suggested follow-up questions",
     "languageSwitchSuggestion": "It looks like you're writing in {language}. Switch?",
     "languageSwitchAction": "Switch",
     "languageSwitchDismiss": "Dismiss",
@@ -282,7 +284,8 @@
   "Footer": {
     "changelog": "Changelog",
     "getApp": "Get the app",
-    "about": "About"
+    "about": "About",
+    "supportUs": "Support us"
   },
   "App": {
     "metaTitle": "Get the Vox Quieta App",
@@ -394,5 +397,10 @@
     "importDone": "Imported {count} conversation(s).",
     "importFailed": "Import failed. Is this a valid history file?",
     "wrongPassphrase": "Wrong passphrase or corrupt file."
+  },
+  "Offline": {
+    "title": "You're offline",
+    "description": "Vox Quieta needs an internet connection to answer your questions. Check your connection and try again.",
+    "retry": "Try again"
   }
 }

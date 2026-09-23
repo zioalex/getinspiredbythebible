@@ -131,10 +131,12 @@
     "messageTooLong": "Il tuo messaggio è un po' lungo (massimo {max} caratteri). Accorcialo e riprova.",
     "errorVerification": "Non è stato possibile verificare il tuo dispositivo. Attendi un momento e riprova.",
     "startNewSession": "Avvia nuova sessione",
-    "sessionLimitMessage": "Hai inviato 10 messaggi in questa sessione! Perché non ti prendi un momento per riflettere su ciò che hai ricevuto e goderti il creato di Dio? 🌳 Quando sei pronto, avvia una nuova sessione qui sotto.",
+    "continueConversation": "Continua questa conversazione",
+    "sessionLimitMessage": "Hai inviato {max} messaggi in questa sessione! Perché non ti prendi un momento per riflettere su ciò che hai ricevuto e goderti il creato di Dio? 🌳 Quando sei pronto, continua qui sotto, oppure avvia una nuova sessione per ripartire da zero.",
     "contentBlockedMessage": "Non sono riuscito a rispondere a questo messaggio — il nostro sistema di sicurezza lo ha trattenuto e potrebbe aver semplicemente frainteso le tue parole. Prova a riformulare il tuo pensiero, e se qualcosa non ti convince scrivici a contact@voxquieta.org. Siamo contenti che tu sia qui.",
     "scrollToBottom": "Scorri in basso",
     "stopGenerating": "Interrompi generazione",
+    "followUpsLabel": "Domande di approfondimento suggerite",
     "languageSwitchSuggestion": "Sembra che tu stia scrivendo in {language}. Vuoi cambiare?",
     "languageSwitchAction": "Cambia",
     "languageSwitchDismiss": "Ignora",
@@ -282,7 +284,8 @@
   "Footer": {
     "changelog": "Changelog",
     "getApp": "Scarica l'app",
-    "about": "Chi siamo"
+    "about": "Chi siamo",
+    "supportUs": "Sostienici"
   },
   "App": {
     "metaTitle": "Scarica l'app Vox Quieta",
@@ -394,5 +397,10 @@
     "importDone": "Importate {count} conversazioni.",
     "importFailed": "Importazione non riuscita. È un file di cronologia valido?",
     "wrongPassphrase": "Passphrase errata o file danneggiato."
+  },
+  "Offline": {
+    "title": "Sei offline",
+    "description": "Vox Quieta ha bisogno di una connessione a internet per rispondere alle tue domande. Controlla la connessione e riprova.",
+    "retry": "Riprova"
   }
 }

@@ -1,6 +1,7 @@
 # BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — implemented and merged dark behind `chat_cultural_tone_enabled=False`;
+sample pack + native-speaker review + prod enablement pending
 **Priority:** P1 — user-reported quality gap on the product's core promise (spiritual support), and
 the classifier it depends on already ships
 **Size:** M (1-2 days for `it` + the gating and tests; each further locale is S)
@@ -129,24 +130,37 @@ changing the intent taxonomy; `GENERAL`-bucket tuning.
 
 ## Acceptance Criteria
 
-- [ ] `COMFORT`/`GUIDANCE` + a locale with a registry entry ⇒ register addendum present in the system
-      prompt
-- [ ] `CURIOSITY`/`VERSE_LOOKUP`/`NEEDS_CLARIFICATION`/`OFF_TOPIC`/`GENERAL` ⇒ addendum absent, in
-      every locale
-- [ ] A locale with no registry entry ⇒ system prompt byte-identical to today, at every intent
-- [ ] Flag off ⇒ system prompt byte-identical to today, everywhere
-- [ ] Gate applied identically on the blocking and streaming chat paths (asserted by test, not by
-      inspection)
-- [ ] Crisis path unchanged: with `compassionate_mode=True` the compassionate addendum is still
-      present, still last
-- [ ] Existing verse-grounding, citation and prompt-composition suites pass unchanged
+- [x] `COMFORT`/`GUIDANCE` + a locale with a registry entry ⇒ register addendum present in the system
+      prompt (`PASTORAL_REGISTER_NOTES["it"]`, `api/chat/prompts.py`; gated by
+      `ChatService._wants_cultural_tone`)
+- [x] `CURIOSITY`/`VERSE_LOOKUP`/`NEEDS_CLARIFICATION`/`OFF_TOPIC`/`GENERAL` ⇒ addendum absent, in
+      every locale (`PASTORAL_TONE_INTENTS = {COMFORT, GUIDANCE}` in `api/chat/service.py`)
+- [x] A locale with no registry entry ⇒ system prompt byte-identical to today, at every intent
+      (`get_pastoral_register_note` returns `""` for any unregistered code, no `en` fallback;
+      asserted by `test_unregistered_locale_byte_identical_regardless_of_gate`)
+- [x] Flag off ⇒ system prompt byte-identical to today, everywhere (`chat_cultural_tone_enabled:
+      bool = False` in `api/config.py`; asserted by `test_flag_off_byte_identical_for_registered_locale`)
+- [x] Gate applied identically on the blocking and streaming chat paths (asserted by test, not by
+      inspection) — `ChatService._cultural_tone_gate` shared by `chat()` and `chat_stream()`,
+      covered end-to-end in `api/tests/test_chat_cultural_tone.py`
+- [x] Crisis path unchanged: with `compassionate_mode=True` the compassionate addendum is still
+      present, still last (`test_crisis_addendum_still_present_and_last`)
+- [x] Existing verse-grounding, citation and prompt-composition suites pass unchanged
       (`api/tests/test_verse_grounding.py`, `api/tests/test_intent_detection.py`,
-      `api/tests/test_chat_coverage.py`)
+      `api/tests/test_chat_coverage.py`, `api/tests/test_chat_citation_spans.py`,
+      `api/tests/test_chat_safety_signals.py`, `api/tests/test_chat_follow_ups.py` — 409/409 passing
+      alongside the new suite; full backend suite otherwise unaffected)
 - [ ] Sample pack: ~10 Italian pastoral prompts captured before/after, committed under
       `docs/CONTENT/` or the story folder, reviewed by at least one Italian native speaker who is
-      not the author; verses still cited correctly in every "after" sample
+      not the author; verses still cited correctly in every "after" sample — **not done here**:
+      needs live LLM output and a native Italian reviewer who is not the author. Open Question 1
+      (culture vs. translated-English register) is not empirically settled either; the shipped
+      `it` note hedges both by asking for a native pastoral voice, not a translated one, and the
+      sample-pack read at rollout should resolve which hypothesis actually holds.
 - [ ] Outcome metric named and baselined before rollout: negative-feedback rate for `it` versus `en`
-      and `de` (`feedback.language` already exists, `api/feedback/models.py:162`)
+      and `de` (`feedback.language` already exists, `api/feedback/models.py:162`) — the counter
+      side is done (`chat.cultural_tone.applied`, `api/utils/metrics.py`); the baseline itself
+      needs live production data and is **not done here**.
 
 ## Risks
 

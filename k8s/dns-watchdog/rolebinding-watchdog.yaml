@@ -1,0 +1,19 @@
+# BITB-159. Binds the least-privilege Role (role-watchdog.yaml) to the
+# watchdog ServiceAccount. See role-watchdog.yaml for the rationale.
+# One Kubernetes object per file: the repo's check-yaml pre-commit hook runs
+# without --allow-multiple-documents, so a multi-document manifest fails CI.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dns-watchdog
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: dns-watchdog
+subjects:
+  - kind: ServiceAccount
+    name: dns-watchdog
+    namespace: kube-system
+roleRef:
+  kind: Role
+  name: dns-watchdog
+  apiGroup: rbac.authorization.k8s.io

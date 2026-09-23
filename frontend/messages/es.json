@@ -131,10 +131,12 @@
     "messageTooLong": "Tu mensaje es un poco largo (máximo {max} caracteres). Acórtalo e inténtalo de nuevo.",
     "errorVerification": "No pudimos verificar tu dispositivo. Espera un momento e inténtalo de nuevo.",
     "startNewSession": "Iniciar Nueva Sesión",
-    "sessionLimitMessage": "¡Has enviado 10 mensajes en esta sesión! ¿Por qué no te tomas un momento para reflexionar sobre lo que has recibido y disfrutar de la creación de Dios? 🌳 Cuando estés listo, inicia una nueva sesión a continuación.",
+    "continueConversation": "Continuar esta conversación",
+    "sessionLimitMessage": "¡Has enviado {max} mensajes en esta sesión! ¿Por qué no te tomas un momento para reflexionar sobre lo que has recibido y disfrutar de la creación de Dios? 🌳 Cuando estés listo, continúa abajo, o inicia una nueva sesión si prefieres empezar de cero.",
     "contentBlockedMessage": "No pude responder a ese mensaje — nuestro sistema de seguridad lo retuvo y es posible que simplemente haya malinterpretado tus palabras. Intenta reformular tu idea, y si algo no se siente bien, escríbenos a contact@voxquieta.org. Nos alegra que estés aquí.",
     "scrollToBottom": "Desplazarse hacia abajo",
     "stopGenerating": "Detener generación",
+    "followUpsLabel": "Preguntas de seguimiento sugeridas",
     "languageSwitchSuggestion": "Parece que estás escribiendo en {language}. ¿Cambiar?",
     "languageSwitchAction": "Cambiar",
     "languageSwitchDismiss": "Descartar",
@@ -282,7 +284,8 @@
   "Footer": {
     "changelog": "Historial",
     "getApp": "Descarga la app",
-    "about": "Acerca de"
+    "about": "Acerca de",
+    "supportUs": "Apóyanos"
   },
   "App": {
     "metaTitle": "Descarga la app Vox Quieta",
@@ -394,5 +397,10 @@
     "importDone": "Se importaron {count} conversaciones.",
     "importFailed": "La importación falló. ¿Es un archivo de historial válido?",
     "wrongPassphrase": "Frase de contraseña incorrecta o archivo dañado."
+  },
+  "Offline": {
+    "title": "Estás sin conexión",
+    "description": "Vox Quieta necesita una conexión a internet para responder tus preguntas. Comprueba tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
   }
 }

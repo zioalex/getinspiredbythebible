@@ -1,5 +1,5 @@
 """
-Tests for utils/db_retry.py (BITB-057 Phase 2).
+Tests for utils/db_retry.py (BITB-143 Phase 2).
 
 Generalizes the retry-on-transient-disconnect pattern previously bespoke to
 chat/service.py::_search_scripture. These tests mirror the disconnect-error

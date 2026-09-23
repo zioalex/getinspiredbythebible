@@ -38,6 +38,14 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
 
+# Per-build cache-busting id (BITB-102). Consumed by scripts/generate-build-info.mjs
+# at prebuild and written to public/build-info.json, which the client reads to
+# register /sw.js?v=<id>. A changed id renames the service worker's shell cache,
+# so a deploy cannot pin an installed user to a stale shell. CI passes the deploy
+# SHA; an empty value falls back to a dev-<timestamp> id.
+ARG NEXT_PUBLIC_BUILD_ID=
+ENV NEXT_PUBLIC_BUILD_ID=${NEXT_PUBLIC_BUILD_ID}
+
 # Build the application
 RUN npm run build
 

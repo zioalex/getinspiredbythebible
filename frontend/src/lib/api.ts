@@ -32,12 +32,17 @@ export class ColdStartError extends Error {
 }
 
 /**
- * Error thrown when session lifetime limit is reached (10 messages)
+ * Error thrown when the session lifetime limit is reached. `limit` carries
+ * the server's `detail.limit` from the 429 body (BITB-118) when present, so
+ * the UI can render the exact configured cap instead of a hardcoded number.
  */
 export class SessionLimitError extends Error {
-  constructor(message: string) {
+  readonly limit?: number;
+
+  constructor(message: string, limit?: number) {
     super(message);
     this.name = "SessionLimitError";
+    this.limit = limit;
   }
 }
 
@@ -122,6 +127,14 @@ export class VerificationError extends Error {
  * server always enforces its own configured limit regardless of this value.
  */
 export const MAX_MESSAGE_LENGTH = 500;
+
+/**
+ * Fallback for the per-session message cap (BITB-118). Same fail-open
+ * pattern as MAX_MESSAGE_LENGTH: the effective value comes from `GET /config`
+ * -> `chat.session_max_requests` via `useServerConfig()`, and a 429's own
+ * `detail.limit` (see SessionLimitError) wins over both when present.
+ */
+export const MAX_SESSION_REQUESTS = 10;
 
 /**
  * Max time to wait for the next chunk from the streaming endpoint before
@@ -381,6 +394,9 @@ export interface ChatResponse {
   model: string;
   detected_translation?: string;
   translation_info?: TranslationInfo;
+  /** BITB-080: suggested follow-up questions, in the user's own voice. Absent
+   * when suppressed (crisis/off-topic/error turns) or on an older backend. */
+  follow_ups?: string[];
 }
 
 export interface FeedbackRequest {
@@ -508,6 +524,7 @@ export async function sendMessage(
           throw new SessionLimitError(
             data.detail?.message ||
               "Session limit reached. Start a new session to continue.",
+            data.detail?.limit,
           );
         }
       }
@@ -595,6 +612,9 @@ export interface StreamChunk {
   // authoritative full message body and should replace the streamed content.
   corrected_message?: string;
   corrections?: { reference: string; reason: string }[];
+  // BITB-080: 2-3 suggested follow-up questions, in the user's own voice.
+  // Absent when suppressed (crisis/off-topic/error turns) or on an older backend.
+  follow_ups?: string[];
 }
 
 /**
@@ -670,6 +690,7 @@ export async function* streamMessage(
         throw new SessionLimitError(
           data.detail?.message ||
             "Session limit reached. Start a new session to continue.",
+          data.detail?.limit,
         );
       }
     }

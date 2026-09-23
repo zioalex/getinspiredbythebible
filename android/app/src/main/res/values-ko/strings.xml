@@ -181,6 +181,7 @@
     <string name="settings_terms_of_service">서비스 약관</string>
     <string name="settings_changelog_title">새로운 기능</string>
     <string name="settings_changelog_link">새로운 기능</string>
+    <string name="settings_support_us">Vox Quieta 후원하기</string>
     <string name="changelog_empty">아직 릴리스 노트가 없습니다.</string>
     <string name="whats_new_title">새로운 기능</string>
     <string name="whats_new_dismiss">확인</string>

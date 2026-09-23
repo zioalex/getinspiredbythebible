@@ -131,10 +131,12 @@
     "messageTooLong": "您的消息有点长（最多 {max} 个字符）。请缩短后再试一次。",
     "errorVerification": "无法验证您的设备。请稍候片刻后重试。",
     "startNewSession": "开始新会话",
-    "sessionLimitMessage": "您在本次会话中已发送了10条消息！何不停下来思考一下您所收到的，出去享受上帝的创造？🌳 准备好后，请在下方开始新会话。",
+    "continueConversation": "继续此对话",
+    "sessionLimitMessage": "您在本次会话中已发送了{max}条消息！何不停下来思考一下您所收到的，出去享受上帝的创造？🌳 准备好后，请在下方继续对话，或开始新会话以重新开始。",
     "contentBlockedMessage": "这条消息我没能回复 — 我们的安全系统暂时拦住了它，可能只是误读了您的表达。请尝试换一种说法再说一次；如果觉得有哪里不对，欢迎写信给我们 contact@voxquieta.org。很高兴您来到这里。",
     "scrollToBottom": "滚动到底部",
     "stopGenerating": "停止生成",
+    "followUpsLabel": "建议的后续问题",
     "languageSwitchSuggestion": "您似乎在用{language}书写。要切换吗？",
     "languageSwitchAction": "切换",
     "languageSwitchDismiss": "忽略",
@@ -282,7 +284,8 @@
   "Footer": {
     "changelog": "更新日志",
     "getApp": "获取应用",
-    "about": "关于"
+    "about": "关于",
+    "supportUs": "支持我们"
   },
   "App": {
     "metaTitle": "获取 Vox Quieta 应用",
@@ -394,5 +397,10 @@
     "importDone": "已导入 {count} 个对话。",
     "importFailed": "导入失败。这是有效的历史记录文件吗？",
     "wrongPassphrase": "口令错误或文件已损坏。"
+  },
+  "Offline": {
+    "title": "您已离线",
+    "description": "Vox Quieta 需要连接互联网才能回答您的问题。请检查网络连接后重试。",
+    "retry": "重试"
   }
 }

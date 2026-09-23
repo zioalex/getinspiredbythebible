@@ -36,6 +36,7 @@ vi.mock("@/lib/api", () => ({
   ContentBlockedError: class ContentBlockedError extends Error {},
   SessionLimitError: class SessionLimitError extends Error {},
   MAX_MESSAGE_LENGTH: 500,
+  MAX_SESSION_REQUESTS: 10,
   checkBackendReady: vi.fn().mockResolvedValue(true),
   warmupBackend: vi.fn(),
   searchChurches: vi.fn(),
@@ -91,7 +92,7 @@ describe("server-rendered homepage hero (SEO)", () => {
 
   // The hero text must be present in the server output for every locale so
   // crawlers (and AI bots) get real, localized content instead of a thin
-  // client shell — this is the core BITB-037 fix.
+  // client shell — this is the core BITB-136 fix.
   it.each(["en", "de", "it", "ar", "zh"])(
     "renders the localized welcome heading and description for /%s",
     async (locale) => {
