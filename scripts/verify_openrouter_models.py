@@ -10,7 +10,7 @@ Usage:
     python verify_openrouter_models.py
 
     # Check specific models
-    python verify_openrouter_models.py meta-llama/llama-3.3-70b-instruct:free google/gemma-2-9b-it:free
+    python verify_openrouter_models.py meta-llama/llama-3.3-70b-instruct google/gemma-4-31b-it
 
     # Use specific API key
     OPENROUTER_API_KEY=sk-or-v1-xxx python verify_openrouter_models.py
@@ -42,11 +42,11 @@ class ModelCheckResult(NamedTuple):
     message: str
 
 
-# Default models to check if none specified
+# Default models to check if none specified (primary + fallback + free ZDR-compatible alt)
 DEFAULT_MODELS = [
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemma-2-9b-it:free",
-    "mistralai/mistral-7b-instruct:free",
+    "meta-llama/llama-3.3-70b-instruct",
+    "google/gemma-4-31b-it",
+    "inclusionai/ling-3.0-flash-sante:free",
 ]
 
 

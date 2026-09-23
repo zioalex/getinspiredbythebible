@@ -55,9 +55,8 @@ class OpenRouterProvider(LLMProvider):
     """
     LLM Provider for OpenRouter.
 
-    OpenRouter provides access to various LLMs including free models like:
-    - meta-llama/llama-3.3-70b-instruct:free
-    - google/gemma-2-9b-it:free
+    Primary is paid Llama 3.3 70B (Meta); the cross-provider fallback is paid
+    Gemma 4 31B (Google) — both ZDR-compatible (BITB-155).
 
     Uses OpenAI-compatible API for easy integration.
     Supports automatic fallback to paid models via native models array and provider preferences.
@@ -66,7 +65,7 @@ class OpenRouterProvider(LLMProvider):
     def __init__(
         self,
         api_key: str,
-        model: str = "meta-llama/llama-3.3-70b-instruct:free",
+        model: str = "meta-llama/llama-3.3-70b-instruct",
         base_url: str = "https://openrouter.ai/api/v1",
         fallback_models: list[str] | None = None,
         allow_fallbacks: bool = True,
@@ -77,7 +76,7 @@ class OpenRouterProvider(LLMProvider):
 
         Args:
             api_key: OpenRouter API key
-            model: Model name (default: meta-llama/llama-3.3-70b-instruct:free)
+            model: Model name (default: meta-llama/llama-3.3-70b-instruct)
             base_url: OpenRouter API base URL (default: https://openrouter.ai/api/v1)
             fallback_models: List of fallback models to try if primary fails
             allow_fallbacks: Whether to allow automatic fallback (default: True)
