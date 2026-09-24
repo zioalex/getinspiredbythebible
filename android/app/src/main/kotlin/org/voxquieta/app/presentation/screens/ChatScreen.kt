@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
@@ -72,6 +71,7 @@ import org.voxquieta.app.presentation.components.ChurchFinderBanner
 import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
 import org.voxquieta.app.presentation.components.LanguagePickerBottomSheet
+import org.voxquieta.app.presentation.components.SessionLimitActions
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
 import org.voxquieta.app.presentation.components.VersesPanel
 import org.voxquieta.app.presentation.components.WelcomeBanner
@@ -481,19 +481,17 @@ fun ChatScreen(
                 }
             }
 
-            // "Start New Session" button — shown when the backend returns HTTP 429
-            // with a session_lifetime_limit detail.  The invitation text is already
-            // displayed as a proper assistant message in the chat above, so the
-            // banner only needs to surface the action button.
+            // Session-limit actions — shown once the per-session limit is reached
+            // (locally counted or HTTP 429 session_lifetime_limit). The invitation
+            // text is already displayed as an assistant message above, so this only
+            // surfaces the actions: "Continue this conversation" (primary,
+            // non-destructive, BITB-156) and "Start New Session" (secondary, clears
+            // the thread).
             if (uiState.isSessionLimitReached) {
-                Button(
-                    onClick = { viewModel.startNewConversation() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    Text(stringResource(R.string.action_start_new_session))
-                }
+                SessionLimitActions(
+                    onContinueConversation = { viewModel.continueConversation() },
+                    onStartNewSession = { viewModel.startNewConversation() },
+                )
             }
 
             // Language-switch suggestion banner — shown when the backend detects typing

@@ -2,10 +2,8 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
-column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
-BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
-BITB-084 Part C done via BITB-102)
+**Last Updated:** 2026-09-24 (BITB-156 in progress — PR #1103 open, Android Part A: server-driven
+session limit + "Continue this conversation")
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -197,9 +195,10 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-156: Android Server-Driven Session Limit + BITB-118 Instrumentation/IP-Cap Follow-Up
+### 🚧 BITB-156: Android Server-Driven Session Limit + BITB-118 Instrumentation/IP-Cap Follow-Up
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR #1103 open — Android Part A: server-driven limit + "Continue this
+conversation"; instrumentation / IP-cap prerequisites / purge-horizon ACs remain deferred)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-16
