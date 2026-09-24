@@ -64,6 +64,21 @@ Mirrors the web implementation, file for file:
 - [ ] New Robolectric/unit tests mirroring the web suite: continue keeps messages, start-new
       clears them, the interpolated string renders the server (or fallback) value
 
+**Known follow-up (not fixed in PR #1103, no current production impact):** the DataStore restore
+(`init{}`, reads the persisted interaction count) and `fetchConfigWithRetry()` (reads
+`session_max_requests`) both launch in parallel from `init{}`. The restore is fast and almost
+always compares the persisted count against the *fallback* `MAX_INTERACTIONS` (10), since the
+network fetch hasn't resolved yet; `fetchConfigWithRetry()` never re-derives
+`isSessionLimitReached` once the real value arrives. Today `api/config.py`'s
+`rate_limit_session_max_requests` default and the Android fallback are both 10, so the two always
+agree and this is inert. If the server default is ever changed away from 10, a cold start could
+show a stale `isSessionLimitReached` (wrong in either direction) until the user sends a message or
+taps a session-limit action. A correct fix needs to distinguish "flag inferred locally from the
+restored count" (safe to recompute once the real limit is known) from "flag set by a live 429"
+(must not be silently cleared by a config refresh) — there's no field for that distinction today,
+so a naive recompute on config-load risks clearing a real 429-driven limit. Needs its own small
+follow-up story (or folded into Part B) rather than a quick patch here.
+
 ---
 
 ## Part B — Instrumentation (blocked on a production deploy + observation window)

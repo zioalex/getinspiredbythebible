@@ -1580,6 +1580,10 @@ class ChatViewModelTest {
         assertTrue(viewModel.uiState.value.isSessionLimitReached)
         val messagesBefore = viewModel.uiState.value.messages
         val conversationIdBefore = viewModel.uiState.value.currentConversationId
+        // Pin down the fixture this test relies on: a real conversation must
+        // already exist before continueConversation() runs, or "preserved"
+        // would trivially hold for a null on both sides.
+        assertNotNull(conversationIdBefore)
 
         viewModel.continueConversation()
         testDispatcher.scheduler.advanceUntilIdle()
