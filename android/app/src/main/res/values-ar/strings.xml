@@ -194,11 +194,12 @@
     <string name="about_intro_secondary_cta">متابعة</string>
 
     <!-- Session limit error -->
-    <string name="error_session_limit">لقد أجريت 10 رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>
+    <string name="error_session_limit">لقد أجريت %1$d رسائل في هذه الجلسة! لماذا لا تأخذ استراحة وتستمتع بخليقة الله في الهواء الطلق؟ 🌳</string>
     <string name="error_content_blocked">لم أتمكن من الرد على هذه الرسالة — فقد أوقفها نظام السلامة لدينا، وربما يكون قد أساء فهم كلماتك. حاول إعادة صياغة فكرتك من فضلك، وإذا شعرت أن هناك خطأً، تواصل معنا على contact@voxquieta.org. سعداء بوجودك هنا.</string>
 
     <!-- Actions -->
     <string name="action_select_language">اختر اللغة</string>
+    <string name="action_continue_conversation">متابعة هذه المحادثة</string>
     <string name="action_start_new_session">جلسة جديدة</string>
     <string name="action_retry">إعادة المحاولة</string>
     <string name="action_share_message">مشاركة الرسالة</string>
