@@ -1,6 +1,8 @@
 # BITB-156: Android Server-Driven Session Limit + BITB-118 Instrumentation/IP-Cap Follow-Up
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR #1103 open — Part A: Android server-driven limit + "Continue this
+conversation". Parts B/C/D — instrumentation, IP-cap prerequisites, purge-horizon — remain
+deferred/unstarted.)
 
 **Priority:** P2
 
