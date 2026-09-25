@@ -1,6 +1,8 @@
 # BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — PR pending (Dockerfile + CI build validation implemented;
+registry push and `agentImage` cutover on the live cluster are a manual follow-up, out
+of scope for this PR)
 **Priority:** P1
 **Size:** M (Dockerfile + build/push pipeline + docs; no app code)
 **Created:** 2026-09-15

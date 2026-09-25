@@ -2,10 +2,8 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-25 (hygiene pass: BITB-152 marked Done — PR #1045/#1086/#1087
-merged 2026-09-18; BITB-159 and BITB-160 marked Done — PR #1091 merged 2026-09-22; BITB-125
-marked Done — PR #1090 merged 2026-09-22; all four story files moved to docs/DONE/. Statuses
-had drifted: each already shipped to main but the index still read Todo)
+**Last Updated:** 2026-09-25 (BITB-158 marked In Progress — dev-image Dockerfile, smoke test,
+docs, and CI build validation implemented; PR pending)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -248,9 +246,11 @@ stays reviewable.
 
 ---
 
-### 🎯 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
+### 🚧 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — PR pending (Dockerfile + CI build validation implemented; registry
+push and `agentImage` cutover on the live cluster are a manual follow-up, out of scope for
+this PR)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-09-15

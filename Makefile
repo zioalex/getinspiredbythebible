@@ -288,6 +288,17 @@ check-all: lint type-check security test validate-env ## Run all checks (pre-pus
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
 
 pre-commit: install-deps ## Run pre-commit on all files
+	@# BITB-158: on a KubeOpenCode dev-image pod, /opt/pre-commit-seed is a
+	@# pre-warmed hook cache baked into the image (k8s/kubeopencode/dev-image/).
+	@# Seed PRE_COMMIT_HOME from it on first use so the first real run after a
+	@# pod restart is a cache hit instead of a 13-repo cold download. On a
+	@# normal laptop or CI runner /opt/pre-commit-seed doesn't exist, so this
+	@# is a no-op and behavior is unchanged.
+	@if [ -d /opt/pre-commit-seed ] && [ ! -d "$${PRE_COMMIT_HOME:-$$HOME/.cache/pre-commit}" ]; then \
+		mkdir -p "$$(dirname "$${PRE_COMMIT_HOME:-$$HOME/.cache/pre-commit}")"; \
+		cp -r /opt/pre-commit-seed "$${PRE_COMMIT_HOME:-$$HOME/.cache/pre-commit}"; \
+		echo "$(GREEN)✓ Seeded pre-commit cache from baked image$(NC)"; \
+	fi
 	@echo "$(BLUE)Running pre-commit hooks on all files...$(NC)"
 	@$(CURDIR)/$(VENV)/bin/pre-commit run --all-files
 	@echo "$(GREEN)✓ Pre-commit checks complete$(NC)"
@@ -349,6 +360,17 @@ deploy-dns-watchdog: ## Deploy the CoreDNS watchdog to the LIVE cluster (BITB-15
 		-f k8s/dns-watchdog/role-watchdog.yaml -f k8s/dns-watchdog/rolebinding-watchdog.yaml \
 		-f k8s/dns-watchdog/configmap-watchdog.yaml -f k8s/dns-watchdog/deployment.yaml
 	@echo "$(GREEN)✓ dns-watchdog deployed$(NC)"
+
+lint-kubeopencode-dev-image: ## Lint the dev-toolchain agent Dockerfile (BITB-158)
+	@echo "$(BLUE)Linting k8s/kubeopencode/dev-image/Dockerfile...$(NC)"
+	@docker run --rm -i hadolint/hadolint:v2.12.0 hadolint --ignore DL3008 --ignore DL3018 - \
+		< k8s/kubeopencode/dev-image/Dockerfile
+	@echo "$(GREEN)✓ Dockerfile lint complete$(NC)"
+
+build-kubeopencode-dev-image: ## Build the dev-toolchain agent image (BITB-158). Usage: make build-kubeopencode-dev-image TAG=kubeopencode-agent-dev:local
+	@echo "$(BLUE)Building KubeOpenCode dev-toolchain image...$(NC)"
+	@docker build -f k8s/kubeopencode/dev-image/Dockerfile -t $(or $(TAG),kubeopencode-agent-dev:local) .
+	@echo "$(GREEN)✓ Image built: $(or $(TAG),kubeopencode-agent-dev:local)$(NC)"
 
 validate-env: install-deps ## Validate env vars between docker-compose and Terraform
 	@echo "$(BLUE)Validating environment variable consistency...$(NC)"

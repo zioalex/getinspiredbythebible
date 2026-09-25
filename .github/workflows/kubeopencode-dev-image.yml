@@ -1,0 +1,84 @@
+name: CI - KubeOpenCode Dev Image
+
+# yamllint disable-line rule:truthy
+run-name: >-
+  ${{ github.event_name == 'pull_request'
+      && format('kubeopencode-dev-image PR #{0}: {1}', github.event.pull_request.number,
+        github.event.pull_request.title)
+      || format('kubeopencode-dev-image {0} ({1})', github.ref_name, github.sha) }}
+
+# BITB-158. Split out from opencode-ci.yml (which is documented as "no
+# Docker") because this job does a real `docker build` + container run. No
+# push, no secrets: this repo's CI has no registry credentials, so this only
+# validates the Dockerfile builds and the smoke test passes -- pushing the
+# image and flipping agentImage: on the live Agent is a manual follow-up
+# (see k8s/kubeopencode/dev-image/README.md).
+"on":
+  pull_request:
+    branches:
+      - main
+      - feature/**
+    paths:
+      - "k8s/kubeopencode/dev-image/**"
+      - ".pre-commit-config.yaml"
+      - ".secrets.baseline"
+      - ".github/workflows/kubeopencode-dev-image.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "k8s/kubeopencode/dev-image/**"
+      - ".pre-commit-config.yaml"
+      - ".secrets.baseline"
+      - ".github/workflows/kubeopencode-dev-image.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dev-image-build:
+    name: Build & Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Same pinned version/ignores as the repo's pre-commit hadolint hook
+      # (.pre-commit-config.yaml: hadolint v2.12.0, --ignore DL3008 --ignore
+      # DL3018), for consistency between local and CI linting.
+      - name: Lint Dockerfile with hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: k8s/kubeopencode/dev-image/Dockerfile
+          ignore: DL3008,DL3018
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # No push: this repo's CI has no registry credentials configured for
+      # this image. Build context is the repo root (not dev-image/) -- the
+      # pre-commit-seed layer needs .pre-commit-config.yaml/.secrets.baseline
+      # from here. Uses the Dockerfile's default BASE_IMAGE_TAG.
+      - name: Build dev-toolchain image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: k8s/kubeopencode/dev-image/Dockerfile
+          push: false
+          load: true
+          tags: kubeopencode-agent-dev:ci
+
+      # Mirrors what a real /workspace pod would have: this repo checked out
+      # and bind-mounted in, with the smoke test run from inside a container
+      # built from the just-built image. --entrypoint overrides the base
+      # image's opencode-server entrypoint (untouched by this Dockerfile) so
+      # the container runs the smoke test instead.
+      - name: Run smoke test
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            --entrypoint /workspace/k8s/kubeopencode/dev-image/smoke-test.sh \
+            kubeopencode-agent-dev:ci \
+            /workspace
