@@ -113,11 +113,13 @@ interpreter fails with an `externally-managed-environment` error otherwise.
 
 ## Pre-warmed pre-commit cache
 
-The hook environments (`black`, `ruff`, `mypy`, `bandit`, `hadolint-docker`,
-`yamllint`, `shellcheck`, `markdownlint`, `detect-secrets`, `prettier` x2)
-are installed at build time (`pre-commit install-hooks`) against a scratch
-copy of this repo's `.pre-commit-config.yaml` and `.secrets.baseline`, and
-the resulting cache is baked at the image-layer path `/opt/pre-commit-seed`.
+The hook environments (`black`, `ruff`, `mypy`, `bandit`, `yamllint`,
+`shellcheck`, `markdownlint`, `detect-secrets`, `prettier` x2 -- every hook in
+`.pre-commit-config.yaml` **except** `hadolint-docker`, which has no
+installable environment at all; see "Known limitation" below) are installed
+at build time (`pre-commit install-hooks`) against a scratch copy of this
+repo's `.pre-commit-config.yaml` and `.secrets.baseline`, and the resulting
+cache is baked at the image-layer path `/opt/pre-commit-seed`.
 
 `PRE_COMMIT_HOME` is set to that path directly via `ENV` in the Dockerfile --
 **there is no runtime copy step**. An earlier draft of this image baked the
@@ -142,25 +144,43 @@ across the mandatory `kubectl delete pod` after every
 `make sync-opencode-configmap`. Overriding `PRE_COMMIT_HOME` explicitly
 sidesteps that regardless of where `/tmp` lives.
 
-The seed directory is `chmod -R g+w` at build time, matching the base
-image's own `USER 1000:0` (arbitrary-UID-friendly, GID 0) convention, so the
-runtime UID can still write lock files or anything a hook needs beyond what
-was pre-warmed.
+The seed directory is `chmod -R g+rwX` at build time, matching the base
+image's own `USER 1000:0` (arbitrary-UID-friendly, GID 0) convention. An
+earlier version of this image used `g+w` only, which added write but left
+`pre-commit install-hooks`'s own restrictive `db.db` (600) and hook-repo
+directories (700) unreadable to group 0 -- every real hook run under the
+runtime `USER 1000:0` failed with `unable to open database file`, something
+a smoke test that only checks `pre-commit --version` never caught (see
+`smoke-test.sh`, which now also runs a real hook). `g+rwX` grants read
+everywhere, write everywhere, and execute only where something already has
+an execute bit (directories, and hook-venv scripts that need `+x` to run).
 
 On a normal laptop or CI runner (no `/opt/pre-commit-seed`), `pre-commit`
 falls back to its own default cache location and behaves exactly as it did
 before this image existed.
 
+**What's still not fully offline:** `make pre-commit` depends on
+`install-hooks` (see `Makefile`), which runs `pip install -q pre-commit`
+into `.venv` -- an unpinned install from PyPI, separate from this image's own
+`pre-commit==4.0.1` on the system `python3`. That means a pod still needs
+PyPI reachability the first time `make pre-commit` runs (pip's own resolver
+check), even though the *hook environments* it then drives are fully
+pre-warmed and need no network. In practice the two `pre-commit` versions
+are cache-compatible (`4.0.1`'s seed was confirmed reusable by a `.venv`
+running `4.6.2`), so this doesn't cost a re-fetch of the 13 hook repos --
+only pip's own small resolve/install of the `pre-commit` package itself.
+
 ### Known limitation: hadolint can't actually run via `make pre-commit` in-pod
 
-`hadolint-docker` (this repo's actual hadolint hook type) needs a running
-Docker *daemon* to execute at all, at any point -- pre-warming its
-pre-commit-managed hook metadata at build time does not change that. The
-story's own "deliberately excluded" list excludes the Docker engine from
-this image, so this is a real, unresolvable-within-scope tension: hadolint's
-hook env is still pre-warmed here (harmless -- `pre-commit install-hooks`
-warms every hook's env indiscriminately), but actually invoking it inside a
-pod built from this image will fail without Docker. CI's own hadolint step
+`hadolint-docker` (this repo's actual hadolint hook type) is a `language:
+docker_image` pre-commit hook -- unlike the venv-based hooks above, it has no
+isolated environment for `pre-commit install-hooks` to create or pre-warm at
+all; it runs by invoking `docker run hadolint/hadolint ...` directly every
+time, needing a working Docker *daemon* at invocation. The story's own
+"deliberately excluded" list excludes the Docker engine from this image, so
+this is a real, unresolvable-within-scope tension: there is nothing this
+image can pre-warm for this specific hook, and invoking it inside a pod
+built from this image will fail without Docker regardless. CI's own hadolint step
 (`.github/workflows/kubeopencode-dev-image.yml`, via `hadolint-action`, and
 `test_update.yml`'s equivalent for the rest of the repo) runs outside
 `make pre-commit` entirely, against a pinned hadolint binary/action, and is
@@ -215,9 +235,11 @@ docker run --rm -v "$(pwd):/workspace" -w /workspace \
   /workspace
 ```
 
-(`--entrypoint` overrides the base image's own entrypoint, which this
-Dockerfile deliberately leaves untouched, so the container runs the smoke
-test instead.)
+(The base image has no `ENTRYPOINT` -- only `CMD ["/bin/zsh"]`, untouched by
+this Dockerfile. `--entrypoint` here just points the container at the smoke
+test instead of a shell. If your host UID differs from the image's baked
+`USER 1000:0`, add `--user "$(id -u):0"` too, same as CI does -- see
+`.github/workflows/kubeopencode-dev-image.yml`.)
 
 Or directly in a pod (repo already at `/workspace` per `agent.yaml`'s
 `workspaceDir`):

@@ -40,8 +40,8 @@ FROM ${BASE_IMAGE_TAG}
 
 # The base image's own Dockerfile sets SHELL ["/bin/bash", "-c"], but SHELL
 # does not carry across a FROM boundary into a derivative Dockerfile -- redo
-# it here (with pipefail, hadolint DL4006) since a later RUN uses `pip`
-# output piped through a check.
+# it here (with pipefail, hadolint DL4006) so any pipeline added to this file
+# later fails loudly instead of silently swallowing a non-zero exit code.
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Base ends as USER 1000:0; switch back to root (numeric, hadolint DL3066 --
@@ -101,15 +101,38 @@ RUN pip install --no-cache-dir --break-system-packages \
 # for git to flag -- no `git config --global --add safe.directory` needed.
 WORKDIR /opt/pre-commit-seed-src
 COPY .pre-commit-config.yaml .secrets.baseline ./
+# g+w alone only adds the write bit to whatever pre-commit created (repo dirs
+# at 700, db.db at 600) -- the runtime USER 1000:0 (group 0) still couldn't
+# *read* the database or traverse the directories, so every hook run failed
+# with "unable to open database file". g+rwX adds read everywhere, write
+# everywhere, and execute only where something is already executable
+# (directories, and files like venv bin/ scripts that need +x to run) --
+# confirmed against a real UID 1000:0 container that `pre-commit run` reuses
+# the cache with no "Installing environment" re-fetch.
 RUN git init -q \
     && git -c user.email=seed@build -c user.name=seed add -A \
     && git -c user.email=seed@build -c user.name=seed commit -q -m seed \
     && PRE_COMMIT_HOME=/opt/pre-commit-seed pre-commit install-hooks \
-    && chmod -R g+w /opt/pre-commit-seed
+    && chmod -R g+rwX /opt/pre-commit-seed
 WORKDIR /workspace
 RUN rm -rf /opt/pre-commit-seed-src
 
 ENV PRE_COMMIT_HOME=/opt/pre-commit-seed
+
+# Every RUN above executes as root with the base image's own HOME=/tmp and
+# XDG_CACHE_HOME=/tmp/.cache in effect (that's the base's ENV, unrelated to
+# PRE_COMMIT_HOME above) -- pip's own cache and the node-language pre-commit
+# hooks (prettier, markdownlint, which pre-commit installs via an isolated
+# nodeenv using the base's system Node) both write into /tmp as a side
+# effect, leaving root-owned files there (confirmed: /tmp/.npm,
+# /tmp/node-compile-cache, /tmp/.cache/pip, /tmp/.cache/virtualenv). Left
+# alone, that breaks `npm`/`npx` for the runtime USER 1000:0 with
+# "EACCES ... please run: sudo chown -R 1000:0". The base already treats
+# /tmp as world-writable by design for exactly this arbitrary-UID reason (see
+# its own Dockerfile: "chmod -R 777 ... for OpenShift arbitrary UID
+# compatibility") -- restore that same invariant for whatever this
+# derivative's own RUN steps added on top of the base's image layer.
+RUN chmod -R 777 /tmp
 
 # Deliberately excluded (per the story): JDK/Gradle/Android SDK, Docker
 # engine, Ollama, Terraform, the full api/ backend venv.

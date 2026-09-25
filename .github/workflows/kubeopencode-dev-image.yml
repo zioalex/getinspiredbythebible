@@ -73,12 +73,22 @@ jobs:
 
       # Mirrors what a real /workspace pod would have: this repo checked out
       # and bind-mounted in, with the smoke test run from inside a container
-      # built from the just-built image. --entrypoint overrides the base
-      # image's opencode-server entrypoint (untouched by this Dockerfile) so
-      # the container runs the smoke test instead.
+      # built from the just-built image. The base image has no ENTRYPOINT
+      # (only CMD ["/bin/zsh"], untouched by this Dockerfile) -- --entrypoint
+      # here just points the container at the smoke test instead of a shell.
+      #
+      # --user "$(id -u):0": the image's baked USER is 1000:0, but the
+      # runner's checkout (bind-mounted at /workspace) is owned by whatever
+      # UID actually ran `actions/checkout` (not necessarily 1000) -- without
+      # matching it, `make verify-opencode-config` fails writing
+      # opencode.json with "Permission denied". Matching the *host* UID
+      # (keeping group 0, same as the image) is what a real pod would not
+      # need to do (there the image UID owns everything from the start), but
+      # is required for this bind-mount-based CI reproduction.
       - name: Run smoke test
         run: |
           docker run --rm \
+            --user "$(id -u):0" \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
             --entrypoint /workspace/k8s/kubeopencode/dev-image/smoke-test.sh \

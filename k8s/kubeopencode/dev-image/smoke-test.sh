@@ -36,4 +36,15 @@ echo "+ cd $REPO_DIR"
 cd "$REPO_DIR"
 run make verify-opencode-config
 
+# `pre-commit --version` above never opens the hook cache -- it can pass even
+# when PRE_COMMIT_HOME is unreadable by the running user (this is exactly how
+# a broken baked cache slipped through the first build of this image: every
+# real hook run failed with "unable to open database file", but the smoke
+# test only checked --version). Actually run a fast, dependency-free hook
+# against real repo files so a cache-permission or path regression fails
+# here instead of silently in a pod. check-yaml needs no network and no
+# Docker (unlike the hadolint-docker hook -- see README's "Known limitation"
+# section), and this repo has plenty of YAML files to match against.
+run pre-commit run check-yaml --all-files
+
 echo "=== All smoke-test checks passed ==="
