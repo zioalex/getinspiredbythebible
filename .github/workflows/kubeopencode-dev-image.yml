@@ -11,7 +11,7 @@ run-name: >-
 # Docker") because this job does a real `docker build` + container run. No
 # push, no secrets: this repo's CI has no registry credentials, so this only
 # validates the Dockerfile builds and the smoke test passes -- pushing the
-# image and flipping agentImage: on the live Agent is a manual follow-up
+# image and setting executorImage: on the live Agent is a manual follow-up
 # (see k8s/kubeopencode/dev-image/README.md).
 "on":
   pull_request:
@@ -20,6 +20,7 @@ run-name: >-
       - feature/**
     paths:
       - "k8s/kubeopencode/dev-image/**"
+      - "Makefile"
       - ".pre-commit-config.yaml"
       - ".secrets.baseline"
       - ".github/workflows/kubeopencode-dev-image.yml"
@@ -28,6 +29,7 @@ run-name: >-
       - main
     paths:
       - "k8s/kubeopencode/dev-image/**"
+      - "Makefile"
       - ".pre-commit-config.yaml"
       - ".secrets.baseline"
       - ".github/workflows/kubeopencode-dev-image.yml"

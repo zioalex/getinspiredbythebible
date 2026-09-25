@@ -1,8 +1,8 @@
 # BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
 
 **Status:** 🚧 In Progress — PR pending (Dockerfile + CI build validation implemented;
-registry push and `agentImage` cutover on the live cluster are a manual follow-up, out
-of scope for this PR)
+registry push and `executorImage` cutover on the live cluster are a manual follow-up,
+out of scope for this PR)
 **Priority:** P1
 **Size:** M (Dockerfile + build/push pipeline + docs; no app code)
 **Created:** 2026-09-15
@@ -49,6 +49,21 @@ slow cold-installs and fragile workarounds on every fresh pod:
 
 ## What to bake
 
+> **v2 correction (2026-09-25):** the table below was written before a first
+> (v1) build was independently verified and found to have built FROM the
+> wrong upstream image (`kubeopencode-agent-opencode`, the `agentImage`
+> default — an Alpine image with no shell, and not even the container where
+> tasks run) and told users to set the wrong CRD field (`agentImage:`
+> instead of `executorImage:`). It also assumed the base shipped nothing,
+> when `kubeopencode-agent-devbox` (the real `executorImage` default)
+> already ships `git`/`make`/`curl`/`jq`/`gh`/`kubectl`/`yq`/system Node
+> 22.x (no NVM)/`python3`+`pip`. The table is kept here for historical
+> context of what the story originally asked for; see
+> `k8s/kubeopencode/dev-image/README.md` for what the shipped v2 image
+> actually adds on top of that base (just `ripgrep` + `pytest`/`pre-commit`/
+> `PyYAML` + a pre-warmed hook cache) and why Python is 3.11 (bookworm's
+> system `python3`), not 3.12.
+
 | Layer | Packages (pin to repo) |
 |---|---|
 | VCS + build | `git` (recent, worktree support), `make`, `bash`, `curl` |
@@ -64,23 +79,36 @@ Docker engine, Ollama, Terraform, full `api/` backend venv.
 
 ## Acceptance Criteria
 
-- [ ] Agent Dockerfile (or base-image extension) installs the table above with
+- [x] Agent Dockerfile (or base-image extension) installs the table above with
       repo-pinned versions (`.pre-commit-config.yaml` revs, Node `22.22.0`,
-      Python `3.12`)
-- [ ] Hook envs pre-warmed at build time (`pre-commit install-hooks` or
+      Python `3.12`) — shipped as: base image (`kubeopencode-agent-devbox`,
+      the `executorImage`) already provides Node 22.x and Python 3.11 system-
+      wide; this derivative adds `ripgrep` + pinned `pytest`/`pre-commit`/
+      `PyYAML`. Python is 3.11, not 3.12 — see `dev-image/README.md` for why
+      that's a deliberate, documented deviation.
+- [x] Hook envs pre-warmed at build time (`pre-commit install-hooks` or
       equivalent); first real `make pre-commit` in a fresh pod is a cache hit
-- [ ] `PRE_COMMIT_HOME` placed under `/workspace` (or otherwise on the PVC) so
-      the mandatory post-sync `kubectl delete pod` does not wipe hook caches
-- [ ] Smoke test in Dockerfile/CI: `gh --version`, `kubectl version --client`,
+- [x] `PRE_COMMIT_HOME` placed under `/workspace` (or otherwise on the PVC) so
+      the mandatory post-sync `kubectl delete pod` does not wipe hook caches —
+      shipped as `PRE_COMMIT_HOME=/opt/pre-commit-seed`, a fixed path baked
+      directly into the image layer (not the PVC) once the copy-based design
+      was found to break pre-commit's own absolute-path `db.db`; see
+      `dev-image/README.md` "Pre-warmed pre-commit cache".
+- [x] Smoke test in Dockerfile/CI: `gh --version`, `kubectl version --client`,
       `python3 -c "import yaml, pytest"`, `node --version`,
       `pre-commit --version`, `make verify-opencode-config` — the exact
       commands that failed or were worked around in PR #1079
-- [ ] `python3 -m pytest scripts/test_generate_opencode_config.py -q` green in
+- [x] `python3 -m pytest scripts/test_generate_opencode_config.py -q` green in
       a fresh pod with no warm-up
-- [ ] ESLint hook works with baked Node (NVM shim or documented fallback)
+- [x] ESLint hook works with baked Node — moot in practice: the base ships
+      Node 22.x as a plain system package (no NVM), and the hook's
+      `$NVM_DIR/nvm.sh` guard is a no-op that falls through to system `node`/
+      `npx` already on `PATH`; no image or hook change needed
 - [ ] Follow-ups filed or fixed: stale `README.md` cross-provider table
-      (`muse-spark`/`gemma-3-27b` → super/gpt-oss, matching `agents.md`),
-      NVM-assumption note
+      (`muse-spark`/`gemma-3-27b` → super/gpt-oss, matching `agents.md`) — see
+      `docs/BACKLOG_STORIES/BITB-163-sync-kubeopencode-fallback-table-post-1079.md`
+      (blocked on PR #1079 merging); NVM-assumption note — resolved above,
+      no longer applicable on the `executorImage` base this image derives from
 
 ## Notes / Leads
 

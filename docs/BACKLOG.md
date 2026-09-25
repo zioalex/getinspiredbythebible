@@ -2,8 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-25 (BITB-158 marked In Progress — dev-image Dockerfile, smoke test,
-docs, and CI build validation implemented; PR pending)
+**Last Updated:** 2026-09-25 (BITB-158 v2 rewrite — corrected base image
+(`executorImage`/`kubeopencode-agent-devbox`, not `agentImage`/
+`kubeopencode-agent-opencode`) and pre-commit cache design; still In Progress,
+PR pending. BITB-163 filed as a follow-up for the deferred fallback-table sync)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -249,7 +251,7 @@ stays reviewable.
 ### 🚧 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
 
 **Status:** 🚧 In Progress — PR pending (Dockerfile + CI build validation implemented; registry
-push and `agentImage` cutover on the live cluster are a manual follow-up, out of scope for
+push and `executorImage` cutover on the live cluster are a manual follow-up, out of scope for
 this PR)
 **Priority:** P1
 **Size:** M
@@ -258,15 +260,22 @@ this PR)
 PR #1079 showed the agent pod missing its dev toolchain: no `gh`, no
 `kubectl`, no `pytest`/`PyYAML`, broken `make pre-commit` (unsatisfiable
 venv deps, missing binary, wiped hook caches), no `jq`/`yq`, and an ESLint
-hook assuming NVM. Bake all of it (pinned to repo revs: Node 22.22.0,
-Python 3.12, hook versions) with pre-warmed hook caches on the PVC.
+hook assuming NVM. **v2 correction (2026-09-25):** the image derives from
+`kubeopencode-agent-devbox` (the `executorImage` CRD field, not `agentImage`,
+which is a different init-container field), which already ships `gh`/
+`kubectl`/`jq`/`yq`/system Node 22.x (no NVM needed)/`python3`; this
+derivative only adds `ripgrep` + pinned `pytest`/`PyYAML`/`pre-commit`, with
+a pre-warmed hook cache baked directly into the image layer
+(`PRE_COMMIT_HOME=/opt/pre-commit-seed`, not a PVC copy step). Python is
+3.11 (bookworm's system Python), a deliberate, documented deviation from the
+story's original "3.12" — see `k8s/kubeopencode/dev-image/README.md`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Image installs `gh`, `kubectl`, `git`, `make`, `jq`/`yq`, `rg`, Python 3.12 + `pytest`/`PyYAML`/`pre-commit`, Node 22.22.0, all hook binaries pre-warmed
-- [ ] `PRE_COMMIT_HOME` on the PVC so post-sync pod restarts don't wipe caches
-- [ ] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
-- [ ] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
+- [x] Image installs `gh`, `kubectl`, `git`, `make`, `jq`/`yq`, `rg`, Python 3.11 (system) + `pytest`/`PyYAML`/`pre-commit`, Node 22.x (system), all hook binaries pre-warmed
+- [x] `PRE_COMMIT_HOME` baked into the image layer so post-sync pod restarts don't wipe caches
+- [x] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
+- [x] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
 
 Full story: [`BITB-158-kubeopencode-dev-image.md`](BACKLOG_STORIES/BITB-158-kubeopencode-dev-image.md)
 
@@ -2271,6 +2280,29 @@ Depends on BITB-116's boosting A/B numbers to justify the investment — a recal
 not yet proven to help is low value.
 
 **Full Story:** [`BITB-162-arabic-morphology-aware-topic-matching.md`](BACKLOG_STORIES/BITB-162-arabic-morphology-aware-topic-matching.md)
+
+---
+
+### 🎯 BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
+
+**Status:** 🎯 Todo
+**Priority:** P3 — doc-only drift, no functional impact
+**Size:** XS
+**Created:** 2026-09-25
+
+`deployment/kubeopencode/README.md`'s "Cross-provider Resilience" table still lists
+`opencode/muse-spark` / `openrouter/gemma-3-27b:free` as the fallback tiers. PR #1079
+(Ultra → Super-Free + GPT-OSS-120B fallback swap) changes `agents.md`'s model names but has not
+merged yet, so the table was deliberately left unsynced (BITB-158's v2 correction verified it is
+still untouched by that PR's own edits — see `git diff main -- deployment/kubeopencode/README.md`).
+
+**Acceptance Criteria:**
+
+- [ ] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
+      model names) to match the merged `agents.md` / generated `opencode.json`
+- [ ] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
+
+**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](BACKLOG_STORIES/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
 
 ---
 

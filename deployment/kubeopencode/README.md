@@ -268,17 +268,19 @@ persistence:
 - Access mode is chosen by the operator. Verify it supports multi-attach before
   scaling the agent past one replica.
 
-> **In-pod toolchain (BITB-158).** The base `agentImage` ships the opencode
-> binary but not `gh`/`kubectl`/`pytest`/`pre-commit`/Node -- every fresh pod
-> repeated the same cold-install failures (`gh` missing, `python3 -m pytest`
-> with no `pytest` installed, `make pre-commit` unable to build a venv, hook
-> caches wiped by the mandatory `kubectl delete pod` above). A derivative
-> image that bakes in the toolchain and pre-warms the `pre-commit` hook cache
-> onto this same `spec.persistence.workspace` PVC (so it survives pod
-> restarts) is documented in `k8s/kubeopencode/dev-image/README.md`. That PR
-> ships the Dockerfile + CI build validation only -- pushing it to a registry
-> and flipping `agentImage` here is a manual follow-up, same as the rest of
-> this section.
+> **In-pod toolchain (BITB-158).** The base `executorImage`
+> (`kubeopencode-agent-devbox`) ships most of the dev toolchain already
+> (`git`/`make`/`curl`/`jq`/`gh`/`kubectl`/`yq`/system Node 22.x/`python3`)
+> but not `ripgrep`/`pytest`/`pre-commit` -- every fresh pod repeated the same
+> cold-install failures (`python3 -m pytest` with no `pytest` installed,
+> `make pre-commit` unable to build a venv, hook caches wiped by the mandatory
+> `kubectl delete pod` above). A derivative image that adds the missing
+> pieces and bakes a pre-warmed `pre-commit` hook cache directly into the
+> image layer (`PRE_COMMIT_HOME=/opt/pre-commit-seed`, no PVC copy step) is
+> documented in `k8s/kubeopencode/dev-image/README.md`. That PR ships the
+> Dockerfile + CI build validation only -- pushing it to a registry and
+> setting `spec.executorImage` here is a manual follow-up, same as the rest
+> of this section.
 
 Check what was provisioned:
 

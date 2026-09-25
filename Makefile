@@ -14,7 +14,8 @@
 	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-down docker-down-dev \
 	docker-up-prod docker-up-prod-gpu \
 	docker-up-local-prod docker-up-local-prod-build docker-up-local-prod-acr-be \
-	docker-down-local-prod docker-logs-local-prod docker-restart-local-prod-api
+	docker-down-local-prod docker-logs-local-prod docker-restart-local-prod-api \
+	lint-kubeopencode-dev-image build-kubeopencode-dev-image
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -287,18 +288,16 @@ golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)
 check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
 
-pre-commit: install-deps ## Run pre-commit on all files
-	@# BITB-158: on a KubeOpenCode dev-image pod, /opt/pre-commit-seed is a
-	@# pre-warmed hook cache baked into the image (k8s/kubeopencode/dev-image/).
-	@# Seed PRE_COMMIT_HOME from it on first use so the first real run after a
-	@# pod restart is a cache hit instead of a 13-repo cold download. On a
-	@# normal laptop or CI runner /opt/pre-commit-seed doesn't exist, so this
-	@# is a no-op and behavior is unchanged.
-	@if [ -d /opt/pre-commit-seed ] && [ ! -d "$${PRE_COMMIT_HOME:-$$HOME/.cache/pre-commit}" ]; then \
-		mkdir -p "$$(dirname "$${PRE_COMMIT_HOME:-$$HOME/.cache/pre-commit}")"; \
-		cp -r /opt/pre-commit-seed "$${PRE_COMMIT_HOME:-$$HOME/.cache/pre-commit}"; \
-		echo "$(GREEN)✓ Seeded pre-commit cache from baked image$(NC)"; \
-	fi
+pre-commit: install-hooks ## Run pre-commit on all files
+	@# BITB-158: pre-commit run --all-files only needs the pre-commit binary
+	@# itself installed (install-hooks), not the application's full dependency
+	@# graph (install-deps pulls api/requirements-dev.txt -> requirements.txt,
+	@# including lingua-language-detector, which is unsatisfiable on a
+	@# KubeOpenCode dev-image pod). On a KubeOpenCode dev-image pod
+	@# (k8s/kubeopencode/dev-image/), PRE_COMMIT_HOME is set directly to a
+	@# pre-warmed cache baked into the image at /opt/pre-commit-seed -- no
+	@# seeding step needed here; on a normal laptop or CI runner that ENV var
+	@# is unset and pre-commit uses its own default cache location.
 	@echo "$(BLUE)Running pre-commit hooks on all files...$(NC)"
 	@$(CURDIR)/$(VENV)/bin/pre-commit run --all-files
 	@echo "$(GREEN)✓ Pre-commit checks complete$(NC)"
