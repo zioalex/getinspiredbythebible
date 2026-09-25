@@ -2,10 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
-column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
-BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
-BITB-084 Part C done via BITB-102)
+**Last Updated:** 2026-09-25 (BITB-158 v2 rewrite — corrected base image
+(`executorImage`/`kubeopencode-agent-devbox`, not `agentImage`/
+`kubeopencode-agent-opencode`) and pre-commit cache design; still In Progress,
+PR pending. BITB-163 filed as a follow-up for the deferred fallback-table sync)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -248,9 +248,11 @@ stays reviewable.
 
 ---
 
-### 🎯 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
+### 🚧 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — PR pending (Dockerfile + CI build validation implemented; registry
+push and `executorImage` cutover on the live cluster are a manual follow-up, out of scope for
+this PR)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-09-15
@@ -258,15 +260,22 @@ stays reviewable.
 PR #1079 showed the agent pod missing its dev toolchain: no `gh`, no
 `kubectl`, no `pytest`/`PyYAML`, broken `make pre-commit` (unsatisfiable
 venv deps, missing binary, wiped hook caches), no `jq`/`yq`, and an ESLint
-hook assuming NVM. Bake all of it (pinned to repo revs: Node 22.22.0,
-Python 3.12, hook versions) with pre-warmed hook caches on the PVC.
+hook assuming NVM. **v2 correction (2026-09-25):** the image derives from
+`kubeopencode-agent-devbox` (the `executorImage` CRD field, not `agentImage`,
+which is a different init-container field), which already ships `gh`/
+`kubectl`/`jq`/`yq`/system Node 22.x (no NVM needed)/`python3`; this
+derivative only adds `ripgrep` + pinned `pytest`/`PyYAML`/`pre-commit`, with
+a pre-warmed hook cache baked directly into the image layer
+(`PRE_COMMIT_HOME=/opt/pre-commit-seed`, not a PVC copy step). Python is
+3.11 (bookworm's system Python), a deliberate, documented deviation from the
+story's original "3.12" — see `k8s/kubeopencode/dev-image/README.md`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Image installs `gh`, `kubectl`, `git`, `make`, `jq`/`yq`, `rg`, Python 3.12 + `pytest`/`PyYAML`/`pre-commit`, Node 22.22.0, all hook binaries pre-warmed
-- [ ] `PRE_COMMIT_HOME` on the PVC so post-sync pod restarts don't wipe caches
-- [ ] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
-- [ ] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
+- [x] Image installs `gh`, `kubectl`, `git`, `make`, `jq`/`yq`, `rg`, Python 3.11 (system) + `pytest`/`PyYAML`/`pre-commit`, Node 22.x (system), all hook binaries pre-warmed
+- [x] `PRE_COMMIT_HOME` baked into the image layer so post-sync pod restarts don't wipe caches
+- [x] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
+- [x] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
 
 Full story: [`BITB-158-kubeopencode-dev-image.md`](BACKLOG_STORIES/BITB-158-kubeopencode-dev-image.md)
 
@@ -333,9 +342,9 @@ Full story: [`BITB-154-kubeopencode-multi-provider-resilience.md`](BACKLOG_STORI
 
 ---
 
-### 🎯 BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
+### ✅ BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1045, #1086, #1087 merged 2026-09-18)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-09-06
@@ -358,13 +367,13 @@ localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
 - [ ] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
 - [ ] `scripts/validate-env.py` passes
 
-Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/BITB-152-kubeopencode-strict-tier-hardening.md)
+Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](DONE/BITB-152-kubeopencode-strict-tier-hardening.md)
 
 ---
 
-### 🎯 BITB-159: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
+### ✅ BITB-159: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1091 merged 2026-09-22)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-19
@@ -394,13 +403,13 @@ diagnostic bundle *at failure time*, and optionally restarts CoreDNS.
 - [ ] Static tests runnable in CI with no cluster
 - [ ] `yamllint` + `shellcheck` + `markdownlint` clean
 
-Full story: [`BITB-159-coredns-dns-watchdog.md`](BACKLOG_STORIES/BITB-159-coredns-dns-watchdog.md)
+Full story: [`BITB-159-coredns-dns-watchdog.md`](DONE/BITB-159-coredns-dns-watchdog.md)
 
 ---
 
-### 🎯 BITB-160: Cluster Triage Collector And Runbook
+### ✅ BITB-160: Cluster Triage Collector And Runbook
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1091 merged 2026-09-22)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-09-19
@@ -424,7 +433,7 @@ next incident starts from a command rather than a conversation.
 - [ ] States that `connection refused` can be a NetworkPolicy (kube-router REJECTs)
 - [ ] Static tests, `shellcheck`/`yamllint`/`markdownlint` clean, wired into CI
 
-Full story: [`BITB-160-cluster-triage-runbook.md`](BACKLOG_STORIES/BITB-160-cluster-triage-runbook.md)
+Full story: [`BITB-160-cluster-triage-runbook.md`](DONE/BITB-160-cluster-triage-runbook.md)
 
 ---
 
@@ -2274,6 +2283,29 @@ not yet proven to help is low value.
 
 ---
 
+### 🎯 BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
+
+**Status:** 🎯 Todo
+**Priority:** P3 — doc-only drift, no functional impact
+**Size:** XS
+**Created:** 2026-09-25
+
+`deployment/kubeopencode/README.md`'s "Cross-provider Resilience" table still lists
+`opencode/muse-spark` / `openrouter/gemma-3-27b:free` as the fallback tiers. PR #1079
+(Ultra → Super-Free + GPT-OSS-120B fallback swap) changes `agents.md`'s model names but has not
+merged yet, so the table was deliberately left unsynced (BITB-158's v2 correction verified it is
+still untouched by that PR's own edits — see `git diff main -- deployment/kubeopencode/README.md`).
+
+**Acceptance Criteria:**
+
+- [ ] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
+      model names) to match the merged `agents.md` / generated `opencode.json`
+- [ ] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
+
+**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](BACKLOG_STORIES/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
+
+---
+
 ### ✅ BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
 **Status:** ✅ Done — role, grants, and workflow swap implemented; the operator created the
@@ -2436,9 +2468,9 @@ surfaced a related-but-separate latent gap in the migration-utils mirror helper,
 
 ---
 
-### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+### ✅ BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1090 merged 2026-09-22)
 **Priority:** P2
 **Size:** S
 
@@ -2455,7 +2487,7 @@ branching). Latent — no DSN in this repo currently uses that spelling — but
 `docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
 makes it easy for an operator to stumble into by hand.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
+**Full Story:** `docs/DONE/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 

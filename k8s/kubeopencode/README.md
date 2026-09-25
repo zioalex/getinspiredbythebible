@@ -16,6 +16,7 @@ custom-opencode-image workflow.
 | `cloudflared-deployment.yaml` | In-cluster `cloudflared` connector (token mode) for the Cloudflare WARP + private-route path. |
 | `mobile-access.md` | Plan/runbook for reaching the agent from the phone app (Cloudflare WARP + Tailscale). |
 | `custom-opencode-image.md` | How to build/publish a custom agent image to run a newer opencode. |
+| `dev-image/` | Derivative of `kubeopencode-agent-devbox` (the `executorImage`, not `agentImage`) adding `ripgrep`, `pytest`, `pre-commit`, `PyYAML`, and pre-warmed `pre-commit` hook envs on top of what that base already ships (`git`/`make`/`curl`/`jq`/`gh`/`kubectl`/`yq`/system Node 22.x/`python3`), so `make pre-commit`/`make verify-opencode-config` work in-pod (BITB-158). See `dev-image/README.md`. |
 
 ## Secrets to create (not stored in git)
 

@@ -14,7 +14,8 @@
 	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-down docker-down-dev \
 	docker-up-prod docker-up-prod-gpu \
 	docker-up-local-prod docker-up-local-prod-build docker-up-local-prod-acr-be \
-	docker-down-local-prod docker-logs-local-prod docker-restart-local-prod-api
+	docker-down-local-prod docker-logs-local-prod docker-restart-local-prod-api \
+	lint-kubeopencode-dev-image build-kubeopencode-dev-image
 
 # Use bash for better compatibility
 SHELL := /bin/bash
@@ -287,7 +288,16 @@ golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)
 check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
 
-pre-commit: install-deps ## Run pre-commit on all files
+pre-commit: install-hooks ## Run pre-commit on all files
+	@# BITB-158: pre-commit run --all-files only needs the pre-commit binary
+	@# itself installed (install-hooks), not the application's full dependency
+	@# graph (install-deps pulls api/requirements-dev.txt -> requirements.txt,
+	@# including lingua-language-detector, which is unsatisfiable on a
+	@# KubeOpenCode dev-image pod). On a KubeOpenCode dev-image pod
+	@# (k8s/kubeopencode/dev-image/), PRE_COMMIT_HOME is set directly to a
+	@# pre-warmed cache baked into the image at /opt/pre-commit-seed -- no
+	@# seeding step needed here; on a normal laptop or CI runner that ENV var
+	@# is unset and pre-commit uses its own default cache location.
 	@echo "$(BLUE)Running pre-commit hooks on all files...$(NC)"
 	@$(CURDIR)/$(VENV)/bin/pre-commit run --all-files
 	@echo "$(GREEN)✓ Pre-commit checks complete$(NC)"
@@ -349,6 +359,17 @@ deploy-dns-watchdog: ## Deploy the CoreDNS watchdog to the LIVE cluster (BITB-15
 		-f k8s/dns-watchdog/role-watchdog.yaml -f k8s/dns-watchdog/rolebinding-watchdog.yaml \
 		-f k8s/dns-watchdog/configmap-watchdog.yaml -f k8s/dns-watchdog/deployment.yaml
 	@echo "$(GREEN)✓ dns-watchdog deployed$(NC)"
+
+lint-kubeopencode-dev-image: ## Lint the dev-toolchain agent Dockerfile (BITB-158)
+	@echo "$(BLUE)Linting k8s/kubeopencode/dev-image/Dockerfile...$(NC)"
+	@docker run --rm -i hadolint/hadolint:v2.12.0 hadolint --ignore DL3008 --ignore DL3018 - \
+		< k8s/kubeopencode/dev-image/Dockerfile
+	@echo "$(GREEN)✓ Dockerfile lint complete$(NC)"
+
+build-kubeopencode-dev-image: ## Build the dev-toolchain agent image (BITB-158). Usage: make build-kubeopencode-dev-image TAG=kubeopencode-agent-dev:local
+	@echo "$(BLUE)Building KubeOpenCode dev-toolchain image...$(NC)"
+	@docker build -f k8s/kubeopencode/dev-image/Dockerfile -t $(or $(TAG),kubeopencode-agent-dev:local) .
+	@echo "$(GREEN)✓ Image built: $(or $(TAG),kubeopencode-agent-dev:local)$(NC)"
 
 validate-env: install-deps ## Validate env vars between docker-compose and Terraform
 	@echo "$(BLUE)Validating environment variable consistency...$(NC)"
