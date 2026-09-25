@@ -2,10 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
-column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
-BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
-BITB-084 Part C done via BITB-102)
+**Last Updated:** 2026-09-25 (hygiene pass: BITB-152 marked Done — PR #1045/#1086/#1087
+merged 2026-09-18; BITB-159 and BITB-160 marked Done — PR #1091 merged 2026-09-22; BITB-125
+marked Done — PR #1090 merged 2026-09-22; all four story files moved to docs/DONE/. Statuses
+had drifted: each already shipped to main but the index still read Todo)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -333,9 +333,9 @@ Full story: [`BITB-154-kubeopencode-multi-provider-resilience.md`](BACKLOG_STORI
 
 ---
 
-### 🎯 BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
+### ✅ BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1045, #1086, #1087 merged 2026-09-18)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-09-06
@@ -358,13 +358,13 @@ localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
 - [ ] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
 - [ ] `scripts/validate-env.py` passes
 
-Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/BITB-152-kubeopencode-strict-tier-hardening.md)
+Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](DONE/BITB-152-kubeopencode-strict-tier-hardening.md)
 
 ---
 
-### 🎯 BITB-159: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
+### ✅ BITB-159: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1091 merged 2026-09-22)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-19
@@ -394,13 +394,13 @@ diagnostic bundle *at failure time*, and optionally restarts CoreDNS.
 - [ ] Static tests runnable in CI with no cluster
 - [ ] `yamllint` + `shellcheck` + `markdownlint` clean
 
-Full story: [`BITB-159-coredns-dns-watchdog.md`](BACKLOG_STORIES/BITB-159-coredns-dns-watchdog.md)
+Full story: [`BITB-159-coredns-dns-watchdog.md`](DONE/BITB-159-coredns-dns-watchdog.md)
 
 ---
 
-### 🎯 BITB-160: Cluster Triage Collector And Runbook
+### ✅ BITB-160: Cluster Triage Collector And Runbook
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1091 merged 2026-09-22)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-09-19
@@ -424,7 +424,7 @@ next incident starts from a command rather than a conversation.
 - [ ] States that `connection refused` can be a NetworkPolicy (kube-router REJECTs)
 - [ ] Static tests, `shellcheck`/`yamllint`/`markdownlint` clean, wired into CI
 
-Full story: [`BITB-160-cluster-triage-runbook.md`](BACKLOG_STORIES/BITB-160-cluster-triage-runbook.md)
+Full story: [`BITB-160-cluster-triage-runbook.md`](DONE/BITB-160-cluster-triage-runbook.md)
 
 ---
 
@@ -2436,9 +2436,9 @@ surfaced a related-but-separate latent gap in the migration-utils mirror helper,
 
 ---
 
-### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+### ✅ BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1090 merged 2026-09-22)
 **Priority:** P2
 **Size:** S
 
@@ -2455,7 +2455,7 @@ branching). Latent — no DSN in this repo currently uses that spelling — but
 `docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
 makes it easy for an operator to stumble into by hand.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
+**Full Story:** `docs/DONE/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 
