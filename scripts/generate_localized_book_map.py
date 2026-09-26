@@ -49,7 +49,16 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).parent.parent
 _JSON_PATH = _REPO_ROOT / "tests" / "fixtures" / "localized_book_map.json"
 _ANDROID_UTILS_DIR = (
-    _REPO_ROOT / "android" / "app" / "src" / "main" / "kotlin" / "org" / "voxquieta" / "app" / "utils"
+    _REPO_ROOT
+    / "android"
+    / "app"
+    / "src"
+    / "main"
+    / "kotlin"
+    / "org"
+    / "voxquieta"
+    / "app"
+    / "utils"
 )
 _KT_PATH = _ANDROID_UTILS_DIR / "LocalizedBookToEnglish.kt"
 _TS_PATH = _REPO_ROOT / "frontend" / "src" / "lib" / "localizedBookMap.generated.ts"
@@ -277,7 +286,9 @@ def render_grammar_kotlin(grammar: dict) -> str:
     lines = [_GRAMMAR_KT_HEADER]
 
     connector_words = grammar["connector_words"]
-    lines.append("    /** Connector words joined between two book-name words (e.g. \"of\" in \"Song of Solomon\"). */\n")
+    lines.append(
+        '    /** Connector words joined between two book-name words (e.g. "of" in "Song of Solomon"). */\n'
+    )
     lines.append("    val CONNECTOR_WORDS: List<String> = listOf(\n")
     for word in connector_words:
         lines.append(f"        {_kt_string_literal(word)},\n")
@@ -308,7 +319,9 @@ def render_grammar_kotlin(grammar: dict) -> str:
         "    /** Non-ASCII digit range: [start, end] Unicode codepoints, with a language label. */\n"
     )
     lines.append("    data class DigitRange(val label: String, val start: Char, val end: Char)\n\n")
-    lines.append("    /** Non-ASCII digit ranges the chapter/verse number class must also match. */\n")
+    lines.append(
+        "    /** Non-ASCII digit ranges the chapter/verse number class must also match. */\n"
+    )
     lines.append("    val NON_ASCII_DIGIT_RANGES: List<DigitRange> = listOf(\n")
     for r in grammar["non_ascii_digit_ranges"]:
         lines.append(
@@ -320,7 +333,9 @@ def render_grammar_kotlin(grammar: dict) -> str:
     lines.append(
         "    /** CJK/Korean bracket pair that may wrap a book name in a citation, with a label. */\n"
     )
-    lines.append("    data class BracketPair(val label: String, val open: Char, val close: Char)\n\n")
+    lines.append(
+        "    data class BracketPair(val label: String, val open: Char, val close: Char)\n\n"
+    )
     lines.append("    /** CJK/Korean bracket pairs that may wrap a book name in a citation. */\n")
     lines.append("    val CJK_BRACKET_PAIRS: List<BracketPair> = listOf(\n")
     for pair in grammar["cjk_bracket_pairs"]:
