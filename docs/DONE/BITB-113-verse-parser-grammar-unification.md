@@ -1,11 +1,47 @@
 # BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
 
-**Status:** 🚧 In Progress (2026-09-26)
+**Status:** ✅ Done (PR #1105, 2026-09-26)
 **Priority:** P2
 **Size:** L
 **Created:** 2026-08-31
 **Split from:** [BITB-108](BITB-108-verse-parser-phase-3-regex-grammar.md) — its ReDoS-safety ACs
 (benchmark + fix for the connector branch) shipped separately; this story is the remaining scope.
+
+## What Shipped (2026-09-26)
+
+The scope described in "Scope Cut" below, exactly as planned. An independent Verify (Opus) pass
+confirmed the regex behavior itself is unchanged — byte-identical `createVersePattern().source`
+on web (before vs. after, run against 65 multilingual inputs including CJK/Arabic/Devanagari/German
+comma/parenthesized citations), and semantically identical on Android (JVM-executed comparison,
+74 inputs, 0 differences; the two composed pattern strings differ only in escape notation and
+connector-word ordering, neither of which changes matching behavior). Android's own test suite
+(`VerseGrammarTest.kt`, `VerseRefRedosTest.kt`) could not run in this sandbox — Gradle can't
+resolve the Android plugin because the sandbox's egress proxy blocks `dl.google.com` — verified as
+a genuine network block, not a compile error, and confirmed passing on the repo's own CI instead.
+
+The Verify pass found four real gaps, all fixed and re-verified before this was marked Done:
+
+1. `api/tests/test_verse_grammar_parity.py` held its own hand-copied duplicate of
+   `verse_parser.py`'s `cv_pattern` instead of reading the real one — proven tautological by
+   mutating the real parser's separator characters and observing the test suite stay green.
+   Fixed: `verse_parser.py` now exposes `CV_PATTERN` at module level; the test imports it
+   directly, plus a new negative test asserting non-canonical separators/ranges are rejected.
+2. `scripts/test_generate_localized_book_map.py` never ran in CI (`test_update.yml`'s
+   `backend-tests` job only runs `cd api && pytest`, which never reaches `scripts/`). Fixed:
+   wired in alongside the existing `--check` guard step.
+3. `docs/AUDIT_PLAYBOOK.md`'s book-name-map row still claimed the regex grammar was entirely
+   outside this generator's scope. Fixed: updated to reflect what's now generated vs. still
+   hand-written per platform.
+4. The generator joined grammar JSON values directly into consumers' regex character classes
+   with no validation — a future JSON edit containing `]`, `\`, or `^` would have silently
+   corrupted a consumer's regex. Fixed: added a guard that rejects those characters with a clear
+   error, plus a test proving the failure is loud rather than silent.
+
+**Follow-up filed:** [BITB-164](BITB-164-versespanel-fourth-verse-grammar-copy.md) — the Verify
+pass found a **fourth** hand-written copy of this grammar in
+`android/.../presentation/components/VersesPanel.kt`, out of scope for this story and already
+drifted from the other three (missing के/ال connectors, `:`-only separator, no en-dash range,
+ASCII-only digits).
 
 ## Scope Cut (2026-09-26)
 
@@ -86,14 +122,16 @@ reviewable PR.
 
 ## Acceptance Criteria
 
-- [ ] Separator/range grammar and script-class alternations come from one source, generated for
-      TypeScript and Kotlin, with hand-editing failing CI
-- [ ] Python's relationship to that source is decided and enforced — generated, or contract-tested
-      like `translation_registry.py`
-- [ ] The shared cross-platform corpus (PR #906) stays green across all three implementations
-- [ ] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator
-- [ ] Duplicate-parser retirement (BITB-086) reconsidered once the grammar has one source — either
-      done, or explicitly deferred with a reason
+- [x] Separator/range/connector/digit-range/bracket grammar fragments come from one source,
+      generated for TypeScript and Kotlin, with hand-editing failing CI. (Script-class
+      *alternation* logic — which book names to list per script — stays hand-written per
+      platform; see Scope Cut for why that's a deliberate boundary, not a gap.)
+- [x] Python's relationship to that source is decided and enforced — contract-tested (not
+      generated) like `translation_registry.py`
+- [x] The shared cross-platform corpus (PR #906) stays green across all three implementations
+- [x] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator
+- [x] Duplicate-parser retirement (BITB-086) reconsidered — explicitly deferred with a reason
+      (three distinct regex engines make full retirement materially larger than this story)
 
 ## Verification
 

@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-26 (BITB-113 in progress — verse-parser grammar unification; BITB-164
+**Last Updated:** 2026-09-26 (BITB-113 done, PR #1105 — verse-parser grammar unification; BITB-164
 created — VersesPanel.kt fourth grammar copy, found by BITB-113's Verify stage; 2026-09-22:
 BITB-158 created — KubeOpenCode dev image; BITB-094 in progress — column-type audit tooling built;
 BITB-127 created — translations.created_at timezone-aware; BITB-153 guard extended; BITB-161
@@ -1896,11 +1896,16 @@ not bounded or benchmarked across input sizes in isolation.
 
 ---
 
-### 🚧 BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
+### ✅ BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
 
-**Status:** 🚧 In Progress (2026-09-26) — scoped to the literal separator/range/connector/digit
-grammar fragments (not the full compositional regex); see the story file for the exact scope cut
-and the recorded Python decision.
+**Status:** ✅ Done (PR #1105, 2026-09-26) — scoped to the literal separator/range/connector/digit
+grammar fragments (not the full compositional regex, and not the script-class book-name
+alternation logic); see the story file's "Scope Cut" section for the exact boundary and the
+recorded Python decision. Independently Verified (Opus pass): regex behavior on web confirmed
+byte-identical to pre-change, Android confirmed semantically identical (JVM-executed comparison
+across 74 multilingual inputs); four gaps the Verify pass found (a tautological Python contract
+test, generator tests never running in CI, a stale audit-doc line, and a character-class
+injection guard) were fixed and re-verified before merge.
 **Priority:** P2
 **Size:** L
 **Created:** 2026-08-31
@@ -1914,15 +1919,23 @@ separator/range grammar and script-class alternations.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Separator/range grammar and script-class alternations come from one generated source for
-      TypeScript and Kotlin; hand-editing fails CI
-- [ ] Python's relationship to that source decided and enforced — generated, or contract-tested like
-      `translation_registry.py`
-- [ ] Shared cross-platform corpus (PR #906) stays green across all three implementations
-- [ ] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator
-- [ ] Duplicate-parser retirement (noted in BITB-086) considered once the grammar has one source
+- [x] Separator/range/connector/digit-range/bracket grammar fragments come from one generated
+      source for TypeScript and Kotlin; hand-editing fails CI (`--check`, plus `VerseGrammarTest.kt`
+      on the Android side, which isn't reached by the path-filtered CI workflow). Script-class
+      alternation logic (which book names to list per script) stays hand-written per platform —
+      explicitly out of scope, see Scope Cut.
+- [x] Python's relationship decided and enforced: contract-tested (`test_verse_grammar_parity.py`,
+      importing `verse_parser.py`'s real `CV_PATTERN` after the Verify-pass fix), not generated —
+      reasoning recorded in the story
+- [x] Shared cross-platform corpus (PR #906) stays green across all three implementations
+- [x] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator
+- [x] Duplicate-parser retirement (BITB-086) explicitly deferred with a reason (three distinct
+      regex engines — JS/JVM/Python — make full retirement materially larger than this story)
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-113-verse-parser-grammar-unification.md`
+**Follow-up filed:** BITB-164 — `VersesPanel.kt` is a fourth, already-drifted hand-written copy
+of this grammar, found by the Verify pass and out of scope for this story.
+
+**Full Story:** `docs/DONE/BITB-113-verse-parser-grammar-unification.md`
 
 ---
 
