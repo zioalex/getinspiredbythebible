@@ -116,7 +116,9 @@ private val RANGE_SEPARATOR_CLASS =
     VerseGrammar.RANGE_SEPARATORS.joinToString("") { it.toString() }
 private val NON_ASCII_DIGIT_CLASS =
     VerseGrammar.NON_ASCII_DIGIT_RANGES.joinToString("") { "${it.start}-${it.end}" }
-private val OPEN_BRACKETS = VerseGrammar.CJK_BRACKET_PAIRS.joinToString("") { it.open.toString() }
+
+// Only the closing brackets are needed here — unlike versePatterns.ts, ChatMessageItem's
+// patterns never gate a match on an opening bracket before the book name.
 private val CLOSE_BRACKETS = VerseGrammar.CJK_BRACKET_PAIRS.joinToString("") { it.close.toString() }
 
 // Book-name sub-pattern (multi-word, with connector words like "of", "de", "van", …).
