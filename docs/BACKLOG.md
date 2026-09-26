@@ -2,10 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
-column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
-BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
-BITB-084 Part C done via BITB-102)
+**Last Updated:** 2026-09-26 (BITB-113 in progress — verse-parser grammar unification; 2026-09-22:
+BITB-158 created — KubeOpenCode dev image; BITB-094 in progress — column-type audit tooling built;
+BITB-127 created — translations.created_at timezone-aware; BITB-153 guard extended; BITB-161
+created — KubeOpenCode agent file-mount for Copilot auth; BITB-084 Part C done via BITB-102)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -1895,9 +1895,11 @@ not bounded or benchmarked across input sizes in isolation.
 
 ---
 
-### 🎯 BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
+### 🚧 BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (2026-09-26) — scoped to the literal separator/range/connector/digit
+grammar fragments (not the full compositional regex); see the story file for the exact scope cut
+and the recorded Python decision.
 **Priority:** P2
 **Size:** L
 **Created:** 2026-08-31
