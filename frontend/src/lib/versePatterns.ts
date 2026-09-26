@@ -44,7 +44,9 @@ const CV_SEPARATOR_CLASS = CHAPTER_VERSE_SEPARATORS.join("");
 const RANGE_SEPARATOR_CLASS = RANGE_SEPARATORS.join("");
 
 /** Non-ASCII digit codepoint ranges joined for embedding after `\d` in a character class. */
-const NON_ASCII_DIGIT_CLASS = NON_ASCII_DIGIT_RANGES.map((r) => `${r.start}-${r.end}`).join("");
+const NON_ASCII_DIGIT_CLASS = NON_ASCII_DIGIT_RANGES.map(
+  (r) => `${r.start}-${r.end}`,
+).join("");
 
 /** Opening brackets that may precede a book name in a citation (e.g. "《约翰福音》3:16"). */
 const OPEN_BRACKETS = CJK_BRACKET_PAIRS.map((b) => b.open).join("");
@@ -283,11 +285,14 @@ function buildPatternSource(): string {
   // [\p{L}\p{M}]  — letter + combining mark (handles Devanagari, Arabic, Hebrew, etc.)
   // Connector words: Western (of, dei, des, der, van, de, af, dos, da, del)
   //                  + Hindi (के/ke) + Arabic (ال as a standalone word)
-  // The connector-repeat group below is bounded to {1,3} (not +) to close a ReDoS
-  // finding (BITB-108 / audit item E13): the unbounded form let backtracking blow up
-  // superlinearly on adversarial input (~22s on a 300KB adversarial string vs. sub-ms
-  // for real input). {1,3} is safe because no known book name in
-  // localizedBookMap.generated.ts needs more than one connector repeat — see
+  // The connector-repeat group below is bounded to {1,CONNECTOR_REPEAT_MAX} (not +) to
+  // close a ReDoS finding (BITB-108 / audit item E13): the unbounded form let backtracking
+  // blow up superlinearly on adversarial input (~22s on a 300KB adversarial string vs.
+  // sub-ms for real input). CONNECTOR_REPEAT_MAX (currently 3, from
+  // verseGrammar.generated.ts / BITB-113) is the shared UPPER bound with
+  // ChatMessageItem.kt's BOOK_NAME connector group — that file's header explains why the
+  // *lower* bound (1 here vs. 0 there) legitimately differs by platform. No known book
+  // name in localizedBookMap.generated.ts needs more than one connector repeat — see
   // docs/BACKLOG_STORIES/BITB-108-verse-parser-phase-3-regex-grammar.md for the
   // full benchmark writeup.
   // Bracket support:
