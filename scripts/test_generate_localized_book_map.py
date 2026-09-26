@@ -133,6 +133,26 @@ def test_grammar_targets_regenerate_from_an_edited_json(isolated_repo: Path):
     assert fresh_check.returncode == 0, fresh_check.stderr
 
 
+@pytest.mark.parametrize("poisoned_char", ["]", "\\", "^"])
+def test_generator_rejects_char_class_unsafe_grammar_value(isolated_repo: Path, poisoned_char: str):
+    """A grammar JSON value containing ']', '\\', or '^' would silently corrupt a downstream
+    consumer's regex character class (versePatterns.ts / ChatMessageItem.kt both join these
+    values directly into [...] without escaping). The generator must fail loudly instead of
+    emitting output that would compile into a broken or wrong character class."""
+    grammar_json_path = isolated_repo / "tests" / "fixtures" / "verse_grammar.json"
+    grammar = json.loads(grammar_json_path.read_text(encoding="utf-8"))
+    grammar["range_separators"].append(poisoned_char)
+    grammar_json_path.write_text(json.dumps(grammar), encoding="utf-8")
+
+    result = _run_generator(isolated_repo)
+    assert result.returncode != 0, (
+        f"generator accepted a poisoned range_separators value {poisoned_char!r} instead of "
+        f"rejecting it:\n{result.stdout}\n{result.stderr}"
+    )
+    assert "range_separators" in result.stderr
+    assert poisoned_char in result.stderr
+
+
 def test_real_repo_generated_files_are_currently_in_sync():
     """Sanity check against the real repo (read-only: runs --check, never writes) — this is
     the same invocation CI runs in test_update.yml. Failing here means someone hand-edited a

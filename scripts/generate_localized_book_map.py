@@ -117,8 +117,42 @@ def _load_book_map() -> dict[str, str]:
     return payload["book_map"]
 
 
+# Characters that would silently change meaning if emitted, unescaped, inside a regex
+# character class (`[...]`) by a downstream consumer (versePatterns.ts / ChatMessageItem.kt
+# both join these values directly into character classes). This generator never itself
+# builds a character class — the guard exists so a future grammar-JSON edit that couldn't
+# safely sit in one fails loudly here instead of silently corrupting a consumer's regex.
+_CHAR_CLASS_UNSAFE = frozenset("]\\^")
+
+
+def _reject_char_class_unsafe(label: str, value: str) -> None:
+    unsafe = sorted(set(value) & _CHAR_CLASS_UNSAFE)
+    if unsafe:
+        raise ValueError(
+            f"verse_grammar.json's {label!r} value {value!r} contains character(s) "
+            f"{unsafe!r} that are unsafe inside a regex character class (']', '\\\\', '^'). "
+            "Downstream consumers (versePatterns.ts, ChatMessageItem.kt) join these values "
+            "directly into [...] classes without escaping — fix the JSON value."
+        )
+
+
+def _validate_verse_grammar(grammar: dict) -> None:
+    for sep in grammar["chapter_verse_separators"]:
+        _reject_char_class_unsafe("chapter_verse_separators", sep)
+    for sep in grammar["range_separators"]:
+        _reject_char_class_unsafe("range_separators", sep)
+    for r in grammar["non_ascii_digit_ranges"]:
+        _reject_char_class_unsafe(f"non_ascii_digit_ranges[{r['label']!r}].start", r["start"])
+        _reject_char_class_unsafe(f"non_ascii_digit_ranges[{r['label']!r}].end", r["end"])
+    for pair in grammar["cjk_bracket_pairs"]:
+        _reject_char_class_unsafe(f"cjk_bracket_pairs[{pair['label']!r}].open", pair["open"])
+        _reject_char_class_unsafe(f"cjk_bracket_pairs[{pair['label']!r}].close", pair["close"])
+
+
 def _load_verse_grammar() -> dict:
-    return json.loads(_GRAMMAR_JSON_PATH.read_text(encoding="utf-8"))
+    grammar = json.loads(_GRAMMAR_JSON_PATH.read_text(encoding="utf-8"))
+    _validate_verse_grammar(grammar)
+    return grammar
 
 
 def _kt_string_literal(value: str) -> str:

@@ -19,9 +19,13 @@ independent reasons (recorded in full in the BITB-113 story's "Scope Cut" sectio
 
 What Python *does* share literally with the JSON: the chapter/verse separator characters
 (``:``, ``,``) and the range characters (``-``, en dash ``–``), embedded in
-``verse_parser.py``'s ``cv_pattern = r"(\\d+)[:\\,](\\d+)(?:\\s*[-–]\\s*(\\d+))?"``. This test
-asserts those hardcoded characters match the JSON's ``chapter_verse_separators`` /
-``range_separators`` values, mirroring how
+``verse_parser.py``'s module-level ``CV_PATTERN = r"(\\d+)[:\\,](\\d+)(?:\\s*[-–]\\s*(\\d+))?"``.
+This test imports that constant directly from ``verse_parser.py`` (rather than holding its
+own hand-copied duplicate of the string) so a change to the real source is always what gets
+checked against the JSON — a hand-copied literal would only ever be checked against itself,
+silently passing even after the real parser's separator/range characters drifted from the
+canonical JSON. This test asserts those characters match the JSON's
+``chapter_verse_separators`` / ``range_separators`` values, mirroring how
 ``api/tests/test_localized_book_map_registry_parity.py`` holds
 ``translation_registry.py`` contradiction-free with the generated book map instead of
 generating it.
@@ -31,7 +35,7 @@ import json
 import re
 from pathlib import Path
 
-from utils.verse_parser import _build_verse_pattern
+from utils.verse_parser import CV_PATTERN, _build_verse_pattern
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _JSON_PATH = _REPO_ROOT / "tests" / "fixtures" / "verse_grammar.json"
@@ -39,10 +43,10 @@ _JSON_PATH = _REPO_ROOT / "tests" / "fixtures" / "verse_grammar.json"
 with open(_JSON_PATH, encoding="utf-8") as f:
     _GRAMMAR = json.load(f)
 
-# The literal cv_pattern fragment from _build_verse_pattern(), extracted the same way it is
-# built there, so a change to that source string is caught here rather than by re-deriving it
-# independently (which could silently drift from what's actually compiled).
-_CV_PATTERN_SOURCE = r"(\d+)[:\,](\d+)(?:\s*[-–]\s*(\d+))?"
+# The real cv_pattern fragment, imported directly from api/utils/verse_parser.py (the exact
+# string _build_verse_pattern() embeds into _VERSE_PATTERN) — not a hand-copied duplicate, so
+# a change to the real source is what gets checked below, not a copy of it.
+_CV_PATTERN_SOURCE = CV_PATTERN
 
 
 def test_chapter_verse_separators_match_canonical_json():
@@ -97,4 +101,36 @@ def test_compiled_pattern_accepts_every_canonical_separator_and_range_character(
             assert m.group(4) == "18", (
                 f"compiled verse pattern did not capture the range end for {text!r} "
                 f"(sep={sep!r}, range={rng!r}): got group(4)={m.group(4)!r}"
+            )
+
+
+def test_non_canonical_separator_and_range_characters_are_rejected():
+    """Negative case for the "nothing else must be accepted" claim in
+    test_chapter_verse_separators_match_canonical_json's docstring, which — until now —
+    was never actually checked. Characters absent from verse_grammar.json's
+    chapter_verse_separators / range_separators must not be usable in their place."""
+    compiled = re.compile(_build_verse_pattern(), re.IGNORECASE)
+
+    non_canonical_separators = {";", "|", "~", ".", "_"} - set(_GRAMMAR["chapter_verse_separators"])
+    assert non_canonical_separators, "fixture setup produced an empty negative test set"
+    for sep in non_canonical_separators:
+        text = f"John 3{sep}16"
+        assert not compiled.search(text), (
+            "compiled verse pattern accepted a non-canonical chapter/verse separator "
+            f"{sep!r} (not in verse_grammar.json's chapter_verse_separators): {text!r}"
+        )
+
+    non_canonical_ranges = {"~", "..", "to", "_"} - set(_GRAMMAR["range_separators"])
+    assert non_canonical_ranges, "fixture setup produced an empty negative test set"
+    for rng in non_canonical_ranges:
+        text = f"John 3:16{rng}18"
+        m = compiled.search(text)
+        # The range group is optional, so the match may still succeed on "John 3:16"
+        # alone — what must never happen is the disallowed range character being
+        # accepted as part of a captured range (i.e. group(4) becoming "18").
+        if m:
+            assert m.group(4) is None, (
+                "compiled verse pattern accepted a non-canonical range separator "
+                f"{rng!r} (not in verse_grammar.json's range_separators): {text!r} "
+                f"captured group(4)={m.group(4)!r}"
             )
