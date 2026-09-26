@@ -2,7 +2,8 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-26 (BITB-113 in progress — verse-parser grammar unification; 2026-09-22:
+**Last Updated:** 2026-09-26 (BITB-113 in progress — verse-parser grammar unification; BITB-164
+created — VersesPanel.kt fourth grammar copy, found by BITB-113's Verify stage; 2026-09-22:
 BITB-158 created — KubeOpenCode dev image; BITB-094 in progress — column-type audit tooling built;
 BITB-127 created — translations.created_at timezone-aware; BITB-153 guard extended; BITB-161
 created — KubeOpenCode agent file-mount for Copilot auth; BITB-084 Part C done via BITB-102)
@@ -4032,6 +4033,29 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-26
+**Found by:** BITB-113's Verify stage
+
+`android/.../VersesPanel.kt` has its own hand-written `CITED_BOOK_NAME`/`CITED_VERSE_REF_REGEX`,
+never tracked alongside the three parsers BITB-059/BITB-113 keep in sync — and it has already
+drifted (no के/ال connectors, `:`-only separator, no en-dash range, ASCII-only digits).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `VersesPanel.kt`'s actual role established (independent detector vs. narrower re-match)
+- [ ] Migrated onto the shared `VerseGrammar` source, or narrower scope documented with a reason
+- [ ] A test guards against future silent drift
+- [ ] `docs/AUDIT_PLAYBOOK.md` accounts for this as a fourth copy (tracked or explained)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-164-versespanel-fourth-verse-grammar-copy.md`
+
+---
 
 ### 🎯 BITB-127: Make `translations.created_at` Timezone-Aware
 
