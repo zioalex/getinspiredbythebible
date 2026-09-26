@@ -300,6 +300,15 @@ FAMOUS_PRAYERS = {
 }
 
 
+# Chapter/verse separator (":" or ",") and optional verse-range ("-" or en dash "–")
+# fragment, shared literally (see api/tests/test_verse_grammar_parity.py) with the
+# canonical separator/range characters in tests/fixtures/verse_grammar.json. Exposed at
+# module level (rather than as a local inside _build_verse_pattern()) so that contract
+# test can import and inspect the exact string the parser is built from, instead of
+# holding its own hand-copied duplicate that could silently drift from the real pattern.
+CV_PATTERN = r"(\d+)[:\,](\d+)(?:\s*[-–]\s*(\d+))?"
+
+
 def _build_verse_pattern() -> str:
     """Build the regex pattern for matching verse references.
 
@@ -316,7 +325,7 @@ def _build_verse_pattern() -> str:
     sorted_names = sorted(all_names, key=len, reverse=True)
     book_alternatives = "|".join(re.escape(name) for name in sorted_names)
 
-    cv_pattern = r"(\d+)[:\,](\d+)(?:\s*[-–]\s*(\d+))?"
+    cv_pattern = CV_PATTERN
 
     # Lookbehind allows: start of string, whitespace, CJK, Devanagari, Arabic chars,
     # or an opening bracket/paren before the book name — ASCII "(" / "[", fullwidth

@@ -112,6 +112,10 @@ jobs:
           pip install -r requirements-dev.txt
           pip install ruff black==26.1.0 mypy types-PyYAML
 
+      - name: Test verse-grammar and book-map generator
+        run: |
+          python3 -m pytest scripts/test_generate_localized_book_map.py -q
+
       - name: Lint with Ruff
         run: |
           cd api

@@ -1,0 +1,16 @@
+{
+  "description": "BITB-113 — canonical verse-parser separator/range grammar: the literal regex fragments genuinely shared, byte-for-byte, across the three hand-written verse parsers (frontend/src/lib/versePatterns.ts, android/.../ChatMessageItem.kt, api/utils/verse_parser.py). scripts/generate_localized_book_map.py regenerates frontend/src/lib/verseGrammar.generated.ts and android/app/src/main/kotlin/org/voxquieta/app/utils/VerseGrammar.kt from this file; hand-edit this JSON, then run the generator, never edit either generated file directly. Python's relationship is contract-tested, not generated (api/tests/test_verse_grammar_parity.py) — see that test's docstring for why. connector_repeat_max is the shared UPPER bound only (the ReDoS-safety cap from BITB-108/114/117); the LOWER bound (0 vs 1) legitimately differs per platform because of how each composes its regex — see the generated files' header comments and docs/BACKLOG_STORIES/BITB-113-verse-parser-grammar-unification.md for the full investigation. Book-name alternation (which literal book names to list) stays hand-written per platform — it is derived from the already-shared localized_book_map.json, not an independent literal to unify here.",
+  "connector_words": ["of", "dei", "des", "der", "van", "de", "af", "dos", "da", "del", "के", "ال"],
+  "connector_repeat_max": 3,
+  "chapter_verse_separators": [":", ","],
+  "range_separators": ["-", "–"],
+  "non_ascii_digit_ranges": [
+    { "label": "Devanagari (Hindi)", "start": "०", "end": "९" },
+    { "label": "Eastern Arabic-Indic", "start": "٠", "end": "٩" }
+  ],
+  "cjk_bracket_pairs": [
+    { "label": "Chinese guillemets", "open": "《", "close": "》" },
+    { "label": "Korean corner brackets", "open": "「", "close": "」" },
+    { "label": "Korean white corner brackets", "open": "『", "close": "』" }
+  ]
+}
