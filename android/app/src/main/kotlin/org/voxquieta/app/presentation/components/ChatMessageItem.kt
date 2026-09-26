@@ -193,8 +193,9 @@ internal val DEFAULT_VERSE_REF_REGEX = Regex(
         // ("Psalm 23 is comforting"); relaxing it to \p{L} would break chapter-only refs
         // followed by a lowercase word.
         // Uses COND_WS so CJK/Hangul book names can abut the chapter number without a space.
-        // [\u300B\u300D\u300F]? optionally consumes a closing bracket (》」』) after the
-        // book name (e.g. 《约翰福音》3:16 or 「요한복음」3:16) so it does not block the match.
+        // [$CLOSE_BRACKETS] (from VerseGrammar.kt) optionally consumes a closing bracket
+        // after the book name (e.g. 《约翰福音》3:16 or 「요한복음」3:16) so it does not
+        // block the match.
         "($BOOK_NAME)[$CLOSE_BRACKETS]?$COND_WS($CV_DIGIT+)(?:[$CV_SEPARATOR_CLASS]($CV_DIGIT+(?:[$RANGE_SEPARATOR_CLASS]$CV_DIGIT+)?)(?!$CV_DIGIT)|(?!$CV_DIGIT)(?!\\s+[\\p{Lu}\\p{Lo}]))"
 )
 
@@ -267,11 +268,11 @@ internal fun buildVerseRefRegex(
         // across LocalizedBookToEnglish.kt is 1 (e.g. Arabic "1 أخبار الأيام" = "1 Chronicles").
         // {0,3} keeps 3x headroom, matching BITB-114's bound. See
         // docs/DONE/BITB-117-android-verse-parser-alt1-redos-residual.md.
-        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+){0,3})\\s+($CV_DIGIT+)[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)" +
+        "([1-3](?:[\\s.][\\s]?|-[\\p{L}\\p{M}]{1,2}\\s+)$dynamicBookName(?:\\s+[\\p{L}][\\p{L}\\p{M}\\d]+){0,3})\\s+($CV_DIGIT+)[$CV_SEPARATOR_CLASS]($CV_DIGIT+(?:[$RANGE_SEPARATOR_CLASS]$CV_DIGIT+)?)(?!$CV_DIGIT)" +
             "|" +
             // Alt 2 — no prefix. Uses COND_WS for CJK/Hangul no-space support.
-            // [\u300B\u300D\u300F]? optionally consumes closing bracket (》」』) after book name.
-            "($dynamicBookName)[\\u300B\\u300D\\u300F]?$COND_WS($CV_DIGIT+)(?:[:,]($CV_DIGIT+(?:[-\\u2013]$CV_DIGIT+)?)(?!$CV_DIGIT)|(?!$CV_DIGIT)(?!\\s+[\\p{Lu}\\p{Lo}]))"
+            // [$CLOSE_BRACKETS] (from VerseGrammar.kt) optionally consumes closing bracket after book name.
+            "($dynamicBookName)[$CLOSE_BRACKETS]?$COND_WS($CV_DIGIT+)(?:[$CV_SEPARATOR_CLASS]($CV_DIGIT+(?:[$RANGE_SEPARATOR_CLASS]$CV_DIGIT+)?)(?!$CV_DIGIT)|(?!$CV_DIGIT)(?!\\s+[\\p{Lu}\\p{Lo}]))"
     )
 }
 
