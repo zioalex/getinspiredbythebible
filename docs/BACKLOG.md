@@ -848,7 +848,8 @@ validate-only.
 
 ### 🚧 BITB-140: Audit & Close Bible Reference-Normalization Gaps
 
-**Status:** 🚧 In Progress (aliases + case/diacritic normalization + coverage audit done; versification offsets deferred)
+**Status:** 🚧 In Progress (aliases + case/diacritic normalization + coverage audit done via PR #791;
+frontend/Android comma-separator parity confirmed already in place; only versification offsets remain)
 **Size:** M (1-2 days)
 **Created:** 2026-06-16
 
@@ -872,13 +873,17 @@ English-canonical) but affects localized input and the app-wide normalizer.
 - [ ] Versification offsets quantified + documented handling decision (with tests)
 - [x] Table-driven tests across all 11 languages green
 
-**Concrete reproductions (added 2026-06-19, from verse-grounding debugging):** abbreviation /
-numbered-book references fail to parse *with and without* parentheses —
-`extract_all_references("1 Cor 13:4")`, `"Cant 2:1"`, `"Songs 2:1"` all return `[]`, while
-`"Ps 23:1"` works; full names (`1 Corinthians`, `Song of Solomon`) work. Also a cross-parser
-**versification/divergence** note: the frontend verse parser does not support German comma
-separators (`Johannes 3,16`) that the backend does — fold into the "robust matching" + parser-sync
-scope here.
+**Concrete reproductions (added 2026-06-19, from verse-grounding debugging — fixed 2026-07-05 by
+PR #791, which shipped under this story's original ID of BITB-052):** abbreviation / numbered-book
+references used to fail to parse *with and without* parentheses — `extract_all_references("1 Cor 13:4")`,
+`"Cant 2:1"`, `"Songs 2:1"` all returned `[]`, while `"Ps 23:1"` worked; full names
+(`1 Corinthians`, `Song of Solomon`) worked. All three now resolve correctly.
+
+**Correction (2026-09-27):** the note below about the frontend not supporting German comma
+separators was stale — verified directly that all three parsers (backend, frontend, Android) now
+accept `[:,]` as a chapter/verse separator. See AGENTS.md's *Multilingual & Multi-Version
+Correctness* section for the worked-example note. The only genuinely open item left in this story
+is the versification-offsets AC below.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-140-reference-normalization-gaps.md`
 
