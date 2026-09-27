@@ -363,10 +363,10 @@ localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
 - [x] `scripts/validate-env.py` passes
 
 **Note:** the commit that reads "(BITB-152)" directly on `main` is #1045, but the strict-tier
-netpol selectors were fixed twice more (#1086 restored DNS/server egress under default-deny,
-#1087 fixed the selector partition + made verification reproducible) on the `feat/kubeopencode-security`
-feature branch before it merged into main — a plain commit-subject search on `main` finds only
-the outer PR, not those two.
+netpol selectors were fixed twice more on the `feat/kubeopencode-security` feature branch before
+it merged into main (PR #1086 restored DNS/server egress under default-deny, PR #1087 fixed the
+selector partition and made verification reproducible) — a plain commit-subject search on `main`
+finds only the outer PR, not those two.
 
 Full story: `docs/DONE/BITB-152-kubeopencode-strict-tier-hardening.md`
 
