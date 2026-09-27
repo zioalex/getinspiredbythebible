@@ -2,8 +2,11 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-27 (hygiene pass: BITB-125 marked done — merged via #1090; BITB-152
-marked done — merged via #1045, absorbing #1086/#1087 from its feature branch)
+**Last Updated:** 2026-09-27 (backlog-vs-`main` audit: 10 stories marked done that were stale
+Todo/In-Progress despite being merged — BITB-125, BITB-152, BITB-122, BITB-067, BITB-057,
+BITB-126, BITB-123, BITB-129, BITB-138, BITB-042; 3 more corrected in place without a full
+flip to Done — BITB-121, BITB-128, BITB-046 — where one acceptance criterion still needs live
+production/cluster confirmation this audit couldn't get from source alone)
 **Previous Update:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
 column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
 BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
@@ -438,9 +441,9 @@ Full story: [`BITB-160-cluster-triage-runbook.md`](BACKLOG_STORIES/BITB-160-clus
 
 ---
 
-### 🚧 BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
+### ✅ BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1041 merged 2026-09-05)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-05
@@ -456,10 +459,10 @@ fix: `minSdk 24` + core-library desugaring and scoped API TLS trust,
 
 **Acceptance Criteria (summary):**
 
-- [ ] `minSdk 24`, `targetSdk 36`; desugaring enabled; release AAB builds clean
-- [ ] `lintDebug` + `testDebugUnitTest` pass; installs/launches and reaches the API on API 24/25 emulator
+- [x] `minSdk 24`, `targetSdk 36`; desugaring enabled; release AAB builds clean
+- [x] `lintDebug` + `testDebugUnitTest` pass; installs/launches and reaches the API on API 24/25 emulator
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-122-android-7-tablet-minsdk-24.md`
+**Full Story:** `docs/DONE/BITB-122-android-7-tablet-minsdk-24.md`
 
 ---
 
@@ -606,9 +609,12 @@ solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and
 
 ---
 
-### 🚧 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
+### ✅ BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
+**Status:** ✅ Done — all 6 gaps shipped (gap #1 in PR #848, gaps #2/#3/#4 in PR #845, gap #6 in
+PR #896, gap #5 in PR #967 merged 2026-08-21). PR #967's own description flagged that this
+backlog entry was never updated for gap #6's completion; corrected here in the same pass that
+caught it.
 **Size:** M (several small, independent hardening items)
 **Created:** 2026-07-07
 
@@ -628,10 +634,10 @@ the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin 
 - [x] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
 - [x] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
 - [x] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
-- [ ] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic
-- [ ] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement
+- [x] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic — PR #967
+- [x] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement — PR #896
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-067-deploy-and-smoke-monitor-reliability-gaps.md`
+**Full Story:** `docs/DONE/BITB-067-deploy-and-smoke-monitor-reliability-gaps.md`
 
 ---
 
@@ -1488,9 +1494,9 @@ Testing & Documentation:
 
 ---
 
-### 🚧 BITB-057: Android — In-App Update API (Flexible Flow)
+### ✅ BITB-057: Android — In-App Update API (Flexible Flow)
 
-**Status:** 🚧 In Progress — [PR #863](https://github.com/zioalex/getinspiredbythebible/pull/863) open, pending CI + review
+**Status:** ✅ Done — [PR #863](https://github.com/zioalex/getinspiredbythebible/pull/863) merged 2026-07-12
 **Size:** M (1–2 days)
 **Created:** 2026-07-01
 
@@ -1511,7 +1517,7 @@ at the `MainActivity` call sites so debug and sideloaded builds are unaffected.
 - [x] `onResume` re-checks for a pending install (app backgrounded during download)
 - [x] Unit tests with `FakeAppUpdateManager`; graceful no-op in debug and on sideloaded builds
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-057-android-inapp-update-api.md`
+**Full Story:** `docs/DONE/BITB-057-android-inapp-update-api.md`
 
 ---
 
@@ -2686,7 +2692,8 @@ manual-only Hindi/Luther data) still always win when present.
 
 ### 🚧 BITB-121: Android Sessions Are Counted as Web in the Weekly Report
 
-**Status:** 🚧 In Progress - implementation in PR #1038; rollout verification pending
+**Status:** 🚧 In Progress - implementation merged in PR #1038 (2026-09-05); rollout verification
+(a live digest showing a non-zero mobile count) still unconfirmed from source alone
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-04
@@ -2738,9 +2745,9 @@ attributed to Android or broadly backfilled.
 
 ---
 
-### 🚧 BITB-126: Diagnose a Database Stamped Ahead of the Deploy Checkout
+### ✅ BITB-126: Diagnose a Database Stamped Ahead of the Deploy Checkout
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1060 merged 2026-09-20)
 **Priority:** P2
 **Size:** S (preflight script + workflow wiring + tests)
 **Created:** 2026-09-09
@@ -2756,7 +2763,7 @@ the command that had already exited. `scripts/alembic_preflight.py` reads
 `alembic_version` with a plain `SELECT` and classifies the stamp against the
 checkout's revision graph *before* any `alembic` command runs.
 
-**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`):**
+**Acceptance Criteria (summary — full story in `docs/DONE/BITB-126-alembic-stale-checkout-preflight.md`):**
 
 - [x] A stamp absent from the checkout fails naming the revision, the head, that
       the database is not broken, and that re-running cannot succeed
@@ -2764,15 +2771,15 @@ checkout's revision graph *before* any `alembic` command runs.
 - [x] The preflight provably runs before the first `alembic` command
 - [x] Success path reports the true pending-revision count
 - [x] Verified end-to-end against a real PostgreSQL 16 across five stamp states
-- [ ] Green CI on the PR
+- [x] Green CI on the PR
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`
+**Full Story:** `docs/DONE/BITB-126-alembic-stale-checkout-preflight.md`
 
 ---
 
-### 🚧 BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
+### ✅ BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
 
-**Status:** 🚧 In Progress (PR #1042)
+**Status:** ✅ Done (PR #1042 merged 2026-09-12)
 **Priority:** P2
 **Size:** M (1-2 days)
 **Created:** 2026-09-05
@@ -2785,11 +2792,11 @@ table (`agents.md`), and apply instructions (`README.md`). `.claude/agents/` unt
 
 **Acceptance Criteria (summary):**
 
-- [ ] 12 agents load via `opencode agent list`; `opencode.json` stays valid JSON
-- [ ] `agent.yaml` applies cleanly; orchestrator has a fallback model in spec
-- [ ] `make pre-commit` green; PR opened with `chore(agents):` title
+- [x] 12 agents load via `opencode agent list`; `opencode.json` stays valid JSON
+- [x] `agent.yaml` applies cleanly; orchestrator has a fallback model in spec
+- [x] `make pre-commit` green; PR opened with `chore(agents):` title
 
-Full story: [`BITB-123-opencode-agent-graph-kubeopencode.md`](BACKLOG_STORIES/BITB-123-opencode-agent-graph-kubeopencode.md)
+Full story: [`BITB-123-opencode-agent-graph-kubeopencode.md`](DONE/BITB-123-opencode-agent-graph-kubeopencode.md)
 
 ---
 
@@ -2849,7 +2856,8 @@ Full story: [`BITB-161-kubeopencode-agent-file-mount-copilot-auth.md`](BACKLOG_S
 
 ### 🚧 BITB-128: Persistent KubeOpenCode Workspace Volume
 
-**Status:** 🚧 In Progress
+**Status:** 🚧 In Progress — implementation merged in PR #1067 (2026-09-14); only the on-cluster
+proof below remains, and needs an operator with write RBAC (the in-cluster agent SA is read-only)
 **Priority:** P2
 **Size:** S (reduced from M — the CRD provides persistence natively)
 **Created:** 2026-09-12
@@ -2875,9 +2883,10 @@ Full story: [`BITB-128-kubeopencode-persistent-workspace-volume.md`](BACKLOG_STO
 
 ---
 
-### 🚧 BITB-129: Right-Size CI for opencode Agent-Config Changes
+### ✅ BITB-129: Right-Size CI for opencode Agent-Config Changes
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1067 merged 2026-09-14; confirmed on a real kubeopencode-only PR — #1104
+triggered `opencode-ci` and skipped the full application suite's DB/Docker jobs)
 **Priority:** P2
 **Size:** S–M
 **Created:** 2026-09-12
@@ -2901,9 +2910,9 @@ as `deployment/kubeopencode/**`, or the net CI cost for those paths goes up, not
 - [x] The 19 existing generator tests and `make verify-opencode-config` run in CI
 - [x] Missing tests added: committed-`opencode.json` drift (T1), `configRef`↔ConfigMap-name match (T2), documented secret refs (T3), README `make` targets exist (T4), `spec.persistence` schema (T5), verify target (T6)
 - [x] Tests mutation-proven locally: drift, ConfigMap rename, and a deleted `persistence` block each fail the suite
-- [ ] Confirmed against a real CI run that a kubeopencode-only PR triggers `opencode-ci` and not the full suite
+- [x] Confirmed against a real CI run that a kubeopencode-only PR triggers `opencode-ci` and not the full suite
 
-Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](BACKLOG_STORIES/BITB-129-right-size-ci-for-opencode-changes.md)
+Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](DONE/BITB-129-right-size-ci-for-opencode-changes.md)
 
 ---
 
@@ -3100,9 +3109,12 @@ instead of a generic "I don't understand".
 
 ---
 
-### 🎯 BITB-046: Add German Bible Translation (Luther 1912)
+### 🚧 BITB-046: Add German Bible Translation (Luther 1912)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — code merged in PR #787 (2026-07-10; `luther1912` is already the German
+default in `api/utils/language.py` on `main`), but the PR's own "post-merge operator steps" called
+for manually running `load_bible.py --translation luther1912` / `elberfelder1871` to populate the
+verses and embeddings, and that can't be confirmed from source alone
 **Size:** M (1-2 days, mostly data loading)
 **Created:** 2026-06-12
 
@@ -3222,9 +3234,11 @@ too long.
 
 ---
 
-### 🚧 BITB-138: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
+### ✅ BITB-138: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #702 merged 2026-06-08, under this story's original ID of BITB-043 — renamed
+to BITB-138 by the BITB-111 ID-collision cleanup, #1068; the backlog entry's Todo/In-Progress status
+was never carried forward across that rename)
 **Size:** M (1-2 days)
 **Created:** 2026-06-08
 
@@ -3235,19 +3249,19 @@ what went wrong on a thumbs-down with a single-tap reason chip,
 
 **Acceptance Criteria:**
 
-- [ ] POST `/api/v1/feedback/contact` without email → HTTP 422 (email is required)
-- [ ] POST `/api/v1/feedback/contact` with invalid email → HTTP 422
-- [ ] Contact form send button disabled when email is empty; input has `required`
-- [ ] `Contact.emailLabel` updated to required phrasing in all 11 locales
-- [ ] Negative feedback email includes full (untruncated) user message and AI response + HTML + metadata
-- [ ] Positive feedback WITH comment triggers maintainer email; bare positive does not
-- [ ] Thumbs-down panel shows 5 reason chips; selected chip passed as `reason` to `onSubmit`
-- [ ] Chip selection is optional — auto-commit still works without it
-- [ ] `reason` column added to `feedback` table (migration 006)
-- [ ] All 11 locales have 6 new reason keys + updated `emailLabel`
-- [ ] Backend + frontend tests pass
+- [x] POST `/api/v1/feedback/contact` without email → HTTP 422 (email is required)
+- [x] POST `/api/v1/feedback/contact` with invalid email → HTTP 422
+- [x] Contact form send button disabled when email is empty; input has `required`
+- [x] `Contact.emailLabel` updated to required phrasing in all 11 locales
+- [x] Negative feedback email includes full (untruncated) user message and AI response + HTML + metadata
+- [x] Positive feedback WITH comment triggers maintainer email; bare positive does not
+- [x] Thumbs-down panel shows 5 reason chips; selected chip passed as `reason` to `onSubmit`
+- [x] Chip selection is optional — auto-commit still works without it
+- [x] `reason` column added to `feedback` table (migration 006)
+- [x] All 11 locales have 6 new reason keys + updated `emailLabel`
+- [x] Backend + frontend tests pass
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-138-require-contact-email-and-actionable-negative-feedback.md`
+**Full Story:** `docs/DONE/BITB-138-require-contact-email-and-actionable-negative-feedback.md`
 
 ---
 
@@ -3279,9 +3293,13 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🚧 BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
+### ✅ BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
 
-**Status:** 🚧 In Progress (web implemented; Android/iOS parity open)
+**Status:** ✅ Done — confirmed directly in code on `main`: `frontend/src/components/FeedbackControls.tsx`
+has `FEEDBACK_RETHINK_MS`, the maintainer notice, and `aria-live` status, with all 11 locales
+carrying `maintainerNotice`. Web PR #684 was closed without an explicit merge record but the
+feature is live regardless; Android parity shipped in PR #685 and completed in PR #783 (2026-07-03).
+No iOS app exists yet (see BITB-085), so iOS parity does not apply.
 **Size:** M (1-2 days)
 **Created:** 2026-06-05
 
@@ -3293,15 +3311,15 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] After tapping a thumb, no request is sent for ~10s; inline countdown + Undo shown
-- [ ] Undo / re-tap / switch within the window cancels — verified no feedback POST is made
-- [ ] After the window, the rating commits (POST sent) — no forced modal; comment is optional and inline
-- [ ] Thumbs-down shows a short explicit "shared with the app's maintainer" notice next to the comment field, separate from the logging notice
-- [ ] New i18n key(s) added to all 11 locales under `frontend/messages/`; `translations.test.ts` passes
-- [ ] Countdown is accessible and honours `prefers-reduced-motion`; window length is a single named constant
-- [ ] Tests cover pending/undo (no POST), timeout (POST sent), and thumbs-down notice
+- [x] After tapping a thumb, no request is sent for ~10s; inline countdown + Undo shown
+- [x] Undo / re-tap / switch within the window cancels — verified no feedback POST is made
+- [x] After the window, the rating commits (POST sent) — no forced modal; comment is optional and inline
+- [x] Thumbs-down shows a short explicit "shared with the app's maintainer" notice next to the comment field, separate from the logging notice
+- [x] New i18n key(s) added to all 11 locales under `frontend/messages/`; `translations.test.ts` passes
+- [x] Countdown is accessible and honours `prefers-reduced-motion`; window length is a single named constant
+- [x] Tests cover pending/undo (no POST), timeout (POST sent), and thumbs-down notice
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-042-feedback-rethink-delay-and-maintainer-notice.md`
+**Full Story:** `docs/DONE/BITB-042-feedback-rethink-delay-and-maintainer-notice.md`
 
 ---
 
