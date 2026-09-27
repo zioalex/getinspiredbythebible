@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
+**Last Updated:** 2026-09-27 (hygiene pass: BITB-125 marked done — merged via #1090; BITB-152
+marked done — merged via #1045, absorbing #1086/#1087 from its feature branch)
+**Previous Update:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
 column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
 BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
 BITB-084 Part C done via BITB-102)
@@ -333,15 +335,17 @@ Full story: [`BITB-154-kubeopencode-multi-provider-resilience.md`](BACKLOG_STORI
 
 ---
 
-### 🎯 BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
+### ✅ BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1045 merged 2026-09-18, hardened by follow-ups #1086/#1087 on the
+same feature branch before it landed on main)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-09-06
+**Completed:** 2026-09-18
 
-Agent sandbox has full egress, LAN-reachable `0.0.0.0:4096` with unauthenticated
-`/api/session`, and `OPENCODE_API_KEY` exposed via ENV. Harden to strict-tier:
+Agent sandbox had full egress, LAN-reachable `0.0.0.0:4096` with unauthenticated
+`/api/session`, and `OPENCODE_API_KEY` exposed via ENV. Hardened to strict-tier:
 default-deny egress (public 443/53 only, RFC1918/169.254 denied, K8s API ClusterIP
 explicitly allowed), LAN opt-in via `kubeopencode.io/allow-lan` annotation with
 localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
@@ -349,16 +353,22 @@ localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
 
 **Acceptance Criteria (summary):**
 
-- [ ] Strict egress: public `443/53` OK, RFC1918 + `169.254/16` blocked, K8s API still reachable
-- [ ] `localhost:11434` Ollama keeps working, LAN opt-in via annotation
-- [ ] API key via `0400` file mount, `env` clean, `/api/session` requires auth
-- [ ] No committed secret value: `opencode-api-key` created imperatively
-- [ ] Zero-downtime rollout (egress-allow before default-deny, 30m standby drain)
-- [ ] `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
-- [ ] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
-- [ ] `scripts/validate-env.py` passes
+- [x] Strict egress: public `443/53` OK, RFC1918 + `169.254/16` blocked, K8s API still reachable
+- [x] `localhost:11434` Ollama keeps working, LAN opt-in via annotation
+- [x] API key via `0400` file mount, `env` clean, `/api/session` requires auth
+- [x] No committed secret value: `opencode-api-key` created imperatively
+- [x] Zero-downtime rollout (egress-allow before default-deny, 30m standby drain)
+- [x] `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
+- [x] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
+- [x] `scripts/validate-env.py` passes
 
-Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/BITB-152-kubeopencode-strict-tier-hardening.md)
+**Note:** the commit that reads "(BITB-152)" directly on `main` is #1045, but the strict-tier
+netpol selectors were fixed twice more (#1086 restored DNS/server egress under default-deny,
+#1087 fixed the selector partition + made verification reproducible) on the `feat/kubeopencode-security`
+feature branch before it merged into main — a plain commit-subject search on `main` finds only
+the outer PR, not those two.
+
+Full story: `docs/DONE/BITB-152-kubeopencode-strict-tier-hardening.md`
 
 ---
 
@@ -2436,11 +2446,12 @@ surfaced a related-but-separate latent gap in the migration-utils mirror helper,
 
 ---
 
-### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+### ✅ BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1090 merged)
 **Priority:** P2
 **Size:** S
+**Completed:** 2026-09-23
 
 **As a** maintainer relying on `get_migration_connection_params()` and `get_async_database_url()`
 being true mirrors of each other, **I want** the asyncpg-spelled `?ssl=...` parameter handled
@@ -2455,7 +2466,7 @@ branching). Latent — no DSN in this repo currently uses that spelling — but
 `docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
 makes it easy for an operator to stumble into by hand.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
+**Full Story:** `docs/DONE/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 
