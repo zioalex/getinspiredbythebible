@@ -71,6 +71,7 @@ import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
 import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
+import org.voxquieta.app.presentation.components.FollowUpChips
 import org.voxquieta.app.presentation.components.LanguagePickerBottomSheet
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
 import org.voxquieta.app.presentation.components.VersesPanel
@@ -409,6 +410,19 @@ fun ChatScreen(
                             localizedToEnglish = localizedToEnglish,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
+
+                        if (index == uiState.messages.lastIndex &&
+                            message.role == Message.Role.ASSISTANT &&
+                            !uiState.isLoading &&
+                            !uiState.isSessionLimitReached &&
+                            uiState.followUps.isNotEmpty()
+                        ) {
+                            FollowUpChips(
+                                suggestions = uiState.followUps,
+                                onSelect = { suggestion -> viewModel.sendMessage(suggestion) },
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            )
+                        }
                     }
 
                     // Church-finder inline card — appears in the message list after 5 interactions.
