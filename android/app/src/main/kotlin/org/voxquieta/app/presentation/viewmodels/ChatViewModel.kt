@@ -752,6 +752,13 @@ class ChatViewModel @Inject constructor(
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
      fun loadConversation(conversationId: String) {
+        // Clear stale chips from whatever thread was previously active exactly once,
+        // synchronously, when switching conversations. This must NOT happen inside the
+        // collector below: observeMessages is a live Room Flow that re-emits every time
+        // a message is saved — including the assistant's own message at the end of a
+        // turn that just set followUps from the completion event — and clearing it there
+        // would wipe the chips within the same turn, every time (BITB-149 regression).
+        _uiState.update { it.copy(followUps = emptyList()) }
         viewModelScope.launch {
             lastConversationPreferences.setLastConversationId(conversationId)
             repository.observeMessages(conversationId).collect { messages ->
@@ -767,7 +774,7 @@ class ChatViewModel @Inject constructor(
                 // session count is restored from DataStore on init and must be preserved
                 // here. Deriving it from the loaded thread would reintroduce
                 // per-conversation behaviour and diverge from the backend's 429.
-                _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses, followUps = emptyList()) }
+                _uiState.update { it.copy(messages = messages, currentConversationId = conversationId, allVerses = allVerses) }
             }
         }
     }

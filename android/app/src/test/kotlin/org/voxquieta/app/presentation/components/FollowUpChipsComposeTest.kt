@@ -29,6 +29,20 @@ class FollowUpChipsComposeTest : ComposeTestHarness() {
     }
 
     @Test
+    fun `group content description is present when suggestions are non-empty`() {
+        setContentThemed {
+            FollowUpChips(
+                suggestions = listOf("Question A", "Question B"),
+                onSelect = {},
+            )
+        }
+
+        composeRule
+            .onNodeWithContentDescription("Suggested follow-up questions")
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun `renders nothing when suggestions are empty`() {
         setContentThemed {
             FollowUpChips(

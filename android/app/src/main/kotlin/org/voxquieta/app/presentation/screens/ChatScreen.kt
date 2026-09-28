@@ -173,8 +173,10 @@ fun ChatScreen(
         }
     }
 
-    // Auto-scroll to bottom when messages change
-    LaunchedEffect(uiState.messages.size) {
+    // Auto-scroll to bottom when messages change, or when the follow-up chips
+    // appear under the last message (BITB-149) — they push new content into
+    // view below the last message item, so re-fire the scroll to reveal them.
+    LaunchedEffect(uiState.messages.size, uiState.followUps) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
@@ -411,11 +413,14 @@ fun ChatScreen(
                         )
                         Spacer(modifier = Modifier.height(2.dp))
 
-                        if (index == uiState.messages.lastIndex &&
-                            message.role == Message.Role.ASSISTANT &&
-                            !uiState.isLoading &&
-                            !uiState.isSessionLimitReached &&
-                            uiState.followUps.isNotEmpty()
+                        if (shouldShowFollowUps(
+                                index = index,
+                                lastIndex = uiState.messages.lastIndex,
+                                role = message.role,
+                                isLoading = uiState.isLoading,
+                                isSessionLimitReached = uiState.isSessionLimitReached,
+                                followUps = uiState.followUps,
+                            )
                         ) {
                             FollowUpChips(
                                 suggestions = uiState.followUps,
