@@ -1,0 +1,70 @@
+name: Auto-update PR branches
+
+# BITB-165. `main` requires PR branches to be up to date and merge queues are unavailable on a
+# personal-account repo, so this workflow updates the branch of every opted-in open PR that is
+# behind `main` whenever `main` moves. With GitHub auto-merge, PRs then merge themselves once green.
+#
+# Opt-in: enable auto-merge on the PR, or add the `autoupdate` label. Drafts, forks, Dependabot
+# and release-please PRs are skipped.
+#
+# A PAT does the update, not GITHUB_TOKEN: updates made with GITHUB_TOKEN do not trigger
+# workflows, so CI would never run on the updated PR. Set repository secret AUTO_UPDATE_PR_TOKEN
+# (fine-grained PAT: Contents, Pull requests and Workflows, all read/write; Workflows is needed
+# whenever the update brings in .github/workflows changes); falls back to RELEASE_PLEASE_TOKEN.
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [auto_merge_enabled, labeled]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report what would be updated without updating"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  update-branches:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Job-level, so events the `if:` filters out (any other label) never enter the group, and
+    # single-PR runs get their own group: a label event must not cancel a pending full sweep.
+    # Overlap between groups is safe: expected_head_sha turns a duplicate update into a 422.
+    concurrency:
+      group:
+        auto-update-prs-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) ||
+        'sweep' }}
+      cancel-in-progress: false
+    if: >-
+      github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action == 'auto_merge_enabled' || github.event.label.name == 'autoupdate'))
+    steps:
+      # Always the default branch: never run PR-modified script code with the PAT.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Update behind PR branches
+        env:
+          GH_TOKEN: ${{ secrets.AUTO_UPDATE_PR_TOKEN || secrets.RELEASE_PLEASE_TOKEN }}
+          BASE_BRANCH: ${{ github.event.repository.default_branch }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=()
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            args+=(--pr "$PR_NUMBER")
+          fi
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          python scripts/auto_update_prs.py "${args[@]}"
