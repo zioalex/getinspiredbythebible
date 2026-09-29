@@ -20,6 +20,9 @@ run-name: >-
       - "!scripts/generate-opencode-config.py"
       - "!scripts/test_generate_opencode_config.py"
       - "!scripts/test_kubeopencode_manifests.py"
+      # BITB-165: covered by auto-update-prs-ci.yml, cannot affect the application.
+      - "!scripts/auto_update_prs.py"
+      - "!scripts/test_auto_update_prs.py"
       - "deployment/**"
       # BITB-129: KubeOpenCode manifests cannot affect the application; they are
       # covered by the fast opencode-ci.yml workflow instead of the full suite
@@ -40,6 +43,9 @@ run-name: >-
       - "!scripts/generate-opencode-config.py"
       - "!scripts/test_generate_opencode_config.py"
       - "!scripts/test_kubeopencode_manifests.py"
+      # BITB-165: covered by auto-update-prs-ci.yml, cannot affect the application.
+      - "!scripts/auto_update_prs.py"
+      - "!scripts/test_auto_update_prs.py"
       - "deployment/**"
       # BITB-129: KubeOpenCode manifests cannot affect the application; they are
       # covered by the fast opencode-ci.yml workflow instead of the full suite
@@ -368,7 +374,7 @@ jobs:
         run: |
           echo "Loading 1 Corinthians with embeddings for semantic search testing..."
           cd scripts
-          pip install httpx asyncpg sqlalchemy
+          pip install httpx asyncpg sqlalchemy greenlet
           # Load WEB translation (app default) - only 1 Corinthians (CI mode)
           python load_bible.py --ci --translation web
           # Generate embeddings for the loaded verses

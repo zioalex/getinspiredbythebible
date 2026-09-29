@@ -2,8 +2,12 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-24 (BITB-156 in progress — PR #1103 open, Android Part A: server-driven
-session limit + "Continue this conversation")
+**Last Updated:** 2026-09-29 (BITB-165 created — auto-update opted-in PR branches; 2026-09-24:
+BITB-156 in progress — PR #1103 open, Android Part A: server-driven session limit +
+"Continue this conversation"; 2026-09-22: BITB-158 created — KubeOpenCode dev image; BITB-094 in
+progress — column-type audit tooling built; BITB-127 created — translations.created_at
+timezone-aware; BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for
+Copilot auth; BITB-084 Part C done via BITB-102)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -2713,6 +2717,32 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🚧 BITB-165: Auto-Update Opted-In PR Branches When main Moves
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** S (script + workflow + tests)
+**Created:** 2026-09-29
+
+`main` requires branches to be up to date and merge queues are unavailable on a
+personal-account repo, so every PR needs a manual "Update branch" click after each
+merge. A workflow now updates the branch of every opted-in open PR (auto-merge enabled
+or `autoupdate` label) that is behind `main`, so with auto-merge PRs merge themselves
+once green. Needs a PAT (`AUTO_UPDATE_PR_TOKEN`, falling back to `RELEASE_PLEASE_TOKEN`)
+because `GITHUB_TOKEN` updates do not trigger CI.
+
+**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-165-auto-update-pr-branches.md`):**
+
+- [ ] A push to `main` updates every opted-in, same-repo, non-draft PR that is behind
+- [ ] Drafts, forks, Dependabot and release-please PRs are skipped
+- [ ] A conflict warns and does not stop the remaining PRs; a bad token fails loudly
+- [ ] Tests cover eligibility, pagination, dry run, errors and workflow guards
+- [ ] Green CI on the PR
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-165-auto-update-pr-branches.md`
+
+---
 
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
 > Six stories captured from a German beta tester's usage notes: typo tolerance, more
