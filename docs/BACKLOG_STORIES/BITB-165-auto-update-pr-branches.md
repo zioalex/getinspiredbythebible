@@ -57,6 +57,13 @@ for organization-owned repositories; this is a personal-account repository.
 Each merge to `main` re-runs CI on every opted-in PR that is behind, which costs CI minutes
 proportional to the number of opted-in PRs.
 
+Each update is a merge commit pushed as the PAT's owner. It re-triggers CI on the PR, and if
+branch protection has "Dismiss stale pull request approvals when new commits are pushed" enabled,
+it dismisses existing approvals.
+
+A transient API error on one PR is reported as an `error` row and the run fails at the end, but
+the other PRs are still processed. A 401/403 (token or permission problem) aborts the run.
+
 ## Out of scope
 
 Fork PRs, Dependabot PRs and release-please PRs; resolving merge conflicts automatically.

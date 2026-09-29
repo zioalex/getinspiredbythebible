@@ -26,14 +26,18 @@ name: Auto-update PR branches
 permissions:
   contents: read
 
-concurrency:
-  group: auto-update-prs
-  cancel-in-progress: false
-
 jobs:
   update-branches:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Job-level, so events the `if:` filters out (any other label) never enter the group, and
+    # single-PR runs get their own group: a label event must not cancel a pending full sweep.
+    # Overlap between groups is safe: expected_head_sha turns a duplicate update into a 422.
+    concurrency:
+      group:
+        auto-update-prs-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) ||
+        'sweep' }}
+      cancel-in-progress: false
     if: >-
       github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository &&
       (github.event.action == 'auto_merge_enabled' || github.event.label.name == 'autoupdate'))

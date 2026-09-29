@@ -61,7 +61,7 @@ def list_path(page: int = 1) -> str:
 
 
 def compare_path(n: int) -> str:
-    return f"/repos/{REPO}/compare/main...sha{n}"
+    return f"/repos/{REPO}/compare/main...sha{n}?per_page=1"
 
 
 def update_path(n: int) -> str:
@@ -243,6 +243,70 @@ def test_main_writes_summary_and_warns_on_conflict(
     assert "conflict: 1" in text
 
 
+def test_one_pr_error_does_not_stop_the_sweep() -> None:
+    client = FakeClient(
+        {
+            ("GET", list_path()): (200, [make_pr(1), make_pr(2)]),
+            ("GET", compare_path(1)): (502, None),
+            ("GET", compare_path(2)): (200, {"behind_by": 1}),
+            ("PUT", update_path(2)): (202, {}),
+        }
+    )
+    results = mod.process(client, REPO, "main")
+    assert [r.outcome for r in results] == ["error", "updated"]
+    assert "HTTP 502" in results[0].detail
+
+
+def test_auth_error_aborts_the_sweep() -> None:
+    client = FakeClient(
+        {
+            ("GET", list_path()): (200, [make_pr(1), make_pr(2)]),
+            ("GET", compare_path(1)): (403, {"message": "Resource not accessible"}),
+        }
+    )
+    with pytest.raises(mod.AuthError, match="403"):
+        mod.process(client, REPO, "main")
+    assert ("GET", compare_path(2), None) not in client.calls
+
+
+def test_malformed_compare_body_is_an_error() -> None:
+    client = FakeClient(
+        {
+            ("GET", list_path()): (200, [make_pr(1)]),
+            ("GET", compare_path(1)): (200, None),
+        }
+    )
+    [result] = mod.process(client, REPO, "main")
+    assert result.outcome == "error"
+    assert "behind_by" in result.detail
+
+
+def test_network_error_becomes_runtime_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refuse(*_args: Any, **_kwargs: Any) -> Any:
+        raise mod.urllib.error.URLError("connection refused")
+
+    monkeypatch.setattr(mod.urllib.request, "urlopen", refuse)
+    with pytest.raises(RuntimeError, match="connection refused"):
+        mod.GitHubClient("t").request("GET", "/x")
+
+
+def test_main_reports_errors_and_returns_1(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    client = FakeClient(
+        {
+            ("GET", list_path()): (200, [make_pr(1), make_pr(2)]),
+            ("GET", compare_path(1)): (500, {"message": "boom"}),
+            ("GET", compare_path(2)): (200, {"behind_by": 0}),
+        }
+    )
+    summary = tmp_path / "summary.md"
+    env = {"GH_TOKEN": "t", "GITHUB_REPOSITORY": REPO, "GITHUB_STEP_SUMMARY": str(summary)}
+    assert mod.main([], env, _factory(client)) == 1
+    assert "::error::PR #1 could not be checked or updated" in capsys.readouterr().out
+    assert "| #2 | PR 2 | up-to-date |" in summary.read_text()
+
+
 # --- workflow guards ---------------------------------------------------------------------
 
 
@@ -284,5 +348,19 @@ def test_workflow_uses_pat_not_github_token(workflow: dict) -> None:
     assert "${{" not in run_step["run"]
 
 
-def test_workflow_has_concurrency_group(workflow: dict) -> None:
-    assert workflow["concurrency"]["group"]
+def test_workflow_concurrency_is_job_level_and_per_pr(workflow: dict) -> None:
+    # Workflow-level concurrency would let any label event cancel a pending full sweep.
+    assert "concurrency" not in workflow
+    job = workflow["jobs"]["update-branches"]
+    group = job["concurrency"]["group"]
+    assert "pull_request.number" in group
+    assert "sweep" in group
+    assert job["concurrency"]["cancel-in-progress"] is False
+
+
+def test_workflow_job_guard_filters_forks_and_labels(workflow: dict) -> None:
+    guard = " ".join(workflow["jobs"]["update-branches"]["if"].split())
+    assert "github.event.pull_request.head.repo.full_name == github.repository" in guard
+    assert "github.event.label.name == 'autoupdate'" in guard
+    assert "github.event.action == 'auto_merge_enabled'" in guard
+    assert "github.event_name != 'pull_request'" in guard

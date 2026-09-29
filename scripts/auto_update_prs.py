@@ -24,14 +24,19 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NoReturn
 
 OPT_IN_LABEL = "autoupdate"
 PAGE_SIZE = 100
 TIMEOUT_SECONDS = 30
 SKIP_AUTHORS = {"dependabot[bot]": "dependabot"}
 SKIP_HEAD_PREFIXES = (("release-please--", "release-please"),)
-OUTCOMES = ("updated", "up-to-date", "skipped", "conflict", "dry-run")
+OUTCOMES = ("updated", "up-to-date", "skipped", "conflict", "dry-run", "error")
+AUTH_STATUSES = (401, 403)
+
+
+class AuthError(RuntimeError):
+    """Token or permission problem: abort the whole run instead of trying the next PR."""
 
 
 class GitHubClient:
@@ -59,6 +64,8 @@ class GitHubClient:
                 return resp.status, _parse(resp.read())
         except urllib.error.HTTPError as exc:
             return exc.code, _parse(exc.read())
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise RuntimeError(f"{method} {path} failed: {exc}") from exc
 
 
 def _parse(raw: bytes) -> Any:
@@ -118,6 +125,11 @@ def _message(body: Any) -> str:
     return "no message"
 
 
+def _raise(what: str, status: int, body: Any) -> NoReturn:
+    error = AuthError if status in AUTH_STATUSES else RuntimeError
+    raise error(f"{what} failed: HTTP {status}: {_message(body)}")
+
+
 def list_open_prs(client: GitHubClient, repo: str, base: str) -> list[dict]:
     prs: list[dict] = []
     page = 1
@@ -125,7 +137,7 @@ def list_open_prs(client: GitHubClient, repo: str, base: str) -> list[dict]:
         path = f"/repos/{repo}/pulls?state=open&base={base}&per_page={PAGE_SIZE}&page={page}"
         status, body = client.request("GET", path)
         if status != 200:
-            raise RuntimeError(f"listing PRs failed: HTTP {status}: {_message(body)}")
+            _raise("listing PRs", status, body)
         prs.extend(body)
         if len(body) < PAGE_SIZE:
             return prs
@@ -135,16 +147,19 @@ def list_open_prs(client: GitHubClient, repo: str, base: str) -> list[dict]:
 def _fetch_pr(client: GitHubClient, repo: str, number: int) -> dict:
     status, body = client.request("GET", f"/repos/{repo}/pulls/{number}")
     if status != 200:
-        raise RuntimeError(f"fetching PR #{number} failed: HTTP {status}: {_message(body)}")
+        _raise(f"fetching PR #{number}", status, body)
     return body
 
 
 def _behind_by(client: GitHubClient, repo: str, base: str, pr: dict) -> int:
     sha = pr["head"]["sha"]
-    status, body = client.request("GET", f"/repos/{repo}/compare/{base}...{sha}")
+    # per_page=1: only behind_by is needed, not the full commit/file listing.
+    status, body = client.request("GET", f"/repos/{repo}/compare/{base}...{sha}?per_page=1")
     if status != 200:
-        raise RuntimeError(f"comparing PR #{pr['number']} failed: HTTP {status}: {_message(body)}")
-    return int(body["behind_by"])
+        _raise(f"comparing PR #{pr['number']}", status, body)
+    if not isinstance(body, dict) or not isinstance(body.get("behind_by"), int):
+        raise RuntimeError(f"comparing PR #{pr['number']} returned no behind_by")
+    return body["behind_by"]
 
 
 def _update(client: GitHubClient, repo: str, pr: dict, behind: int) -> Result:
@@ -158,7 +173,7 @@ def _update(client: GitHubClient, repo: str, pr: dict, behind: int) -> Result:
         return Result(number, title, "updated", f"{behind} commits behind")
     if status == 422:
         return Result(number, title, "conflict", _message(body))
-    raise RuntimeError(f"updating PR #{number} failed: HTTP {status}: {_message(body)}")
+    _raise(f"updating PR #{number}", status, body)
 
 
 def _process_pr(client: GitHubClient, repo: str, base: str, pr: dict, dry_run: bool) -> Result:
@@ -182,7 +197,16 @@ def process(
     dry_run: bool = False,
 ) -> list[Result]:
     prs = [_fetch_pr(client, repo, only_pr)] if only_pr else list_open_prs(client, repo, base)
-    return [_process_pr(client, repo, base, pr, dry_run) for pr in prs]
+    results = []
+    for pr in prs:
+        try:
+            results.append(_process_pr(client, repo, base, pr, dry_run))
+        except AuthError:
+            raise
+        except RuntimeError as exc:
+            # One PR's transient failure must not hide the others or lose the report.
+            results.append(Result(pr["number"], pr["title"], "error", str(exc)))
+    return results
 
 
 def render_summary(results: list[Result], base: str) -> str:
@@ -215,6 +239,8 @@ def _report(results: list[Result], base: str, env: Mapping[str, str]) -> None:
                 f"::warning::PR #{r.number} could not be updated automatically: "
                 f"{r.detail} — resolve manually"
             )
+        elif r.outcome == "error":
+            print(f"::error::PR #{r.number} could not be checked or updated: {r.detail}")
     summary_path = env.get("GITHUB_STEP_SUMMARY")
     if summary_path:
         with open(summary_path, "a", encoding="utf-8") as fh:
@@ -247,7 +273,7 @@ def main(
         print(f"::error::{exc}")
         return 1
     _report(results, args.base, env)
-    return 0
+    return 1 if any(r.outcome == "error" for r in results) else 0
 
 
 if __name__ == "__main__":
