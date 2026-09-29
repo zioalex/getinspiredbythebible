@@ -109,7 +109,7 @@ see the optional web follow-up below.
     email-typed error (mirror the existing `MessageTooLongError` 422 test).
   - `components/ContactForm.test.tsx` — a 422 email failure renders the email-specific message,
     not the generic `errorSend`.
-- **Backend:** the 422 contract is already covered by BITB-043's `api/tests/test_feedback.py`
+- **Backend:** the 422 contract is already covered by BITB-138's `api/tests/test_feedback.py`
   (missing/invalid contact email → 422) — reference only, no new work here.
 
 ## Files Likely to Change
@@ -127,7 +127,7 @@ see the optional web follow-up below.
 
 ## Out of Scope
 
-- BITB-043's broader feedback work (full feedback emails, reason chips).
+- BITB-138's broader feedback work (full feedback emails, reason chips).
 - Backend changes — `ContactRequest.email: EmailStr` validation is already correct.
 - The web "optional" label (already fixed) — only the optional email-specific error remains.
 
@@ -135,6 +135,6 @@ see the optional web follow-up below.
 
 - `BITB-052` — Web follow-up: make the web contact form show an email-specific error on a 422
   instead of the generic "failed to send" (web has no 300-character misreport).
-- `BITB-043` — Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason
-  Chips. BITB-043 made email required server-side but did not cover the Android client's misleading
+- `BITB-138` — Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason
+  Chips. BITB-138 made email required server-side but did not cover the Android client's misleading
   error message or the Android "optional" label; this story closes that gap.

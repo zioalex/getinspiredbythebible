@@ -172,5 +172,5 @@ hand-authoring care the original 58 got, and is the real cost of this story.
 - **BITB-044 / PR #970** — populates `verse_topics`; its three open ACs depend on this story
 - **BITB-104** — un-stubs the `topic_boosted` eval config and consumes this data
 - **BITB-106** — corpus-tagging validation for the languages this story's cases span
-- **BITB-051** — the harness and golden set this extends
+- **BITB-139** — the harness and golden set this extends
 - `api/search_eval/data/retrieval_golden_set.json`, `api/chat/topics.py`

@@ -1,4 +1,4 @@
-"""Pure ranking metrics for the retrieval-evaluation harness (BITB-043).
+"""Pure ranking metrics for the retrieval-evaluation harness (BITB-139).
 
 Given a ranked list of retrieved verses and a set of relevance matchers (the
 ground truth for one query), compute Precision@K, Recall@K, and MRR. All
@@ -53,7 +53,7 @@ def mrr(retrieved: list[VerseKey], relevant: list[RefMatcher]) -> float:
 def false_positives_at_k(retrieved: list[VerseKey], irrelevant: list[RefMatcher], k: int) -> int:
     """Count top-k retrieved verses that match a verse flagged as irrelevant.
 
-    Incident guard (BITB-043): e.g. the Italian frustration query must not
+    Incident guard (BITB-139): e.g. the Italian frustration query must not
     surface Job 21:27. A healthy result returns 0.
     """
     if not irrelevant:

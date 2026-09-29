@@ -1894,7 +1894,7 @@ class TestChatServiceResolveCitedVerses:
 
     @pytest.mark.asyncio
     async def test_retries_once_on_db_disconnect_then_succeeds(self):
-        """BITB-057 Phase 2: per-reference lookups now go through
+        """BITB-143 Phase 2: per-reference lookups now go through
         run_with_disconnect_retry (utils/db_retry.py), so a transient disconnect
         on the single-verse lookup is retried once instead of being skipped."""
         service, _, _ = _make_chat_service()

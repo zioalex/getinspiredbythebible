@@ -1,5 +1,5 @@
 """
-Tests for FeedbackRepository's DB disconnect-retry behavior (BITB-057 Phase 2).
+Tests for FeedbackRepository's DB disconnect-retry behavior (BITB-143 Phase 2).
 
 save_feedback/save_contact now route their commit/refresh sequence through
 run_with_disconnect_retry (utils/db_retry.py). These tests mock the DB session

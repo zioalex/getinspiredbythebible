@@ -174,6 +174,7 @@
     <string name="settings_terms_of_service">Terms of Service</string>
     <string name="settings_changelog_title">What\'s New</string>
     <string name="settings_changelog_link">What\'s New</string>
+    <string name="settings_support_us">Support Vox Quieta</string>
     <string name="changelog_empty">No release notes are available yet.</string>
     <string name="whats_new_title">What\'s New</string>
     <string name="whats_new_dismiss">Got it</string>

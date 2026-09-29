@@ -1,4 +1,4 @@
-"""Pydantic models for the retrieval-evaluation golden set (BITB-043).
+"""Pydantic models for the retrieval-evaluation golden set (BITB-139).
 
 A ``GoldenCase`` is one query annotated with the verses that *should* surface
 for it (the ranking ground truth). Kept separate from the response-quality
@@ -86,7 +86,7 @@ class GoldenCase(BaseModel):
     def irrelevant_matchers(self) -> list[RefMatcher]:
         """Return matchers for verses that must NOT surface (guard cases).
 
-        Absorbed from the BITB-043 incident guard — e.g. the Italian
+        Absorbed from the BITB-139 incident guard — e.g. the Italian
         frustration query must not return Job 21:27.
         """
         matchers = [normalize_reference(ref) for ref in self.irrelevant_refs]

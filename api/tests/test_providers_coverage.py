@@ -779,7 +779,7 @@ class TestProviderFactory:
 
     def test_create_embedding_ollama(self):
         """Factory should create an Ollama embedding provider, wrapped for
-        caching and resilience (BITB-057 Phase 2: CachingEmbeddingProvider
+        caching and resilience (BITB-143 Phase 2: CachingEmbeddingProvider
         outermost, then ResilientEmbeddingProvider)."""
         from config import Settings
         from providers.embedding_cache import CachingEmbeddingProvider

@@ -1,0 +1,226 @@
+# BITB-159. The watchdog's probe loop, shipped as a ConfigMap so the image
+# (curlimages/curl, chosen for busybox nslookup/nc + curl in one image) needs
+# no custom build. Mounted read-only at /opt/watchdog by deployment.yaml and
+# run as `/bin/sh /opt/watchdog/watchdog.sh` -- that shell is busybox ash, so
+# the script below is strict POSIX sh (no non-POSIX shell extensions, no
+# arrays).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dns-watchdog-script
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: dns-watchdog
+data:
+  watchdog.sh: |
+    #!/bin/sh
+    # CoreDNS watchdog probe loop (BITB-159). Runs as /bin/sh (busybox ash)
+    # inside curlimages/curl, so this is strict POSIX sh: no non-POSIX shell
+    # extensions, no arrays.
+    #
+    # Bootstrap trap: this only ever runs while cluster DNS may be broken, so
+    # it must reach the API server WITHOUT a DNS lookup. The API base URL is
+    # built from KUBERNETES_SERVICE_HOST / KUBERNETES_SERVICE_PORT
+    # (kubelet-injected IP + port), never a Service DNS name.
+    set -u
+
+    PROBE_INTERVAL="${PROBE_INTERVAL:-30}"
+    PROBE_TIMEOUT="${PROBE_TIMEOUT:-5}"
+    EXTERNAL_NAME="${EXTERNAL_NAME:-cloudflare.com}"
+    # Fallback only used if the env var is somehow unset; the Deployment
+    # always sets INTERNAL_NAME explicitly. Deliberately not a name that
+    # duplicates the API server's own Service DNS name -- see the
+    # bootstrap-trap note above and README for why this watchdog never
+    # depends on that name being resolvable.
+    INTERNAL_NAME="${INTERNAL_NAME:-kube-dns.kube-system.svc.cluster.local}"
+    UPSTREAM_DNS="${UPSTREAM_DNS:-8.8.8.8}"
+    TCP_CONTROL_HOST="${TCP_CONTROL_HOST:-1.1.1.1}"
+    TCP_CONTROL_PORT="${TCP_CONTROL_PORT:-443}"
+    FAILURE_THRESHOLD="${FAILURE_THRESHOLD:-3}"
+    AUTO_RESTART="${AUTO_RESTART:-true}"
+    RESTART_COOLDOWN_SECONDS="${RESTART_COOLDOWN_SECONDS:-1800}"
+
+    TOKEN_FILE="/var/run/secrets/kubernetes.io/serviceaccount/token"
+    CACERT="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+    API_SERVER="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"
+
+    CONSECUTIVE=0
+    LAST_RESTART_EPOCH=0
+
+    # --- helpers -----------------------------------------------------------
+
+    now_rfc3339() {
+      date -u +%Y-%m-%dT%H:%M:%SZ
+    }
+
+    json_escape() {
+      # Escapes backslashes and double quotes for embedding in a JSON string.
+      printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+    }
+
+    # Calls the API server without ever resolving a hostname. $1=method
+    # $2=path $3=content-type $4=body. Echoes the HTTP status code, or "000"
+    # if the request never got a response (curl already reports 000 in that
+    # case; the extra guard covers an empty read too).
+    k8s_curl() {
+      method="$1"
+      api_path="$2"
+      ctype="$3"
+      body="$4"
+      token="$(cat "$TOKEN_FILE" 2>/dev/null)"
+      code="$(curl -s -o /dev/null -w '%{http_code}' \
+        --max-time "$PROBE_TIMEOUT" \
+        --cacert "$CACERT" \
+        -H "Authorization: Bearer $token" \
+        -H "Content-Type: $ctype" \
+        -X "$method" \
+        --data "$body" \
+        "$API_SERVER$api_path" 2>/dev/null)"
+      if [ -z "$code" ]; then
+        code="000"
+      fi
+      echo "$code"
+    }
+
+    # Posts a v1 Event referencing the CoreDNS Deployment. Never fatal: a
+    # failed Event must not kill the probe loop. $1=type(Warning|Normal)
+    # $2=reason $3=message
+    send_event() {
+      evt_type="$1"
+      evt_reason="$2"
+      evt_message="$3"
+      ts="$(now_rfc3339)"
+      evt_name="dns-watchdog-$(date +%s)"
+      escaped_message="$(json_escape "$evt_message")"
+      body="{\"apiVersion\":\"v1\",\"kind\":\"Event\","
+      body="${body}\"metadata\":{\"name\":\"$evt_name\","
+      body="${body}\"namespace\":\"kube-system\"},"
+      body="${body}\"involvedObject\":{\"apiVersion\":\"apps/v1\","
+      body="${body}\"kind\":\"Deployment\",\"name\":\"coredns\","
+      body="${body}\"namespace\":\"kube-system\"},"
+      body="${body}\"reason\":\"$evt_reason\","
+      body="${body}\"message\":\"$escaped_message\","
+      body="${body}\"type\":\"$evt_type\","
+      body="${body}\"firstTimestamp\":\"$ts\","
+      body="${body}\"lastTimestamp\":\"$ts\","
+      body="${body}\"source\":{\"component\":\"dns-watchdog\"}}"
+      code="$(k8s_curl POST /api/v1/namespaces/kube-system/events application/json "$body")"
+      case "$code" in
+        2*) ;;
+        *)
+          echo "timestamp=$ts event=dns_event_post_failed http_code=$code reason=$evt_reason"
+          ;;
+      esac
+    }
+
+    # Patches the CoreDNS Deployment's pod template annotation the same way
+    # `kubectl rollout restart` does, which is what actually triggers the
+    # rollout (kubelet never sees this pod directly -- no exec, no delete).
+    restart_coredns() {
+      ts="$(now_rfc3339)"
+      patch_body="{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{"
+      patch_body="${patch_body}\"kubectl.kubernetes.io/restartedAt\":\"$ts\""
+      patch_body="${patch_body}}}}}}"
+      code="$(k8s_curl PATCH \
+        /apis/apps/v1/namespaces/kube-system/deployments/coredns \
+        application/strategic-merge-patch+json \
+        "$patch_body")"
+      case "$code" in
+        2*)
+          echo "timestamp=$ts event=dns_watchdog_restart result=ok http_code=$code consecutive=$CONSECUTIVE"
+          restart_msg="dns-watchdog restarted CoreDNS after $CONSECUTIVE consecutive probe failures"
+          send_event Normal CoreDNSRestarted "$restart_msg"
+          ;;
+        *)
+          echo "timestamp=$ts event=dns_watchdog_restart result=fail http_code=$code consecutive=$CONSECUTIVE"
+          ;;
+      esac
+    }
+
+    # --- probes --------------------------------------------------------------
+    # Each sets a *_RESULT global to "ok" or "fail" and is timeout-guarded so a
+    # hung resolver or a hung TCP connect can never stall the loop forever.
+
+    probe_primary() {
+      if timeout "$PROBE_TIMEOUT" nslookup "$EXTERNAL_NAME" >/dev/null 2>&1; then
+        PRIMARY_RESULT="ok"
+        return 0
+      fi
+      PRIMARY_RESULT="fail"
+      return 1
+    }
+
+    probe_internal_name() {
+      if timeout "$PROBE_TIMEOUT" nslookup "$INTERNAL_NAME" >/dev/null 2>&1; then
+        INTERNAL_RESULT="ok"
+      else
+        INTERNAL_RESULT="fail"
+      fi
+    }
+
+    probe_upstream_udp() {
+      if timeout "$PROBE_TIMEOUT" nslookup "$EXTERNAL_NAME" "$UPSTREAM_DNS" >/dev/null 2>&1; then
+        UPSTREAM_RESULT="ok"
+      else
+        UPSTREAM_RESULT="fail"
+      fi
+    }
+
+    probe_tcp_control() {
+      if timeout "$PROBE_TIMEOUT" nc -w "$PROBE_TIMEOUT" \
+        "$TCP_CONTROL_HOST" "$TCP_CONTROL_PORT" </dev/null >/dev/null 2>&1; then
+        TCP_RESULT="ok"
+      else
+        TCP_RESULT="fail"
+      fi
+    }
+
+    # --- main loop -------------------------------------------------------------
+
+    start_msg="event=dns_watchdog_started external_name=$EXTERNAL_NAME internal_name=$INTERNAL_NAME"
+    start_msg="$start_msg upstream_dns=$UPSTREAM_DNS tcp_control=$TCP_CONTROL_HOST:$TCP_CONTROL_PORT"
+    start_msg="$start_msg interval=$PROBE_INTERVAL threshold=$FAILURE_THRESHOLD"
+    start_msg="$start_msg auto_restart=$AUTO_RESTART cooldown=$RESTART_COOLDOWN_SECONDS"
+    echo "timestamp=$(now_rfc3339) $start_msg"
+
+    while true; do
+      if probe_primary; then
+        if [ "$CONSECUTIVE" -gt 0 ]; then
+          recovered_msg="event=dns_probe_recovered consecutive_before=$CONSECUTIVE"
+          recovered_msg="$recovered_msg cluster_dns=ok external_name=$EXTERNAL_NAME"
+          echo "timestamp=$(now_rfc3339) $recovered_msg"
+          recovered_reason="cluster DNS resolution recovered after $CONSECUTIVE consecutive failures"
+          send_event Normal DNSProbeRecovered "$recovered_reason"
+        fi
+        CONSECUTIVE=0
+      else
+        CONSECUTIVE=$((CONSECUTIVE + 1))
+        probe_internal_name
+        probe_upstream_udp
+        probe_tcp_control
+        failed_msg="event=dns_probe_failed consecutive=$CONSECUTIVE cluster_dns=$PRIMARY_RESULT"
+        failed_msg="$failed_msg internal_name=$INTERNAL_RESULT upstream_udp=$UPSTREAM_RESULT"
+        failed_msg="$failed_msg tcp_control=$TCP_RESULT external_name=$EXTERNAL_NAME"
+        failed_msg="$failed_msg upstream_dns=$UPSTREAM_DNS"
+        echo "timestamp=$(now_rfc3339) $failed_msg"
+        failed_reason="cluster DNS probe failed (consecutive=$CONSECUTIVE):"
+        failed_reason="$failed_reason cluster_dns=$PRIMARY_RESULT internal_name=$INTERNAL_RESULT"
+        failed_reason="$failed_reason upstream_udp=$UPSTREAM_RESULT tcp_control=$TCP_RESULT"
+        send_event Warning DNSProbeFailed "$failed_reason"
+
+        if [ "$AUTO_RESTART" = "true" ] && [ "$CONSECUTIVE" -ge "$FAILURE_THRESHOLD" ]; then
+          now_epoch="$(date +%s)"
+          elapsed=$((now_epoch - LAST_RESTART_EPOCH))
+          if [ "$elapsed" -ge "$RESTART_COOLDOWN_SECONDS" ]; then
+            restart_coredns
+            LAST_RESTART_EPOCH="$now_epoch"
+            CONSECUTIVE=0
+          else
+            skip_msg="event=dns_watchdog_restart_skipped reason=cooldown elapsed=$elapsed"
+            skip_msg="$skip_msg cooldown=$RESTART_COOLDOWN_SECONDS consecutive=$CONSECUTIVE"
+            echo "timestamp=$(now_rfc3339) $skip_msg"
+          fi
+        fi
+      fi
+      sleep "$PROBE_INTERVAL"
+    done

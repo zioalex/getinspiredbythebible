@@ -1,0 +1,55 @@
+# cloudflared connector, running in-cluster as a Deployment (token mode).
+#
+# Prereq (Cloudflare Zero Trust dashboard):
+#   Networks -> Tunnels -> Create tunnel (e.g. "k3s-qnap") -> copy the TUNNEL TOKEN.
+#   (You can reuse an existing tunnel, but a dedicated one keeps routes clean.)
+#
+# Create the token secret (do NOT commit the token):
+#   kubectl -n kubeopencode-system create secret generic cloudflared-token \
+#     --from-literal=token='<PASTE_TUNNEL_TOKEN>'
+#
+# The private-network ROUTE and WARP/Access policy are configured in the
+# dashboard (see README, Cloudflare section) — cloudflared in token mode pulls
+# its config from Cloudflare, so nothing route-related lives in this manifest.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: kubeopencode-system
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2026.8.1 # pin a real tag; :latest also works
+          args: ["tunnel", "--no-autoupdate", "run"]
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-token
+                  key: token
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "48Mi"
+            limits:
+              cpu: "150m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            # metrics/health endpoint
+            # (cloudflared serves /ready on :2000 by default)

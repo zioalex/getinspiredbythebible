@@ -1,6 +1,20 @@
 # BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 Partially Shipped — backend + web slice below; Android port and the
+instrumentation/IP-cap work are tracked separately in
+[BITB-156](BITB-156-android-server-driven-session-limit-and-instrumentation.md)
+
+**Shipped (this PR):** `GET /config` now publishes `chat.session_max_requests`; the 429 body's
+`detail` carries the numeric `limit`; web's `sessionLimitMessage` interpolates `{max}` instead of a
+hardcoded "10" in all 11 locales; a new, non-destructive **Continue this conversation** button
+(rotates the session id only, keeps the visible thread) sits alongside the existing, still-available
+**Start New Session**. The default value (10) is unchanged — this makes the cap tunable and the reset
+non-destructive, it does not itself raise the number.
+
+**Deferred to BITB-156:** the Android port of the same pattern (`MAX_INTERACTIONS` constant +
+`error_session_limit` in 11 `values-*/strings.xml`), the privacy-reviewed instrumentation this
+story's own "measure before choosing the number" section calls for, the trusted-ingress /
+shared-NAT analysis and any per-IP daily cap, and the Postgres idle-purge-horizon work.
 
 **Priority:** P2 — real user complaints, but the current limit is soft (users *can* continue),
 so nobody is fully blocked
@@ -146,12 +160,15 @@ anecdotes, uncorrelatable logs, or an assumed query.
       **and** every user-facing string, with no code or translation edit
 - [ ] The count is interpolated in all 11 web locales and in Android `strings.xml` (all locales);
       no locale contains a literal "10"
-- [ ] At the threshold, web and Android both offer **Continue this conversation** alongside
-      **Start fresh**
-- [ ] "Continue" preserves the on-screen conversation and the history sent to the backend, and the
-      next message returns 200 (regression test — this is the BITB-024 bug's cousin)
-- [ ] "Start fresh" still clears the thread exactly as today
-- [ ] Clients read the limit from the server (header or config endpoint); no client-side constant
+- [x] At the threshold, web offers **Continue this conversation** alongside **Start New Session**
+      (Android tracked in BITB-156)
+- [x] "Continue" preserves the on-screen conversation and the history sent to the backend, and the
+      next message returns 200 (regression test — this is the BITB-024 bug's cousin) — web only,
+      covered by `page.test.tsx`'s "session limit — continue vs start new session" suite
+- [x] "Start fresh" still clears the thread exactly as today (unchanged on both platforms)
+- [x] Clients read the limit from the server (header or config endpoint); no client-side constant
+      (web via `GET /config` → `chat.session_max_requests` and the 429's `detail.limit`; Android
+      still uses the hardcoded `MAX_INTERACTIONS`, tracked in BITB-156)
 - [ ] Before an IP cap ships, forwarded headers are trusted only from configured production ingress,
       with direct-spoof and multi-proxy tests; deployment topology and trust assumptions are recorded
 - [ ] Shared-IP/NAT measurements are reviewed (carrier NAT, households, institutions and VPNs), and

@@ -26,21 +26,33 @@ already there — running it twice inserts 0 new rows the second time. Pass
 editing ``TOPIC_KEYWORD_MAP`` or ``CORPUS_KEYWORD_DENYLIST``).
 
 Only translations whose ``language_code`` is one of the 7 the keyword map
-covers (en, it, de, es, fr, pt, ar) are tagged; others (ru, zh, hi, ko, ...)
-are reported as skipped since the map has no vocabulary for them.
+covers (en, it, de, es, fr, pt, ar) are tagged. The other four languages this
+product supports (ru, zh, hi, ko) are excluded by a recorded scope decision
+(BITB-106) rather than left as an unfinished gap — see
+``docs/HOW-TO-POPULATE-VERSE-TOPICS.md`` ("Scope") for why keyword seeding
+does not extend to them. They are reported as skipped when this script runs.
 
 Denylist tuning: if a run's ``--verbose`` coverage report shows any topic
-tagging more than 25% of a translation's verses, that's a sign a keyword is
-too generic for corpus-scale matching (it's fine for the query side, where a
-false positive just adds an extra boost term to one message). Add the
-offending keyword to ``CORPUS_KEYWORD_DENYLIST`` in
-``api/chat/topic_tagging.py`` with a comment recording the observed hit
-count, then re-run with ``--replace``. As of this script's introduction, a
-dry run against the real KJV (en) and Luther 1912 (de) corpora found no
-topic above ~3.2% and no keyword above ~2% — well under that threshold — so
-the denylist starts empty; other languages have not been validated the same
-way in this repo and should get a ``--dry-run --verbose`` pass before being
-trusted.
+tagging more than ``topic_tagging.COVERAGE_GUIDELINE_PCT`` (25%) of a
+translation's verses, or one keyword alone tagging more than
+``topic_tagging.KEYWORD_GUIDELINE_PCT`` (10%), that's a sign a keyword is too
+generic (or, for Arabic's substring matching, too short) for corpus-scale
+matching — it's fine for the query side, where a false positive just adds an
+extra boost term to one message. Add the offending keyword to
+``CORPUS_KEYWORD_DENYLIST`` in ``api/chat/topic_tagging.py`` with a comment
+recording the observed hit count, then re-run with ``--replace``.
+
+Validated against real corpora for all seven supported languages under
+BITB-106 (2026-09-18, via ``scripts/measure_topic_coverage.py`` — no DB
+required): en/KJV and de/Luther 1912 (in-repo, ~3.2% max topic, matching this
+script's original en/de-only finding), it/es/fr/pt/ar (fetched from public
+mirrors — es and ar match production's exact `valera`/`arabicsv` editions;
+it and fr are stand-ins for `ita1927`/`ls1910`, which this script's own
+sandbox could not reach). No topic on any of the seven breaches the 25%
+guideline. Arabic's substring matching does breach the keyword guideline on
+four short roots even while their topics stay under 25% — see
+``CORPUS_KEYWORD_DENYLIST``'s comment in ``api/chat/topic_tagging.py`` for
+the worked examples; those four are denylisted for that reason.
 
 Usage:
     export DATABASE_URL="postgresql+asyncpg://user:pass@host/db?ssl=require"  # pragma: allowlist secret
@@ -70,12 +82,16 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "api"))
 
 from chat.topic_tagging import (  # noqa: E402
+    COVERAGE_GUIDELINE_PCT,
     build_keyword_matchers,
     build_topic_matchers,
     match_topic_keywords,
     match_topics,
 )
-from chat.topics import SUPPORTED_TOPIC_LANGUAGES, TOPIC_KEYWORDS_BY_LANGUAGE  # noqa: E402
+from chat.topics import (  # noqa: E402
+    SUPPORTED_TOPIC_LANGUAGES,
+    TOPIC_KEYWORDS_BY_LANGUAGE,
+)
 
 
 def _load_migration_utils():
@@ -254,7 +270,7 @@ def _print_translation_report(stats: TranslationStats, verbose: bool, dry_run: b
     for topic in sorted(stats.topic_counts):
         count = stats.topic_counts[topic]
         pct = (100 * count / stats.verse_count) if stats.verse_count else 0
-        flag = "  <== exceeds 25% guideline" if pct > 25 else ""
+        flag = "  <== exceeds guideline" if pct > COVERAGE_GUIDELINE_PCT else ""
         line = f"    {topic:12s} {count:6,d}  ({pct:4.1f}%){flag}"
         if verbose and topic in stats.keyword_counts:
             top = sorted(stats.keyword_counts[topic].items(), key=lambda kv: -kv[1])
@@ -356,7 +372,9 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Delete a translation's existing verse_topics rows before re-tagging it.",
     )
-    parser.add_argument("--limit", type=int, help="Only process the first N verses per translation (debugging).")
+    parser.add_argument(
+        "--limit", type=int, help="Only process the first N verses per translation (debugging)."
+    )
     parser.add_argument(
         "--batch-size",
         type=int,

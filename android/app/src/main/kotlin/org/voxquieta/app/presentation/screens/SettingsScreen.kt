@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -73,6 +74,7 @@ fun SettingsScreen(
     val contactFormState by viewModel.contactFormState.collectAsState()
     val diagnosticReportState by viewModel.diagnosticReportState.collectAsState()
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val currentLanguage = LocalConfiguration.current.locales[0].language
     var showContactSheet by rememberSaveable { mutableStateOf(false) }
     var showDiagnosticSheet by rememberSaveable { mutableStateOf(false) }
@@ -241,6 +243,17 @@ fun SettingsScreen(
             ) {
                 Text(
                     text = stringResource(R.string.settings_changelog_link),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            TextButton(
+                onClick = {
+                    runCatching { uriHandler.openUri(BuildConfig.DONATE_URL) }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_support_us),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }

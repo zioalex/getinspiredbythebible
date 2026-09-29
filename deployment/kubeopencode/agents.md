@@ -68,3 +68,13 @@ currently reserved for orchestration/verification because Copilot access is
 unavailable; `nemotron-3-ultra-free` is the strongest free model and covers
 those reasoning-heavy roles. This exception was approved in BITB-123 review and
 adjusted on 2026-09-14.
+
+## Paid-model provider convention
+
+Paid (non-`:free`/`-free`) models are always served via **OpenRouter** — the
+only provider in this graph backed by our own key/credits (`OPENROUTER_API_KEY`).
+`scripts/generate-opencode-config.py::enforce_openrouter_for_paid` fails
+generation loudly if a billable model is ever attached to another provider, so
+a repeat of the `github-copilot/claude-opus-5` outage (paid primary on a
+subscription-credit provider, empty responses when credits ran out) cannot land
+silently. Free-tier models may live on any provider.

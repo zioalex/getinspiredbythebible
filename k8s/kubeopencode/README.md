@@ -1,37 +1,53 @@
-DNS Setup
-------------
+# kubeopencode config
 
-Point `chat.home.local` to your k3s ingress IP (192.168.178.200 by default):
+Kubernetes manifests and docs for running the `default-wf2` opencode agent on the
+home k3s cluster (namespace `kubeopencode-system`), plus mobile access and the
+custom-opencode-image workflow.
 
-- Add `192.168.178.200 chat.home.local` to your /etc/hosts
-  or configure in your FritzBox / Pi-hole DHCP static lease.
+> **No secrets are committed here.** The manifests reference Kubernetes Secrets by name;
+> create those out-of-band (commands below). Never commit real tokens/passwords.
 
-Use
------
+## Files
 
-Apply in order (strict tier, zero-downtime — see `docs/SECURITY-KUBEOPENCODE.md`):
+| File | What it is |
+|---|---|
+| `agent-default-wf2.yaml` | The `Agent` (opencode server), secured with `OPENCODE_SERVER_PASSWORD`; set `agentImage` here to pin the opencode version. |
+| `service-mobile.yaml` | Stable Service both remote paths target (also carries Tailscale annotations). |
+| `cloudflared-deployment.yaml` | In-cluster `cloudflared` connector (token mode) for the Cloudflare WARP + private-route path. |
+| `mobile-access.md` | Plan/runbook for reaching the agent from the phone app (Cloudflare WARP + Tailscale). |
+| `custom-opencode-image.md` | How to build/publish a custom agent image to run a newer opencode. |
+
+## Secrets to create (not stored in git)
 
 ```bash
-# Secret created imperatively first (full recipe in docs/SECURITY-KUBEOPENCODE.md):
-kubectl -n kubeopencode-system create secret generic opencode-api-key --from-literal=api-key="$OPENCODE_API_KEY" --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f role-agent.yaml -f rolebinding-agent.yaml
-kubectl apply -f networkpolicy-egress-strict.yaml -f networkpolicy-egress-server.yaml -f networkpolicy-allow-server-ingress.yaml
-# verify new agent works AND the server still resolves DNS, then:
-kubectl apply -f networkpolicy-default-deny.yaml
-kubectl apply -f agent-desktop.yaml -f ingress-server.yaml
+# provider key (OpenCode Zen)
+kubectl -n kubeopencode-system create secret generic ai-credentials \
+  --from-literal=api-key='<opencode-zen-key>'
+
+# opencode server Basic-auth password (mobile app)
+kubectl -n kubeopencode-system create secret generic opencode-server-auth \
+  --from-literal=password="$(openssl rand -hex 20)"
+
+# cloudflared tunnel token (Cloudflare path only)
+kubectl -n kubeopencode-system create secret generic cloudflared-token \
+  --from-literal=token='<tunnel-token>'
+
+# GHCR pull secret (only if the custom agent image is private)
+kubectl -n kubeopencode-system create secret docker-registry ghcr-pull \
+  --docker-server=ghcr.io --docker-username=<user> \
+  --docker-password='<PAT read:packages>' --docker-email=<email>
 ```
 
-Then open <http://chat.home.local> in a browser. You will see:
+## Apply order
 
-- Agent Browser
-- Your `desktop` agent
-- Click `desktop` → Web Terminal / Task Create
+```bash
+# 1. secrets (above)
+# 2. agent + service
+kubectl apply -f agent-default-wf2.yaml
+kubectl apply -f service-mobile.yaml      # paste the live selector first — see file header
+# 3. mobile remote access (pick Cloudflare and/or Tailscale) — see mobile-access.md
+kubectl apply -f cloudflared-deployment.yaml
+```
 
-This behaves like a minimal Claude Desktop: type prompts, watch logs live, sessions persist across restarts (2Gi storage, 30m standby idle timeout).
-
-No API key needed — uses the free opencode/big-pickle model.
-
-Hostname
---------
-
-For production, set your own domain / Ingress TLS and update `ingress-server.yaml` accordingly.
+See `mobile-access.md` for the full mobile flow and `custom-opencode-image.md` for
+updating opencode.

@@ -1,4 +1,4 @@
-"""Tests for the retrieval-eval runner (BITB-051 P3).
+"""Tests for the retrieval-eval runner (BITB-139 P3).
 
 Drives ``run_query``/``run_config`` with injected fakes — no database, no
 network, no provider credentials — so orchestration and metric assembly are

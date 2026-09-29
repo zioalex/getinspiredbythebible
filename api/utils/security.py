@@ -243,13 +243,16 @@ async def require_rate_limit(request: Request) -> None:
             details=reason,
         )
 
-        # Session lifetime limit - frontend handles the user-facing message (i18n)
+        # Session lifetime limit - frontend handles the user-facing message (i18n).
+        # "limit" is a number, not prose, so it doesn't need translation; it lets
+        # clients render the exact cap without a second /config round-trip.
         if violation_type == ViolationType.RATE_LIMIT_LIFETIME:
             raise HTTPException(
                 status_code=429,
                 detail={
                     "error": "session_lifetime_limit",
                     "retry_after": None,
+                    "limit": settings.rate_limit_session_max_requests,
                 },
             )
 

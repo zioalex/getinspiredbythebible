@@ -457,6 +457,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}
             NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+            NEXT_PUBLIC_BUILD_ID=${{ env.DEPLOY_SHA }}
 
       - name: Verify API URL in image
         if: github.event_name != 'pull_request'
@@ -491,6 +492,15 @@ jobs:
           else
             echo "✅ No localhost:8000 found in compiled JavaScript"
           fi
+
+          # BITB-102: prove the service worker's cache-busting build id was
+          # actually baked into this image — otherwise the SW's shell cache
+          # would never invalidate on deploy.
+          echo "Verifying public/build-info.json carries DEPLOY_SHA..."
+          BUILD_INFO=$(docker run --rm "$IMAGE" cat public/build-info.json)
+          echo "$BUILD_INFO"
+          echo "$BUILD_INFO" | grep -q "${{ env.DEPLOY_SHA }}" \
+            || { echo "::error::build-info.json does not carry DEPLOY_SHA — SW cache would not invalidate"; exit 1; }
 
   # ---------------------------------------------------------------------------
   # Terraform Validate (PRs only, when deployment/ changes)

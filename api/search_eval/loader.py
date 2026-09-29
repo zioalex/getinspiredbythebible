@@ -1,4 +1,4 @@
-"""Golden-set loader for the retrieval-evaluation harness (BITB-051).
+"""Golden-set loader for the retrieval-evaluation harness (BITB-139).
 
 Reads ``data/retrieval_golden_set.json``, validates every case through the
 ``GoldenCase`` Pydantic model (which rejects unparseable refs), and exposes

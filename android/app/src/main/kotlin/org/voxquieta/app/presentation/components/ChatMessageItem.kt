@@ -661,7 +661,7 @@ fun ChatMessageItem(
                                 // MUST stay true: compose-markdowntext is built on Markwon, whose
                                 // softBreakAddsNewLine default flipped from true (0.5.x) to false (0.7.x).
                                 // With false, single newlines in assistant messages collapse into one
-                                // paragraph, breaking existing chat formatting. Do not remove. (BITB-037)
+                                // paragraph, breaking existing chat formatting. Do not remove. (BITB-135)
                                 enableSoftBreakAddsNewLine = true,
                                 onLinkClicked = { url ->
                                     val parsed = parseVerseLink(url, preferredTranslation)

@@ -12,6 +12,7 @@ import { ServerConfigProvider } from "@/lib/serverConfig";
 import { reportClientError } from "@/lib/clientErrorReporter";
 import { SplashScreen } from "@/components/SplashScreen";
 import AboutIntroModal from "@/components/AboutIntroModal";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import {
   AboutIntroGateProvider,
   type AboutIntroGateState,
@@ -135,6 +136,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               }}
             />
           )}
+          <ServiceWorkerRegistrar />
           <AboutIntroGateProvider value={introGate}>
             {children}
           </AboutIntroGateProvider>

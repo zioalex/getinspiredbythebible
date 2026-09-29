@@ -99,6 +99,8 @@ android {
             buildConfigField("Boolean", "FIREBASE_ENABLED", "false")
             buildConfigField("String", "PRIVACY_POLICY_URL", "\"${gradleProp("privacyPolicyUrl", "https://voxquieta.org/privacy")}\"")
             buildConfigField("String", "FRONTEND_URL", "\"${gradleProp("frontendUrl", "https://voxquieta.org")}\"")
+            // Placeholder Ko-fi page — override with -PdonateUrl=... once the real support URL exists (BITB-074).
+            buildConfigField("String", "DONATE_URL", "\"${gradleProp("donateUrl", "https://ko-fi.com/voxquieta")}\"")
         }
         release {
             isMinifyEnabled = true
@@ -134,6 +136,8 @@ android {
             buildConfigField("Boolean", "FIREBASE_ENABLED", "true")
             buildConfigField("String", "PRIVACY_POLICY_URL", "\"${gradleProp("privacyPolicyUrl", "https://voxquieta.org/privacy")}\"")
             buildConfigField("String", "FRONTEND_URL", "\"${gradleProp("frontendUrl", "https://voxquieta.org")}\"")
+            // Placeholder Ko-fi page — override with -PdonateUrl=... once the real support URL exists (BITB-074).
+            buildConfigField("String", "DONATE_URL", "\"${gradleProp("donateUrl", "https://ko-fi.com/voxquieta")}\"")
         }
     }
 

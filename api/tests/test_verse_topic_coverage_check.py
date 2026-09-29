@@ -87,6 +87,46 @@ class TestEvaluateCoverage:
         assert result.status == coverage_module.STATUS_BELOW_FLOOR
 
 
+class TestOutOfScope:
+    """BITB-106: a language topic tagging does not cover at all (ru/zh/hi/ko)
+    must be visible in this report, never alarm, and never be misclassified
+    as an in-scope translation that happens to have zero rows (STATUS_EMPTY)
+    -- those are different findings with different operator responses."""
+
+    SUPPORTED = frozenset({"en", "it", "de", "es", "fr", "pt", "ar"})
+
+    def test_out_of_scope_language_is_classified_and_never_alarms(self, coverage_module):
+        result = coverage_module.evaluate_coverage(
+            "cuv", "zh", 31_100, 0, supported_languages=self.SUPPORTED
+        )
+        assert result.status == coverage_module.STATUS_OUT_OF_SCOPE
+        assert result.alarm is False
+
+    def test_out_of_scope_takes_priority_over_every_other_status(self, coverage_module):
+        # Would otherwise be ABOVE_CEILING (or OK, or SMALL_SAMPLE) -- scope
+        # is decided before any ratio is even considered.
+        result = coverage_module.evaluate_coverage(
+            "cuv", "zh", 31_100, 25_000, supported_languages=self.SUPPORTED
+        )
+        assert result.status == coverage_module.STATUS_OUT_OF_SCOPE
+        assert result.alarm is False
+
+    def test_supported_language_is_unaffected_by_the_scope_set(self, coverage_module):
+        result = coverage_module.evaluate_coverage(
+            "kjv", "en", 31_100, 5_691, supported_languages=self.SUPPORTED
+        )
+        assert result.status == coverage_module.STATUS_OK
+        assert result.alarm is False
+
+    def test_no_supported_languages_argument_preserves_old_behavior(self, coverage_module):
+        """Without an explicit scope set (the default), every language is
+        treated as in-scope -- callers that never learned about BITB-106
+        keep working exactly as before."""
+        result = coverage_module.evaluate_coverage("cuv", "zh", 31_100, 0)
+        assert result.status == coverage_module.STATUS_EMPTY
+        assert result.alarm is True
+
+
 class TestEvaluateAll:
     def test_evaluates_every_row(self, coverage_module):
         rows = [
@@ -101,6 +141,28 @@ class TestEvaluateAll:
         results = coverage_module.evaluate_all(rows)
         assert [r.translation for r in results] == ["kjv", "cuv"]
         assert results[1].alarm is True
+
+    def test_out_of_scope_rows_never_alarm_and_do_not_perturb_others(self, coverage_module):
+        rows = [
+            {
+                "code": "kjv",
+                "language_code": "en",
+                "verse_count": 31_100,
+                "tagged_verse_count": 5_691,
+            },
+            {"code": "cuv", "language_code": "zh", "verse_count": 31_100, "tagged_verse_count": 0},
+            {"code": "krv", "language_code": "ko", "verse_count": 31_100, "tagged_verse_count": 0},
+        ]
+        results = coverage_module.evaluate_all(
+            rows, supported_languages=frozenset({"en", "it", "de", "es", "fr", "pt", "ar"})
+        )
+        by_code = {r.translation: r for r in results}
+        assert by_code["kjv"].status == coverage_module.STATUS_OK
+        assert by_code["kjv"].alarm is False
+        assert by_code["cuv"].status == coverage_module.STATUS_OUT_OF_SCOPE
+        assert by_code["krv"].status == coverage_module.STATUS_OUT_OF_SCOPE
+        assert by_code["cuv"].alarm is False
+        assert by_code["krv"].alarm is False
 
 
 class TestRendering:

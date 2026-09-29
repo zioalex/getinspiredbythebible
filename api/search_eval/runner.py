@@ -1,4 +1,4 @@
-"""Retrieval-evaluation runner (BITB-051 P3).
+"""Retrieval-evaluation runner (BITB-139 P3).
 
 Runs golden-set queries through the *real* search pipeline under different
 named configurations (semantic vs. hybrid, with/without query expansion), so

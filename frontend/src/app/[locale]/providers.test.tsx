@@ -16,8 +16,17 @@ vi.mock("@/lib/api", () => ({
   setOnTokenConsumed: () => {},
   setTurnstileAwaiter: () => {},
   MAX_MESSAGE_LENGTH: 500,
+  MAX_SESSION_REQUESTS: 10,
 }));
 vi.mock("@/lib/clientErrorReporter", () => ({ reportClientError: () => {} }));
+
+let serviceWorkerRegistrarMounted = false;
+vi.mock("@/components/ServiceWorkerRegistrar", () => ({
+  ServiceWorkerRegistrar: () => {
+    serviceWorkerRegistrarMounted = true;
+    return null;
+  },
+}));
 
 let splashMounted = false;
 vi.mock("@/components/SplashScreen", () => ({
@@ -46,8 +55,21 @@ function clearSplashCookie() {
 
 beforeEach(() => {
   splashMounted = false;
+  serviceWorkerRegistrarMounted = false;
   clearSplashCookie();
   localStorage.clear();
+});
+
+describe("Providers service worker registration (BITB-102)", () => {
+  it("renders ServiceWorkerRegistrar", async () => {
+    render(
+      <Providers>
+        <div>app</div>
+      </Providers>,
+    );
+    await act(async () => {});
+    expect(serviceWorkerRegistrarMounted).toBe(true);
+  });
 });
 
 describe("Providers splash gating (BITB-069)", () => {

@@ -276,7 +276,7 @@ declaring success, not waved through on a passing exit code.
 
 ## Related
 
-- **BITB-051 P4a / PR #968** — introduced this workflow
+- **BITB-139 P4a / PR #968** — introduced this workflow
 - **BITB-101** — the `eval-prod` credential story; same workflow, different defect
 - `.github/workflows/search-eval-full.yml`, `api/providers/azure_openai.py`,
   `api/providers/embedding_resilience.py`, `api/providers/factory.py`, `api/config.py`

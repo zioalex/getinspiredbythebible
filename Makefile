@@ -25,11 +25,12 @@ PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 PYTHON_VERSION := python3
 
-# Colors for output
-BLUE := \033[0;34m
-GREEN := \033[0;32m
-YELLOW := \033[0;33m
-NC := \033[0m # No Color
+# Colors for output — use $(shell printf) so the actual ESC byte is captured,
+# avoiding the literal "\033" text that echo leaves uninterpreted.
+BLUE := $(shell printf '\033[0;34m')
+GREEN := $(shell printf '\033[0;32m')
+YELLOW := $(shell printf '\033[0;33m')
+NC := $(shell printf '\033[0m') # No Color
 
 help: ## Show this help message
 	@echo '$(BLUE)Available commands:$(NC)'
@@ -330,6 +331,24 @@ test-kubeopencode-netpol: ## Static checks on the strict-tier NetworkPolicies (n
 verify-kubeopencode-netpol: ## Verify strict-tier NetworkPolicies against the LIVE cluster (BITB-152)
 	@echo "$(BLUE)Verifying KubeOpenCode strict-tier NetworkPolicies...$(NC)"
 	@bash scripts/verify-kubeopencode-netpol.sh
+
+test-cluster-triage: ## Static checks on the cluster triage tooling (no cluster needed)
+	@$(PYTHON_VERSION) -m pytest scripts/test_cluster_triage.py -q
+
+collect-k8s-diagnostics: ## Collect cluster state for incident triage (usage: NAMESPACE=ns POD_IP=10.42.0.9)
+	@bash scripts/collect-k8s-diagnostics.sh \
+		$(if $(NAMESPACE),--namespace $(NAMESPACE)) \
+		$(if $(POD_IP),--pod-ip $(POD_IP))
+
+test-dns-watchdog: ## Static checks on the CoreDNS watchdog RBAC/script/deployment (no cluster needed, BITB-159)
+	@$(PYTHON_VERSION) -m pytest scripts/test_dns_watchdog.py -q
+
+deploy-dns-watchdog: ## Deploy the CoreDNS watchdog to the LIVE cluster (BITB-159)
+	@echo "$(BLUE)Deploying CoreDNS watchdog...$(NC)"
+	@kubectl apply -f k8s/dns-watchdog/serviceaccount-watchdog.yaml \
+		-f k8s/dns-watchdog/role-watchdog.yaml -f k8s/dns-watchdog/rolebinding-watchdog.yaml \
+		-f k8s/dns-watchdog/configmap-watchdog.yaml -f k8s/dns-watchdog/deployment.yaml
+	@echo "$(GREEN)✓ dns-watchdog deployed$(NC)"
 
 validate-env: install-deps ## Validate env vars between docker-compose and Terraform
 	@echo "$(BLUE)Validating environment variable consistency...$(NC)"

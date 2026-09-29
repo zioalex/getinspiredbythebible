@@ -92,6 +92,16 @@ chat_clarification_requested_counter = meter.create_counter(
     unit="1",
 )  # attributes: language
 
+# A COMFORT/GUIDANCE turn that received the BITB-151 pastoral-register addendum
+# (behind chat_cultural_tone_enabled). Makes the rollout judgeable rather than
+# guessed at -- this is the hook for the story's it-vs-en/de negative-feedback
+# baseline.
+chat_cultural_tone_applied_counter = meter.create_counter(
+    name="chat.cultural_tone.applied",
+    description="Chat turns that received a locale-specific pastoral-register addendum",
+    unit="1",
+)  # attributes: language, intent
+
 # ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
 # A supported UI language whose backing translation has zero verses (never
 # loaded) or zero embeddings (loaded but unsearchable) degrades silently —

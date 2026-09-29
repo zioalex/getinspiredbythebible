@@ -181,6 +181,7 @@
     <string name="settings_terms_of_service">服务条款</string>
     <string name="settings_changelog_title">更新内容</string>
     <string name="settings_changelog_link">更新内容</string>
+    <string name="settings_support_us">支持 Vox Quieta</string>
     <string name="changelog_empty">暂无版本说明。</string>
     <string name="whats_new_title">更新内容</string>
     <string name="whats_new_dismiss">知道了</string>

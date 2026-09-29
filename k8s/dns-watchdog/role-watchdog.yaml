@@ -1,0 +1,39 @@
+# BITB-159. Least-privilege RBAC for the DNS watchdog, namespaced to
+# kube-system (no ClusterRole / ClusterRoleBinding -- the watchdog only ever
+# needs to touch things inside kube-system).
+#
+# `patch` is the ONLY write verb granted anywhere in this file, and it lives
+# in its own rule scoped by `resourceNames: ["coredns"]` -- `resourceNames`
+# restricts the rule it appears in to that one named object, so this Role
+# cannot patch any other Deployment. A compromised watchdog process can
+# therefore restart CoreDNS and nothing else; it cannot touch another
+# workload, read secrets, exec into pods, or widen its own permissions.
+# `get` on deployments is separate and unscoped (list/read is not sensitive)
+# so the watchdog can check current state before patching.
+# `events` grants `create` only -- no read, update, patch, delete or
+# watch -- since the watchdog only ever needs to emit Events, never read
+# other components' Events.
+# One Kubernetes object per file: the repo's check-yaml pre-commit hook runs
+# without --allow-multiple-documents, so a multi-document manifest fails CI.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dns-watchdog
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: dns-watchdog
+rules:
+  # Read the CoreDNS Deployment before deciding whether/how to restart it.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get"]
+  # The ONLY write verb in this Role, and it is scoped to the coredns
+  # Deployment by name -- see the header comment above.
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["patch"]
+    resourceNames: ["coredns"]
+  # Emit diagnostic Events only. No read/update/patch/delete on events.
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create"]

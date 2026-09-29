@@ -181,6 +181,7 @@
     <string name="settings_terms_of_service">شروط الخدمة</string>
     <string name="settings_changelog_title">ما الجديد</string>
     <string name="settings_changelog_link">ما الجديد</string>
+    <string name="settings_support_us">ادعم Vox Quieta</string>
     <string name="changelog_empty">لا تتوفر ملاحظات إصدار حتى الآن.</string>
     <string name="whats_new_title">ما الجديد</string>
     <string name="whats_new_dismiss">حسناً</string>

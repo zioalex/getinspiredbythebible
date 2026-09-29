@@ -23,9 +23,14 @@ run-name: >-
       - "scripts/test_kubeopencode_manifests.py"
       - "scripts/test_kubeopencode_netpol.py"
       - "scripts/verify-kubeopencode-netpol.sh"
+      - "scripts/test_cluster_triage.py"
+      - "scripts/collect-k8s-diagnostics.sh"
+      - "docs/RUNBOOK-CLUSTER-TRIAGE.md"
       - "deployment/kubeopencode/**"
       - "k8s/kubeopencode/**"
       - "docs/SECURITY-KUBEOPENCODE.md"
+      - "k8s/dns-watchdog/**"
+      - "scripts/test_dns_watchdog.py"
       - ".github/workflows/opencode-ci.yml"
   push:
     branches:
@@ -38,9 +43,14 @@ run-name: >-
       - "scripts/test_kubeopencode_manifests.py"
       - "scripts/test_kubeopencode_netpol.py"
       - "scripts/verify-kubeopencode-netpol.sh"
+      - "scripts/test_cluster_triage.py"
+      - "scripts/collect-k8s-diagnostics.sh"
+      - "docs/RUNBOOK-CLUSTER-TRIAGE.md"
       - "deployment/kubeopencode/**"
       - "k8s/kubeopencode/**"
       - "docs/SECURITY-KUBEOPENCODE.md"
+      - "k8s/dns-watchdog/**"
+      - "scripts/test_dns_watchdog.py"
       - ".github/workflows/opencode-ci.yml"
 
 permissions:
@@ -79,6 +89,19 @@ jobs:
       # live one, which CI has no kubeconfig for.
       - name: NetworkPolicy selector tests
         run: python -m pytest scripts/test_kubeopencode_netpol.py -v
+
+      # BITB-159. Static checks on the CoreDNS watchdog: RBAC scope, the
+      # bootstrap trap (no DNS-name dependency to reach the API server), all
+      # four probe legs present, and every AUTO_RESTART/FAILURE_THRESHOLD/
+      # RESTART_COOLDOWN_SECONDS knob wired in both the script and the
+      # Deployment env. No cluster needed.
+      # BITB-160. Guards the collector against leaking Secret values and the
+      # runbook against losing traps that each cost hours to find.
+      - name: Cluster triage tooling tests
+        run: python -m pytest scripts/test_cluster_triage.py -v
+
+      - name: DNS watchdog tests
+        run: python -m pytest scripts/test_dns_watchdog.py -v
 
       # Guards the 12-agent count, fallback_models on every agent, and the
       # runtime-fallback plugin. Without the plugin, fallback_models is inert.

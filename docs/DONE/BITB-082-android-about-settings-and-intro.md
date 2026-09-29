@@ -22,12 +22,12 @@ BITB-076 shipped `/about` on the web; nothing on Android answers the same questi
 web intro modal was scoped to web only because Android already has enough first-run machinery —
 its own [`SplashScreen.kt`](../../android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/SplashScreen.kt),
 the "What's New" bottom sheet (**BITB-058**, shipped), and a first-run feature spotlight
-(**BITB-054**) — and adding a fourth interruption wasn't this story's call to make.
+(**BITB-142**) — and adding a fourth interruption wasn't this story's call to make.
 
-**Correction while scoping this:** BITB-054 (the spotlight) is still `Status: 🎯 Todo` — it has
-not been built. "Fold into BITB-054" is not available today. The only real fold-in point that
+**Correction while scoping this:** BITB-142 (the spotlight) is still `Status: 🎯 Todo` — it has
+not been built. "Fold into BITB-142" is not available today. The only real fold-in point that
 exists right now is the What's New sheet, and that comes with a genuine collision to solve (see
-below). If BITB-054 ships first, revisit whether the spotlight is a better home for this message.
+below). If BITB-142 ships first, revisit whether the spotlight is a better home for this message.
 
 ## Part A — Settings → About row
 
@@ -152,7 +152,7 @@ above.
 
 - A native, in-app rendering of the full About essay. Settings links out to the web page, same
   as Privacy/Terms — one canonical copy of the long-form content, not two to keep in sync.
-- Folding this into the BITB-054 spotlight tour — that story hasn't shipped yet. Revisit if it
+- Folding this into the BITB-142 spotlight tour — that story hasn't shipped yet. Revisit if it
   lands first.
 - Re-deriving the intro copy independently. It must trace back to the same web `About.intro*`
   source (BITB-077), just as that traces back to the ai4you.sh origin post (BITB-076) — not a
@@ -164,4 +164,4 @@ above.
 - **BITB-077** — the web intro modal; this story is its Android counterpart and reuses its
   "seen-once" (not "seen-per-version") reasoning.
 - **BITB-058** — Android What's New bottom sheet; the collision this story resolves.
-- **BITB-054** — Android first-run spotlight; still `Todo`, a possible future fold-in target.
+- **BITB-142** — Android first-run spotlight; still `Todo`, a possible future fold-in target.

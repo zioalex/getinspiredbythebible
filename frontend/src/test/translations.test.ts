@@ -110,6 +110,7 @@ describe("Translation file consistency", () => {
       "Feedback",
       "ChurchFinder",
       "Contact",
+      "Offline",
     ];
 
     for (const [locale, messages] of Object.entries(locales)) {

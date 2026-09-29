@@ -55,19 +55,25 @@ def get_migration_connection_params(database_url: str) -> tuple[str, dict]:
     if parsed.query:
         query_params = parse_qs(parsed.query)
 
-        # Extract ssl/sslmode parameters (asyncpg can't accept these in the URL)
+        # Extract ssl/sslmode parameters (asyncpg can't accept these in the URL).
+        # `sslmode` wins when both are present; they are the same libpq-style
+        # value set -- BITB-125: this normalization must happen before the
+        # branch below, or the asyncpg-spelled `?ssl=verify-ca`/`?ssl=verify-full`
+        # fail the `== "require"` check and fall through with no `ssl` kwarg at
+        # all, i.e. a silent, fully unencrypted connection.
         sslmode = query_params.pop("sslmode", [None])[0]
         ssl_param = query_params.pop("ssl", [None])[0]
+        sslmode = sslmode or ssl_param
 
         # Rebuild URL without SSL parameters
         new_query = urlencode(query_params, doseq=True) if query_params else ""
         url = urlunparse(parsed._replace(query=new_query))
 
         # Configure SSL context if required
-        if sslmode in ("require", "verify-ca", "verify-full") or ssl_param == "require":
+        if sslmode in ("require", "verify-ca", "verify-full"):
             ssl_context = ssl.create_default_context()
             # For 'require' mode: don't verify certificate (matches psycopg2 behavior)
-            if sslmode == "require" or ssl_param == "require":
+            if sslmode == "require":
                 ssl_context.check_hostname = False
                 ssl_context.verify_mode = ssl.CERT_NONE
             conn_kwargs["ssl"] = ssl_context

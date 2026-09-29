@@ -12,7 +12,7 @@ restored copy.
 Postgres admin role
 **Size:** M (a Terraform-provisioned role + grants + secret plumbing + a workflow swap + one guard test)
 **Created:** 2026-08-21
-**Prompted by:** PR #968 (BITB-051 P4a), which introduces the first automated recurring prod-database
+**Prompted by:** PR #968 (BITB-139 P4a), which introduces the first automated recurring prod-database
 access path in this repo that is not a deploy
 
 ## User Story
@@ -288,7 +288,7 @@ costs nothing to take it now and cannot be un-taken later.
 
 ## Related
 
-- **PR #968 / BITB-051 P4a** — introduces the path this story constrains
+- **PR #968 / BITB-139 P4a** — introduces the path this story constrains
 - **BITB-097** — established the "bound the database from the database" precedent (`lock_timeout` /
   `statement_timeout` as role/session settings) that the timeouts above follow
 - **BITB-099** — production Postgres connections encrypt but do not verify the server; same

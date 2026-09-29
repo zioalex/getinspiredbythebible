@@ -1,5 +1,5 @@
 """
-Tests for feedback/blocked_samples.py (BITB-057-adjacent privacy-minimal
+Tests for feedback/blocked_samples.py (BITB-143-adjacent privacy-minimal
 capture of messages blocked by the safety pipeline).
 
 Mocks the DB session directly (no real database) and asserts the
