@@ -71,10 +71,10 @@ frontend_max_replicas = 2
 llm_provider = "openrouter"
 
 # OpenRouter model (API key is in secrets file)
-openrouter_model = "meta-llama/llama-3.3-70b-instruct:free"
+openrouter_model = "meta-llama/llama-3.3-70b-instruct"
 
 # OpenRouter fallback configuration
-openrouter_fallback_models = "meta-llama/llama-3.3-70b-instruct"
+openrouter_fallback_models = "google/gemma-4-31b-it"
 openrouter_allow_fallbacks = true
 
 # -----------------------------------------------------------------------------
