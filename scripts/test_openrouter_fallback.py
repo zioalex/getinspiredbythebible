@@ -2,8 +2,9 @@
 """
 Test script for OpenRouter rate limit fallback functionality.
 
-This tests whether we properly fall back from free models to paid models
-when rate limits (429 errors) are hit.
+This tests whether we properly fall back from the paid primary
+(meta-llama/llama-3.3-70b-instruct) to the cross-provider fallback
+(google/gemma-4-31b-it) when rate limits (429 errors) are hit.
 
 Usage:
     export OPENROUTER_API_KEY=your-key
@@ -19,8 +20,8 @@ if not api_key:
     print("ERROR: OPENROUTER_API_KEY environment variable not set")
     sys.exit(1)
 
-# Test 1: Direct API test - simulate rate limit scenario
-print("\n=== Test 1: Direct API - free model (may be rate limited) ===")
+# Test 1: Direct API test - primary model (may be rate limited)
+print("\n=== Test 1: Direct API - primary model (may be rate limited) ===")
 from openai import OpenAI, RateLimitError
 from openai import APIStatusError
 
@@ -31,7 +32,7 @@ client = OpenAI(
 
 try:
     response = client.chat.completions.create(
-        model="meta-llama/llama-3.3-70b-instruct:free",
+        model="meta-llama/llama-3.3-70b-instruct",
         messages=[{"role": "user", "content": "Say hello in one word"}],
         max_tokens=50,
     )
@@ -45,11 +46,11 @@ except APIStatusError as e:
 except Exception as e:
     print(f"ERROR ({type(e).__name__}): {e}")
 
-# Test 2: Direct API test - paid model (should always work)
-print("\n=== Test 2: Direct API - paid model (should work) ===")
+# Test 2: Direct API test - fallback model (should always work)
+print("\n=== Test 2: Direct API - fallback model (should work) ===")
 try:
     response = client.chat.completions.create(
-        model="meta-llama/llama-3.3-70b-instruct",
+        model="google/gemma-4-31b-it",
         messages=[{"role": "user", "content": "Say hello in one word"}],
         max_tokens=50,
     )
@@ -71,8 +72,8 @@ try:
     async def test_provider_with_fallback():
         provider = OpenRouterProvider(
             api_key=api_key,
-            model="meta-llama/llama-3.3-70b-instruct:free",
-            fallback_models=["meta-llama/llama-3.3-70b-instruct"],
+            model="meta-llama/llama-3.3-70b-instruct",
+            fallback_models=["google/gemma-4-31b-it"],
             allow_fallbacks=True,
         )
 
@@ -90,10 +91,10 @@ try:
             print(f"Provider: {response.provider}")
 
             # Check if we used fallback
-            if response.model == "meta-llama/llama-3.3-70b-instruct":
+            if response.model == "google/gemma-4-31b-it":
                 print("\n*** FALLBACK WAS USED ***")
-            elif ":free" in response.model:
-                print("\n*** PRIMARY (FREE) MODEL SUCCEEDED ***")
+            elif response.model == "meta-llama/llama-3.3-70b-instruct":
+                print("\n*** PRIMARY MODEL SUCCEEDED ***")
         except OpenAIRateLimitError as e:
             print(f"RateLimitError caught (should have fallen back if 429): {e}")
         except OpenAIAPIStatusError as e:
@@ -127,8 +128,8 @@ try:
     async def test_streaming_with_fallback():
         provider = OpenRouterProvider(
             api_key=api_key,
-            model="meta-llama/llama-3.3-70b-instruct:free",
-            fallback_models=["meta-llama/llama-3.3-70b-instruct"],
+            model="meta-llama/llama-3.3-70b-instruct",
+            fallback_models=["google/gemma-4-31b-it"],
             allow_fallbacks=True,
         )
 
