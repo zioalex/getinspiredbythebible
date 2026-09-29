@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.56.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.55.0...v1.56.0) (2026-09-29)
 
-
 ### Features
 
 * **alembic:** audit column types against production (BITB-094) ([#1061](https://github.com/zioalex/getinspiredbythebible/issues/1061)) ([decb22e](https://github.com/zioalex/getinspiredbythebible/commit/decb22eb6745b66b7c94cb0d08962cbaafee0414))
@@ -22,7 +21,6 @@ All notable changes to this project will be documented in this file.
 * **opencode:** enforce openrouter as provider for paid models ([#1080](https://github.com/zioalex/getinspiredbythebible/issues/1080)) ([1d4da2f](https://github.com/zioalex/getinspiredbythebible/commit/1d4da2f84ca3098d04ec2880a00034c3b28ae728))
 * **web,android:** add Support Us funding entry points (BITB-074) ([#1084](https://github.com/zioalex/getinspiredbythebible/issues/1084)) ([eccdeb1](https://github.com/zioalex/getinspiredbythebible/commit/eccdeb1e3b9866bda6ba1ed85243ec2728417281))
 
-
 ### Bug Fixes
 
 * **api:** refresh OpenRouter models to paid Llama 3.3 primary + Gemma 4 31B fallback ([#1081](https://github.com/zioalex/getinspiredbythebible/issues/1081)) ([5171158](https://github.com/zioalex/getinspiredbythebible/commit/517115821bc095ffb13251de1ee620c2d7c486ed))
@@ -32,7 +30,6 @@ All notable changes to this project will be documented in this file.
 * interpret Makefile color escape codes as real ESC bytes ([#1078](https://github.com/zioalex/getinspiredbythebible/issues/1078)) ([f77f2ff](https://github.com/zioalex/getinspiredbythebible/commit/f77f2ff04827d43c84c75b08dd5ea8add4704dc5))
 * **migrations:** stop scripts/migrations/utils.py silently dropping TLS for ?ssl=verify-ca/verify-full (BITB-125) ([#1090](https://github.com/zioalex/getinspiredbythebible/issues/1090)) ([e0087c0](https://github.com/zioalex/getinspiredbythebible/commit/e0087c06f6dcca167777adde0183490ec95399bd))
 * **opencode:** use nemotron-super-free + gpt-oss-120b fallbacks for ultra ([#1079](https://github.com/zioalex/getinspiredbythebible/issues/1079)) ([f7a0b67](https://github.com/zioalex/getinspiredbythebible/commit/f7a0b67caa6a8195e43294a5242f6a8021f43ffb))
-
 
 ### Documentation
 
