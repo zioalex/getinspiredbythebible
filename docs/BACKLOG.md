@@ -2,7 +2,8 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-29 (BITB-165 created — auto-update opted-in PR branches; 2026-09-24:
+**Last Updated:** 2026-09-29 (BITB-149 done — Android follow-up-question chips, PR #1109;
+BITB-165 created — auto-update opted-in PR branches; 2026-09-24:
 BITB-156 in progress — PR #1103 open, Android Part A: server-driven session limit +
 "Continue this conversation"; 2026-09-22: BITB-158 created — KubeOpenCode dev image; BITB-094 in
 progress — column-type audit tooling built; BITB-127 created — translations.created_at
@@ -3797,11 +3798,12 @@ the prompt instruction and a second, code-level suppression on a compassionate/c
 
 ---
 
-### 🎯 BITB-149: Android — Suggested Follow-Up Question Chips
+### ✅ BITB-149: Android — Suggested Follow-Up Question Chips
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1109 merged 2026-09-29)
 **Size:** S (Android-only; the backend contract and web reference implementation already exist)
 **Created:** 2026-09-11
+**Completed:** 2026-09-29
 **Parent ref:** BITB-080 (backend + web shipped; this is its deferred Android half)
 
 **As** an Android user who has just read an answer, **I want** the same one-tap follow-up question
@@ -3814,12 +3816,16 @@ validation needed), render chips under the last assistant item only, send on fir
 
 **Acceptance Criteria (summary):**
 
-- [ ] 2–3 chips under the last assistant message; tap sends on the first tap
-- [ ] Absent `follow_ups` renders nothing; chips clear when the next turn starts
-- [ ] TalkBack-labelled chip row; Compose UI test covers position + tap-to-send
-- [ ] BITB-024 (session limit) interaction checked now that both platforms exist
+- [x] 2–3 chips under the last assistant message; tap sends on the first tap
+- [x] Absent `follow_ups` renders nothing; chips clear when the next turn starts, on conversation
+      switch, and on session reset (a real bug was caught and fixed in review: chips were being
+      wiped mid-turn in any conversation resumed from history)
+- [x] TalkBack-labelled chip row; unit + Compose UI tests cover position (via an extracted
+      `shouldShowFollowUps()` predicate) + tap-to-send
+- [x] BITB-024 (session limit) interaction checked at the code level — chips suppressed once
+      `isSessionLimitReached` — measuring the production impact is a telemetry question left open
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-149-android-followup-question-chips.md`
+**Full Story:** `docs/DONE/BITB-149-android-followup-question-chips.md`
 
 ---
 
