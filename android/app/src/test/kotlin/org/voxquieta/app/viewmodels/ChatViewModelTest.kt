@@ -2776,4 +2776,148 @@ class ChatViewModelTest {
         // currentLocale is "en" (set by setUp via languagePreferences.readInitial = "en")
         assertNull(viewModel.uiState.value.languageSuggestion)
     }
+
+    // ── BITB-149: follow-up question chips ────────────────────────────────────
+
+    @Test
+    fun `completion chunk with followUps sets uiState followUps`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+    }
+
+    @Test
+    fun `completion chunk with empty followUps leaves the previously-set list untouched`() = runTest {
+        // Backend sends a non-empty completion first, then (hypothetically) a second
+        // completion event with an empty list — the empty one must not clear the chips
+        // already set during this same turn's collection.
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(type = "completion", followUps = emptyList()),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+    }
+
+    @Test
+    fun `sendMessage clears previously-set followUps synchronously before the new response arrives`() = runTest {
+        every { repository.chatStream(any()) } returnsMany listOf(
+            flowOf(
+                StreamChunk(type = "completion", followUps = listOf("a", "b")),
+                StreamChunk(content = "Reply", done = true),
+            ),
+            flow { awaitCancellation() },
+        )
+
+        viewModel.sendMessage("First question")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        viewModel.sendMessage("Second question")
+        // Deliberately do NOT advance the dispatcher yet: sendMessage() clears
+        // followUps synchronously in its immediate _uiState.update, before the
+        // coroutine that reads the new stream is even scheduled.
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun `startNewConversation clears followUps`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        viewModel.startNewConversation()
+
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `clearConversation clears followUps`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        viewModel.clearConversation()
+
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `clearAllConversations clears followUps`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        viewModel.clearAllConversations()
+
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `followUps survive a Room re-emit after loadConversation (BITB-149 regression)`() = runTest {
+        // Regression test for the bug where observeMessages' live Room Flow re-emitting
+        // (e.g. after saveMessage persists the assistant's finished reply) would wipe
+        // followUps back to empty inside the same turn, because loadConversation used to
+        // reset followUps = emptyList() on every collected emission instead of once.
+        val messagesFlow = MutableStateFlow<List<Message>>(
+            listOf(Message(id = "m1", role = Message.Role.ASSISTANT, content = "Old reply")),
+        )
+        every { repository.observeMessages("conv-1") } returns messagesFlow
+
+        viewModel.loadConversation("conv-1")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "New reply", done = true),
+        )
+
+        viewModel.sendMessage("Follow-up question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        // Simulate the Room Flow re-emitting after saveMessage() persists the assistant's
+        // finished reply to the "conv-1" conversation this collector is still observing.
+        messagesFlow.value = messagesFlow.value + Message(
+            id = "m2",
+            role = Message.Role.ASSISTANT,
+            content = "New reply",
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "chips must survive a live Room re-emit within the same turn",
+            listOf("a", "b"),
+            viewModel.uiState.value.followUps,
+        )
+    }
 }

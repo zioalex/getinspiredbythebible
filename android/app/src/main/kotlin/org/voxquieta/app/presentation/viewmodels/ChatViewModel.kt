@@ -139,6 +139,13 @@ data class ChatUiState(
      */
     val languageSuggestion: String? = null,
     /**
+     * Suggested follow-up questions for the LAST assistant message only (BITB-149).
+     * Populated from the completion event's `follow_ups` field; empty when suppressed
+     * or on an older backend. Cleared at the start of every new turn, new chat, and
+     * session reset — never persisted across those boundaries.
+     */
+    val followUps: List<String> = emptyList(),
+    /**
      * Effective max characters allowed in a single chat message. Seeded from
      * the compiled-in [ChatViewModel.MAX_MESSAGE_LENGTH] fallback and updated
      * once GET /config resolves (BITB-075) — see [ChatViewModel.fetchConfigWithRetry].
@@ -472,6 +479,7 @@ class ChatViewModel @Inject constructor(
                 isLoading = true,
                 error = null,
                 languageSuggestion = null,
+                followUps = emptyList(),
             )
         }
 
@@ -708,6 +716,12 @@ class ChatViewModel @Inject constructor(
                                 )
                             }
                         }
+                        // Suggested follow-up questions (BITB-149). Only set when
+                        // non-empty; already cleared at turn-start above, so an
+                        // absent/suppressed field must not clear it back to empty here.
+                        if (chunk.followUps.isNotEmpty()) {
+                            _uiState.update { state -> state.copy(followUps = chunk.followUps) }
+                        }
                         return@collect
                     }
 
@@ -755,6 +769,13 @@ class ChatViewModel @Inject constructor(
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
      fun loadConversation(conversationId: String) {
+        // Clear stale chips from whatever thread was previously active exactly once,
+        // synchronously, when switching conversations. This must NOT happen inside the
+        // collector below: observeMessages is a live Room Flow that re-emits every time
+        // a message is saved — including the assistant's own message at the end of a
+        // turn that just set followUps from the completion event — and clearing it there
+        // would wipe the chips within the same turn, every time (BITB-149 regression).
+        _uiState.update { it.copy(followUps = emptyList()) }
         viewModelScope.launch {
             lastConversationPreferences.setLastConversationId(conversationId)
             repository.observeMessages(conversationId).collect { messages ->
@@ -810,6 +831,7 @@ class ChatViewModel @Inject constructor(
                 showChurchFinderInlineCard = false,
                 allVerses = emptyList(),
                 languageSuggestion = null,
+                followUps = emptyList(),
             )
         }
         _churchFinderSheetState.value = ChurchFinderSheetState.Idle
@@ -957,7 +979,7 @@ class ChatViewModel @Inject constructor(
         // the assistant message against the conversation we are about to delete.
         cancelStream()
         val conversationId = _uiState.value.currentConversationId
-        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList()) }
+        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList(), followUps = emptyList()) }
         if (conversationId != null) {
             viewModelScope.launch {
                 lastConversationPreferences.setLastConversationId(null)
@@ -971,7 +993,7 @@ class ChatViewModel @Inject constructor(
         // Stop any in-flight stream first: its onCompletion would otherwise try to persist
         // the assistant message against a conversation we are about to delete.
         cancelStream()
-        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList()) }
+        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList(), followUps = emptyList()) }
         viewModelScope.launch {
             lastConversationPreferences.setLastConversationId(null)
             repository.clearAllConversations()

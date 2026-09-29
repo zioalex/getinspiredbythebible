@@ -202,6 +202,27 @@ class ChatMapperTest {
         assertTrue(domain.resolvedVerses.isEmpty())
     }
 
+    // ── BITB-149 tests ────────────────────────────────────────────────────────
+
+    @Test
+    fun `StreamChunkDto toDomain maps follow_ups to domain followUps`() {
+        val dto = StreamChunkDto(
+            type = "completion",
+            followUps = listOf("x", "y"),
+        )
+        val domain = dto.toDomain()
+
+        assertEquals(listOf("x", "y"), domain.followUps)
+    }
+
+    @Test
+    fun `StreamChunkDto toDomain defaults followUps to empty list`() {
+        val dto = StreamChunkDto(content = "hi", done = false)
+        val domain = dto.toDomain()
+
+        assertTrue(domain.followUps.isEmpty())
+    }
+
     @Test
     fun `VerseDto toDomain builds reference correctly`() {
         val dto = VerseDto(book = "Genesis", chapter = 1, verse = 1, text = "In the beginning...", translation = "kjv")

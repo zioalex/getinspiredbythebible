@@ -70,6 +70,7 @@ import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
 import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
+import org.voxquieta.app.presentation.components.FollowUpChips
 import org.voxquieta.app.presentation.components.LanguagePickerBottomSheet
 import org.voxquieta.app.presentation.components.SessionLimitActions
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
@@ -172,8 +173,10 @@ fun ChatScreen(
         }
     }
 
-    // Auto-scroll to bottom when messages change
-    LaunchedEffect(uiState.messages.size) {
+    // Auto-scroll to bottom when messages change, or when the follow-up chips
+    // appear under the last message (BITB-149) — they push new content into
+    // view below the last message item, so re-fire the scroll to reveal them.
+    LaunchedEffect(uiState.messages.size, uiState.followUps) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
@@ -409,6 +412,22 @@ fun ChatScreen(
                             localizedToEnglish = localizedToEnglish,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
+
+                        if (shouldShowFollowUps(
+                                index = index,
+                                lastIndex = uiState.messages.lastIndex,
+                                role = message.role,
+                                isLoading = uiState.isLoading,
+                                isSessionLimitReached = uiState.isSessionLimitReached,
+                                followUps = uiState.followUps,
+                            )
+                        ) {
+                            FollowUpChips(
+                                suggestions = uiState.followUps,
+                                onSelect = { suggestion -> viewModel.sendMessage(suggestion) },
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            )
+                        }
                     }
 
                     // Church-finder inline card — appears in the message list after 5 interactions.
