@@ -35,9 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: >-
-      github.event_name != 'pull_request'
-      || (github.event.pull_request.head.repo.full_name == github.repository
-      && (github.event.action == 'auto_merge_enabled' || github.event.label.name == 'autoupdate'))
+      github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action == 'auto_merge_enabled' || github.event.label.name == 'autoupdate'))
     steps:
       # Always the default branch: never run PR-modified script code with the PAT.
       - uses: actions/checkout@v7
