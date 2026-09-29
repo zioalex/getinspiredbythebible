@@ -49,6 +49,8 @@ data class StreamChunkDto(
      * selected UI language. Populated in the metadata event. Null when no mismatch.
      */
     @SerialName("language_suggestion") val languageSuggestion: String? = null,
+    /** Suggested follow-up questions from the completion event (BITB-149). Absent/empty when suppressed. */
+    @SerialName("follow_ups") val followUps: List<String> = emptyList(),
 )
 
 /** A single scripture-fidelity correction reported in the completion event. */
