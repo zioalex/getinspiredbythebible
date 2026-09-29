@@ -22,6 +22,7 @@ data class ChatResponse(
  * @param correctedMessage Authoritative message body when grounding rewrote a fabricated/
  *   mismatched inline verse quote; null when nothing was corrected.
  * @param languageSuggestion ISO 639-1 code suggested for UI locale switch (null when no mismatch).
+ * @param followUps Suggested follow-up questions from the completion event (BITB-149).
  */
 data class StreamChunk(
     val content: String = "",
@@ -34,5 +35,6 @@ data class StreamChunk(
     val versesCited: List<String> = emptyList(),
     val resolvedVerses: List<Verse> = emptyList(),
     val correctedMessage: String? = null,
+    val followUps: List<String> = emptyList(),
     val languageSuggestion: String? = null,
 )
