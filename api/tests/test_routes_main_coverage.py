@@ -427,6 +427,8 @@ class TestMainApp:
             # published so clients don't rely on a hard-coded, possibly
             # out-of-sync, constant.
             assert data["chat"]["max_message_length"] == settings.max_message_length
+            # BITB-118: same for the per-session message cap.
+            assert data["chat"]["session_max_requests"] == settings.rate_limit_session_max_requests
 
     def test_provider_error_handler(self):
         with (

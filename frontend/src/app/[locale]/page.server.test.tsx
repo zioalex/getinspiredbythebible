@@ -36,6 +36,7 @@ vi.mock("@/lib/api", () => ({
   ContentBlockedError: class ContentBlockedError extends Error {},
   SessionLimitError: class SessionLimitError extends Error {},
   MAX_MESSAGE_LENGTH: 500,
+  MAX_SESSION_REQUESTS: 10,
   checkBackendReady: vi.fn().mockResolvedValue(true),
   warmupBackend: vi.fn(),
   searchChurches: vi.fn(),

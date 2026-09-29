@@ -212,6 +212,13 @@ class Settings(BaseSettings):
     # dark until real output has been reviewed.
     chat_follow_ups_enabled: bool = False
 
+    # BITB-151: on a COMFORT/GUIDANCE turn in a locale with a registered pastoral
+    # note (currently only "it"), append a short register addendum tuning warmth
+    # -- never verse content. Off by default for the same reason as BITB-078/080:
+    # ships dark until the Italian sample pack has been reviewed by a native
+    # speaker and the it-vs-en/de negative-feedback baseline is in hand.
+    chat_cultural_tone_enabled: bool = False
+
     # Verse grounding (post-generation scripture fidelity)
     verse_grounding_enabled: bool = True  # Correct fabricated/mismatched inline verse quotes
     # BITB-054: how to handle an inline-quoted citation that cannot be resolved to any
