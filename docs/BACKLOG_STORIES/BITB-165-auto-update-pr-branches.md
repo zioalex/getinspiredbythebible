@@ -46,9 +46,23 @@ for organization-owned repositories; this is a personal-account repository.
 ## Setup (manual, one-time)
 
 1. Settings → General → enable **Allow auto-merge**.
-2. Optionally create secret `AUTO_UPDATE_PR_TOKEN`: a fine-grained PAT scoped to this repo
-   only with Contents read/write and Pull requests read/write. Otherwise the workflow falls
-   back to `RELEASE_PLEASE_TOKEN`.
+2. Optional: a dedicated token. Skip this step to use the existing `RELEASE_PLEASE_TOKEN`,
+   which already has the needed permissions. `AUTO_UPDATE_PR_TOKEN` is the name of the
+   repository secret, not a permission. To create it:
+   1. GitHub avatar → Settings → Developer settings → Personal access tokens →
+      **Fine-grained tokens** → Generate new token.
+   2. Resource owner: `zioalex`. Repository access: **Only select repositories** →
+      `getinspiredbythebible`. The permission list only appears after a repository is selected.
+   3. Permissions → Repository permissions (click **Add permissions** if the list is
+      collapsed), each set to **Read and write**:
+      * **Contents**: push the merge commit to the PR branch.
+      * **Pull requests**: call the update-branch endpoint.
+      * **Workflows**: GitHub rejects a token push that touches `.github/workflows/`, which
+        happens whenever `main`'s changes include a workflow file.
+
+      **Metadata: Read-only** is added automatically.
+   4. Generate and copy the token, then in this repo: Settings → Secrets and variables →
+      Actions → New repository secret, name `AUTO_UPDATE_PR_TOKEN`, paste the token.
 3. Per PR, click **Enable auto-merge** or add the label `autoupdate`.
 4. Optional dry run: Actions → Auto-update PR branches → Run workflow with `dry_run` enabled.
 

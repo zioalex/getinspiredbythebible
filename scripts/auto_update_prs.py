@@ -258,8 +258,8 @@ def main(
     if not token:
         print(
             "::error::GH_TOKEN is empty. Set repository secret AUTO_UPDATE_PR_TOKEN "
-            "(fine-grained PAT with Contents: read/write and Pull requests: read/write on this "
-            "repository). The default GITHUB_TOKEN cannot be used because branch updates it "
+            "(fine-grained PAT on this repository with Contents, Pull requests and Workflows "
+            "set to read/write). The default GITHUB_TOKEN cannot be used because branch updates it "
             "makes do not trigger CI."
         )
         return 1

@@ -9,7 +9,8 @@ name: Auto-update PR branches
 #
 # A PAT does the update, not GITHUB_TOKEN: updates made with GITHUB_TOKEN do not trigger
 # workflows, so CI would never run on the updated PR. Set repository secret AUTO_UPDATE_PR_TOKEN
-# (fine-grained PAT: Contents RW + Pull requests RW); falls back to RELEASE_PLEASE_TOKEN.
+# (fine-grained PAT: Contents, Pull requests and Workflows, all read/write; Workflows is needed
+# whenever the update brings in .github/workflows changes); falls back to RELEASE_PLEASE_TOKEN.
 "on":
   push:
     branches:
