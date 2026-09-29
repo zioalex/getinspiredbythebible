@@ -194,11 +194,12 @@
     <string name="about_intro_secondary_cta">Weiter</string>
 
     <!-- Session limit error -->
-    <string name="error_session_limit">Du hast 10 Nachrichten in dieser Sitzung gehabt! Warum machst du nicht eine Pause und genießt Gottes Schöpfung draußen? 🌳</string>
+    <string name="error_session_limit">Du hast %1$d Nachrichten in dieser Sitzung gehabt! Warum machst du nicht eine Pause und genießt Gottes Schöpfung draußen? 🌳</string>
     <string name="error_content_blocked">Auf diese Nachricht konnte ich nicht antworten — unser Sicherheitssystem hat sie zurückgehalten und hat deine Worte vielleicht einfach missverstanden. Versuch bitte, deinen Gedanken anders zu formulieren. Wenn sich etwas falsch anfühlt, melde dich gerne bei uns unter contact@voxquieta.org. Schön, dass du hier bist.</string>
 
     <!-- Actions -->
     <string name="action_select_language">Sprache auswählen</string>
+    <string name="action_continue_conversation">Diese Unterhaltung fortsetzen</string>
     <string name="action_start_new_session">Neue Sitzung</string>
     <string name="action_retry">Wiederholen</string>
     <string name="action_share_message">Nachricht teilen</string>

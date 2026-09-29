@@ -194,12 +194,13 @@
     <string name="about_intro_secondary_cta">Продолжить</string>
 
     <!-- Errors -->
-    <string name="error_session_limit">У вас было 10 сообщений в этой сессии! Почему бы не сделать перерыв и не насладиться творением Божьим на природе? 🌳</string>
+    <string name="error_session_limit">У вас было %1$d сообщений в этой сессии! Почему бы не сделать перерыв и не насладиться творением Божьим на природе? 🌳</string>
     <string name="error_content_blocked">Я не смог ответить на это сообщение — наша система безопасности задержала его и, возможно, просто неправильно поняла ваши слова. Попробуйте, пожалуйста, переформулировать мысль, а если что-то всё же кажется не так, напишите нам на contact@voxquieta.org. Рады, что вы здесь.</string>
 
     <!-- Actions -->
     <string name="action_select_language">Выбрать язык</string>
     <string name="action_retry">Повторить</string>
+    <string name="action_continue_conversation">Продолжить этот разговор</string>
     <string name="action_start_new_session">Новая сессия</string>
     <string name="action_share_message">Поделиться сообщением</string>
     <string name="action_copy_message">Копировать сообщение</string>

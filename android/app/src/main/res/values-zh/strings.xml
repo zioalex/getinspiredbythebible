@@ -194,12 +194,13 @@
     <string name="about_intro_secondary_cta">继续</string>
 
     <!-- Errors -->
-    <string name="error_session_limit">您在本次会话中已有10条消息！何不休息一下，欣赏上帝的创造？🌳</string>
+    <string name="error_session_limit">您在本次会话中已有%1$d条消息！何不休息一下，欣赏上帝的创造？🌳</string>
     <string name="error_content_blocked">这条消息我没能回复 — 我们的安全系统暂时拦住了它，可能只是误读了您的表达。请尝试换一种说法再说一次；如果觉得有哪里不对，欢迎写信给我们 contact@voxquieta.org。很高兴您来到这里。</string>
 
     <!-- Actions -->
     <string name="action_select_language">选择语言</string>
     <string name="action_retry">重试</string>
+    <string name="action_continue_conversation">继续此对话</string>
     <string name="action_start_new_session">新会话</string>
     <string name="action_share_message">分享消息</string>
     <string name="action_copy_message">复制消息</string>
