@@ -117,6 +117,15 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                             Timber.w(e, "SSE: failed to parse corrections")
                             emptyList()
                         }
+                        // Suggested follow-up questions (BITB-149), absent/empty when suppressed.
+                        val followUps: List<String> = try {
+                            val followUpsEl = jsonObj["follow_ups"]
+                            if (followUpsEl != null) json.decodeFromJsonElement<List<String>>(followUpsEl)
+                            else emptyList()
+                        } catch (e: Exception) {
+                            Timber.w(e, "SSE: failed to parse follow_ups")
+                            emptyList()
+                        }
                         emit(
                             StreamChunkDto(
                                 type = "completion",
@@ -124,6 +133,7 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                                 resolvedVerses = resolvedVerses,
                                 correctedMessage = correctedMessage,
                                 corrections = corrections,
+                                followUps = followUps,
                             ),
                         )
                     }
