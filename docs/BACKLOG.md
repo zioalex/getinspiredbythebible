@@ -2,22 +2,22 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-29 (BITB-165 created — auto-update opted-in PR branches; 2026-09-27:
-backlog-vs-`main` audit: 10 stories marked done that were stale Todo/In-Progress despite being
-merged — BITB-125, BITB-152, BITB-122, BITB-067, BITB-057, BITB-126, BITB-123, BITB-129, BITB-138,
-BITB-042; 3 more corrected in place without a full flip to Done — BITB-121, BITB-128, BITB-046 —
-where one acceptance criterion still needs live production/cluster confirmation this audit couldn't
-get from source alone; 2026-09-26: BITB-113 done, PR #1105 — verse-parser grammar unification;
-BITB-164 created — VersesPanel.kt fourth grammar copy, found by BITB-113's Verify stage; 2026-09-25:
-BITB-158 v2 rewrite — corrected base image (`executorImage`/`kubeopencode-agent-devbox`, not
-`agentImage`/`kubeopencode-agent-opencode`) and pre-commit cache design; still In Progress, PR
-pending. BITB-163 filed as a follow-up for the deferred fallback-table sync; 2026-09-24: BITB-156 in
-progress — PR #1103 open, Android Part A: server-driven session limit + "Continue this
-conversation"; 2026-09-22: BITB-074 done — Support Us funding entry points, PR #1084; BITB-158
-created — KubeOpenCode dev image; BITB-094 in progress — column-type audit tooling built; BITB-127
-created — translations.created_at timezone-aware; BITB-153 guard extended; BITB-161 created —
-KubeOpenCode agent file-mount for Copilot auth; BITB-084 Part C done via BITB-102; BITB-155 created
-— OpenRouter paid Llama primary + Gemma 4 31B fallback)
+**Last Updated:** 2026-09-29 (BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
+created — auto-update opted-in PR branches; 2026-09-27: backlog-vs-`main` audit: 10 stories marked
+done that were stale Todo/In-Progress despite being merged — BITB-125, BITB-152, BITB-122, BITB-067,
+BITB-057, BITB-126, BITB-123, BITB-129, BITB-138, BITB-042; 3 more corrected in place without a full
+flip to Done — BITB-121, BITB-128, BITB-046 — where one acceptance criterion still needs live
+production/cluster confirmation this audit couldn't get from source alone; 2026-09-26: BITB-113
+done, PR #1105 — verse-parser grammar unification; BITB-164 created — VersesPanel.kt fourth grammar
+copy, found by BITB-113's Verify stage; 2026-09-25: BITB-158 v2 rewrite — corrected base image
+(`executorImage`/`kubeopencode-agent-devbox`, not `agentImage`/`kubeopencode-agent-opencode`) and
+pre-commit cache design; still In Progress, PR pending. BITB-163 filed as a follow-up for the
+deferred fallback-table sync; 2026-09-24: BITB-156 in progress — PR #1103 open, Android Part A:
+server-driven session limit + "Continue this conversation"; 2026-09-22: BITB-074 done — Support Us
+funding entry points, PR #1084; BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
+column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware; BITB-153
+guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth; BITB-084 Part C
+done via BITB-102; BITB-155 created — OpenRouter paid Llama primary + Gemma 4 31B fallback)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -3913,11 +3913,12 @@ the prompt instruction and a second, code-level suppression on a compassionate/c
 
 ---
 
-### 🎯 BITB-149: Android — Suggested Follow-Up Question Chips
+### ✅ BITB-149: Android — Suggested Follow-Up Question Chips
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1109 merged 2026-09-29)
 **Size:** S (Android-only; the backend contract and web reference implementation already exist)
 **Created:** 2026-09-11
+**Completed:** 2026-09-29
 **Parent ref:** BITB-080 (backend + web shipped; this is its deferred Android half)
 
 **As** an Android user who has just read an answer, **I want** the same one-tap follow-up question
@@ -3930,12 +3931,16 @@ validation needed), render chips under the last assistant item only, send on fir
 
 **Acceptance Criteria (summary):**
 
-- [ ] 2–3 chips under the last assistant message; tap sends on the first tap
-- [ ] Absent `follow_ups` renders nothing; chips clear when the next turn starts
-- [ ] TalkBack-labelled chip row; Compose UI test covers position + tap-to-send
-- [ ] BITB-024 (session limit) interaction checked now that both platforms exist
+- [x] 2–3 chips under the last assistant message; tap sends on the first tap
+- [x] Absent `follow_ups` renders nothing; chips clear when the next turn starts, on conversation
+      switch, and on session reset (a real bug was caught and fixed in review: chips were being
+      wiped mid-turn in any conversation resumed from history)
+- [x] TalkBack-labelled chip row; unit + Compose UI tests cover position (via an extracted
+      `shouldShowFollowUps()` predicate) + tap-to-send
+- [x] BITB-024 (session limit) interaction checked at the code level — chips suppressed once
+      `isSessionLimitReached` — measuring the production impact is a telemetry question left open
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-149-android-followup-question-chips.md`
+**Full Story:** `docs/DONE/BITB-149-android-followup-question-chips.md`
 
 ---
 
