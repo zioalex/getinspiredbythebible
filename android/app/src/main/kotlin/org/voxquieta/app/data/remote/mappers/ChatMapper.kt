@@ -54,5 +54,6 @@ fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
     versesCited = versesCited,
     resolvedVerses = resolvedVerses.map { it.toDomain() },
     correctedMessage = correctedMessage,
+    followUps = followUps,
     languageSuggestion = languageSuggestion,
 )

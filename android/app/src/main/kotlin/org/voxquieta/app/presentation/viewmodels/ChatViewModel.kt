@@ -139,11 +139,26 @@ data class ChatUiState(
      */
     val languageSuggestion: String? = null,
     /**
+     * Suggested follow-up questions for the LAST assistant message only (BITB-149).
+     * Populated from the completion event's `follow_ups` field; empty when suppressed
+     * or on an older backend. Cleared at the start of every new turn, new chat, and
+     * session reset — never persisted across those boundaries.
+     */
+    val followUps: List<String> = emptyList(),
+    /**
      * Effective max characters allowed in a single chat message. Seeded from
      * the compiled-in [ChatViewModel.MAX_MESSAGE_LENGTH] fallback and updated
      * once GET /config resolves (BITB-075) — see [ChatViewModel.fetchConfigWithRetry].
      */
     val maxMessageLength: Int = ChatViewModel.MAX_MESSAGE_LENGTH,
+    /**
+     * Effective number of completed interactions after which the session ends.
+     * Seeded from the compiled-in [ChatViewModel.MAX_INTERACTIONS] fallback and
+     * updated once GET /config resolves (BITB-156, mirrors web useServerConfig) —
+     * see [ChatViewModel.fetchConfigWithRetry]. The backend always enforces its
+     * own configured limit regardless of this value.
+     */
+    val sessionMaxRequests: Int = ChatViewModel.MAX_INTERACTIONS,
 )
 
 @HiltViewModel
@@ -165,8 +180,12 @@ class ChatViewModel @Inject constructor(
 
     companion object {
         /**
-         * Number of completed interactions after which the session ends.
-         * Must match the backend's RATE_LIMIT_SESSION_MAX_REQUESTS setting (default 10).
+         * Pre-config fallback only (BITB-156). The effective per-session
+         * interaction limit comes from the backend at runtime via
+         * GET /config -> chat.session_max_requests (see
+         * [ChatUiState.sessionMaxRequests], seeded from this constant and
+         * updated by [fetchConfigWithRetry]). Mirrors the web fallback
+         * MAX_SESSION_REQUESTS in frontend/src/lib/api.ts.
          */
         const val MAX_INTERACTIONS = 10
 
@@ -302,18 +321,18 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(themeMode = mode) }
             }
         }
-        // Restore the persisted per-session interaction count so the 10-message
-        // limit survives app restarts and conversation loads. The count is keyed
-        // to the session lifetime (reset by startNewConversation), so we seed both
-        // the counter and the limit flag from DataStore on cold start. We do NOT
-        // restore the church-finder banner/inline flags: those use one-shot
+        // Restore the persisted per-session interaction count so the per-session
+        // message limit survives app restarts and conversation loads. The count is
+        // keyed to the session lifetime (reset by startNewConversation), so we seed
+        // both the counter and the limit flag from DataStore on cold start. We do
+        // NOT restore the church-finder banner/inline flags: those use one-shot
         // triggers (== 3 / >= 5) and must not re-nag after a restart.
         viewModelScope.launch {
             val restoredCount = sessionPreferences.getInteractionCount()
             _uiState.update {
                 it.copy(
                     interactionCount = restoredCount,
-                    isSessionLimitReached = restoredCount >= MAX_INTERACTIONS,
+                    isSessionLimitReached = restoredCount >= it.sessionMaxRequests,
                 )
             }
         }
@@ -321,8 +340,9 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch { fetchTranslationsWithRetry() }
         // Fetch book name mappings from the backend with retry.
         viewModelScope.launch { fetchBookNamesWithRetry() }
-        // Fetch server-published config (currently just the effective chat
-        // message-length limit) from the backend with retry (BITB-075).
+        // Fetch server-published config (the effective chat message-length
+        // limit and per-session message limit) from the backend with retry
+        // (BITB-075, BITB-156).
         viewModelScope.launch { fetchConfigWithRetry() }
         // Mirror the connectivity state into uiState so the UI can react.
         viewModelScope.launch {
@@ -399,11 +419,11 @@ class ChatViewModel @Inject constructor(
 
     /**
      * Fetches server-published config from the backend with exponential backoff
-     * (BITB-075). Attempts up to [maxAttempts] times, starting with a
+     * (BITB-075, BITB-156). Attempts up to [maxAttempts] times, starting with a
      * [initialDelayMs] ms delay that doubles on each retry. Falls back to
-     * leaving [ChatUiState.maxMessageLength] at its compiled-in default when
-     * all attempts fail, or when the response doesn't include a valid
-     * positive value.
+     * leaving [ChatUiState.maxMessageLength] and [ChatUiState.sessionMaxRequests]
+     * at their compiled-in defaults when all attempts fail, or when the response
+     * doesn't include a valid positive value for a given field.
      */
     private suspend fun fetchConfigWithRetry(
         maxAttempts: Int = 3,
@@ -417,12 +437,16 @@ class ChatViewModel @Inject constructor(
                 if (maxLength != null && maxLength > 0) {
                     _uiState.update { it.copy(maxMessageLength = maxLength) }
                 }
+                val sessionMax = response.chat?.sessionMaxRequests
+                if (sessionMax != null && sessionMax > 0) {
+                    _uiState.update { it.copy(sessionMaxRequests = sessionMax) }
+                }
                 return
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 val isLastAttempt = attempt == maxAttempts - 1
                 if (isLastAttempt) {
-                    Timber.w(e, "Failed to fetch config after $maxAttempts attempts; keeping fallback maxMessageLength")
+                    Timber.w(e, "Failed to fetch config after $maxAttempts attempts; keeping fallback maxMessageLength/sessionMaxRequests")
                 } else {
                     Timber.w(e, "Failed to fetch config (attempt ${attempt + 1}/$maxAttempts); retrying in ${delayMs}ms")
                     delay(delayMs)
@@ -455,6 +479,7 @@ class ChatViewModel @Inject constructor(
                 isLoading = true,
                 error = null,
                 languageSuggestion = null,
+                followUps = emptyList(),
             )
         }
 
@@ -585,9 +610,9 @@ class ChatViewModel @Inject constructor(
                                 val newCount = state.interactionCount + 1
                                 // Detect the exact moment the session limit is reached so we can
                                 // proactively block the input and show the invitation message —
-                                // no need for the user to attempt a failing 11th request.
+                                // no need for the user to attempt a failing extra request.
                                 val sessionLimitJustReached =
-                                    !state.isSessionLimitReached && newCount >= MAX_INTERACTIONS
+                                    !state.isSessionLimitReached && newCount >= state.sessionMaxRequests
                                 // Append new verses, deduplicating by reference only (not translation)
                                 // so each verse appears once regardless of which translation it came from.
                                 val existingRefs = state.allVerses.map { "${it.book}${it.chapter}:${it.verse}" }.toHashSet()
@@ -600,7 +625,7 @@ class ChatViewModel @Inject constructor(
                                     Message(
                                         id = UUID.randomUUID().toString(),
                                         role = Message.Role.ASSISTANT,
-                                        content = context.getString(R.string.error_session_limit),
+                                        content = context.getString(R.string.error_session_limit, state.sessionMaxRequests),
                                     )
                                 } else null
                                 state.copy(
@@ -624,9 +649,9 @@ class ChatViewModel @Inject constructor(
                                     allVerses = state.allVerses + dedupedNew,
                                 )
                             }
-                            // Persist the new count so the 10-message limit survives
-                            // app restarts and conversation loads. state is the
-                            // in-memory mirror of the persisted value; write it back.
+                            // Persist the new count so the per-session message limit
+                            // survives app restarts and conversation loads. state is
+                            // the in-memory mirror of the persisted value; write it back.
                             sessionPreferences.setInteractionCount(_uiState.value.interactionCount)
                         }
                     }
@@ -691,6 +716,12 @@ class ChatViewModel @Inject constructor(
                                 )
                             }
                         }
+                        // Suggested follow-up questions (BITB-149). Only set when
+                        // non-empty; already cleared at turn-start above, so an
+                        // absent/suppressed field must not clear it back to empty here.
+                        if (chunk.followUps.isNotEmpty()) {
+                            _uiState.update { state -> state.copy(followUps = chunk.followUps) }
+                        }
                         return@collect
                     }
 
@@ -738,6 +769,13 @@ class ChatViewModel @Inject constructor(
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
      fun loadConversation(conversationId: String) {
+        // Clear stale chips from whatever thread was previously active exactly once,
+        // synchronously, when switching conversations. This must NOT happen inside the
+        // collector below: observeMessages is a live Room Flow that re-emits every time
+        // a message is saved — including the assistant's own message at the end of a
+        // turn that just set followUps from the completion event — and clearing it there
+        // would wipe the chips within the same turn, every time (BITB-149 regression).
+        _uiState.update { it.copy(followUps = emptyList()) }
         viewModelScope.launch {
             lastConversationPreferences.setLastConversationId(conversationId)
             repository.observeMessages(conversationId).collect { messages ->
@@ -793,9 +831,32 @@ class ChatViewModel @Inject constructor(
                 showChurchFinderInlineCard = false,
                 allVerses = emptyList(),
                 languageSuggestion = null,
+                followUps = emptyList(),
             )
         }
         _churchFinderSheetState.value = ChurchFinderSheetState.Idle
+    }
+
+    /**
+     * Non-destructive default for a session-limit hit (BITB-156, mirrors web
+     * handleContinueConversation in ChatIsland.tsx). Rotates only the
+     * session/rate-limit key — a fresh session_id gives a fresh server-side
+     * quota — so the visible thread survives: messages, currentConversationId,
+     * verses and every other piece of conversation state are left untouched.
+     * Contrast with [startNewConversation], which also clears the thread.
+     */
+    fun continueConversation() {
+        viewModelScope.launch {
+            // Atomically issues a new session_id and zeroes the persisted
+            // interaction count (same call startNewConversation uses).
+            sessionPreferences.resetSessionId()
+        }
+        _uiState.update {
+            it.copy(
+                isSessionLimitReached = false,
+                interactionCount = 0,
+            )
+        }
     }
 
     /**
@@ -918,7 +979,7 @@ class ChatViewModel @Inject constructor(
         // the assistant message against the conversation we are about to delete.
         cancelStream()
         val conversationId = _uiState.value.currentConversationId
-        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList()) }
+        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList(), followUps = emptyList()) }
         if (conversationId != null) {
             viewModelScope.launch {
                 lastConversationPreferences.setLastConversationId(null)
@@ -932,7 +993,7 @@ class ChatViewModel @Inject constructor(
         // Stop any in-flight stream first: its onCompletion would otherwise try to persist
         // the assistant message against a conversation we are about to delete.
         cancelStream()
-        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList()) }
+        _uiState.update { it.copy(messages = emptyList(), error = null, isLoading = false, currentConversationId = null, allVerses = emptyList(), followUps = emptyList()) }
         viewModelScope.launch {
             lastConversationPreferences.setLastConversationId(null)
             repository.clearAllConversations()
@@ -1238,7 +1299,7 @@ class ChatViewModel @Inject constructor(
             val body = e.response()?.errorBody()?.string() ?: ""
             if (body.contains("session_lifetime_limit")) {
                 _uiState.update { it.copy(isSessionLimitReached = true, isLoading = false) }
-                context.getString(R.string.error_session_limit)
+                context.getString(R.string.error_session_limit, _uiState.value.sessionMaxRequests)
             } else {
                 context.getString(R.string.error_server)
             }

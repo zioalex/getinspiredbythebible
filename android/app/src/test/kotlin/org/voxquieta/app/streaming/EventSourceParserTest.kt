@@ -371,4 +371,76 @@ class EventSourceParserTest {
         assertNull(chunks[0].correctedMessage)
         assertTrue(chunks[0].corrections.isEmpty())
     }
+
+    // ── BITB-149: follow_ups parsing ───────────────────────────────────────────
+
+    /**
+     * 19. Completion event with follow_ups — the suggested follow-up questions
+     *     are parsed onto the chunk.
+     */
+    @Test
+    fun `completion event parses follow_ups`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"completion","follow_ups":["a","b"]}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals(listOf("a", "b"), chunks[0].followUps)
+    }
+
+    /**
+     * 20. Completion event with no follow_ups key — defaults to an empty list
+     *     (older backend / suppressed suggestions).
+     */
+    @Test
+    fun `completion event without follow_ups key defaults to empty list`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"completion","verses_cited":["John 3:16"]}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertTrue(chunks[0].followUps.isEmpty())
+    }
+
+    /**
+     * 21. Completion event with follow_ups: null — degrades to an empty list
+     *     without crashing, mirroring how resolved_verses/versesCited degrade.
+     */
+    @Test
+    fun `completion event with follow_ups null degrades to empty list`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"completion","follow_ups":null}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        // Should not throw.
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertTrue(chunks[0].followUps.isEmpty())
+    }
+
+    /**
+     * 22. Completion event with a malformed (non-array) follow_ups value — degrades
+     *     to an empty list without crashing the flow.
+     */
+    @Test
+    fun `completion event with malformed follow_ups degrades to empty list without crashing`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"completion","follow_ups":5}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        // Should not throw.
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertTrue(chunks[0].followUps.isEmpty())
+    }
 }
