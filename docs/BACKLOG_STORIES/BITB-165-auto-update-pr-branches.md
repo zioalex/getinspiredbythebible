@@ -63,6 +63,10 @@ for organization-owned repositories; this is a personal-account repository.
       **Metadata: Read-only** is added automatically.
    4. Generate and copy the token, then in this repo: Settings → Secrets and variables →
       Actions → New repository secret, name `AUTO_UPDATE_PR_TOKEN`, paste the token.
+
+   Classic tokens have no Contents/Pull requests permissions: use scopes **`repo`** (or just
+   `public_repo`, since this repository is public) plus **`workflow`** instead. A classic
+   token works on every repository the account can access, so prefer the fine-grained one.
 3. Per PR, click **Enable auto-merge** or add the label `autoupdate`.
 4. Optional dry run: Actions → Auto-update PR branches → Run workflow with `dry_run` enabled.
 
