@@ -67,21 +67,34 @@ runtime-fallback plugin recovers the session on a fallback model and it keeps
 working — but the parent's task call is already cancelled, so the subagent
 runs on **detached** and its result never arrives on the original call.
 
+**Unique task tokens (BITB-169 L0):** prefix every task dispatch description
+with a short unique token, e.g. `[T-169A] verify PR 1120`. Registry and log
+lookups must never be ambiguous between dispatches (observed 2026-09-30: two
+verifier dispatches with identical titles made log greps ambiguous).
+
 When the task tool returns `Task cancelled`:
 
 1. **Do NOT blindly re-dispatch** — that duplicates the work in a second
    detached session (observed 2026-09-30: two verifier sessions ran the same
    review; one was pure waste).
-2. Find the spawned session in `~/.local/share/opencode/log/opencode.log`:
-   grep for the task title (`... (@<agent> subagent)`) — the
-   `message=created` line carries `id=ses_...`. Then grep that session id for
-   `loop`, `stream`, and `evaluated permission` lines. Any activity means the
-   subagent survived the 503 and is working (or already finished).
-3. Recover the result instead of redoing the work: once the session goes quiet
-   (no new log lines for ~45 s), re-invoke the task tool with
-   `task_id=<ses_...>` and a short prompt asking it to output its final report
-   — it retains the full context of everything it already ran.
-4. Only if the log shows no session was created (or it died with no fallback
+2. **Read the registry first** — `/workspace/.opencode/task-registry.jsonl`
+   (written by the task-reliability plugin, BITB-169; on the persistent
+   workspace volume, so it survives pod restarts, unlike the /tmp log).
+   `created` lines carry `{ts, kind, childID, parentID, agent, title}` — find
+   the latest `created` line whose `parentID` is your session with no later
+   terminal `status` line (`stop`/`error`/`deleted`). A `status` of `idle`
+   means the child loop finished — its result is collectable right now.
+3. If the registry has no child for you (or the plugin is not loaded), fall
+   back to the runtime log: grep `~/.local/share/opencode/log/opencode.log`
+   for the task token (`... (@<agent> subagent)`) — the `message=created`
+   line carries `id=ses_...`. Then grep that session id for `loop`, `stream`,
+   and `evaluated permission` lines. Any activity means the subagent survived
+   the 503 and is working (or already finished).
+4. Recover the result instead of redoing the work: once the child shows
+   `status=idle` (or goes quiet for ~45 s), re-invoke the task tool with
+   `task_id=<ses_...>` and a short prompt asking it to output its final
+   report — it retains the full context of everything it already ran.
+5. Only if no child session was created (or it died with no fallback
    activity) should you re-dispatch — after a short wait for the provider to
    recover.
 
