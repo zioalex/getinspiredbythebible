@@ -4274,7 +4274,7 @@ agents, since resume-based recovery dies with the pod (session state is under `/
 
 ### ✅ BITB-170: KubeOpenCode README — Document All 14 Files + Egress/Netpol Apply Order + RBAC + OpenCode Config Sync
 
-**Status:** ✅ Done (PR pending)
+**Status:** ✅ Done (PR #1124)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-09-30
