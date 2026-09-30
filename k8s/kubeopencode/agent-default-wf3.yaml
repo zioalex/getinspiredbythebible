@@ -1,0 +1,52 @@
+# Agent: default-wf3 — second agent for testing the custom agent image (BITB-172).
+#
+# Same shape as agent-default-wf2.yaml (configRef -> the opencode-config
+# ConfigMap, PVC-backed persistence, the three provider credentials, the pinned
+# custom agentImage + ghcr-pull) with its own name and PVCs. The operator
+# provisions default-wf3-server-workspace / -sessions; nothing is shared with
+# default-wf2 except the ConfigMap, secrets, and RBAC.
+#
+# Validated on the home k3s cluster 2026-09-30: pod Ready, init container
+# running the v0.1.9-oc1.18.31 build. Kept in parity with default-wf2 by
+# scripts/test_kubeopencode_manifests.py (T7).
+#
+# Prerequisites: identical to agent-default-wf2.yaml (see its header).
+apiVersion: kubeopencode.io/v1alpha1
+kind: Agent
+metadata:
+  name: default-wf3
+  namespace: kubeopencode-system
+spec:
+  profile: "General-purpose development agent with automatic fallback"
+  workspaceDir: /workspace
+  serviceAccountName: kubeopencode-agent
+  # The point of this agent: exercising the custom opencode build.
+  agentImage: ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31
+  imagePullSecrets:
+    - name: ghcr-pull
+  configRef:
+    configMapRef:
+      name: opencode-config
+      key: opencode.json
+  persistence:
+    workspace:
+      size: 20Gi
+    sessions:
+      size: 2Gi
+  credentials:
+    # provider key (OpenCode Zen)
+    - name: api-key
+      secretRef:
+        name: ai-credentials
+        key: api-key
+      env: OPENCODE_API_KEY
+    - name: github-copilot
+      secretRef:
+        name: github-copilot-auth
+        key: token
+      env: GITHUB_TOKEN
+    - name: openrouter-api-key
+      secretRef:
+        name: openrouter-api-key
+        key: openrouter-api-key
+      env: OPENROUTER_API_KEY
