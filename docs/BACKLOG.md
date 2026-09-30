@@ -5,7 +5,7 @@ Prioritized list of user stories and features for Vox Quieta.
 **Last Updated:** 2026-09-30 (BITB-171 done — k8s agent-default-wf2.yaml made
 self-contained: configRef + persistence + full credentials, parity-tested against
 deployment/agent.yaml so applying it converges instead of stripping fields from the
-live Agent, PR pending; BITB-170 done — kubeopencode README documents all 14 files,
+live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
 strict-tier egress apply order, RBAC, security-doc cross-link, opencode config-sync
 make targets (`gen/verify/sync-opencode-configmap`), PR #1124; BITB-169 in progress — task-reliability plugin L0+L1, PR #1123
 implementation under way; L2 mailbox deferred to a follow-up PR;
@@ -4332,7 +4332,7 @@ Docs-only; no manifest changes.
 
 ### ✅ BITB-171: k8s `agent-default-wf2.yaml` Is a Stripped Sketch — Applying It Degrades the Live Agent
 
-**Status:** ✅ Done (PR pending)
+**Status:** ✅ Done (PR #1125)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-30
