@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-169 in progress — task-reliability plugin L0+L1, PR #1123
+**Last Updated:** 2026-09-30 (BITB-170 done — kubeopencode README documents all 14 files,
+strict-tier egress apply order, RBAC, security-doc cross-link, opencode config-sync
+make targets (`gen/verify/sync-opencode-configmap`), PR #1124; BITB-169 in progress — task-reliability plugin L0+L1, PR #1123
 implementation under way; L2 mailbox deferred to a follow-up PR;
 BITB-169 created — reliable orchestrator↔subagent comms:
 task-reliability plugin + durable registry, from the live 503/cancelled-task diagnosis;
@@ -4269,6 +4271,59 @@ agents, since resume-based recovery dies with the pod (session state is under `/
       1.18.31, atomic JSONL appends
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-169-task-reliability-plugin.md`
+
+---
+
+### ✅ BITB-170: KubeOpenCode README — Document All 14 Files + Egress/Netpol Apply Order + RBAC + OpenCode Config Sync
+
+**Status:** ✅ Done (PR #1124)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-09-30
+**Completed:** 2026-09-30
+
+**As** an operator deploying a new KubeOpenCode agent, **I want** the
+`k8s/kubeopencode/README.md` to document all manifests in the directory, show the
+correct apply order (including RBAC before Agents), cross-link the hardening
+runbook, and document the `make` targets that generate and sync the opencode
+config, **so that** I can roll out a strict-tier agent without guessing which files
+are required, in what order, or where the agent definitions come from.
+
+The README documented only 6 of 14 files; the egress/NetworkPolicy instructions
+lived only in `docs/SECURITY-KUBEOPENCODE.md` (never referenced), the RBAC
+manifests (`role-agent.yaml`, `rolebinding-agent.yaml`) appeared in no apply order
+despite every Agent manifest setting `serviceAccountName: kubeopencode-agent`, and
+the `opencode-api-key` file-mount secret was missing from the Secrets section.
+Fix adds the 8 missing Files-table rows, the `opencode-api-key` imperative
+creation, the RBAC apply step, and a new "Sandbox hardening (strict-tier egress)"
+section: what the tier enforces, the three allow-policies → verify →
+`default-deny-all` LAST order with the bold enforce-on-apply warning,
+`make verify/test-kubeopencode-netpol` verification, the
+`delete netpol default-deny-all` rollback, and the cross-link to the security doc.
+Also adds an "OpenCode config (agent definitions → ConfigMap)" section (the second
+`wf3` gap: the config make targets lived only in `deployment/kubeopencode/README.md`):
+source of truth (`.opencode/agents/*.md`, 12 agents) and generated artifact
+(`opencode.json`, committed), the three make targets with repo-root invocation
+(`make gen-opencode-config` / `make verify-opencode-config` /
+`make sync-opencode-configmap`), the ConfigMap-before-`configRef`-Agent warning,
+pod-restart-after-sync, `configRef`-vs-inline-`config` mutual exclusivity, and the
+cross-link to `deployment/kubeopencode/README.md` as the full runbook.
+Docs-only; no manifest changes.
+
+**Acceptance Criteria (summary):**
+
+- [x] All 14 files in the Files table with descriptions verified against file contents
+- [x] Apply order includes RBAC before any Agent manifest
+- [x] `opencode-api-key` secret with the security-doc imperative pattern + the
+      `default-wf2` env-route note
+- [x] Hardening section: ordered netpol applies + default-deny-last warning + live/static
+      verification + rollback + security-doc cross-link
+- [x] Config-sync section: `gen/verify/sync-opencode-configmap` targets with repo-root
+      invocation + ConfigMap-before-`configRef`-Agent warning + pod-restart-after-sync +
+      `configRef`-vs-inline mutual exclusivity + `deployment/kubeopencode/README.md` cross-link
+- [x] `markdownlint` clean on all three touched files
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-170-kubeopencode-readme-egress-docs.md`
 
 ---
 
