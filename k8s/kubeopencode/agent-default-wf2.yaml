@@ -1,34 +1,78 @@
-# Agent: default-wf2 — secured for mobile access
+# Agent: default-wf2 — the full, self-contained manifest (BITB-171).
 #
-# This adds OPENCODE_SERVER_PASSWORD so the opencode server requires Basic auth
-# (the mobile app authenticates with this password). Keep your existing spec
-# fields — the important addition is the second `credentials` entry.
+# Equivalent to deployment/kubeopencode/agent.yaml (configRef -> the
+# opencode-config ConfigMap, PVC-backed persistence per BITB-128, all provider
+# credentials) plus the OPENCODE_SERVER_PASSWORD credential the mobile app
+# authenticates with. Applying this over a live object applied from
+# deployment/kubeopencode/agent.yaml converges. It was previously a bare sketch
+# (inline config, no persistence, two credentials), and `kubectl apply` of it
+# stripped persistence/configRef/credentials from the live Agent: the workspace
+# fell back to EmptyDir and was destroyed by the pod restart every config sync
+# requires. Keep it field-for-field in sync with deployment/kubeopencode/agent.yaml
+# (scripts/test_kubeopencode_manifests.py T6 asserts the parity).
 #
-# Reconcile with your live object first:
-#   kubectl -n kubeopencode-system get agent default-wf2 -o yaml
-# then apply this (adjust profile/config to match what you already run).
+# Prerequisites (see README.md):
+#   - ConfigMap opencode-config (make sync-opencode-configmap) — the Agent
+#     will not start without it
+#   - Secrets: ai-credentials, opencode-server-auth, openrouter-api-key,
+#     github-copilot-auth
+#   - RBAC: role-agent.yaml + rolebinding-agent.yaml (serviceAccountName below)
 apiVersion: kubeopencode.io/v1alpha1
 kind: Agent
 metadata:
   name: default-wf2
   namespace: kubeopencode-system
 spec:
-  profile: "General-purpose development agent"
+  profile: "General-purpose development agent with automatic fallback"
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
-  config:
-    model: opencode/nemotron-3-ultra-free
-    small_model: opencode/nemotron-3-ultra-free
+  # Full OpenCode config (models, prompts, permissions, fallbacks) comes from
+  # the generated opencode.json via the ConfigMap — NOT inline. Run
+  # `make sync-opencode-configmap` (repo root) before applying. configRef and
+  # inline spec.config are mutually exclusive (runtime-validated).
+  configRef:
+    configMapRef:
+      name: opencode-config
+      key: opencode.json
+  # BITB-128: without this the workspace is an EmptyDir, so every pod
+  # replacement — including the `kubectl delete pod` the README requires after
+  # each `make sync-opencode-configmap` — destroys the clone, any uncommitted
+  # work, and the session history. The operator creates and owns these PVCs.
+  # storageClassName is intentionally omitted so the cluster default applies.
+  # Note: this covers spec.workspaceDir (/workspace) only — /tmp is NOT
+  # persisted, so place git worktrees under ${WORKSPACE_DIR}/worktrees
+  # (see AGENTS.md, Git Worktree Pattern).
+  persistence:
+    workspace:
+      size: 20Gi
+    sessions:
+      size: 2Gi
   credentials:
-    # provider key (unchanged)
+    # provider key (OpenCode Zen)
     - name: api-key
       secretRef:
         name: ai-credentials
         key: api-key
       env: OPENCODE_API_KEY
-    # NEW: Basic-auth password for the opencode server (mobile app uses this)
+    # Basic-auth password for the opencode server (mobile app uses this)
     - name: server-password
       secretRef:
         name: opencode-server-auth
         key: password
       env: OPENCODE_SERVER_PASSWORD
+    # GitHub Copilot OAuth user token (gho_...) for the github-copilot provider.
+    # PATs (classic ghp_... or fine-grained github_pat_...) are rejected by the
+    # copilot_internal/v2/token exchange — see deployment/kubeopencode/README.md
+    # "Persist GitHub Copilot access".
+    - name: github-copilot
+      secretRef:
+        name: github-copilot-auth
+        key: token
+      env: GITHUB_TOKEN
+    # OpenRouter key: paid primary for android-gemini + tier-2 runtime fallback
+    # for every agent (cross-provider resilience).
+    - name: openrouter-api-key
+      secretRef:
+        name: openrouter-api-key
+        key: openrouter-api-key
+      env: OPENROUTER_API_KEY

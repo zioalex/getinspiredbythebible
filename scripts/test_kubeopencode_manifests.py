@@ -18,6 +18,12 @@ cluster. The gaps these close:
   makes it wrong.
 - T5: BITB-128 persistence -- a typo in the `persistence` block means the
   workspace silently stays an EmptyDir, which is the bug BITB-128 fixes.
+- T6: BITB-171 -- `k8s/kubeopencode/agent-default-wf2.yaml` declares the SAME
+  Agent object as `deployment/kubeopencode/agent.yaml`. It was once a bare
+  sketch (inline config, no persistence, fewer credentials), and `kubectl
+  apply` of it stripped persistence/configRef/credentials from the live Agent,
+  reverting the workspace to an EmptyDir. These tests keep the two manifests
+  in sync so applying either converges instead of regressing the other.
 """
 
 import pathlib
@@ -36,6 +42,10 @@ KUBE_DIR = REPO_ROOT / "deployment" / "kubeopencode"
 AGENT_YAML = KUBE_DIR / "agent.yaml"
 README = KUBE_DIR / "README.md"
 MAKEFILE = REPO_ROOT / "Makefile"
+
+# BITB-171: the second manifest for the same Agent object.
+K8S_AGENT_YAML = REPO_ROOT / "k8s" / "kubeopencode" / "agent-default-wf2.yaml"
+K8S_README = REPO_ROOT / "k8s" / "kubeopencode" / "README.md"
 
 # Mirrors the CRD: `kubectl explain agent.spec.persistence --recursive`.
 PERSISTENCE_VOLUMES = {"workspace", "sessions"}
@@ -293,3 +303,138 @@ def test_task_reliability_plugin_helpers_run():
     assert "# fail 0" in result.stdout, (
         f"task-reliability helper tests reported failures:\n{result.stdout}"
     )
+# --- T6: BITB-171 k8s/kubeopencode parity ----------------------------------
+#
+# `k8s/kubeopencode/agent-default-wf2.yaml` and `deployment/kubeopencode/agent.yaml`
+# declare the same Agent object. If they drift, `kubectl apply` of the thinner one
+# strips fields from the live object (three-way merge: fields in last-applied but
+# absent in the new manifest get removed) -- the exact regression BITB-171 fixes.
+
+
+@pytest.fixture(scope="module")
+def k8s_agent_manifest():
+    return yaml.safe_load(K8S_AGENT_YAML.read_text())
+
+
+@pytest.fixture(scope="module")
+def k8s_agent_spec(k8s_agent_manifest):
+    return k8s_agent_manifest["spec"]
+
+
+@pytest.fixture(scope="module")
+def k8s_readme_text():
+    return K8S_README.read_text()
+
+
+def test_k8s_agent_targets_same_object(agent_spec, k8s_agent_manifest, k8s_agent_spec):
+    """Same name/namespace and identical identity fields -> converging applies."""
+    # metadata parity
+    meta_expected = {"name": "default-wf2", "namespace": "kubeopencode-system"}
+    for field, expected in meta_expected.items():
+        assert k8s_agent_manifest["metadata"][field] == expected, (
+            f"k8s agent-default-wf2.yaml metadata.{field}={k8s_agent_manifest['metadata'][field]!r} "
+            f"!= deployment agent.yaml {expected!r} -- they are different objects"
+        )
+    for field in ("profile", "workspaceDir", "serviceAccountName"):
+        assert k8s_agent_spec[field] == agent_spec[field], (
+            f"k8s agent-default-wf2.yaml spec.{field} drifts from deployment/agent.yaml; "
+            "applying one over the other flips the field (BITB-171)"
+        )
+
+
+def test_k8s_agent_persistence_matches_deployment(agent_spec, k8s_agent_spec):
+    """The k8s variant must carry the same persistence block, or applying it
+    over the live Agent reverts the workspace to an EmptyDir (BITB-128/171)."""
+    assert "persistence" in k8s_agent_spec, (
+        "spec.persistence missing from k8s/agent-default-wf2.yaml -- applying it "
+        "over the live Agent strips the PVCs and the workspace falls back to "
+        "EmptyDir, destroyed on every pod restart (BITB-171)"
+    )
+    expected = {
+        name: volume["size"] for name, volume in agent_spec["persistence"].items()
+    }
+    actual = {
+        name: volume["size"] for name, volume in k8s_agent_spec["persistence"].items()
+    }
+    assert actual == expected, (
+        f"persistence drift between deployment/agent.yaml ({expected}) and "
+        f"k8s/agent-default-wf2.yaml ({actual}) -- one apply would resize or "
+        "drop the other's volumes"
+    )
+
+
+def test_k8s_agent_configref_matches_makefile_configmap(k8s_agent_spec, makefile_text):
+    config_ref = k8s_agent_spec["configRef"]["configMapRef"]
+    sync_target = _extract_make_target_recipe(makefile_text, "sync-opencode-configmap")
+
+    assert f"configmap {config_ref['name']}" in sync_target, (
+        f"k8s agent-default-wf2.yaml references ConfigMap '{config_ref['name']}' but "
+        "`make sync-opencode-configmap` creates a differently-named one"
+    )
+    assert f"--from-file={config_ref['key']}=" in sync_target, (
+        f"k8s agent-default-wf2.yaml expects key '{config_ref['key']}' which the "
+        "Makefile does not create"
+    )
+
+
+def test_k8s_agent_config_and_configref_are_mutually_exclusive(k8s_agent_spec):
+    """The CRD runtime-validates this; catch it before it reaches the cluster."""
+    assert not ("config" in k8s_agent_spec and "configRef" in k8s_agent_spec), (
+        "spec.config and spec.configRef are mutually exclusive"
+    )
+    assert "configRef" in k8s_agent_spec, (
+        "k8s/agent-default-wf2.yaml has neither configRef nor config; it should "
+        "use configRef to consume the full 12-agent config (BITB-171)"
+    )
+
+
+def _credentials_by_name(spec):
+    return {cred["name"]: cred for cred in spec.get("credentials", [])}
+
+
+def test_k8s_agent_credentials_superset_of_deployment(agent_spec, k8s_agent_spec):
+    """The k8s variant must wire every deployment credential plus the mobile
+    server password; a missing one silently degrades providers on apply."""
+    deployment_creds = _credentials_by_name(agent_spec)
+    k8s_creds = _credentials_by_name(k8s_agent_spec)
+
+    for name, cred in deployment_creds.items():
+        assert name in k8s_creds, (
+            f"credential '{name}' is wired in deployment/agent.yaml but missing "
+            "from k8s/agent-default-wf2.yaml -- applying the k8s manifest would "
+            "strip it from the live Agent (BITB-171)"
+        )
+        assert k8s_creds[name]["secretRef"] == cred["secretRef"], (
+            f"credential '{name}' secretRef drifts between the two manifests"
+        )
+        assert k8s_creds[name]["env"] == cred["env"], (
+            f"credential '{name}' env drifts between the two manifests"
+        )
+
+    # The one credential the k8s variant adds on purpose (mobile Basic auth).
+    server_pw = k8s_creds.get("server-password")
+    assert server_pw is not None, (
+        "k8s/agent-default-wf2.yaml must keep the server-password credential "
+        "(OPENCODE_SERVER_PASSWORD) -- the mobile app authenticates with it"
+    )
+    assert server_pw["env"] == "OPENCODE_SERVER_PASSWORD"
+    assert server_pw["secretRef"]["name"] == "opencode-server-auth"
+    assert server_pw["secretRef"]["key"] == "password"
+
+
+def test_k8s_credential_secrets_and_envs_documented(k8s_agent_spec, k8s_readme_text):
+    """The k8s README is the runbook for the k8s manifests: every secret and
+    env var the manifest wires must be documented there (T3, but for the
+    k8s variant)."""
+    for credential in k8s_agent_spec.get("credentials", []):
+        secret_name = credential["secretRef"]["name"]
+        assert secret_name in k8s_readme_text, (
+            f"secret '{secret_name}' is wired in agent-default-wf2.yaml but not "
+            "documented in k8s/kubeopencode/README.md -- an operator following "
+            "that README would never create it"
+        )
+        env_var = credential["env"]
+        assert env_var in k8s_readme_text, (
+            f"env var '{env_var}' is injected by agent-default-wf2.yaml but "
+            "undocumented in k8s/kubeopencode/README.md"
+        )
