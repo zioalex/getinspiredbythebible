@@ -80,7 +80,9 @@ It has already drifted from the other three:
   and `injectVerseLinks` agree), and a `referencedVerses` pass over the shared corpus in
   `VerseCorpusParityTest.kt`. `VerseRefRedosTest.kt` still guards the `{0,3}` bounds via the
   shared regex.
-- **Follow-up:** BITB-166 -- same `startsWith` prefix bug remains in the server `versesCited` path.
+- **Follow-ups:** BITB-166 -- same `startsWith` prefix bug remains in the server `versesCited`
+  path; BITB-167 -- `parseVerseLink` splits verse ranges on `-` only, so a tapped en-dash range
+  resolves to verse 1.
 
 ## Related
 

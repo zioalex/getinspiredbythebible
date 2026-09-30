@@ -4,9 +4,13 @@ Prioritized list of user stories and features for Vox Quieta.
 
 **Last Updated:** 2026-09-30 (BITB-169 created — reliable orchestrator↔subagent comms:
 task-reliability plugin + durable registry, from the live 503/cancelled-task diagnosis;
-BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
+Ko-fi page confirmed live — Stripe **and** PayPal checkout verified on
+ko-fi.com/voxquieta, $80/month infrastructure-cost goal; BITB-074 placeholder caveat resolved and
+BITB-168 unblocked; BITB-168 created — surface Support-Us entry points without nagging,
+product-owner feedback + BITB-074's deferred drawer fast-follow; BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
 VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #1117; BITB-166 created — server versesCited startsWith
-prefix match; 2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
+prefix match; BITB-167 created — tapped verse-link en-dash ranges fall back to verse 1;
+2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
 created — auto-update opted-in PR branches; 2026-09-27: backlog-vs-`main` audit: 10 stories marked
 done that were stale Todo/In-Progress despite being merged — BITB-125, BITB-152, BITB-122, BITB-067,
 BITB-057, BITB-126, BITB-123, BITB-129, BITB-138, BITB-042; 3 more corrected in place without a full
@@ -3682,11 +3686,13 @@ Fixed by reordering params (DI params first), matching `get_verse`/`get_verse_ra
 
 ### ✅ BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
 
-**Status:** ✅ Done (PR #1084 merged 2026-09-22). Ko-fi/GitHub Sponsors handles in
-`.github/FUNDING.yml` and the `NEXT_PUBLIC_DONATE_URL`/`BuildConfig.DONATE_URL` fallback are
-still placeholders (`voxquieta`/`zioalex`) pending manual account setup — confirm/replace before
-relying on this for real donations. Deployment wiring for `NEXT_PUBLIC_DONATE_URL` deferred to
-BITB-157.
+**Status:** ✅ Done (PR #1084 merged 2026-09-22). 2026-09-30: the Ko-fi page
+(`ko-fi.com/voxquieta`) is **live** — owner-confirmed and verified by fetch (card via Stripe
+**and** PayPal; "$80/month — Monthly infrastructure costs" goal), so the
+`NEXT_PUBLIC_DONATE_URL`/`BuildConfig.DONATE_URL` fallback is the real donate URL, no longer a
+placeholder. The GitHub Sponsors handle (`.github/FUNDING.yml` → `github: [zioalex]`) is still a
+TODO pending manual setup. Deployment wiring for `NEXT_PUBLIC_DONATE_URL` deferred to BITB-157;
+visibility of the buried entries is BITB-168.
 **Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
 **Created:** 2026-07-21
 **Completed:** 2026-09-22
@@ -4181,6 +4187,42 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
       actual spend
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-150-azure-cost-analysis-monitoring-and-database.md`
+
+---
+
+### 🎯 BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-09-30
+
+**As** a user who would like to support Vox Quieta, **I want** the donation entry to appear in the
+places I naturally look — chat menu, drawer, About page — **so that** I can contribute if and when
+I choose, without the app ever pressing me.
+
+BITB-074 (PR #1084) shipped the Support-Us entries but buried every one of them: on web, the only
+support link on the chat page (the site root) is the 6th of 6 links in an 11px gray row and the
+hamburger menu has no Support item; on Android it's the last of five plain rows at the bottom of
+Settings → About. BITB-074 itself deferred a chat-drawer item as a fast-follow "if Settings-only
+placement proves too low-visibility" — the product owner confirmed exactly that on 2026-09-30.
+Fix is passive discoverability only: a "Support us" item in the web hamburger menu, a heart-glyph
+lift on the footer links, a "Keep Vox Quieta free" section on the About page, an Android drawer
+item + a one-time What's New mention, and per-surface `ref` params on the donate URL for
+measurement. No modals, banners, urgency language, or nags — enforced by acceptance criteria.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Web hamburger menu + About section + heart-glyph footer lift, all opening the donate URL
+      (`noopener noreferrer`), with no size/color escalation
+- [ ] Android drawer item (BITB-074's flagged fast-follow) + one-time What's New mention
+- [ ] Per-surface `ref` params (`web-menu`/`web-footer`/`web-about`/`android-drawer`/
+      `android-settings`) via a single URL helper per platform
+- [ ] All new copy in 11/11 frontend locales and 11/11 Android locales
+- [ ] Anti-nag rules hold: no modal/banner/interstitial/timed prompt/urgency/perk-gating anywhere
+- [ ] Frontend vitest coverage + Android Compose drawer test; translation-validation CI green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-168-support-us-discoverability.md`
 
 ---
 
