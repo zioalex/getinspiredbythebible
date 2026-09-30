@@ -219,6 +219,7 @@ fun ChatScreen(
                 ?: uiState.detectedTranslation.takeIf { it.isNotBlank() }
                 ?: uiState.allVerses.firstOrNull()?.translation?.takeIf { it.isNotBlank() },
             localizedToEnglish = localizedToEnglish,
+            verseRefRegex = verseRefRegex,
             onLoadChapter = viewModel::loadChapter,
             onDismissSheet = viewModel::clearChapterSheet,
             onDismiss = { showVersesPanel = false },
