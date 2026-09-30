@@ -23,6 +23,7 @@ cluster. The gaps these close:
 import pathlib
 import re
 import subprocess
+import shutil
 import sys
 
 import pytest
@@ -232,3 +233,63 @@ def test_persistence_has_no_hardcoded_storage_class(persistence):
             f"persistence.{volume_name} hardcodes a storageClassName, which ties "
             "the manifest to one cluster; omit it to use the cluster default"
         )
+
+
+# ── BITB-169: task-reliability plugin ────────────────────────────────────────
+
+PLUGIN_FILE = REPO_ROOT / ".opencode" / "plugin" / "task-reliability.ts"
+PLUGIN_TEST_FILE = REPO_ROOT / ".opencode" / "plugin" / "task-reliability.test.ts"
+PLUGIN_REGISTRY_DEFAULT = "/workspace/.opencode/task-registry.jsonl"
+
+
+def test_task_reliability_plugin_file():
+    """BITB-169 L1: the plugin must exist and wire all three hooks defensively."""
+    assert PLUGIN_FILE.is_file(), (
+        f"{PLUGIN_FILE.relative_to(REPO_ROOT)} is missing -- the task-reliability "
+        "plugin auto-discovers from .opencode/plugin/, which ships with the clone"
+    )
+    text = PLUGIN_FILE.read_text(encoding="utf-8")
+    for needle in (
+        "tool.execute.after",
+        "tool.definition",
+        "session.created",
+        PLUGIN_REGISTRY_DEFAULT,
+    ):
+        assert needle in text, (
+            f"{PLUGIN_FILE.relative_to(REPO_ROOT)} must contain {needle!r} -- "
+            "a missing hook or wrong registry path breaks the recovery protocol"
+        )
+    catch_count = text.count("catch")
+    assert catch_count >= 3, (
+        "task-reliability must be inert-by-design: expected >= 3 try/catch guards "
+        f"(event, tool.execute.after, tool.definition), found {catch_count}"
+    )
+
+
+def test_task_reliability_plugin_helpers_run():
+    """BITB-169 L1: the helper unit tests must pass under node --experimental-strip-types."""
+    assert PLUGIN_TEST_FILE.is_file(), (
+        f"{PLUGIN_TEST_FILE.relative_to(REPO_ROOT)} is missing -- the plugin helpers "
+        "must be covered by the node:test suite"
+    )
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not available on this runner")
+    result = subprocess.run(
+        [node, "--experimental-strip-types", "--test", str(PLUGIN_TEST_FILE)],
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+        timeout=120,
+    )
+    if result.returncode != 0 and (
+        "bad option" in result.stderr or "Unknown file extension" in result.stderr
+    ):
+        pytest.skip("this node build lacks TS type-stripping support")
+    assert result.returncode == 0, (
+        "task-reliability helper tests failed:\n"
+        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+    assert "# fail 0" in result.stdout, (
+        f"task-reliability helper tests reported failures:\n{result.stdout}"
+    )
