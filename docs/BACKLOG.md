@@ -6,7 +6,7 @@ Prioritized list of user stories and features for Vox Quieta.
 agentImage + ghcr-pull committed into all Agent manifests (was cluster-only),
 server-password made opt-in so pods don't crashloop on the missing
 opencode-server-auth secret, validated agent-default-wf3.yaml committed, T7
-parity tests, PR pending; BITB-171 done — k8s agent-default-wf2.yaml made
+parity tests, PR #1126; BITB-171 done — k8s agent-default-wf2.yaml made
 self-contained: configRef + persistence + full credentials, parity-tested against
 deployment/agent.yaml so applying it converges instead of stripping fields from the
 live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
@@ -4376,7 +4376,7 @@ section and `mobile-access.md` updated for consistency.
 
 ### ✅ BITB-172: Repo-vs-Live Drift — agentImage Wiring Uncommitted, Mobile Credential Pre-Wired
 
-**Status:** ✅ Done (PR pending)
+**Status:** ✅ Done (PR #1126)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-30

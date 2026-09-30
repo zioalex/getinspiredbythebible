@@ -5,7 +5,7 @@
 **Size:** S
 **Created:** 2026-09-30
 **Completed:** 2026-09-30
-**PR:** pending
+**PR:** #1126
 
 ## User Story
 
