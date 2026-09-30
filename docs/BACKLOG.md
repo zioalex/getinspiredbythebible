@@ -4,7 +4,7 @@ Prioritized list of user stories and features for Vox Quieta.
 
 **Last Updated:** 2026-09-30 (BITB-170 done — kubeopencode README documents all 14 files,
 strict-tier egress apply order, RBAC, security-doc cross-link, opencode config-sync
-make targets (`gen/verify/sync-opencode-configmap`), PR pending; BITB-169 created — reliable orchestrator↔subagent comms:
+make targets (`gen/verify/sync-opencode-configmap`), PR #1124; BITB-169 created — reliable orchestrator↔subagent comms:
 task-reliability plugin + durable registry, from the live 503/cancelled-task diagnosis;
 Ko-fi page confirmed live — Stripe **and** PayPal checkout verified on
 ko-fi.com/voxquieta, $80/month infrastructure-cost goal; BITB-074 placeholder caveat resolved and
