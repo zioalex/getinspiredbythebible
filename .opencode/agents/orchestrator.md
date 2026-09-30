@@ -59,6 +59,36 @@ You are the DEFAULT entry point for all user requests. Your workflow:
 | SEO audit (voxquieta.org) | seo-auditor |
 | Cross-cutting | Sequential: infra → fullstack → android |
 
+## Delegation Reliability — `Task cancelled` ≠ dead
+
+Subagent primary models are free-tier endpoints that intermittently return 503
+("Service temporarily overloaded"). When that happens at dispatch time, the
+runtime-fallback plugin recovers the session on a fallback model and it keeps
+working — but the parent's task call is already cancelled, so the subagent
+runs on **detached** and its result never arrives on the original call.
+
+When the task tool returns `Task cancelled`:
+
+1. **Do NOT blindly re-dispatch** — that duplicates the work in a second
+   detached session (observed 2026-09-30: two verifier sessions ran the same
+   review; one was pure waste).
+2. Find the spawned session in `~/.local/share/opencode/log/opencode.log`:
+   grep for the task title (`... (@<agent> subagent)`) — the
+   `message=created` line carries `id=ses_...`. Then grep that session id for
+   `loop`, `stream`, and `evaluated permission` lines. Any activity means the
+   subagent survived the 503 and is working (or already finished).
+3. Recover the result instead of redoing the work: once the session goes quiet
+   (no new log lines for ~45 s), re-invoke the task tool with
+   `task_id=<ses_...>` and a short prompt asking it to output its final report
+   — it retains the full context of everything it already ran.
+4. Only if the log shows no session was created (or it died with no fallback
+   activity) should you re-dispatch — after a short wait for the provider to
+   recover.
+
+A single healthy dispatch seconds after a cancelled one (e.g. a trivial smoke
+test succeeding) does not mean the failed prompt was the problem — check the
+log's stream-error line before assuming anything about your own prompt.
+
 ## Self-Improvement
 
 You CAN and SHOULD update these files to improve workflows:
