@@ -131,9 +131,20 @@ This story is bound by the following anti-nag rules (acceptance criteria enforce
 
 ## Dependencies & Caveats
 
-- **Human task, blocking real-world value:** the Ko-fi page (`ko-fi.com/voxquieta`) and GitHub
-  Sponsors handle are still BITB-074 placeholders. Making entry points more visible multiplies
-  traffic to a dead page until the real account exists — the visibility work is still worth
-  landing, but the owner should set up the real Ko-fi page before (or with) the next release.
+- **Ko-fi page is live (2026-09-30, owner-confirmed and verified by fetch):**
+  `ko-fi.com/voxquieta` — page "Alessandro S.", a **$80/month "Monthly infrastructure costs"**
+  goal, checkout via card (Stripe) **and** PayPal. The `https://ko-fi.com/voxquieta` hardcoded as
+  the `NEXT_PUBLIC_DONATE_URL` / `BuildConfig.DONATE_URL` fallback is therefore the real URL,
+  not a placeholder — donations are live *today* for anyone who finds the buried entries, which
+  is exactly why this visibility story matters now. Remaining human task from BITB-074: the
+  GitHub Sponsors handle (`.github/FUNDING.yml` → `github: [zioalex]`) is still a TODO.
+- **Stale comments to clean up while implementing:** `Footer.tsx`'s "Placeholder Ko-fi page"
+  header comment and `.github/FUNDING.yml`'s maintainer TODO both predate this confirmation —
+  update them in this story's implementation PR (the web work touches `Footer.tsx` anyway).
+- **Keep Ko-fi supporter perks unconfigured:** Ko-fi's checkout template advertises monthly
+  "member-only benefits" upsells. As long as no actual perks/tiers are configured on the page,
+  the link-out stays a pure donation inside Google Play's donation carve-out (BITB-074's policy
+  research). If perks are ever added, re-check Play Developer Program Policy before shipping
+  the Android entries.
 - Should ride the next Android release train after the currently-pending v1.56.0 deploy.
 - No backend (`api/`) changes.

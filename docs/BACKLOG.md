@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-168 created — surface Support-Us entry points without nagging,
+**Last Updated:** 2026-09-30 (Ko-fi page confirmed live — Stripe **and** PayPal checkout verified on
+ko-fi.com/voxquieta, $80/month infrastructure-cost goal; BITB-074 placeholder caveat resolved and
+BITB-168 unblocked; BITB-168 created — surface Support-Us entry points without nagging,
 product-owner feedback + BITB-074's deferred drawer fast-follow; BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
 VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #1117; BITB-166 created — server versesCited startsWith
 prefix match; 2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
@@ -3681,11 +3683,13 @@ Fixed by reordering params (DI params first), matching `get_verse`/`get_verse_ra
 
 ### ✅ BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
 
-**Status:** ✅ Done (PR #1084 merged 2026-09-22). Ko-fi/GitHub Sponsors handles in
-`.github/FUNDING.yml` and the `NEXT_PUBLIC_DONATE_URL`/`BuildConfig.DONATE_URL` fallback are
-still placeholders (`voxquieta`/`zioalex`) pending manual account setup — confirm/replace before
-relying on this for real donations. Deployment wiring for `NEXT_PUBLIC_DONATE_URL` deferred to
-BITB-157.
+**Status:** ✅ Done (PR #1084 merged 2026-09-22). 2026-09-30: the Ko-fi page
+(`ko-fi.com/voxquieta`) is **live** — owner-confirmed and verified by fetch (card via Stripe
+**and** PayPal; "$80/month — Monthly infrastructure costs" goal), so the
+`NEXT_PUBLIC_DONATE_URL`/`BuildConfig.DONATE_URL` fallback is the real donate URL, no longer a
+placeholder. The GitHub Sponsors handle (`.github/FUNDING.yml` → `github: [zioalex]`) is still a
+TODO pending manual setup. Deployment wiring for `NEXT_PUBLIC_DONATE_URL` deferred to BITB-157;
+visibility of the buried entries is BITB-168.
 **Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
 **Created:** 2026-07-21
 **Completed:** 2026-09-22
