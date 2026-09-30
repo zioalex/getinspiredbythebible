@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
+**Last Updated:** 2026-09-30 (BITB-169 created — reliable orchestrator↔subagent comms:
+task-reliability plugin + durable registry, from the live 503/cancelled-task diagnosis;
+BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
 VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #1117; BITB-166 created — server versesCited startsWith
 prefix match; 2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
 created — auto-update opted-in PR branches; 2026-09-27: backlog-vs-`main` audit: 10 stories marked
@@ -4179,6 +4181,50 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
       actual spend
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-150-azure-cost-analysis-monitoring-and-database.md`
+
+---
+
+### 🎯 BITB-169: Reliable Orchestrator↔Subagent Comms — Task-Reliability Plugin + Registry
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-09-30
+
+**As** the orchestrator, **I want** a cancelled task dispatch to always tell me where the
+detached subagent session lives and how to recover its result, **so that** a transient model
+503 never silently discards completed subagent work or spawns duplicate detached sessions.
+
+Diagnosed live on 2026-09-30: the runtime-fallback plugin correctly saved the verifier
+*session* after a 503 (it completed all 45 steps on the fallback model), but the parent's
+in-flight task call was torn down — dead-end `Task cancelled` while the child ran detached,
+and a blind retry duplicated the whole review. Recovery via `task_id` resume works (proven),
+but depends on grepping the non-persistent `/tmp` log. Fix in three layers: **L0** operational
+discipline (unique task tokens, probe-first, no blind re-dispatch — runbook already in
+PR #1121); **L1** a local `task-reliability` plugin (`.opencode/plugin/`, hook surface
+verified against the installed fallback plugin: `session.created`/`idle`/`stop`/`error` events
+→ durable registry on the workspace PVC; `tool.execute.after` → enrich any cancelled task
+output with the child session id + recovery instructions, so a cancel is never a dead end;
+`tool.definition` → recovery protocol in the tool description); **L2** optional
+pod-restart-proof result mailbox (`/workspace/.opencode/task-results/`) for write-capable
+agents, since resume-based recovery dies with the pod (session state is under `/tmp`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Unique task token in every dispatch description
+- [ ] `.opencode/plugin/task-reliability.ts` auto-discovered, inert-by-design on unexpected
+      shapes (try/catch everywhere, never breaks a tool call)
+- [ ] Registry at `/workspace/.opencode/task-registry.json`: child session created → entry;
+      idle/stop/error → status update (PVC path — survives pod restarts)
+- [ ] Cancelled task outputs enriched with child session id + recovery instructions (live or
+      simulated cancel demo)
+- [ ] Recovery protocol present in the task tool description; orchestrator runbook reads the
+      registry first instead of grepping the log
+- [ ] Implementation verifies the open questions: plugin delivery to the KubeOpenCode pod
+      (ConfigMap vs repo clone — check `agent.yaml`), exact event/output shapes on opencode
+      1.18.31, atomic JSONL appends
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-169-task-reliability-plugin.md`
 
 ---
 
