@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-169 in progress — task-reliability plugin L0+L1
+**Last Updated:** 2026-09-30 (BITB-169 in progress — task-reliability plugin L0+L1, PR #1123
 implementation under way; L2 mailbox deferred to a follow-up PR;
 BITB-169 created — reliable orchestrator↔subagent comms:
 task-reliability plugin + durable registry, from the live 503/cancelled-task diagnosis;
@@ -4230,7 +4230,7 @@ measurement. No modals, banners, urgency language, or nags — enforced by accep
 
 ### 🎯 BITB-169: Reliable Orchestrator↔Subagent Comms — Task-Reliability Plugin + Registry
 
-**Status:** 🚧 In Progress (opened 2026-09-30; PR number added on push)
+**Status:** 🚧 In Progress (PR #1123, opened 2026-09-30)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-30

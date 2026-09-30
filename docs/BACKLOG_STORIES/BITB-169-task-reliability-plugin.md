@@ -1,6 +1,6 @@
 # BITB-169: Reliable Orchestrator↔Subagent Comms — Task-Reliability Plugin + Registry
 
-**Status:** 🚧 In Progress (opened 2026-09-30; PR number added on push)
+**Status:** 🚧 In Progress (PR #1123, opened 2026-09-30)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-30
