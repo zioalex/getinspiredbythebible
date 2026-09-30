@@ -1,6 +1,6 @@
 # BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
 
-**Status:** ✅ Done (PR #TBD, 2026-09-30)
+**Status:** ✅ Done (PR #1117, 2026-09-30)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-26

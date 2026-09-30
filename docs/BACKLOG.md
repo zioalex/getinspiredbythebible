@@ -3,7 +3,7 @@
 Prioritized list of user stories and features for Vox Quieta.
 
 **Last Updated:** 2026-09-30 (BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
-VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #TBD; BITB-166 created — server versesCited startsWith
+VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #1117; BITB-166 created — server versesCited startsWith
 prefix match; 2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
 created — auto-update opted-in PR branches; 2026-09-27: backlog-vs-`main` audit: 10 stories marked
 done that were stale Todo/In-Progress despite being merged — BITB-125, BITB-152, BITB-122, BITB-067,
@@ -1998,7 +1998,7 @@ separator/range grammar and script-class alternations.
 
 **Follow-up filed:** BITB-164 — `VersesPanel.kt` is a fourth, already-drifted hand-written copy
 of this grammar, found by the Verify pass and out of scope for this story. **Done 2026-09-30**
-(PR #TBD): migrated onto the shared `VerseGrammar`.
+(PR #1117): migrated onto the shared `VerseGrammar`.
 
 **Full Story:** `docs/DONE/BITB-113-verse-parser-grammar-unification.md`
 
@@ -4186,7 +4186,7 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 
 ### ✅ BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
 
-**Status:** ✅ Done (PR #TBD, 2026-09-30)
+**Status:** ✅ Done (PR #1117, 2026-09-30)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-26
@@ -4226,6 +4226,26 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 - [ ] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-166-versescited-startswith-prefix-match.md`
+
+---
+
+### 🎯 BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-30
+**Found by:** BITB-164 verification
+
+`parseVerseLink` (`ChatMessageItem.kt`) splits the verse range on `-` only, so a tapped
+"Romans 8:28–30" link resolves to verse 1. Should use `VerseGrammar.RANGE_SEPARATORS`.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `parseVerseLink` uses the shared range separators
+- [ ] Cross-language test covering hyphen/en-dash and non-ASCII digits
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-167-verse-link-en-dash-range.md`
 
 ---
 
