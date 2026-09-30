@@ -12,7 +12,7 @@ and least-privilege RBAC) — see [`docs/SECURITY-KUBEOPENCODE.md`](../SECURITY-
 
 | File | What it is |
 |---|---|
-| `agent-default-wf2.yaml` | The `Agent` (opencode server), secured with `OPENCODE_SERVER_PASSWORD`; set `agentImage` here to pin the opencode version. |
+| `agent-default-wf2.yaml` | The `default-wf2` `Agent`, self-contained (BITB-171): full config via `configRef` → the `opencode-config` ConfigMap, PVC-backed persistence (workspace 20Gi + sessions 2Gi, BITB-128), all provider credentials, plus `OPENCODE_SERVER_PASSWORD` for mobile Basic auth; safe to apply standalone or over the live object (kept in parity with `deployment/kubeopencode/agent.yaml` by `scripts/test_kubeopencode_manifests.py`). Set `agentImage` here to pin the opencode version. |
 | `service-mobile.yaml` | Stable Service both remote paths target (also carries Tailscale annotations). |
 | `cloudflared-deployment.yaml` | In-cluster `cloudflared` connector (token mode) for the Cloudflare WARP + private-route path. |
 | `mobile-access.md` | Plan/runbook for reaching the agent from the phone app (Cloudflare WARP + Tailscale). |
@@ -29,18 +29,33 @@ and least-privilege RBAC) — see [`docs/SECURITY-KUBEOPENCODE.md`](../SECURITY-
 
 ## Secrets to create (not stored in git)
 
+Each secret is wired into `agent-default-wf2.yaml` via `credentials[].secretRef` →
+the env var named in the comment:
+
 ```bash
-# provider key (OpenCode Zen)
+# provider key (OpenCode Zen) → OPENCODE_API_KEY
 kubectl -n kubeopencode-system create secret generic ai-credentials \
   --from-literal=api-key='<opencode-zen-key>'
 
-# opencode server Basic-auth password (mobile app)
+# opencode server Basic-auth password (mobile app) → OPENCODE_SERVER_PASSWORD
 kubectl -n kubeopencode-system create secret generic opencode-server-auth \
   --from-literal=password="$(openssl rand -hex 20)"
 
 # cloudflared tunnel token (Cloudflare path only)
 kubectl -n kubeopencode-system create secret generic cloudflared-token \
   --from-literal=token='<tunnel-token>'
+
+# OpenRouter key → OPENROUTER_API_KEY — paid primary for android-gemini + tier-2
+# runtime fallback for every agent (cross-provider resilience; see
+# deployment/kubeopencode/README.md)
+kubectl -n kubeopencode-system create secret generic openrouter-api-key \
+  --from-literal=openrouter-api-key='<openrouter-key>'
+
+# GitHub Copilot OAuth token → GITHUB_TOKEN (gho_... — PATs of every kind are
+# rejected by the token exchange; see deployment/kubeopencode/README.md
+# "Persist GitHub Copilot access")
+kubectl -n kubeopencode-system create secret generic github-copilot-auth \
+  --from-literal=token="$(gh auth token)" # pragma: allowlist secret
 
 # GHCR pull secret (only if the custom agent image is private)
 kubectl -n kubeopencode-system create secret docker-registry ghcr-pull \
@@ -63,7 +78,7 @@ kubectl -n kubeopencode-system annotate secret opencode-api-key --overwrite kube
 # 1. secrets (above)
 # 2. RBAC (required by every Agent manifest that sets serviceAccountName: kubeopencode-agent)
 kubectl apply -f role-agent.yaml -f rolebinding-agent.yaml
-# 3. agent + service
+# 3. agent + service (the opencode-config ConfigMap must exist first — see "OpenCode config")
 kubectl apply -f agent-default-wf2.yaml
 kubectl apply -f service-mobile.yaml      # paste the live selector first — see file header
 # 4. mobile remote access (pick Cloudflare and/or Tailscale) — see mobile-access.md
@@ -100,12 +115,13 @@ kubectl -n kubeopencode-system get pods
 kubectl -n kubeopencode-system delete pod <agent-pod>
 ```
 
-`spec.configRef` (full 12-agent config) and inline `spec.config` (what
-`agent-default-wf2.yaml` sketches — just `model`/`small_model`) are
+`spec.configRef` (full 12-agent config from the ConfigMap) and inline
+`spec.config` (bare `model`/`small_model` overrides) are
 **mutually exclusive** (runtime-validated). A new agent that should use the
-repo's full agent roster and fallbacks must use `configRef`; copying the
-inline block as-is yields only the bare model settings. The header of that
-file already tells you to reconcile with the live object first.
+repo's full agent roster and fallbacks must use `configRef` — an inline
+`spec.config` block yields only the bare model settings. Both `default-wf2`
+manifests in this repo use `configRef`; `agent-desktop.yaml` sets neither and
+runs on defaults.
 
 Full runbook — secrets (OpenRouter, GitHub Copilot), persistence, cross-provider
 resilience, troubleshooting: [`deployment/kubeopencode/README.md`](../../deployment/kubeopencode/README.md).

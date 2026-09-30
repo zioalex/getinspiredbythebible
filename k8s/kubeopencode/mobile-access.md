@@ -94,7 +94,9 @@ kubectl -n kubeopencode-system get secret opencode-server-auth \
 ```
 
 Add the `OPENCODE_SERVER_PASSWORD` credential to the agent (see
-`agent-default-wf2.yaml`; reconcile with your live spec first):
+`agent-default-wf2.yaml` — self-contained since BITB-171: configRef,
+persistence, and all credentials, so applying it converges with the live
+object; diff against the live spec first to catch manual drift):
 
 ```bash
 kubectl -n kubeopencode-system get agent default-wf2 -o yaml   # compare
@@ -285,7 +287,7 @@ config, less per-pod overhead.
 
 | File | Purpose |
 |---|---|
-| `agent-default-wf2.yaml` | Agent with `OPENCODE_SERVER_PASSWORD` added |
+| `agent-default-wf2.yaml` | Self-contained `default-wf2` Agent (configRef + persistence + all credentials) with `OPENCODE_SERVER_PASSWORD` added for mobile (BITB-171) |
 | `service-mobile.yaml` | Stable Service both paths target (+ Tailscale annotations) |
 | `cloudflared-deployment.yaml` | In-cluster cloudflared connector (token mode) |
 | `README.md` | This plan / story / runbook |

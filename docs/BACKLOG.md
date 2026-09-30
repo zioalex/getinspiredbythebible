@@ -2,7 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-170 done — kubeopencode README documents all 14 files,
+**Last Updated:** 2026-09-30 (BITB-171 done — k8s agent-default-wf2.yaml made
+self-contained: configRef + persistence + full credentials, parity-tested against
+deployment/agent.yaml so applying it converges instead of stripping fields from the
+live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
 strict-tier egress apply order, RBAC, security-doc cross-link, opencode config-sync
 make targets (`gen/verify/sync-opencode-configmap`), PR #1124; BITB-169 in progress — task-reliability plugin L0+L1, PR #1123
 implementation under way; L2 mailbox deferred to a follow-up PR;
@@ -4324,6 +4327,46 @@ Docs-only; no manifest changes.
 - [x] `markdownlint` clean on all three touched files
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-170-kubeopencode-readme-egress-docs.md`
+
+---
+
+### ✅ BITB-171: k8s `agent-default-wf2.yaml` Is a Stripped Sketch — Applying It Degrades the Live Agent
+
+**Status:** ✅ Done (PR #1125)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-30
+**Completed:** 2026-09-30
+
+**As** an operator rolling out the `default-wf2` Agent from `k8s/kubeopencode/`, **I want** that manifest to be self-contained — the same `configRef`, `persistence`, and credentials as `deployment/kubeopencode/agent.yaml` — **so that** applying it (standalone or over the live object) converges instead of silently stripping fields the older manifest set.
+
+The two manifests declare the same Agent object, but the k8s variant (PR #1089) was a
+patch sketch: inline `spec.config`, **no `persistence`**, two of four credentials.
+`kubectl apply` three-way-merges, so following the k8s README apply order alone
+stripped `persistence` (workspace → EmptyDir, destroyed by the pod restart every
+config sync requires — the BITB-128 failure), `configRef` (12-agent roster → bare
+model config), and the `github-copilot`/`openrouter` credentials from the live
+Agent. CI never caught it: the manifest tests (BITB-129) read only
+`deployment/agent.yaml`. Found while deploying the `wf3` agent (BITB-170
+follow-up: "where did the persistence go?"). Fix: the k8s manifest is now
+field-for-field identical to the deployment one plus the mobile
+`OPENCODE_SERVER_PASSWORD` credential; T6 parity tests in
+`scripts/test_kubeopencode_manifests.py` fail on any future drift; the k8s README
+Files row / Secrets (`openrouter-api-key`, `github-copilot-auth`) / OpenCode-config
+section and `mobile-access.md` updated for consistency.
+
+**Acceptance Criteria (summary):**
+
+- [x] `agent-default-wf2.yaml` carries `configRef` → `opencode-config`/`opencode.json`,
+      `persistence` (workspace 20Gi, sessions 2Gi), and all 4 credentials
+- [x] Applying it over the deployment-manifest-applied live object converges (shared
+      fields identical, only `server-password` added)
+- [x] T6 parity tests: identity, persistence, configRef-vs-Makefile, mutual exclusivity,
+      credential superset, README documentation of every secret/env
+- [x] No doc still describes the manifest as an inline-config sketch
+- [x] `pytest scripts/test_kubeopencode_manifests.py` + `markdownlint` green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-171-kubeopencode-agent-default-wf2-selfcontained.md`
 
 ---
 
