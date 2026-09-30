@@ -57,7 +57,7 @@ K8S_README = REPO_ROOT / "k8s" / "kubeopencode" / "README.md"
 # BITB-172: the wf3 test agent + the custom agent image every manifest pins.
 K8S_WF3_AGENT_YAML = REPO_ROOT / "k8s" / "kubeopencode" / "agent-default-wf3.yaml"
 CUSTOM_AGENT_IMAGE = "ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31"
-PULL_SECRET = "ghcr-pull"
+GHCR_PULL_NAME = "ghcr-pull"
 
 # Mirrors the CRD: `kubectl explain agent.spec.persistence --recursive`.
 PERSISTENCE_VOLUMES = {"workspace", "sessions"}
@@ -493,9 +493,9 @@ def test_agent_image_pinned_with_pull_secret(agent_yaml):
     )
 
     pull_secrets = [s["name"] for s in spec.get("imagePullSecrets", [])]
-    assert PULL_SECRET in pull_secrets, (
+    assert GHCR_PULL_NAME in pull_secrets, (
         f"{agent_yaml.name} pins a private-package agentImage without the "
-        f"{PULL_SECRET} pull secret -- pods fail image pull with 401"
+        f"{GHCR_PULL_NAME} pull secret -- pods fail image pull with 401"
     )
 
 
