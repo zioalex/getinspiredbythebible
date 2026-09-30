@@ -7,7 +7,8 @@ ko-fi.com/voxquieta, $80/month infrastructure-cost goal; BITB-074 placeholder ca
 BITB-168 unblocked; BITB-168 created — surface Support-Us entry points without nagging,
 product-owner feedback + BITB-074's deferred drawer fast-follow; BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
 VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #1117; BITB-166 created — server versesCited startsWith
-prefix match; 2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
+prefix match; BITB-167 created — tapped verse-link en-dash ranges fall back to verse 1;
+2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
 created — auto-update opted-in PR branches; 2026-09-27: backlog-vs-`main` audit: 10 stories marked
 done that were stale Todo/In-Progress despite being merged — BITB-125, BITB-152, BITB-122, BITB-067,
 BITB-057, BITB-126, BITB-123, BITB-129, BITB-138, BITB-042; 3 more corrected in place without a full
