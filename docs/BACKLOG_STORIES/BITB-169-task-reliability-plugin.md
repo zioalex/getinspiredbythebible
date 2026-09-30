@@ -1,6 +1,6 @@
 # BITB-169: Reliable Orchestrator↔Subagent Comms — Task-Reliability Plugin + Registry
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (opened 2026-09-30; PR number added on push)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-30
@@ -61,7 +61,7 @@ package, whose own hooks prove the API: `event`, `tool.execute.after`
 
 - **`event` hook — durable dispatch registry:** on `session.created` for a session with a
   parent (subagent), append `{childID, parentID, agent, title/token, created, status:"running"}`
-  to `/workspace/.opencode/task-registry.json` — on the **workspace PVC**, so it survives pod
+  to `/workspace/.opencode/task-registry.jsonl` — on the **workspace PVC**, so it survives pod
   restarts (unlike `/tmp` log and session state). On `session.idle` / `session.stop` /
   `session.error` / `session.deleted`, update the matching entry (`idle` = loop finished =
   result collectable via resume).
@@ -69,7 +69,7 @@ package, whose own hooks prove the API: `event`, `tool.execute.after`
   indicates cancellation (substring/metadata match, written defensively), mutate the output
   in place to append:
   *"Task cancelled mid-dispatch — the subagent session may still be alive on a fallback model.
-  Do NOT re-dispatch. Registry: /workspace/.opencode/task-registry.json; recover by resuming
+  Do NOT re-dispatch. Registry: /workspace/.opencode/task-registry.jsonl; recover by resuming
   the child session with task_id=<id>."*
   The orchestrator can then never receive a dead-end cancel — the recovery path arrives in
   the very message that reports the failure.
@@ -80,6 +80,9 @@ package, whose own hooks prove the API: `event`, `tool.execute.after`
   no-ops; the plugin must never break a tool call or throw.
 
 ### L2 — Result mailbox (pod-restart-proof; optional, ship after L1)
+
+> **Deferred (2026-09-30):** L2 ships as a follow-up PR after the L0+L1
+> implementation lands, so the first PR stays small and focused.
 
 - **Write-capable agents** (fullstack-engineer, android-expert, android-gemini,
   data-engineer, verse-parity-keeper): as a final step, also drop their report at
@@ -100,7 +103,7 @@ package, whose own hooks prove the API: `event`, `tool.execute.after`
 - [ ] `.opencode/plugin/task-reliability.ts` exists and is auto-discovered (verify in the
       startup log) without breaking opencode startup or any tool call
 - [ ] Subagent session creation appends a registry entry; idle/stop/error updates its status;
-      registry file lives at `/workspace/.opencode/task-registry.json` (PVC path)
+      registry file lives at `/workspace/.opencode/task-registry.jsonl` (PVC path)
 - [ ] A cancelled task tool output is enriched with the recovery message + child session id
       (or registry pointer) — demonstrated by a live test that triggers a cancel (or a
       simulated one)
@@ -129,7 +132,9 @@ package, whose own hooks prove the API: `event`, `tool.execute.after`
    metadata) — detect broadly and never break on mismatch.
 4. Registry concurrency: events can interleave; keep appends atomic
    (read-modify-write with a write queue, or append-only JSONL — JSONL is simpler and
-   crash-safe; prefer it).
+   crash-safe; prefer it). **Resolved 2026-09-30: JSONL** — one JSON object per line,
+   append-only via `fs.appendFileSync`; the registry file is
+   `/workspace/.opencode/task-registry.jsonl`.
 
 ## Out of Scope
 

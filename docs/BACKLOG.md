@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-169 created — reliable orchestrator↔subagent comms:
+**Last Updated:** 2026-09-30 (BITB-169 in progress — task-reliability plugin L0+L1
+implementation under way; L2 mailbox deferred to a follow-up PR;
+BITB-169 created — reliable orchestrator↔subagent comms:
 task-reliability plugin + durable registry, from the live 503/cancelled-task diagnosis;
 Ko-fi page confirmed live — Stripe **and** PayPal checkout verified on
 ko-fi.com/voxquieta, $80/month infrastructure-cost goal; BITB-074 placeholder caveat resolved and
@@ -4228,7 +4230,7 @@ measurement. No modals, banners, urgency language, or nags — enforced by accep
 
 ### 🎯 BITB-169: Reliable Orchestrator↔Subagent Comms — Task-Reliability Plugin + Registry
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (opened 2026-09-30; PR number added on push)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-30
@@ -4256,7 +4258,7 @@ agents, since resume-based recovery dies with the pod (session state is under `/
 - [ ] Unique task token in every dispatch description
 - [ ] `.opencode/plugin/task-reliability.ts` auto-discovered, inert-by-design on unexpected
       shapes (try/catch everywhere, never breaks a tool call)
-- [ ] Registry at `/workspace/.opencode/task-registry.json`: child session created → entry;
+- [ ] Registry at `/workspace/.opencode/task-registry.jsonl`: child session created → entry;
       idle/stop/error → status update (PVC path — survives pod restarts)
 - [ ] Cancelled task outputs enriched with child session id + recovery instructions (live or
       simulated cancel demo)
