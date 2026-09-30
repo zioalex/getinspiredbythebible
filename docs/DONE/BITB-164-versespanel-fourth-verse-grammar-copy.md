@@ -1,6 +1,6 @@
 # BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #TBD, 2026-09-30)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-26
@@ -52,14 +52,35 @@ It has already drifted from the other three:
 
 ## Acceptance Criteria
 
-- [ ] `VersesPanel.kt`'s actual role (independent detector vs. narrower re-match) is established
+- [x] `VersesPanel.kt`'s actual role (independent detector vs. narrower re-match) is established
       and recorded
-- [ ] Either migrated onto the shared `VerseGrammar` source, or its narrower scope is documented
+- [x] Either migrated onto the shared `VerseGrammar` source, or its narrower scope is documented
       with a reason
-- [ ] A test guards against future silent drift for whichever outcome above
-- [ ] `docs/AUDIT_PLAYBOOK.md` accounts for this as a fourth copy (tracked or explained)
-- [ ] Multilingual test coverage (per AGENTS.md's verse-parsing rule) if this file turns out to be
+- [x] A test guards against future silent drift for whichever outcome above
+- [x] `docs/AUDIT_PLAYBOOK.md` accounts for this as a fourth copy (tracked or explained)
+- [x] Multilingual test coverage (per AGENTS.md's verse-parsing rule) if this file turns out to be
       an independent detector reachable from user-facing text in non-English locales
+
+## Outcome
+
+- **Role established:** `VersesPanel.kt` was an *independent detector* -- the Cited-tab fallback
+  for messages without server `versesCited` ran its own regex over free assistant text, the same
+  job as the other three parsers.
+- **Migrated:** `CITED_BOOK_NAME` / `CITED_VERSE_REF_REGEX` deleted. `referencedVerses`,
+  `VersesPanelContent` and `VersesPanel` take `verseRefRegex` (default `DEFAULT_VERSE_REF_REGEX`;
+  `ChatScreen` passes its dynamically built regex). The scan mirrors `injectVerseLinks`
+  (Traditional->Simplified shadow copy, manual find loop, rewind on a candidate that cites none
+  of `allVerses`). Hits are gated on `allVerses`; the rewind itself is additionally gated on the
+  `knownBooks` allowlist, exactly like `injectVerseLinks`, so an uncited `1 John 3:16` is skipped
+  whole instead of being rewound into a false `John 3:16` (found by the Verify pass).
+- **Bug fixed on the way:** the old `startsWith` reference match surfaced John 3:1 for a John 3:16
+  citation; matching is now exact chapter + verse + book.
+- **Guards:** cross-language test (11 languages) in `VersesPanelTest.kt`,
+  `VersesPanelGrammarParityTest.kt` (data-driven from `VerseGrammar`, asserts `referencedVerses`
+  and `injectVerseLinks` agree), and a `referencedVerses` pass over the shared corpus in
+  `VerseCorpusParityTest.kt`. `VerseRefRedosTest.kt` still guards the `{0,3}` bounds via the
+  shared regex.
+- **Follow-up:** BITB-166 -- same `startsWith` prefix bug remains in the server `versesCited` path.
 
 ## Related
 

@@ -31,48 +31,10 @@ import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
+import org.voxquieta.app.utils.VerseGrammar
+import org.voxquieta.app.utils.knownBooks
 import org.voxquieta.app.utils.normalizeBookName
 import org.voxquieta.app.utils.normalizeTraditionalToSimplified
-
-/**
- * Regex used to find verse references that are explicitly cited in a message body.
- * Mirrors the pattern in ChatMessageItem.kt (colon always required here since
- * citation matching needs book+chapter+verse).
- *
- * Uses \p{Lu}/\p{Lo} for the first character of book-name words so that only
- * uppercase (Latin/Cyrillic) or caseless (CJK) letters start a word. This avoids
- * greedily capturing preceding lowercase prose. No (?U) flag — \p{Lu}/\p{Lo}/\p{L}
- * stay Unicode while \w/\b stay ASCII.
- *
- * We use (?!\d) instead of \b to terminate digit sequences so that CJK characters
- * immediately after a verse number (e.g. "3:16是") don't cause boundary failures.
- *
- * Two alternatives:
- *   Alt 1 — numbered prefix ("1 ", "2 ", "3 ", "1. ", "2. ") + book + chapter:verse
- *   Alt 2 — book (no prefix) + chapter:verse
- */
-// The connector-repeat group is bounded to {0,3} (BITB-114, mirroring the web fix in
-// BITB-108/versePatterns.ts): unbounded `*` here let adversarial input (long chains of
-// connector words) drive superlinear-time regex backtracking. No real supported book name
-// needs more than one connector (e.g. "Song of Solomon" — see LocalizedBookToEnglish.kt);
-// {0,3} keeps 3x headroom while eliminating the unbounded blowup.
-private val CITED_BOOK_NAME =
-    "[\\p{Lu}\\p{Lo}][\\p{L}\\d]*" +
-        "(?:\\s+(?:of|de|des|der|da|del|dei|dos|van|af)\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]*){0,3}"
-
-// The Alt-1 trailing-word group below (after $CITED_BOOK_NAME) is bounded to {0,3} (BITB-117,
-// closing the residual gap BITB-114 flagged): it was an unbounded `*`, which left this
-// numbered-prefix branch open to the same superlinear-backtracking ReDoS shape BITB-114 closed
-// for the connector-repeat group above. Checked against every numbered-prefix entry in
-// LocalizedBookToEnglish.kt across all locales: the real max is exactly 1 trailing word (e.g.
-// Arabic "1 أخبار الأيام" = "1 Chronicles" — "أخبار" is matched by $CITED_BOOK_NAME, "الأيام" is
-// the one trailing word). {0,3} keeps 3x headroom, matching BITB-114's own bound. See
-// docs/DONE/BITB-117-android-verse-parser-alt1-redos-residual.md.
-private val CITED_VERSE_REF_REGEX = Regex(
-    "([1-3][\\s.][\\s]?$CITED_BOOK_NAME(?:\\s+[\\p{Lu}\\p{Lo}][\\p{L}\\d]+){0,3})\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)" +
-        "|" +
-        "($CITED_BOOK_NAME)\\s+(\\d+):(\\d+(?:-\\d+)?)(?!\\d)",
-)
 
 /**
  * Returns the subset of [allVerses] whose human-readable reference (e.g. "John 3:16")
@@ -81,6 +43,17 @@ private val CITED_VERSE_REF_REGEX = Regex(
  * Prefers server-provided [Message.versesCited] (dual-source: LLM structured output + backend
  * regex) when available, falling back to client-side regex extraction for older messages.
  *
+ * The fallback reuses the shared verse grammar (BITB-164): [verseRefRegex] defaults to
+ * [DEFAULT_VERSE_REF_REGEX] (composed from VerseGrammar.kt) and the scan mirrors
+ * [injectVerseLinks] -- Traditional->Simplified shadow copy, manual find loop, and a rewind
+ * on a match that resolves to none of [allVerses] and whose book is not a known book (so a
+ * greedy over-match such as "you of Psalm 56:9" still recovers "Psalm 56:9", while an uncited
+ * "1 John 3:16" is not rewound into a false "John 3:16"). A cited reference matches a verse
+ * only on exact chapter, exact verse number and exact (case-insensitive) book -- so
+ * "John 3:16" no longer surfaces John 3:1. Hits are gated on [allVerses], not on the allowlist.
+ *
+ * @param verseRefRegex Regex used for the fallback scan; pass ChatScreen's dynamically built
+ *   regex once API book-name data has loaded.
  * @param localizedToEnglish Optional runtime map of localized book names to English names (from
  *   the API). The bundled map remains available when this map is empty or misses a name.
  */
@@ -88,6 +61,7 @@ internal fun referencedVerses(
     allVerses: List<Verse>,
     messages: List<Message>,
     localizedToEnglish: Map<String, String> = emptyMap(),
+    verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
 ): List<Verse> {
     val assistantMessages = messages.filter { it.role == Message.Role.ASSISTANT }
 
@@ -104,47 +78,68 @@ internal fun referencedVerses(
     }
 
     // Fallback: client-side regex extraction for older messages without versesCited.
+    if (allVerses.isEmpty()) return emptyList()
     val combinedText = assistantMessages.joinToString(" ") { it.content }
-    val citedRefs = CITED_VERSE_REF_REGEX.findAll(combinedText)
-        .flatMap {
-            // Alt 1 (numbered prefix) fills groups 1-3; Alt 2 fills groups 4-6.
-            val rawBook: String
-            val chapter: String
-            val verse: String
-            if (it.groupValues[1].isNotEmpty()) {
-                rawBook = it.groupValues[1]
-                chapter = it.groupValues[2]
-                verse = it.groupValues[3]
-            } else {
-                rawBook = it.groupValues[4]
-                chapter = it.groupValues[5]
-                verse = it.groupValues[6]
+    // Length-preserving Traditional->Simplified shadow copy (mirrors injectVerseLinks), so
+    // group ranges found in `search` are valid offsets into `combinedText` as well.
+    val search = normalizeTraditionalToSimplified(combinedText)
+    // Book allowlist, used only to decide whether to rewind on a match that cites none of
+    // [allVerses] (see below); hits themselves are still gated on [allVerses].
+    val known = knownBooks(localizedToEnglish)
+    val matched = HashSet<Verse>()
+    var start = 0
+    while (start <= search.length) {
+        val match = verseRefRegex.find(search, start) ?: break
+        val g = match.groupValues
+        // Alt 1 (numbered prefix) fills groups 1-3; Alt 2 fills groups 4-6.
+        val bookGroup = if (g[1].isNotEmpty()) 1 else 4
+        val shadowBook = g[bookGroup]
+        val chapter = g[bookGroup + 1]
+        val verseGroup = g[bookGroup + 2]
+        val bookRange = match.groups[bookGroup]!!.range
+        val origBook = combinedText.substring(bookRange.first, bookRange.last + 1)
+
+        // A citation needs book + chapter + verse (chapter-only matches are not citations).
+        val chapterNum = chapter.toIntOrNull()
+        val verseNum = if (verseGroup.isEmpty()) {
+            null
+        } else {
+            verseGroup.split(*VerseGrammar.RANGE_SEPARATORS.toCharArray()).first().toIntOrNull()
+        }
+        val hits = if (chapterNum == null || verseNum == null) {
+            emptyList()
+        } else {
+            val bookKeys = setOf(
+                origBook.trim().lowercase(),
+                shadowBook.trim().lowercase(),
+                normalizeBookName(shadowBook.trim(), localizedToEnglish).lowercase(),
+            )
+            allVerses.filter { v ->
+                v.chapter == chapterNum &&
+                    v.verse == verseNum &&
+                    (
+                        v.book.lowercase() in bookKeys ||
+                            v.localizedBook?.lowercase()?.let { it in bookKeys } == true
+                        )
             }
-            // Uses both the runtime API map and its bundled offline fallback. Traditional Chinese
-            // is normalized to Simplified before the fallback lookup.
-            val canonicalBook = normalizeBookName(
-                normalizeTraditionalToSimplified(rawBook),
-                localizedToEnglish,
-            )
-            sequenceOf(
-                "$rawBook $chapter:$verse".lowercase(),
-                "$canonicalBook $chapter:$verse".lowercase(),
-            )
         }
-        .toHashSet()
-    return allVerses.filter { verse ->
-        // Match if the base reference (book chapter:verse) appears — ignore range suffix.
-        // Check both the English book name and the localized book name so that non-English
-        // conversations (e.g. Italian "Salmi 60:1") correctly surface in the Referenced tab.
-        val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}".lowercase()
-        val localizedBaseRef = verse.localizedBook?.let {
-            "${it} ${verse.chapter}:${verse.verse}".lowercase()
-        }
-        citedRefs.any { cited ->
-            cited.startsWith(baseRef) ||
-                (localizedBaseRef != null && cited.startsWith(localizedBaseRef))
+        if (hits.isEmpty()) {
+            // Rewind one char past the start only when the matched book is NOT a real book
+            // (a greedy over-match such as "you of Psalm"), exactly like injectVerseLinks, so a
+            // reference hidden inside it is still found. A real-but-uncited book is skipped
+            // whole: rewinding "1 John 3:16" would otherwise re-match its "John 3:16" suffix
+            // and surface the wrong verse. `start` strictly increases: no infinite loop.
+            start = if (shadowBook.trim().lowercase() in known) {
+                match.range.last + 1
+            } else {
+                match.range.first + 1
+            }
+        } else {
+            matched.addAll(hits)
+            start = match.range.last + 1
         }
     }
+    return allVerses.filter { it in matched }
 }
 
 /**
@@ -169,11 +164,12 @@ internal fun VersesPanelContent(
     onLoadChapter: (book: String, chapter: Int, translation: String?) -> Unit,
     onDismissSheet: () -> Unit,
     localizedToEnglish: Map<String, String> = emptyMap(),
+    verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
 ) {
     var showReferenced by rememberSaveable { mutableStateOf(DEFAULT_SHOW_REFERENCED) }
 
     val displayedVerses = if (showReferenced) {
-        referencedVerses(allVerses, messages, localizedToEnglish)
+        referencedVerses(allVerses, messages, localizedToEnglish, verseRefRegex)
     } else {
         allVerses
     }
@@ -260,6 +256,8 @@ internal fun VersesPanelContent(
  * @param preferredTranslation The user's preferred Bible translation code, or null.
  * @param localizedToEnglish   Runtime map from localized book names to English names (from the API),
  *                             layered over the bundled fallback map.
+ * @param verseRefRegex        Regex for the Cited-tab fallback scan (defaults to the shared
+ *                             [DEFAULT_VERSE_REF_REGEX]).
  * @param onLoadChapter        Callback to open the chapter-detail sheet.
  * @param onDismissSheet       Callback to clear the chapter-detail sheet state.
  * @param onDismiss            Callback to close this panel.
@@ -275,6 +273,7 @@ fun VersesPanel(
     onDismissSheet: () -> Unit,
     onDismiss: () -> Unit,
     localizedToEnglish: Map<String, String> = emptyMap(),
+    verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     ModalBottomSheet(
@@ -289,6 +288,7 @@ fun VersesPanel(
             onLoadChapter = onLoadChapter,
             onDismissSheet = onDismissSheet,
             localizedToEnglish = localizedToEnglish,
+            verseRefRegex = verseRefRegex,
         )
     }
 }

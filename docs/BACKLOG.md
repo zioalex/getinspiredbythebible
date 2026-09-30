@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-29 (BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
+**Last Updated:** 2026-09-30 (BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
+VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #TBD; BITB-166 created — server versesCited startsWith
+prefix match; 2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
 created — auto-update opted-in PR branches; 2026-09-27: backlog-vs-`main` audit: 10 stories marked
 done that were stale Todo/In-Progress despite being merged — BITB-125, BITB-152, BITB-122, BITB-067,
 BITB-057, BITB-126, BITB-123, BITB-129, BITB-138, BITB-042; 3 more corrected in place without a full
@@ -1995,7 +1997,8 @@ separator/range grammar and script-class alternations.
       regex engines — JS/JVM/Python — make full retirement materially larger than this story)
 
 **Follow-up filed:** BITB-164 — `VersesPanel.kt` is a fourth, already-drifted hand-written copy
-of this grammar, found by the Verify pass and out of scope for this story.
+of this grammar, found by the Verify pass and out of scope for this story. **Done 2026-09-30**
+(PR #TBD): migrated onto the shared `VerseGrammar`.
 
 **Full Story:** `docs/DONE/BITB-113-verse-parser-grammar-unification.md`
 
@@ -4181,26 +4184,48 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 
 ## P3 - Low Priority (Future)
 
-### 🎯 BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
+### ✅ BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #TBD, 2026-09-30)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-26
 **Found by:** BITB-113's Verify stage
 
-`android/.../VersesPanel.kt` has its own hand-written `CITED_BOOK_NAME`/`CITED_VERSE_REF_REGEX`,
-never tracked alongside the three parsers BITB-059/BITB-113 keep in sync — and it has already
-drifted (no के/ال connectors, `:`-only separator, no en-dash range, ASCII-only digits).
+`android/.../VersesPanel.kt` had its own hand-written `CITED_BOOK_NAME`/`CITED_VERSE_REF_REGEX`,
+never tracked alongside the three parsers BITB-059/BITB-113 keep in sync — and it had already
+drifted (no के/ال connectors, `:`-only separator, no en-dash range, ASCII-only digits). It is now
+migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] `VersesPanel.kt`'s actual role established (independent detector vs. narrower re-match)
-- [ ] Migrated onto the shared `VerseGrammar` source, or narrower scope documented with a reason
-- [ ] A test guards against future silent drift
-- [ ] `docs/AUDIT_PLAYBOOK.md` accounts for this as a fourth copy (tracked or explained)
+- [x] `VersesPanel.kt`'s actual role established (independent detector vs. narrower re-match)
+- [x] Migrated onto the shared `VerseGrammar` source, or narrower scope documented with a reason
+- [x] A test guards against future silent drift
+- [x] `docs/AUDIT_PLAYBOOK.md` accounts for this as a fourth copy (tracked or explained)
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-164-versespanel-fourth-verse-grammar-copy.md`
+**Full Story:** `docs/DONE/BITB-164-versespanel-fourth-verse-grammar-copy.md`
+
+---
+
+### 🎯 BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-30
+**Found by:** BITB-164
+
+`referencedVerses` (server `versesCited` path) and `ChatMessageItem.citedVerses` still match with
+`startsWith` on `"book chapter:verse"`, so a server citation of `John 3:16` also surfaces John 3:1
+(and 3:160-style prefixes). BITB-164 fixed this for the client-regex fallback only.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
+- [ ] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-166-versescited-startswith-prefix-match.md`
 
 ---
 

@@ -14,21 +14,22 @@ import kotlin.system.measureTimeMillis
 
 // ── ReDoS regression (BITB-114 / Android follow-up to BITB-108) ────────────
 //
-// ChatMessageItem's BOOK_NAME and VersesPanel's CITED_BOOK_NAME both had a
+// ChatMessageItem's BOOK_NAME and (before BITB-164 migrated it onto the shared
+// DEFAULT_VERSE_REF_REGEX) VersesPanel's own CITED_BOOK_NAME both had a
 // multi-word book-name "connector" branch
 // (`(?:\s+(?:of|de|des|...)\s+[\p{L}...])*`) with an unbounded `*` on the
 // connector-repeat group. That let adversarial input (repeated " of aa"
 // segments in chat message text — model output or pasted text) drive Java's
 // backtracking regex engine into superlinear-time blowup, mirroring the web
 // finding fixed in BITB-108 (frontend/src/lib/versePatterns.ts). Bounding
-// both groups to {0,3} closes this without affecting real book names: the
+// the group to {0,3} closes this without affecting real book names: the
 // max connector count found in any supported book name (see
 // LocalizedBookToEnglish.kt) is 1 (e.g. "Song of Solomon", "Cantico dei
 // Cantici"). {0,3} (not {1,3} — these groups are zero-or-more, not
 // one-or-more) keeps 3x headroom over that while eliminating the unbounded
 // blowup. See docs/BACKLOG_STORIES/BITB-114-android-verse-parser-redos.md.
 //
-// These are permanent regression guards: if either bound is ever widened
+// These are permanent regression guards: if the bound is ever widened
 // back to `*`/`+`, the timing tests should start timing out / blowing their
 // budget, and the cap-enforcement tests should start failing.
 class VerseRefRedosTest {
@@ -103,7 +104,7 @@ class VerseRefRedosTest {
     // These don't, on their own, prove the bound is doing the work if tested only against
     // real book names (those resolve via other means regardless of the bound). Instead they
     // exercise the connector branch directly with synthetic (non-book) chained phrases, so
-    // they fail if either bound is ever widened back to unbounded.
+    // they fail if the bound is ever widened back to unbounded.
 
     @Test
     fun `DEFAULT_VERSE_REF_REGEX refuses a 4th connector repeat from the same start`() {
@@ -131,7 +132,7 @@ class VerseRefRedosTest {
     }
 
     @Test
-    fun `referencedVerses connector cap is enforced for CITED_BOOK_NAME`() {
+    fun `referencedVerses connector cap is enforced via the shared regex`() {
         val chained = "Xylo of Zorp of Quix of Wobble of Nix"
         val trimmed = "Zorp of Quix of Wobble of Nix"
         val message = Message(id = "1", role = Message.Role.ASSISTANT, content = "$chained 3:16")
@@ -153,10 +154,9 @@ class VerseRefRedosTest {
     // ── Alt-1 numbered-prefix trailing-word cap ({0,3}) is enforced (BITB-117) ──────
     //
     // Mirrors the connector-cap tests above, but for the *other* group BITB-114 flagged as
-    // residual: the Alt-1 numbered-prefix trailing-word group (after $BOOK_NAME / after
-    // $CITED_BOOK_NAME), now also bounded to {0,3}. Traced against both the Kotlin regex
-    // semantics and a Node.js cross-check (Unicode-property-escape regex, `u` flag) before
-    // writing these assertions.
+    // residual: the Alt-1 numbered-prefix trailing-word group (after $BOOK_NAME), now also
+    // bounded to {0,3}. Traced against both the Kotlin regex semantics and a Node.js cross-check
+    // (Unicode-property-escape regex, `u` flag) before writing these assertions.
 
     @Test
     fun `DEFAULT_VERSE_REF_REGEX refuses a 4th Alt-1 trailing word from the same start`() {
@@ -180,11 +180,9 @@ class VerseRefRedosTest {
     }
 
     @Test
-    fun `referencedVerses Alt-1 trailing-word cap is enforced for CITED_BOOK_NAME`() {
-        // CITED_BOOK_NAME requires each word to start with an uppercase/caseless letter
-        // (\p{Lu}\p{Lo}), so use word-initial-capital synthetic words. VersesPanel's Alt-1
-        // prefix separator is `[\s.][\s]?` (less flexible than ChatMessageItem's), but a
-        // plain "1 " still satisfies it.
+    fun `referencedVerses Alt-1 trailing-word cap is enforced via the shared regex`() {
+        // referencedVerses now scans with the shared DEFAULT_VERSE_REF_REGEX (BITB-164), so
+        // the same {0,3} cap applies; a plain "1 " prefix satisfies Alt 1.
         val message = Message(
             id = "1",
             role = Message.Role.ASSISTANT,
@@ -207,7 +205,7 @@ class VerseRefRedosTest {
     }
 
     @Test
-    fun `referencedVerses still allows exactly 3 chained Alt-1 trailing words for CITED_BOOK_NAME`() {
+    fun `referencedVerses still allows exactly 3 chained Alt-1 trailing words via the shared regex`() {
         val verse = Verse(book = "1 Xylo Zorp Quix Wobble", chapter = 3, verse = 16, text = "")
         val message = Message(
             id = "1",
@@ -221,7 +219,7 @@ class VerseRefRedosTest {
 
     @Test
     fun `referencedVerses matches real numbered multi-word Arabic book name after the BITB-117 bound`() {
-        // "1 أخبار الأيام" = "1 Chronicles": "أخبار" is matched by CITED_BOOK_NAME, "الأيام"
+        // "1 أخبار الأيام" = "1 Chronicles": "أخبار" is matched by BOOK_NAME, "الأيام"
         // is the one trailing word the {0,3}-bounded group must still match.
         val verse = Verse(book = "1 أخبار الأيام", chapter = 1, verse = 1, text = "")
         val message = Message(
