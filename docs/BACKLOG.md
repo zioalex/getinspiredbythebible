@@ -2,10 +2,41 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-22 (BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
-column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware;
-BITB-153 guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth;
-BITB-084 Part C done via BITB-102)
+**Last Updated:** 2026-09-30 (BITB-172 done — repo-vs-live drift fixed: custom
+agentImage + ghcr-pull committed into all Agent manifests (was cluster-only),
+server-password made opt-in so pods don't crashloop on the missing
+opencode-server-auth secret, validated agent-default-wf3.yaml committed, T7
+parity tests, PR #1126; BITB-171 done — k8s agent-default-wf2.yaml made
+self-contained: configRef + persistence + full credentials, parity-tested against
+deployment/agent.yaml so applying it converges instead of stripping fields from the
+live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
+strict-tier egress apply order, RBAC, security-doc cross-link, opencode config-sync
+make targets (`gen/verify/sync-opencode-configmap`), PR #1124; BITB-169 in progress — task-reliability plugin L0+L1, PR #1123
+implementation under way; L2 mailbox deferred to a follow-up PR;
+BITB-169 created — reliable orchestrator↔subagent comms:
+task-reliability plugin + durable registry, from the live 503/cancelled-task diagnosis;
+Ko-fi page confirmed live — Stripe **and** PayPal checkout verified on
+ko-fi.com/voxquieta, $80/month infrastructure-cost goal; BITB-074 placeholder caveat resolved and
+BITB-168 unblocked; BITB-168 created — surface Support-Us entry points without nagging,
+product-owner feedback + BITB-074's deferred drawer fast-follow; BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
+VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #1117; BITB-166 created — server versesCited startsWith
+prefix match; BITB-167 created — tapped verse-link en-dash ranges fall back to verse 1;
+2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
+created — auto-update opted-in PR branches; 2026-09-27: backlog-vs-`main` audit: 10 stories marked
+done that were stale Todo/In-Progress despite being merged — BITB-125, BITB-152, BITB-122, BITB-067,
+BITB-057, BITB-126, BITB-123, BITB-129, BITB-138, BITB-042; 3 more corrected in place without a full
+flip to Done — BITB-121, BITB-128, BITB-046 — where one acceptance criterion still needs live
+production/cluster confirmation this audit couldn't get from source alone; 2026-09-26: BITB-113
+done, PR #1105 — verse-parser grammar unification; BITB-164 created — VersesPanel.kt fourth grammar
+copy, found by BITB-113's Verify stage; 2026-09-25: BITB-158 v2 rewrite — corrected base image
+(`executorImage`/`kubeopencode-agent-devbox`, not `agentImage`/`kubeopencode-agent-opencode`) and
+pre-commit cache design; still In Progress, PR pending. BITB-163 filed as a follow-up for the
+deferred fallback-table sync; 2026-09-24: BITB-156 in progress — PR #1103 open, Android Part A:
+server-driven session limit + "Continue this conversation"; 2026-09-22: BITB-074 done — Support Us
+funding entry points, PR #1084; BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
+column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware; BITB-153
+guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth; BITB-084 Part C
+done via BITB-102; BITB-155 created — OpenRouter paid Llama primary + Gemma 4 31B fallback)
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -197,9 +228,35 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-156: Android Server-Driven Session Limit + BITB-118 Instrumentation/IP-Cap Follow-Up
+### 🚧 BITB-155: OpenRouter Model Refresh — Paid Llama 3.3 Primary + Gemma 4 31B Cross-Provider Fallback
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-15
+
+The configured primary `meta-llama/llama-3.3-70b-instruct:free` was removed by
+OpenRouter (July 2026 deprecation wave), and the fallback was the same model on
+the same provider — no real resilience. ZDR (no training on user data) is a hard
+constraint, which eliminates all NVIDIA/Google free tiers. Decision: paid Llama
+3.3 70B primary + paid Gemma 4 31B fallback (Google provider, $0.09/$0.34 per 1M,
+live-tested on biblical Q&A across EN/DE/IT).
+
+**Acceptance Criteria (summary):**
+
+- [x] No dead-model references in live config (grep-clean)
+- [x] Primary = paid Llama 3.3 70B; fallback = paid Gemma 4 31B (different provider, ZDR ✅)
+- [x] Backend provider tests pass
+- [ ] PR merged
+
+Full story: [`BITB-155-openrouter-gemma4-fallback.md`](BACKLOG_STORIES/BITB-155-openrouter-gemma4-fallback.md)
+
+---
+
+### 🚧 BITB-156: Android Server-Driven Session Limit + BITB-118 Instrumentation/IP-Cap Follow-Up
+
+**Status:** 🚧 In Progress (PR #1103 open — Android Part A: server-driven limit + "Continue this
+conversation"; instrumentation / IP-cap prerequisites / purge-horizon ACs remain deferred)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-16
@@ -248,9 +305,11 @@ stays reviewable.
 
 ---
 
-### 🎯 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
+### 🚧 BITB-158: KubeOpenCode Dev Image — Bake CLI/Toolchain into Agent Image
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — PR pending (Dockerfile + CI build validation implemented; registry
+push and `executorImage` cutover on the live cluster are a manual follow-up, out of scope for
+this PR)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-09-15
@@ -258,15 +317,22 @@ stays reviewable.
 PR #1079 showed the agent pod missing its dev toolchain: no `gh`, no
 `kubectl`, no `pytest`/`PyYAML`, broken `make pre-commit` (unsatisfiable
 venv deps, missing binary, wiped hook caches), no `jq`/`yq`, and an ESLint
-hook assuming NVM. Bake all of it (pinned to repo revs: Node 22.22.0,
-Python 3.12, hook versions) with pre-warmed hook caches on the PVC.
+hook assuming NVM. **v2 correction (2026-09-25):** the image derives from
+`kubeopencode-agent-devbox` (the `executorImage` CRD field, not `agentImage`,
+which is a different init-container field), which already ships `gh`/
+`kubectl`/`jq`/`yq`/system Node 22.x (no NVM needed)/`python3`; this
+derivative only adds `ripgrep` + pinned `pytest`/`PyYAML`/`pre-commit`, with
+a pre-warmed hook cache baked directly into the image layer
+(`PRE_COMMIT_HOME=/opt/pre-commit-seed`, not a PVC copy step). Python is
+3.11 (bookworm's system Python), a deliberate, documented deviation from the
+story's original "3.12" — see `k8s/kubeopencode/dev-image/README.md`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Image installs `gh`, `kubectl`, `git`, `make`, `jq`/`yq`, `rg`, Python 3.12 + `pytest`/`PyYAML`/`pre-commit`, Node 22.22.0, all hook binaries pre-warmed
-- [ ] `PRE_COMMIT_HOME` on the PVC so post-sync pod restarts don't wipe caches
-- [ ] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
-- [ ] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
+- [x] Image installs `gh`, `kubectl`, `git`, `make`, `jq`/`yq`, `rg`, Python 3.11 (system) + `pytest`/`PyYAML`/`pre-commit`, Node 22.x (system), all hook binaries pre-warmed
+- [x] `PRE_COMMIT_HOME` baked into the image layer so post-sync pod restarts don't wipe caches
+- [x] Dockerfile/CI smoke test: `gh`, `kubectl`, `pytest`, `node`, `pre-commit`, `make verify-opencode-config`
+- [x] `pytest scripts/test_generate_opencode_config.py` green in a fresh pod
 
 Full story: [`BITB-158-kubeopencode-dev-image.md`](BACKLOG_STORIES/BITB-158-kubeopencode-dev-image.md)
 
@@ -333,15 +399,17 @@ Full story: [`BITB-154-kubeopencode-multi-provider-resilience.md`](BACKLOG_STORI
 
 ---
 
-### 🎯 BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
+### ✅ BITB-152: KubeOpencode Strict-Tier Sandbox Hardening
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1045 merged 2026-09-18, hardened by follow-ups #1086/#1087 on the
+same feature branch before it landed on main)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-09-06
+**Completed:** 2026-09-18
 
-Agent sandbox has full egress, LAN-reachable `0.0.0.0:4096` with unauthenticated
-`/api/session`, and `OPENCODE_API_KEY` exposed via ENV. Harden to strict-tier:
+Agent sandbox had full egress, LAN-reachable `0.0.0.0:4096` with unauthenticated
+`/api/session`, and `OPENCODE_API_KEY` exposed via ENV. Hardened to strict-tier:
 default-deny egress (public 443/53 only, RFC1918/169.254 denied, K8s API ClusterIP
 explicitly allowed), LAN opt-in via `kubeopencode.io/allow-lan` annotation with
 localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
@@ -349,22 +417,28 @@ localhost always allowed, secret `opencode-api-key` mounted 0400 preferring
 
 **Acceptance Criteria (summary):**
 
-- [ ] Strict egress: public `443/53` OK, RFC1918 + `169.254/16` blocked, K8s API still reachable
-- [ ] `localhost:11434` Ollama keeps working, LAN opt-in via annotation
-- [ ] API key via `0400` file mount, `env` clean, `/api/session` requires auth
-- [ ] No committed secret value: `opencode-api-key` created imperatively
-- [ ] Zero-downtime rollout (egress-allow before default-deny, 30m standby drain)
-- [ ] `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
-- [ ] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
-- [ ] `scripts/validate-env.py` passes
+- [x] Strict egress: public `443/53` OK, RFC1918 + `169.254/16` blocked, K8s API still reachable
+- [x] `localhost:11434` Ollama keeps working, LAN opt-in via annotation
+- [x] API key via `0400` file mount, `env` clean, `/api/session` requires auth
+- [x] No committed secret value: `opencode-api-key` created imperatively
+- [x] Zero-downtime rollout (egress-allow before default-deny, 30m standby drain)
+- [x] `kubeconform` + `yamllint` pass on `k8s/kubeopencode/`
+- [x] Least-privilege agent SA: cannot patch annotations or create NetworkPolicies
+- [x] `scripts/validate-env.py` passes
 
-Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](BACKLOG_STORIES/BITB-152-kubeopencode-strict-tier-hardening.md)
+**Note:** the commit that reads "(BITB-152)" directly on `main` is #1045, but the strict-tier
+netpol selectors were fixed twice more on the `feat/kubeopencode-security` feature branch before
+it merged into main (PR #1086 restored DNS/server egress under default-deny, PR #1087 fixed the
+selector partition and made verification reproducible) — a plain commit-subject search on `main`
+finds only the outer PR, not those two.
+
+Full story: [`BITB-152-kubeopencode-strict-tier-hardening.md`](DONE/BITB-152-kubeopencode-strict-tier-hardening.md)
 
 ---
 
-### 🎯 BITB-159: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
+### ✅ BITB-159: In-Cluster CoreDNS Watchdog With Failure-Time Diagnostics
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1091 merged 2026-09-22)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-19
@@ -394,13 +468,13 @@ diagnostic bundle *at failure time*, and optionally restarts CoreDNS.
 - [ ] Static tests runnable in CI with no cluster
 - [ ] `yamllint` + `shellcheck` + `markdownlint` clean
 
-Full story: [`BITB-159-coredns-dns-watchdog.md`](BACKLOG_STORIES/BITB-159-coredns-dns-watchdog.md)
+Full story: [`BITB-159-coredns-dns-watchdog.md`](DONE/BITB-159-coredns-dns-watchdog.md)
 
 ---
 
-### 🎯 BITB-160: Cluster Triage Collector And Runbook
+### ✅ BITB-160: Cluster Triage Collector And Runbook
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1091 merged 2026-09-22)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-09-19
@@ -424,13 +498,13 @@ next incident starts from a command rather than a conversation.
 - [ ] States that `connection refused` can be a NetworkPolicy (kube-router REJECTs)
 - [ ] Static tests, `shellcheck`/`yamllint`/`markdownlint` clean, wired into CI
 
-Full story: [`BITB-160-cluster-triage-runbook.md`](BACKLOG_STORIES/BITB-160-cluster-triage-runbook.md)
+Full story: [`BITB-160-cluster-triage-runbook.md`](DONE/BITB-160-cluster-triage-runbook.md)
 
 ---
 
-### 🚧 BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
+### ✅ BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1041 merged 2026-09-05)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-05
@@ -446,10 +520,10 @@ fix: `minSdk 24` + core-library desugaring and scoped API TLS trust,
 
 **Acceptance Criteria (summary):**
 
-- [ ] `minSdk 24`, `targetSdk 36`; desugaring enabled; release AAB builds clean
-- [ ] `lintDebug` + `testDebugUnitTest` pass; installs/launches and reaches the API on API 24/25 emulator
+- [x] `minSdk 24`, `targetSdk 36`; desugaring enabled; release AAB builds clean
+- [x] `lintDebug` + `testDebugUnitTest` pass; installs/launches and reaches the API on API 24/25 emulator
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-122-android-7-tablet-minsdk-24.md`
+**Full Story:** `docs/DONE/BITB-122-android-7-tablet-minsdk-24.md`
 
 ---
 
@@ -596,9 +670,12 @@ solely by Turnstile. A CORS-blocked preflight surfaces as a bare `TypeError` and
 
 ---
 
-### 🚧 BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
+### ✅ BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🚧 In Progress (gaps #1/#2/#3/#4 shipped — #1 in PR #848, #2/#3/#4 in PR #845; #5/#6 open — Terraform/Azure infra work)
+**Status:** ✅ Done — all 6 gaps shipped (gap #1 in PR #848, gaps #2/#3/#4 in PR #845, gap #6 in
+PR #896, gap #5 in PR #967 merged 2026-08-21). PR #967's own description flagged that this
+backlog entry was never updated for gap #6's completion; corrected here in the same pass that
+caught it.
 **Size:** M (several small, independent hardening items)
 **Created:** 2026-07-07
 
@@ -618,10 +695,10 @@ the merge sat in a `waiting` deploy gate). A follow-up deploy then broke origin 
 - [x] Smoke test can't tell "service down" from "stale bundle" → assert the user bubble first, fast + descriptive
 - [x] Playwright test-timeout (30s default) < its 60s assertions → cold-start budget unreachable; set `test.setTimeout`
 - [x] Smoke job uploads no trace artifact / `detail.txt` → bare "DOWN" alert with no context
-- [ ] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic
-- [ ] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement
+- [x] Backend app replacement unbinds the origin cert (recurring 525) → auto re-bind, fail loudly before flipping traffic — PR #967
+- [x] Probe-secret rotation forces a full Container App replacement → evaluate decoupling from replacement — PR #896
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-067-deploy-and-smoke-monitor-reliability-gaps.md`
+**Full Story:** `docs/DONE/BITB-067-deploy-and-smoke-monitor-reliability-gaps.md`
 
 ---
 
@@ -848,7 +925,8 @@ validate-only.
 
 ### 🚧 BITB-140: Audit & Close Bible Reference-Normalization Gaps
 
-**Status:** 🚧 In Progress (aliases + case/diacritic normalization + coverage audit done; versification offsets deferred)
+**Status:** 🚧 In Progress (aliases + case/diacritic normalization + coverage audit done via PR #791;
+frontend/Android comma-separator parity confirmed already in place; only versification offsets remain)
 **Size:** M (1-2 days)
 **Created:** 2026-06-16
 
@@ -872,13 +950,17 @@ English-canonical) but affects localized input and the app-wide normalizer.
 - [ ] Versification offsets quantified + documented handling decision (with tests)
 - [x] Table-driven tests across all 11 languages green
 
-**Concrete reproductions (added 2026-06-19, from verse-grounding debugging):** abbreviation /
-numbered-book references fail to parse *with and without* parentheses —
-`extract_all_references("1 Cor 13:4")`, `"Cant 2:1"`, `"Songs 2:1"` all return `[]`, while
-`"Ps 23:1"` works; full names (`1 Corinthians`, `Song of Solomon`) work. Also a cross-parser
-**versification/divergence** note: the frontend verse parser does not support German comma
-separators (`Johannes 3,16`) that the backend does — fold into the "robust matching" + parser-sync
-scope here.
+**Concrete reproductions (added 2026-06-19, from verse-grounding debugging — fixed 2026-07-05 by
+PR #791, which shipped under this story's original ID of BITB-052):** abbreviation / numbered-book
+references used to fail to parse *with and without* parentheses — `extract_all_references("1 Cor 13:4")`,
+`"Cant 2:1"`, `"Songs 2:1"` all returned `[]`, while `"Ps 23:1"` worked; full names
+(`1 Corinthians`, `Song of Solomon`) worked. All three now resolve correctly.
+
+**Correction (2026-09-27):** the note below about the frontend not supporting German comma
+separators was stale — verified directly that all three parsers (backend, frontend, Android) now
+accept `[:,]` as a chapter/verse separator. See AGENTS.md's *Multilingual & Multi-Version
+Correctness* section for the worked-example note. The only genuinely open item left in this story
+is the versification-offsets AC below.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-140-reference-normalization-gaps.md`
 
@@ -1478,9 +1560,9 @@ Testing & Documentation:
 
 ---
 
-### 🚧 BITB-057: Android — In-App Update API (Flexible Flow)
+### ✅ BITB-057: Android — In-App Update API (Flexible Flow)
 
-**Status:** 🚧 In Progress — [PR #863](https://github.com/zioalex/getinspiredbythebible/pull/863) open, pending CI + review
+**Status:** ✅ Done — [PR #863](https://github.com/zioalex/getinspiredbythebible/pull/863) merged 2026-07-12
 **Size:** M (1–2 days)
 **Created:** 2026-07-01
 
@@ -1501,7 +1583,7 @@ at the `MainActivity` call sites so debug and sideloaded builds are unaffected.
 - [x] `onResume` re-checks for a pending install (app backgrounded during download)
 - [x] Unit tests with `FakeAppUpdateManager`; graceful no-op in debug and on sideloaded builds
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-057-android-inapp-update-api.md`
+**Full Story:** `docs/DONE/BITB-057-android-inapp-update-api.md`
 
 ---
 
@@ -1895,9 +1977,16 @@ not bounded or benchmarked across input sizes in isolation.
 
 ---
 
-### 🎯 BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
+### ✅ BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1105, 2026-09-26) — scoped to the literal separator/range/connector/digit
+grammar fragments (not the full compositional regex, and not the script-class book-name
+alternation logic); see the story file's "Scope Cut" section for the exact boundary and the
+recorded Python decision. Independently Verified (Opus pass): regex behavior on web confirmed
+byte-identical to pre-change, Android confirmed semantically identical (JVM-executed comparison
+across 74 multilingual inputs); four gaps the Verify pass found (a tautological Python contract
+test, generator tests never running in CI, a stale audit-doc line, and a character-class
+injection guard) were fixed and re-verified before merge.
 **Priority:** P2
 **Size:** L
 **Created:** 2026-08-31
@@ -1911,15 +2000,24 @@ separator/range grammar and script-class alternations.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Separator/range grammar and script-class alternations come from one generated source for
-      TypeScript and Kotlin; hand-editing fails CI
-- [ ] Python's relationship to that source decided and enforced — generated, or contract-tested like
-      `translation_registry.py`
-- [ ] Shared cross-platform corpus (PR #906) stays green across all three implementations
-- [ ] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator
-- [ ] Duplicate-parser retirement (noted in BITB-086) considered once the grammar has one source
+- [x] Separator/range/connector/digit-range/bracket grammar fragments come from one generated
+      source for TypeScript and Kotlin; hand-editing fails CI (`--check`, plus `VerseGrammarTest.kt`
+      on the Android side, which isn't reached by the path-filtered CI workflow). Script-class
+      alternation logic (which book names to list per script) stays hand-written per platform —
+      explicitly out of scope, see Scope Cut.
+- [x] Python's relationship decided and enforced: contract-tested (`test_verse_grammar_parity.py`,
+      importing `verse_parser.py`'s real `CV_PATTERN` after the Verify-pass fix), not generated —
+      reasoning recorded in the story
+- [x] Shared cross-platform corpus (PR #906) stays green across all three implementations
+- [x] `docs/AUDIT_PLAYBOOK.md`'s regex row points at the generator
+- [x] Duplicate-parser retirement (BITB-086) explicitly deferred with a reason (three distinct
+      regex engines — JS/JVM/Python — make full retirement materially larger than this story)
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-113-verse-parser-grammar-unification.md`
+**Follow-up filed:** BITB-164 — `VersesPanel.kt` is a fourth, already-drifted hand-written copy
+of this grammar, found by the Verify pass and out of scope for this story. **Done 2026-09-30**
+(PR #1117): migrated onto the shared `VerseGrammar`.
+
+**Full Story:** `docs/DONE/BITB-113-verse-parser-grammar-unification.md`
 
 ---
 
@@ -2274,6 +2372,29 @@ not yet proven to help is low value.
 
 ---
 
+### 🎯 BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
+
+**Status:** 🎯 Todo
+**Priority:** P3 — doc-only drift, no functional impact
+**Size:** XS
+**Created:** 2026-09-25
+
+`deployment/kubeopencode/README.md`'s "Cross-provider Resilience" table still lists
+`opencode/muse-spark` / `openrouter/gemma-3-27b:free` as the fallback tiers. PR #1079
+(Ultra → Super-Free + GPT-OSS-120B fallback swap) changes `agents.md`'s model names but has not
+merged yet, so the table was deliberately left unsynced (BITB-158's v2 correction verified it is
+still untouched by that PR's own edits — see `git diff main -- deployment/kubeopencode/README.md`).
+
+**Acceptance Criteria:**
+
+- [ ] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
+      model names) to match the merged `agents.md` / generated `opencode.json`
+- [ ] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
+
+**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](BACKLOG_STORIES/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
+
+---
+
 ### ✅ BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
 **Status:** ✅ Done — role, grants, and workflow swap implemented; the operator created the
@@ -2436,11 +2557,12 @@ surfaced a related-but-separate latent gap in the migration-utils mirror helper,
 
 ---
 
-### 🎯 BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
+### ✅ BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1090 merged 2026-09-22)
 **Priority:** P2
 **Size:** S
+**Completed:** 2026-09-23
 
 **As a** maintainer relying on `get_migration_connection_params()` and `get_async_database_url()`
 being true mirrors of each other, **I want** the asyncpg-spelled `?ssl=...` parameter handled
@@ -2455,7 +2577,7 @@ branching). Latent — no DSN in this repo currently uses that spelling — but
 `docs/MIGRATION_GUIDELINES.md`'s Rule #1 "WRONG" example is exactly `?ssl=verify-full`, which
 makes it easy for an operator to stumble into by hand.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
+**Full Story:** `docs/DONE/BITB-125-migration-utils-ssl-param-verify-full-silently-unencrypted.md`
 
 ---
 
@@ -2675,7 +2797,8 @@ manual-only Hindi/Luther data) still always win when present.
 
 ### 🚧 BITB-121: Android Sessions Are Counted as Web in the Weekly Report
 
-**Status:** 🚧 In Progress - implementation in PR #1038; rollout verification pending
+**Status:** 🚧 In Progress - implementation merged in PR #1038 (2026-09-05); rollout verification
+(a live digest showing a non-zero mobile count) still unconfirmed from source alone
 **Priority:** P1
 **Size:** S
 **Created:** 2026-09-04
@@ -2715,6 +2838,32 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🚧 BITB-165: Auto-Update Opted-In PR Branches When main Moves
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** S (script + workflow + tests)
+**Created:** 2026-09-29
+
+`main` requires branches to be up to date and merge queues are unavailable on a
+personal-account repo, so every PR needs a manual "Update branch" click after each
+merge. A workflow now updates the branch of every opted-in open PR (auto-merge enabled
+or `autoupdate` label) that is behind `main`, so with auto-merge PRs merge themselves
+once green. Needs a PAT (`AUTO_UPDATE_PR_TOKEN`, falling back to `RELEASE_PLEASE_TOKEN`)
+because `GITHUB_TOKEN` updates do not trigger CI.
+
+**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-165-auto-update-pr-branches.md`):**
+
+- [ ] A push to `main` updates every opted-in, same-repo, non-draft PR that is behind
+- [ ] Drafts, forks, Dependabot and release-please PRs are skipped
+- [ ] A conflict warns and does not stop the remaining PRs; a bad token fails loudly
+- [ ] Tests cover eligibility, pagination, dry run, errors and workflow guards
+- [ ] Green CI on the PR
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-165-auto-update-pr-branches.md`
+
+---
+
 > **Beta-tester feedback batch (Oliver Osthoever, 2026-06-11/12) → BITB-045…050.**
 > Six stories captured from a German beta tester's usage notes: typo tolerance, more
 > German Bibles, copy-prompt, keyboard dismissal, fresh-chat-on-launch, and thematic
@@ -2727,9 +2876,9 @@ attributed to Android or broadly backfilled.
 
 ---
 
-### 🚧 BITB-126: Diagnose a Database Stamped Ahead of the Deploy Checkout
+### ✅ BITB-126: Diagnose a Database Stamped Ahead of the Deploy Checkout
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1060 merged 2026-09-20)
 **Priority:** P2
 **Size:** S (preflight script + workflow wiring + tests)
 **Created:** 2026-09-09
@@ -2745,7 +2894,7 @@ the command that had already exited. `scripts/alembic_preflight.py` reads
 `alembic_version` with a plain `SELECT` and classifies the stamp against the
 checkout's revision graph *before* any `alembic` command runs.
 
-**Acceptance Criteria (summary — full story in `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`):**
+**Acceptance Criteria (summary — full story in `docs/DONE/BITB-126-alembic-stale-checkout-preflight.md`):**
 
 - [x] A stamp absent from the checkout fails naming the revision, the head, that
       the database is not broken, and that re-running cannot succeed
@@ -2753,15 +2902,15 @@ checkout's revision graph *before* any `alembic` command runs.
 - [x] The preflight provably runs before the first `alembic` command
 - [x] Success path reports the true pending-revision count
 - [x] Verified end-to-end against a real PostgreSQL 16 across five stamp states
-- [ ] Green CI on the PR
+- [x] Green CI on the PR
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-126-alembic-stale-checkout-preflight.md`
+**Full Story:** `docs/DONE/BITB-126-alembic-stale-checkout-preflight.md`
 
 ---
 
-### 🚧 BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
+### ✅ BITB-123: opencode Agent Graph + KubeOpenCode Deployment Config
 
-**Status:** 🚧 In Progress (PR #1042)
+**Status:** ✅ Done (PR #1042 merged 2026-09-12)
 **Priority:** P2
 **Size:** M (1-2 days)
 **Created:** 2026-09-05
@@ -2774,11 +2923,11 @@ table (`agents.md`), and apply instructions (`README.md`). `.claude/agents/` unt
 
 **Acceptance Criteria (summary):**
 
-- [ ] 12 agents load via `opencode agent list`; `opencode.json` stays valid JSON
-- [ ] `agent.yaml` applies cleanly; orchestrator has a fallback model in spec
-- [ ] `make pre-commit` green; PR opened with `chore(agents):` title
+- [x] 12 agents load via `opencode agent list`; `opencode.json` stays valid JSON
+- [x] `agent.yaml` applies cleanly; orchestrator has a fallback model in spec
+- [x] `make pre-commit` green; PR opened with `chore(agents):` title
 
-Full story: [`BITB-123-opencode-agent-graph-kubeopencode.md`](BACKLOG_STORIES/BITB-123-opencode-agent-graph-kubeopencode.md)
+Full story: [`BITB-123-opencode-agent-graph-kubeopencode.md`](DONE/BITB-123-opencode-agent-graph-kubeopencode.md)
 
 ---
 
@@ -2838,7 +2987,8 @@ Full story: [`BITB-161-kubeopencode-agent-file-mount-copilot-auth.md`](BACKLOG_S
 
 ### 🚧 BITB-128: Persistent KubeOpenCode Workspace Volume
 
-**Status:** 🚧 In Progress
+**Status:** 🚧 In Progress — implementation merged in PR #1067 (2026-09-14); only the on-cluster
+proof below remains, and needs an operator with write RBAC (the in-cluster agent SA is read-only)
 **Priority:** P2
 **Size:** S (reduced from M — the CRD provides persistence natively)
 **Created:** 2026-09-12
@@ -2864,9 +3014,10 @@ Full story: [`BITB-128-kubeopencode-persistent-workspace-volume.md`](BACKLOG_STO
 
 ---
 
-### 🚧 BITB-129: Right-Size CI for opencode Agent-Config Changes
+### ✅ BITB-129: Right-Size CI for opencode Agent-Config Changes
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1067 merged 2026-09-14; confirmed on a real kubeopencode-only PR — #1104
+triggered `opencode-ci` and skipped the full application suite's DB/Docker jobs)
 **Priority:** P2
 **Size:** S–M
 **Created:** 2026-09-12
@@ -2890,9 +3041,9 @@ as `deployment/kubeopencode/**`, or the net CI cost for those paths goes up, not
 - [x] The 19 existing generator tests and `make verify-opencode-config` run in CI
 - [x] Missing tests added: committed-`opencode.json` drift (T1), `configRef`↔ConfigMap-name match (T2), documented secret refs (T3), README `make` targets exist (T4), `spec.persistence` schema (T5), verify target (T6)
 - [x] Tests mutation-proven locally: drift, ConfigMap rename, and a deleted `persistence` block each fail the suite
-- [ ] Confirmed against a real CI run that a kubeopencode-only PR triggers `opencode-ci` and not the full suite
+- [x] Confirmed against a real CI run that a kubeopencode-only PR triggers `opencode-ci` and not the full suite
 
-Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](BACKLOG_STORIES/BITB-129-right-size-ci-for-opencode-changes.md)
+Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](DONE/BITB-129-right-size-ci-for-opencode-changes.md)
 
 ---
 
@@ -3089,9 +3240,12 @@ instead of a generic "I don't understand".
 
 ---
 
-### 🎯 BITB-046: Add German Bible Translation (Luther 1912)
+### 🚧 BITB-046: Add German Bible Translation (Luther 1912)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — code merged in PR #787 (2026-07-10; `luther1912` is already the German
+default in `api/utils/language.py` on `main`), but the PR's own "post-merge operator steps" called
+for manually running `load_bible.py --translation luther1912` / `elberfelder1871` to populate the
+verses and embeddings, and that can't be confirmed from source alone
 **Size:** M (1-2 days, mostly data loading)
 **Created:** 2026-06-12
 
@@ -3211,9 +3365,11 @@ too long.
 
 ---
 
-### 🚧 BITB-138: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
+### ✅ BITB-138: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #702 merged 2026-06-08, under this story's original ID of BITB-043 — renamed
+to BITB-138 by the BITB-111 ID-collision cleanup, #1068; the backlog entry's Todo/In-Progress status
+was never carried forward across that rename)
 **Size:** M (1-2 days)
 **Created:** 2026-06-08
 
@@ -3224,19 +3380,19 @@ what went wrong on a thumbs-down with a single-tap reason chip,
 
 **Acceptance Criteria:**
 
-- [ ] POST `/api/v1/feedback/contact` without email → HTTP 422 (email is required)
-- [ ] POST `/api/v1/feedback/contact` with invalid email → HTTP 422
-- [ ] Contact form send button disabled when email is empty; input has `required`
-- [ ] `Contact.emailLabel` updated to required phrasing in all 11 locales
-- [ ] Negative feedback email includes full (untruncated) user message and AI response + HTML + metadata
-- [ ] Positive feedback WITH comment triggers maintainer email; bare positive does not
-- [ ] Thumbs-down panel shows 5 reason chips; selected chip passed as `reason` to `onSubmit`
-- [ ] Chip selection is optional — auto-commit still works without it
-- [ ] `reason` column added to `feedback` table (migration 006)
-- [ ] All 11 locales have 6 new reason keys + updated `emailLabel`
-- [ ] Backend + frontend tests pass
+- [x] POST `/api/v1/feedback/contact` without email → HTTP 422 (email is required)
+- [x] POST `/api/v1/feedback/contact` with invalid email → HTTP 422
+- [x] Contact form send button disabled when email is empty; input has `required`
+- [x] `Contact.emailLabel` updated to required phrasing in all 11 locales
+- [x] Negative feedback email includes full (untruncated) user message and AI response + HTML + metadata
+- [x] Positive feedback WITH comment triggers maintainer email; bare positive does not
+- [x] Thumbs-down panel shows 5 reason chips; selected chip passed as `reason` to `onSubmit`
+- [x] Chip selection is optional — auto-commit still works without it
+- [x] `reason` column added to `feedback` table (migration 006)
+- [x] All 11 locales have 6 new reason keys + updated `emailLabel`
+- [x] Backend + frontend tests pass
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-138-require-contact-email-and-actionable-negative-feedback.md`
+**Full Story:** `docs/DONE/BITB-138-require-contact-email-and-actionable-negative-feedback.md`
 
 ---
 
@@ -3268,9 +3424,13 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 ---
 
-### 🚧 BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
+### ✅ BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
 
-**Status:** 🚧 In Progress (web implemented; Android/iOS parity open)
+**Status:** ✅ Done — confirmed directly in code on `main`: `frontend/src/components/FeedbackControls.tsx`
+has `FEEDBACK_RETHINK_MS`, the maintainer notice, and `aria-live` status, with all 11 locales
+carrying `maintainerNotice`. Web PR #684 was closed without an explicit merge record but the
+feature is live regardless; Android parity shipped in PR #685 and completed in PR #783 (2026-07-03).
+No iOS app exists yet (see BITB-085), so iOS parity does not apply.
 **Size:** M (1-2 days)
 **Created:** 2026-06-05
 
@@ -3282,15 +3442,15 @@ because it's data work gated behind BITB-043's eval set, not a live regression.
 
 **Acceptance Criteria:**
 
-- [ ] After tapping a thumb, no request is sent for ~10s; inline countdown + Undo shown
-- [ ] Undo / re-tap / switch within the window cancels — verified no feedback POST is made
-- [ ] After the window, the rating commits (POST sent) — no forced modal; comment is optional and inline
-- [ ] Thumbs-down shows a short explicit "shared with the app's maintainer" notice next to the comment field, separate from the logging notice
-- [ ] New i18n key(s) added to all 11 locales under `frontend/messages/`; `translations.test.ts` passes
-- [ ] Countdown is accessible and honours `prefers-reduced-motion`; window length is a single named constant
-- [ ] Tests cover pending/undo (no POST), timeout (POST sent), and thumbs-down notice
+- [x] After tapping a thumb, no request is sent for ~10s; inline countdown + Undo shown
+- [x] Undo / re-tap / switch within the window cancels — verified no feedback POST is made
+- [x] After the window, the rating commits (POST sent) — no forced modal; comment is optional and inline
+- [x] Thumbs-down shows a short explicit "shared with the app's maintainer" notice next to the comment field, separate from the logging notice
+- [x] New i18n key(s) added to all 11 locales under `frontend/messages/`; `translations.test.ts` passes
+- [x] Countdown is accessible and honours `prefers-reduced-motion`; window length is a single named constant
+- [x] Tests cover pending/undo (no POST), timeout (POST sent), and thumbs-down notice
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-042-feedback-rethink-delay-and-maintainer-notice.md`
+**Full Story:** `docs/DONE/BITB-042-feedback-rethink-delay-and-maintainer-notice.md`
 
 ---
 
@@ -3535,11 +3695,18 @@ Fixed by reordering params (DI params first), matching `get_verse`/`get_verse_ra
 
 ---
 
-### 🎯 BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
+### ✅ BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1084 merged 2026-09-22). 2026-09-30: the Ko-fi page
+(`ko-fi.com/voxquieta`) is **live** — owner-confirmed and verified by fetch (card via Stripe
+**and** PayPal; "$80/month — Monthly infrastructure costs" goal), so the
+`NEXT_PUBLIC_DONATE_URL`/`BuildConfig.DONATE_URL` fallback is the real donate URL, no longer a
+placeholder. The GitHub Sponsors handle (`.github/FUNDING.yml` → `github: [zioalex]`) is still a
+TODO pending manual setup. Deployment wiring for `NEXT_PUBLIC_DONATE_URL` deferred to BITB-157;
+visibility of the buried entries is BITB-168.
 **Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
 **Created:** 2026-07-21
+**Completed:** 2026-09-22
 
 **As a** supporter of Vox Quieta, **I want** a clear, low-friction way to
 financially support the project from the website, the Android app, and the
@@ -3557,15 +3724,15 @@ Developer Program Policy before shipping).
 
 **Acceptance Criteria (summary):**
 
-- [ ] `.github/FUNDING.yml` added (GitHub Sponsors + Ko-fi)
-- [ ] Web `Footer.tsx` gets a "Support us" link to the Ko-fi page; new
-      `Footer.supportUs` key added across all 10 locale files
-- [ ] Android `SettingsScreen.kt` gets a "Support Vox Quieta" row in the About
+- [x] `.github/FUNDING.yml` added (GitHub Sponsors + Ko-fi) — placeholder handles
+- [x] Web `Footer.tsx` gets a "Support us" link to the Ko-fi page; new
+      `Footer.supportUs` key added across all **11** locale files (story predates `ko.json`)
+- [x] Android `SettingsScreen.kt` gets a "Support Vox Quieta" row in the About
       section, opening the donate URL via `LocalUriHandler`
-- [ ] No payment data/webhooks handled by Vox Quieta's own code; no perks
+- [x] No payment data/webhooks handled by Vox Quieta's own code; no perks
       gated behind the donation
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-074-support-us-funding.md`
+**Full Story:** `docs/DONE/BITB-074-support-us-funding.md`
 
 ---
 
@@ -3768,11 +3935,12 @@ the prompt instruction and a second, code-level suppression on a compassionate/c
 
 ---
 
-### 🎯 BITB-149: Android — Suggested Follow-Up Question Chips
+### ✅ BITB-149: Android — Suggested Follow-Up Question Chips
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1109 merged 2026-09-29)
 **Size:** S (Android-only; the backend contract and web reference implementation already exist)
 **Created:** 2026-09-11
+**Completed:** 2026-09-29
 **Parent ref:** BITB-080 (backend + web shipped; this is its deferred Android half)
 
 **As** an Android user who has just read an answer, **I want** the same one-tap follow-up question
@@ -3785,12 +3953,16 @@ validation needed), render chips under the last assistant item only, send on fir
 
 **Acceptance Criteria (summary):**
 
-- [ ] 2–3 chips under the last assistant message; tap sends on the first tap
-- [ ] Absent `follow_ups` renders nothing; chips clear when the next turn starts
-- [ ] TalkBack-labelled chip row; Compose UI test covers position + tap-to-send
-- [ ] BITB-024 (session limit) interaction checked now that both platforms exist
+- [x] 2–3 chips under the last assistant message; tap sends on the first tap
+- [x] Absent `follow_ups` renders nothing; chips clear when the next turn starts, on conversation
+      switch, and on session reset (a real bug was caught and fixed in review: chips were being
+      wiped mid-turn in any conversation resumed from history)
+- [x] TalkBack-labelled chip row; unit + Compose UI tests cover position (via an extracted
+      `shouldShowFollowUps()` predicate) + tap-to-send
+- [x] BITB-024 (session limit) interaction checked at the code level — chips suppressed once
+      `isSessionLimitReached` — measuring the production impact is a telemetry question left open
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-149-android-followup-question-chips.md`
+**Full Story:** `docs/DONE/BITB-149-android-followup-question-chips.md`
 
 ---
 
@@ -4029,7 +4201,287 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 
 ---
 
+### 🎯 BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-09-30
+
+**As** a user who would like to support Vox Quieta, **I want** the donation entry to appear in the
+places I naturally look — chat menu, drawer, About page — **so that** I can contribute if and when
+I choose, without the app ever pressing me.
+
+BITB-074 (PR #1084) shipped the Support-Us entries but buried every one of them: on web, the only
+support link on the chat page (the site root) is the 6th of 6 links in an 11px gray row and the
+hamburger menu has no Support item; on Android it's the last of five plain rows at the bottom of
+Settings → About. BITB-074 itself deferred a chat-drawer item as a fast-follow "if Settings-only
+placement proves too low-visibility" — the product owner confirmed exactly that on 2026-09-30.
+Fix is passive discoverability only: a "Support us" item in the web hamburger menu, a heart-glyph
+lift on the footer links, a "Keep Vox Quieta free" section on the About page, an Android drawer
+item + a one-time What's New mention, and per-surface `ref` params on the donate URL for
+measurement. No modals, banners, urgency language, or nags — enforced by acceptance criteria.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Web hamburger menu + About section + heart-glyph footer lift, all opening the donate URL
+      (`noopener noreferrer`), with no size/color escalation
+- [ ] Android drawer item (BITB-074's flagged fast-follow) + one-time What's New mention
+- [ ] Per-surface `ref` params (`web-menu`/`web-footer`/`web-about`/`android-drawer`/
+      `android-settings`) via a single URL helper per platform
+- [ ] All new copy in 11/11 frontend locales and 11/11 Android locales
+- [ ] Anti-nag rules hold: no modal/banner/interstitial/timed prompt/urgency/perk-gating anywhere
+- [ ] Frontend vitest coverage + Android Compose drawer test; translation-validation CI green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-168-support-us-discoverability.md`
+
+---
+
+### 🎯 BITB-169: Reliable Orchestrator↔Subagent Comms — Task-Reliability Plugin + Registry
+
+**Status:** 🚧 In Progress (PR #1123, opened 2026-09-30)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-09-30
+
+**As** the orchestrator, **I want** a cancelled task dispatch to always tell me where the
+detached subagent session lives and how to recover its result, **so that** a transient model
+503 never silently discards completed subagent work or spawns duplicate detached sessions.
+
+Diagnosed live on 2026-09-30: the runtime-fallback plugin correctly saved the verifier
+*session* after a 503 (it completed all 45 steps on the fallback model), but the parent's
+in-flight task call was torn down — dead-end `Task cancelled` while the child ran detached,
+and a blind retry duplicated the whole review. Recovery via `task_id` resume works (proven),
+but depends on grepping the non-persistent `/tmp` log. Fix in three layers: **L0** operational
+discipline (unique task tokens, probe-first, no blind re-dispatch — runbook already in
+PR #1121); **L1** a local `task-reliability` plugin (`.opencode/plugin/`, hook surface
+verified against the installed fallback plugin: `session.created`/`idle`/`stop`/`error` events
+→ durable registry on the workspace PVC; `tool.execute.after` → enrich any cancelled task
+output with the child session id + recovery instructions, so a cancel is never a dead end;
+`tool.definition` → recovery protocol in the tool description); **L2** optional
+pod-restart-proof result mailbox (`/workspace/.opencode/task-results/`) for write-capable
+agents, since resume-based recovery dies with the pod (session state is under `/tmp`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Unique task token in every dispatch description
+- [ ] `.opencode/plugin/task-reliability.ts` auto-discovered, inert-by-design on unexpected
+      shapes (try/catch everywhere, never breaks a tool call)
+- [ ] Registry at `/workspace/.opencode/task-registry.jsonl`: child session created → entry;
+      idle/stop/error → status update (PVC path — survives pod restarts)
+- [ ] Cancelled task outputs enriched with child session id + recovery instructions (live or
+      simulated cancel demo)
+- [ ] Recovery protocol present in the task tool description; orchestrator runbook reads the
+      registry first instead of grepping the log
+- [ ] Implementation verifies the open questions: plugin delivery to the KubeOpenCode pod
+      (ConfigMap vs repo clone — check `agent.yaml`), exact event/output shapes on opencode
+      1.18.31, atomic JSONL appends
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-169-task-reliability-plugin.md`
+
+---
+
+### ✅ BITB-170: KubeOpenCode README — Document All 14 Files + Egress/Netpol Apply Order + RBAC + OpenCode Config Sync
+
+**Status:** ✅ Done (PR #1124)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-09-30
+**Completed:** 2026-09-30
+
+**As** an operator deploying a new KubeOpenCode agent, **I want** the
+`k8s/kubeopencode/README.md` to document all manifests in the directory, show the
+correct apply order (including RBAC before Agents), cross-link the hardening
+runbook, and document the `make` targets that generate and sync the opencode
+config, **so that** I can roll out a strict-tier agent without guessing which files
+are required, in what order, or where the agent definitions come from.
+
+The README documented only 6 of 14 files; the egress/NetworkPolicy instructions
+lived only in `docs/SECURITY-KUBEOPENCODE.md` (never referenced), the RBAC
+manifests (`role-agent.yaml`, `rolebinding-agent.yaml`) appeared in no apply order
+despite every Agent manifest setting `serviceAccountName: kubeopencode-agent`, and
+the `opencode-api-key` file-mount secret was missing from the Secrets section.
+Fix adds the 8 missing Files-table rows, the `opencode-api-key` imperative
+creation, the RBAC apply step, and a new "Sandbox hardening (strict-tier egress)"
+section: what the tier enforces, the three allow-policies → verify →
+`default-deny-all` LAST order with the bold enforce-on-apply warning,
+`make verify/test-kubeopencode-netpol` verification, the
+`delete netpol default-deny-all` rollback, and the cross-link to the security doc.
+Also adds an "OpenCode config (agent definitions → ConfigMap)" section (the second
+`wf3` gap: the config make targets lived only in `deployment/kubeopencode/README.md`):
+source of truth (`.opencode/agents/*.md`, 12 agents) and generated artifact
+(`opencode.json`, committed), the three make targets with repo-root invocation
+(`make gen-opencode-config` / `make verify-opencode-config` /
+`make sync-opencode-configmap`), the ConfigMap-before-`configRef`-Agent warning,
+pod-restart-after-sync, `configRef`-vs-inline-`config` mutual exclusivity, and the
+cross-link to `deployment/kubeopencode/README.md` as the full runbook.
+Docs-only; no manifest changes.
+
+**Acceptance Criteria (summary):**
+
+- [x] All 14 files in the Files table with descriptions verified against file contents
+- [x] Apply order includes RBAC before any Agent manifest
+- [x] `opencode-api-key` secret with the security-doc imperative pattern + the
+      `default-wf2` env-route note
+- [x] Hardening section: ordered netpol applies + default-deny-last warning + live/static
+      verification + rollback + security-doc cross-link
+- [x] Config-sync section: `gen/verify/sync-opencode-configmap` targets with repo-root
+      invocation + ConfigMap-before-`configRef`-Agent warning + pod-restart-after-sync +
+      `configRef`-vs-inline mutual exclusivity + `deployment/kubeopencode/README.md` cross-link
+- [x] `markdownlint` clean on all three touched files
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-170-kubeopencode-readme-egress-docs.md`
+
+---
+
+### ✅ BITB-171: k8s `agent-default-wf2.yaml` Is a Stripped Sketch — Applying It Degrades the Live Agent
+
+**Status:** ✅ Done (PR #1125)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-30
+**Completed:** 2026-09-30
+
+**As** an operator rolling out the `default-wf2` Agent from `k8s/kubeopencode/`, **I want** that manifest to be self-contained — the same `configRef`, `persistence`, and credentials as `deployment/kubeopencode/agent.yaml` — **so that** applying it (standalone or over the live object) converges instead of silently stripping fields the older manifest set.
+
+The two manifests declare the same Agent object, but the k8s variant (PR #1089) was a
+patch sketch: inline `spec.config`, **no `persistence`**, two of four credentials.
+`kubectl apply` three-way-merges, so following the k8s README apply order alone
+stripped `persistence` (workspace → EmptyDir, destroyed by the pod restart every
+config sync requires — the BITB-128 failure), `configRef` (12-agent roster → bare
+model config), and the `github-copilot`/`openrouter` credentials from the live
+Agent. CI never caught it: the manifest tests (BITB-129) read only
+`deployment/agent.yaml`. Found while deploying the `wf3` agent (BITB-170
+follow-up: "where did the persistence go?"). Fix: the k8s manifest is now
+field-for-field identical to the deployment one plus the mobile
+`OPENCODE_SERVER_PASSWORD` credential; T6 parity tests in
+`scripts/test_kubeopencode_manifests.py` fail on any future drift; the k8s README
+Files row / Secrets (`openrouter-api-key`, `github-copilot-auth`) / OpenCode-config
+section and `mobile-access.md` updated for consistency.
+
+**Acceptance Criteria (summary):**
+
+- [x] `agent-default-wf2.yaml` carries `configRef` → `opencode-config`/`opencode.json`,
+      `persistence` (workspace 20Gi, sessions 2Gi), and all 4 credentials
+- [x] Applying it over the deployment-manifest-applied live object converges (shared
+      fields identical, only `server-password` added)
+- [x] T6 parity tests: identity, persistence, configRef-vs-Makefile, mutual exclusivity,
+      credential superset, README documentation of every secret/env
+- [x] No doc still describes the manifest as an inline-config sketch
+- [x] `pytest scripts/test_kubeopencode_manifests.py` + `markdownlint` green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-171-kubeopencode-agent-default-wf2-selfcontained.md`
+
+---
+
+### ✅ BITB-172: Repo-vs-Live Drift — agentImage Wiring Uncommitted, Mobile Credential Pre-Wired
+
+**Status:** ✅ Done (PR #1126)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-30
+**Completed:** 2026-09-30
+**Found by:** Live `default-wf3` deployment test (follow-up to BITB-170/171)
+
+**As** the operator of the home k3s cluster, **I want** the committed Agent manifests to match what the live `default-wf2` object actually runs — custom `agentImage` + pull secret included, mobile Basic auth opt-in — **so that** repo applies converge with live and a fresh agent (wf3) starts without missing-secret or default-image surprises.
+
+Surfaced while testing `default-wf3`: the pod crashlooped on
+`secret "opencode-server-auth" not found` (BITB-171 pre-wired the mobile
+credential, but the flow was never rolled out — no cluster had the secret), and
+it ran the default opencode image, not the custom build (`agentImage` +
+`ghcr-pull` were wired only on the live object via kubectl patch, existing
+nowhere in git). Live wf2 worked because it predates mobile auth and was
+patched directly. Fix: `agentImage`/`imagePullSecrets` committed into both
+`default-wf2` manifests and the new cluster-validated
+`agent-default-wf3.yaml`; `server-password` removed from manifests and made an
+opt-in `kubectl edit` patch in `mobile-access.md` (merge-patch replaces the
+whole credential list — documented); T7 tests pin the image + pull secret on
+every manifest, keep wf3 in parity with wf2, assert exact credential match,
+and parametrize doc coverage over both k8s manifests; README secrets section
+now marks optional (`opencode-server-auth`, mobile-only) vs required
+(`ghcr-pull`, private package) and the Files row no longer overstates
+"safe to apply standalone".
+
+**Acceptance Criteria (summary):**
+
+- [x] `agentImage` + `imagePullSecrets` in `deployment/agent.yaml`,
+      `k8s/agent-default-wf2.yaml`, and the new `k8s/agent-default-wf3.yaml` — repo = live
+- [x] No manifest pre-wires `server-password`; mobile-access.md documents the opt-in patch
+- [x] `agent-default-wf3.yaml` committed, matching the cluster-validated shape
+- [x] T7 green: image pinning (3 manifests), wf3 parity, exact credential match, doc coverage ×2
+- [x] README optional/required secrets + no standalone overstatement
+- [x] `pytest` + `markdownlint` + `yamllint` + `prettier` (pinned) green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-172-kubeopencode-agent-image-drift.md`
+
+---
+
 ## P3 - Low Priority (Future)
+
+### ✅ BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
+
+**Status:** ✅ Done (PR #1117, 2026-09-30)
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-26
+**Found by:** BITB-113's Verify stage
+
+`android/.../VersesPanel.kt` had its own hand-written `CITED_BOOK_NAME`/`CITED_VERSE_REF_REGEX`,
+never tracked alongside the three parsers BITB-059/BITB-113 keep in sync — and it had already
+drifted (no के/ال connectors, `:`-only separator, no en-dash range, ASCII-only digits). It is now
+migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
+
+**Acceptance Criteria (summary):**
+
+- [x] `VersesPanel.kt`'s actual role established (independent detector vs. narrower re-match)
+- [x] Migrated onto the shared `VerseGrammar` source, or narrower scope documented with a reason
+- [x] A test guards against future silent drift
+- [x] `docs/AUDIT_PLAYBOOK.md` accounts for this as a fourth copy (tracked or explained)
+
+**Full Story:** `docs/DONE/BITB-164-versespanel-fourth-verse-grammar-copy.md`
+
+---
+
+### 🎯 BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-30
+**Found by:** BITB-164
+
+`referencedVerses` (server `versesCited` path) and `ChatMessageItem.citedVerses` still match with
+`startsWith` on `"book chapter:verse"`, so a server citation of `John 3:16` also surfaces John 3:1
+(and 3:160-style prefixes). BITB-164 fixed this for the client-regex fallback only.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
+- [ ] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-166-versescited-startswith-prefix-match.md`
+
+---
+
+### 🎯 BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-30
+**Found by:** BITB-164 verification
+
+`parseVerseLink` (`ChatMessageItem.kt`) splits the verse range on `-` only, so a tapped
+"Romans 8:28–30" link resolves to verse 1. Should use `VerseGrammar.RANGE_SEPARATORS`.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `parseVerseLink` uses the shared range separators
+- [ ] Cross-language test covering hyphen/en-dash and non-ASCII digits
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-167-verse-link-en-dash-range.md`
+
+---
 
 ### 🎯 BITB-127: Make `translations.created_at` Timezone-Aware
 

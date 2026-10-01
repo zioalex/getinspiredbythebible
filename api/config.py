@@ -36,11 +36,13 @@ class Settings(BaseSettings):
     # OpenRouter Settings (OpenAI-compatible API with free models)
     openrouter_api_key: str | None = None
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    # Free models: meta-llama/llama-3.3-70b-instruct:free, google/gemma-2-9b-it:free
-    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
+    # Primary: paid Llama 3.3 70B (the :free tier was removed by OpenRouter).
+    # Cross-provider fallback: paid Gemma 4 31B (Google) — ZDR-compatible,
+    # verified for biblical Q&A across EN/DE/IT (BITB-155).
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct"
     # Fallback models (comma-separated) - used when primary model is rate limited
-    # Default: paid version of llama-3.3-70b for when free tier hits limits
-    openrouter_fallback_models: str = "meta-llama/llama-3.3-70b-instruct"
+    # Default: Gemma 4 31b on a different provider, so a Meta-side outage still fails over
+    openrouter_fallback_models: str = "google/gemma-4-31b-it"
     # Allow automatic fallback to other providers/models
     openrouter_allow_fallbacks: bool = True
     # Preferred minimum throughput (tokens/sec at p50) for provider selection.
