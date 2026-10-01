@@ -1,9 +1,19 @@
 # BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1084 merged 2026-09-22)
 **Priority:** P2
 **Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
 **Created:** 2026-07-21
+**Completed:** 2026-09-22
+
+**What shipped:** `.github/FUNDING.yml`, a "Support us" external link in the web Footer (both the
+page-level `Footer.tsx` and the chat-page `ChatFooterLinks.tsx` variant) with a
+`Footer.supportUs` key in all 11 locales, and a "Support Vox Quieta" row in Android's
+`SettingsScreen.kt` About section via `LocalUriHandler`. The Ko-fi page and GitHub Sponsors
+handle are still placeholders (`ko-fi.com/voxquieta`, `github: [zioalex]`) pending manual account
+setup — a human must confirm/replace both before this is relied on for real donations.
+`NEXT_PUBLIC_DONATE_URL` is documented but not yet wired into `docker-compose.yml`,
+`frontend/Dockerfile`, or `azure-deploy.yml`'s build args (follow-up: BITB-157).
 
 **As a** supporter of Vox Quieta, **I want** a clear, low-friction way to
 financially support the project from the website, the Android app, and the

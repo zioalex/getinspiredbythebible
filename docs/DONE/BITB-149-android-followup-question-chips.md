@@ -1,9 +1,10 @@
 # BITB-149: Android — Suggested Follow-Up Question Chips
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1109 merged 2026-09-29)
 **Priority:** P2
 **Size:** S (Android-only; the backend contract and the design already exist)
 **Created:** 2026-09-11
+**Completed:** 2026-09-29
 **Parent ref:** BITB-080 (backend + web shipped that story; this is its deferred Android half)
 
 ## User Story
@@ -46,15 +47,23 @@ purely the Android consumer of that same contract — no backend or web changes.
 
 ## Acceptance Criteria
 
-- [ ] After a normal answer (flag on), 2-3 follow-up chips appear under the last assistant message.
-- [ ] Tapping one sends it immediately — first tap works, no double-tap-to-send regression.
-- [ ] Chips appear only under the latest assistant message and clear when the next turn starts.
-- [ ] Absent `follow_ups` (suppressed turn, or flag off) renders nothing — no crash, no empty row.
-- [ ] Chip row has a TalkBack-visible group label.
-- [ ] Existing Android chat/stream-parsing tests pass; a Compose UI test covers chip rendering
-      (position: last message only) and tap-to-send.
-- [ ] BITB-024 (10-message session limit) interaction checked once both platforms exist: does
-      surfacing more follow-ups measurably push users into the limit sooner, and does that matter.
+- [x] After a normal answer (flag on), 2-3 follow-up chips appear under the last assistant message.
+- [x] Tapping one sends it immediately — first tap works, no double-tap-to-send regression.
+- [x] Chips appear only under the latest assistant message and clear when the next turn starts
+      (also on conversation switch and session reset — an independent review caught and fixed a
+      real bug here: `loadConversation()` was clearing chips inside its live Room-observer
+      collector, wiping them out within the same turn for any conversation resumed from history).
+- [x] Absent `follow_ups` (suppressed turn, or flag off) renders nothing — no crash, no empty row.
+- [x] Chip row has a TalkBack-visible group label.
+- [x] Existing Android chat/stream-parsing tests pass; unit tests added across the parser, mapper,
+      view model and screen-predicate layers, plus a Compose UI test covering chip rendering
+      (position: last message only, via an extracted `shouldShowFollowUps()` predicate) and
+      tap-to-send.
+- [x] BITB-024 (10-message session limit) interaction checked at the code level: chips are
+      suppressed once `isSessionLimitReached` is true, so a chip can never offer a tap that would
+      just produce another 429. Whether surfacing follow-ups measurably pushes users toward the
+      limit sooner is a production-telemetry question outside a single PR's reach — left open,
+      not blocking, since the code-level guard already prevents the dead-end-tap failure mode.
 
 ## Files Likely to Change
 

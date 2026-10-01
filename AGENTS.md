@@ -154,8 +154,12 @@ Critical variables:
 >   translation's* text, never a hardcoded one (test e.g. KJV vs WEB).
 > - Verse detection lives in **three parsers that must stay in sync** (backend,
 >   frontend, Android — see *Verse Detection / Parsing*). Mirror the change and
->   add a parity test in each. They diverge subtly (e.g. the frontend does not
->   support German comma separators; the backend does) — assert, don't assume.
+>   add a parity test in each. They diverge subtly — don't assume parity, assert
+>   it. (This note used to say the backend supported German comma separators but
+>   the frontend didn't; all three parsers now accept `[:,]` — verified directly against
+>   `frontend/src/lib/versePatterns.ts` and the Android `ChatMessageItem.kt`
+>   regex on 2026-09-27. This note is deliberately kept as a worked example of a
+>   real historical divergence, not a live one — re-verify before citing it.)
 
 ### Backend Tests
 
@@ -261,6 +265,13 @@ Independent workflow — **not a required check** while the tier stabilises.
 
 Artifacts uploaded on every run: HTML report + JUnit XML (14-day retention).
 See `android/COMPOSE_TESTS.md` for the tier design and promotion checklist.
+
+### Auto-update PR branches (`auto-update-prs.yml`)
+
+When `main` moves, updates opted-in open PRs (auto-merge enabled or `autoupdate` label)
+that are behind it, so auto-merge can proceed. Skips drafts, forks, Dependabot and
+release-please PRs. Needs secret `AUTO_UPDATE_PR_TOKEN` (falls back to
+`RELEASE_PLEASE_TOKEN`) because `GITHUB_TOKEN` updates do not trigger CI. See the BITB-165 story.
 
 ### Deployment (`azure-deploy.yml`)
 

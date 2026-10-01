@@ -118,7 +118,7 @@ class ChatViewModelTest {
             every { getString(R.string.error_timeout) } returns "Request timed out. Please try again."
             every { getString(R.string.error_server) } returns "Server error. Please try again later."
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
-            every { getString(R.string.error_session_limit) } returns "You've had 10 messages..."
+            every { getString(R.string.error_session_limit, any()) } returns "You've had 10 messages..."
             every { getString(R.string.error_contact_email_invalid) } returns "Please enter a valid email so we can reply."
             every { getString(R.string.error_content_blocked) } returns "I wasn't able to respond to that one — please try rephrasing."
         }
@@ -876,6 +876,150 @@ class ChatViewModelTest {
         assertEquals(ChatViewModel.MAX_MESSAGE_LENGTH, vm.uiState.value.maxMessageLength)
     }
 
+    // ── BITB-156: server-published per-session message cap ─────────────────
+
+    @Test
+    fun `initial state has the compiled-in fallback sessionMaxRequests before config loads`() {
+        // Before advanceUntilIdle() runs the init{} coroutines, the state must
+        // already carry the fallback constant (10) so the UI never briefly
+        // renders with 0 / an unset limit.
+        assertEquals(ChatViewModel.MAX_INTERACTIONS, viewModel.uiState.value.sessionMaxRequests)
+    }
+
+    @Test
+    fun `sessionMaxRequests reflects the server value once config loads`() = runTest {
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            chat = ConfigChatDto(maxMessageLength = 500, sessionMaxRequests = 25),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(25, vm.uiState.value.sessionMaxRequests)
+    }
+
+    @Test
+    fun `sessionMaxRequests keeps the fallback when getConfig throws`() = runTest {
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
+        coEvery { localApiService.getConfig() } throws IOException("no network")
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(ChatViewModel.MAX_INTERACTIONS, vm.uiState.value.sessionMaxRequests)
+    }
+
+    @Test
+    fun `sessionMaxRequests keeps the fallback when the server value is not a valid positive int`() = runTest {
+        val localApiService = mockk<BibleApiService>(relaxed = true)
+        coEvery { localApiService.getTranslations() } returns TranslationsResponseDto(emptyList())
+        coEvery { localApiService.getConfig() } returns ConfigResponseDto(
+            chat = ConfigChatDto(maxMessageLength = 500, sessionMaxRequests = 0),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            localApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(ChatViewModel.MAX_INTERACTIONS, vm.uiState.value.sessionMaxRequests)
+    }
+
+    @Test
+    fun `session limit trips at the server-published value and interpolates it into the invitation`() = runTest {
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            chat = ConfigChatDto(maxMessageLength = 500, sessionMaxRequests = 3),
+        )
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        val vm = ChatViewModel(
+            repository,
+            churchRepository,
+            contactRepository,
+            turnstileManager,
+            languagePreferences,
+            context,
+            themePreferences,
+            translationPreferences,
+            sessionPreferences,
+            lastConversationPreferences,
+            bibleApiService,
+            networkMonitor,
+            localeApplier,
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(3, vm.uiState.value.sessionMaxRequests)
+
+        vm.sendMessage("Msg 1")
+        testDispatcher.scheduler.advanceUntilIdle()
+        vm.sendMessage("Msg 2")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(vm.uiState.value.isSessionLimitReached)
+
+        vm.sendMessage("Msg 3")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.isSessionLimitReached)
+        assertEquals(3, vm.uiState.value.interactionCount)
+        verify { context.getString(R.string.error_session_limit, 3) }
+    }
+
+    @Test
+    fun `HTTP 429 session limit message interpolates the fallback when config has no value`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make429Exception("""{"detail": "session_lifetime_limit: limit hit"}""")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSessionLimitReached)
+        verify { context.getString(R.string.error_session_limit, ChatViewModel.MAX_INTERACTIONS) }
+    }
+
     @Test
     fun `fetchConfigWithRetry propagates CancellationException without retrying`() = runTest {
         val localApiService = mockk<BibleApiService>(relaxed = true)
@@ -1421,6 +1565,61 @@ class ChatViewModelTest {
 
         viewModel.dismissSessionLimit()
 
+        assertFalse(viewModel.uiState.value.isSessionLimitReached)
+    }
+
+    @Test
+    fun `continueConversation preserves messages and conversationId and clears the limit`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make429Exception("""{"detail": "session_lifetime_limit: limit hit"}""")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.isSessionLimitReached)
+        val messagesBefore = viewModel.uiState.value.messages
+        val conversationIdBefore = viewModel.uiState.value.currentConversationId
+        // Pin down the fixture this test relies on: a real conversation must
+        // already exist before continueConversation() runs, or "preserved"
+        // would trivially hold for a null on both sides.
+        assertNotNull(conversationIdBefore)
+
+        viewModel.continueConversation()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isSessionLimitReached)
+        assertEquals(0, viewModel.uiState.value.interactionCount)
+        assertEquals(messagesBefore, viewModel.uiState.value.messages)
+        assertEquals(conversationIdBefore, viewModel.uiState.value.currentConversationId)
+        coVerify(exactly = 1) { sessionPreferences.resetSessionId() }
+    }
+
+    @Test
+    fun `continueConversation lets the next message send into the same conversation`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            throw make429Exception("""{"detail": "session_lifetime_limit: limit hit"}""")
+        }
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isSessionLimitReached)
+        val conversationIdBefore = viewModel.uiState.value.currentConversationId
+        val messageCountBefore = viewModel.uiState.value.messages.size
+
+        viewModel.continueConversation()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Blessed are the peacemakers.", done = true),
+        )
+
+        viewModel.sendMessage("Continuing on")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(conversationIdBefore, viewModel.uiState.value.currentConversationId)
+        assertEquals(messageCountBefore + 2, viewModel.uiState.value.messages.size)
+        assertNull(viewModel.uiState.value.error)
         assertFalse(viewModel.uiState.value.isSessionLimitReached)
     }
 
@@ -2576,5 +2775,149 @@ class ChatViewModelTest {
 
         // currentLocale is "en" (set by setUp via languagePreferences.readInitial = "en")
         assertNull(viewModel.uiState.value.languageSuggestion)
+    }
+
+    // ── BITB-149: follow-up question chips ────────────────────────────────────
+
+    @Test
+    fun `completion chunk with followUps sets uiState followUps`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+    }
+
+    @Test
+    fun `completion chunk with empty followUps leaves the previously-set list untouched`() = runTest {
+        // Backend sends a non-empty completion first, then (hypothetically) a second
+        // completion event with an empty list — the empty one must not clear the chips
+        // already set during this same turn's collection.
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(type = "completion", followUps = emptyList()),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+    }
+
+    @Test
+    fun `sendMessage clears previously-set followUps synchronously before the new response arrives`() = runTest {
+        every { repository.chatStream(any()) } returnsMany listOf(
+            flowOf(
+                StreamChunk(type = "completion", followUps = listOf("a", "b")),
+                StreamChunk(content = "Reply", done = true),
+            ),
+            flow { awaitCancellation() },
+        )
+
+        viewModel.sendMessage("First question")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        viewModel.sendMessage("Second question")
+        // Deliberately do NOT advance the dispatcher yet: sendMessage() clears
+        // followUps synchronously in its immediate _uiState.update, before the
+        // coroutine that reads the new stream is even scheduled.
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun `startNewConversation clears followUps`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        viewModel.startNewConversation()
+
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `clearConversation clears followUps`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        viewModel.clearConversation()
+
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `clearAllConversations clears followUps`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        viewModel.clearAllConversations()
+
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `followUps survive a Room re-emit after loadConversation (BITB-149 regression)`() = runTest {
+        // Regression test for the bug where observeMessages' live Room Flow re-emitting
+        // (e.g. after saveMessage persists the assistant's finished reply) would wipe
+        // followUps back to empty inside the same turn, because loadConversation used to
+        // reset followUps = emptyList() on every collected emission instead of once.
+        val messagesFlow = MutableStateFlow<List<Message>>(
+            listOf(Message(id = "m1", role = Message.Role.ASSISTANT, content = "Old reply")),
+        )
+        every { repository.observeMessages("conv-1") } returns messagesFlow
+
+        viewModel.loadConversation("conv-1")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "New reply", done = true),
+        )
+
+        viewModel.sendMessage("Follow-up question")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+
+        // Simulate the Room Flow re-emitting after saveMessage() persists the assistant's
+        // finished reply to the "conv-1" conversation this collector is still observing.
+        messagesFlow.value = messagesFlow.value + Message(
+            id = "m2",
+            role = Message.Role.ASSISTANT,
+            content = "New reply",
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "chips must survive a live Room re-emit within the same turn",
+            listOf("a", "b"),
+            viewModel.uiState.value.followUps,
+        )
     }
 }
