@@ -8,7 +8,7 @@ Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
 chain never once fired and agents died on primary 503s), broken
 mimo-v2.5-free primaries (verse-parity-keeper, i18n-qa) moved to
 mimo-v2.6-flash-free, agents.md table parity test extended to fallback
-columns, PR #1130; BITB-172 done — repo-vs-live drift fixed: custom
+columns, PR #1128; BITB-172 done — repo-vs-live drift fixed: custom
 agentImage + ghcr-pull committed into all Agent manifests (was cluster-only),
 server-password made opt-in so pods don't crashloop on the missing
 opencode-server-auth secret, validated agent-default-wf3.yaml committed, T7
@@ -4424,7 +4424,7 @@ now marks optional (`opencode-server-auth`, mobile-only) vs required
 
 ### ✅ BITB-173: Runtime Fallback Chain Pins Non-Existent Model IDs — Failovers Never Fire
 
-**Status:** ✅ Done (PR #1130)
+**Status:** ✅ Done (PR #1128)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-01
