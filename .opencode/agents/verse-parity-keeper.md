@@ -1,10 +1,10 @@
 ---
 description: Keeps the three verse-reference parsers (backend, frontend, Android) in sync across all 11 languages and representative Bible versions
 mode: subagent
-model: opencode/mimo-v2.5-free
+model: opencode/mimo-v2.6-flash-free
 fallback_models:
-  - opencode/nemotron-3-super-free
-  - openrouter/openai/gpt-oss-120b:free
+  - openrouter/nvidia/nemotron-3-super-120b-a12b:free
+  - openrouter/openai/gpt-oss-120b
 tools:
   bash: true
   read: true

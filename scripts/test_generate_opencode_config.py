@@ -6,6 +6,13 @@ lost `fallback_models`, `tools`, the runtime-fallback plugin, and the provider
 timeouts when config moved out of `spec.config` in agent.yaml into a generated
 ConfigMap. The result was that fallback routing was inert: agents hard-failed
 on a 429/5xx instead of degrading to the free-tier model.
+
+BITB-173 additionally guards against non-existent model IDs: the original
+chain pinned `opencode/nemotron-3-super-free` (Zen serves no Super variant) and
+`openrouter/openai/gpt-oss-120b:free` (no free variant on OpenRouter), so every
+fallback hop failed with ProviderModelNotFoundError and the plugin never once
+failed over. Model IDs changed here MUST be verified against the live catalog
+(`opencode models`) — the gateway, not the docs, is the source of truth.
 """
 
 import json
@@ -22,8 +29,11 @@ GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
 AGENTS_DOC = REPO_ROOT / "deployment" / "kubeopencode" / "agents.md"
 
-FALLBACK = "opencode/nemotron-3-super-free"
-CROSS_FALLBACK = "openrouter/openai/gpt-oss-120b:free"
+TIER1_FALLBACK = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+TIER2_FALLBACK = "openrouter/openai/gpt-oss-120b"
+# The retired IDs must never come back: both were non-existent on their
+# providers (BITB-173), which made the whole fallback chain inert.
+STALE_MODEL_IDS = ("opencode/nemotron-3-super-free", "openrouter/openai/gpt-oss-120b:free")
 BUILTINS = ("build", "plan", "general", "explore", "compaction", "title", "summary")
 PLUGIN_NAME = "opencode-runtime-fallback@0.2.4"
 
@@ -64,17 +74,73 @@ def test_every_md_agent_has_fallback_models(config, md_agents):
     for name in md_agents:
         fallbacks = config["agent"][name].get("fallback_models")
         assert fallbacks, f"{name} has no fallback_models"
-        assert FALLBACK in fallbacks, f"{name} missing {FALLBACK}"
-        assert CROSS_FALLBACK in fallbacks, f"{name} missing {CROSS_FALLBACK}"
+        assert TIER1_FALLBACK in fallbacks, f"{name} missing {TIER1_FALLBACK}"
+        assert TIER2_FALLBACK in fallbacks, f"{name} missing {TIER2_FALLBACK}"
+
+
+def test_fallback_chain_is_free_first_paid_last(config, md_agents):
+    """BITB-173 design rule: powerful FREE model first, PAID model last.
+
+    Tier 1 must be a free variant (":free"/"-free" suffix) so routine failovers
+    cost nothing; tier 2 is the paid safety net that only engages on double
+    failure. This ordering is the whole point of the chain — inverting it
+    silently bills every primary hiccup.
+    """
+    for name in md_agents:
+        tier1, tier2 = config["agent"][name]["fallback_models"][:2]
+        model1 = tier1.partition("/")[2]
+        model2 = tier2.partition("/")[2]
+        assert model1.endswith(":free") or model1.endswith("-free"), (
+            f"{name}: tier-1 {tier1} is not a free variant"
+        )
+        assert not (model2.endswith(":free") or model2.endswith("-free")), (
+            f"{name}: tier-2 {tier2} must be the paid hop, not another free tier"
+        )
+
+
+def test_fallback_chain_exact_and_ordered(config, md_agents):
+    """Every .md agent must declare exactly [tier1, tier2] — no partial edits."""
+    for name in md_agents:
+        assert config["agent"][name]["fallback_models"] == [
+            TIER1_FALLBACK,
+            TIER2_FALLBACK,
+        ], f"{name} fallback chain is not exactly [tier1, tier2]"
+
+
+def test_zen_primary_agents_have_cross_provider_hop(config, md_agents):
+    """An OpenCode Zen primary must fail over off Zen (BITB-173).
+
+    The observed failure was a Zen-side `503 Upstream error from Nvidia`; a
+    same-provider fallback would have died in the same incident. (android-gemini
+    is exempt: its primary is already on OpenRouter, and its whole chain living
+    on OpenRouter is the documented trade-off of serving the free Super variant
+    only from OpenRouter.)
+    """
+    for name in md_agents:
+        primary = config["agent"][name]["model"]
+        if primary.partition("/")[0] == "opencode":
+            providers = {
+                fb.partition("/")[0] for fb in config["agent"][name]["fallback_models"]
+            }
+            assert "openrouter" in providers, (
+                f"{name}: Zen primary has no cross-provider fallback hop"
+            )
+
+
+def test_no_stale_model_ids_in_config(config):
+    """Tripwire: the retired non-existent IDs must never reappear (BITB-173)."""
+    blob = json.dumps(config)
+    for stale in STALE_MODEL_IDS:
+        assert stale not in blob, f"retired non-existent model id reappeared: {stale}"
 
 
 def test_builtin_agents_have_fallback_models(config):
     for name in BUILTINS:
         assert name in config["agent"], f"builtin {name} missing"
         fallbacks = config["agent"][name].get("fallback_models")
-        assert FALLBACK in fallbacks, f"builtin {name} missing primary fallback"
-        assert CROSS_FALLBACK in fallbacks, f"builtin {name} missing cross-provider fallback"
-        assert len(fallbacks) >= 2, f"builtin {name} missing cross-provider fallback"
+        assert TIER1_FALLBACK in fallbacks, f"builtin {name} missing free-tier fallback"
+        assert TIER2_FALLBACK in fallbacks, f"builtin {name} missing paid-tier fallback"
+        assert len(fallbacks) >= 2, f"builtin {name} missing 2-hop fallback"
 
 
 def test_builtin_primary_modes_preserved(config):
@@ -128,14 +194,33 @@ def test_every_agent_has_non_empty_prompt(config, md_agents):
 
 
 def test_models_match_agents_doc(config):
-    """Guards against drift between the docs table and the generated config."""
+    """Guards against drift between the docs table and the generated config.
+
+    BITB-173: the table's fallback columns were silently wrong for months
+    (they documented the two non-existent model IDs). Parse all three model
+    cells — primary, fallback 1, fallback 2 — and assert each against the
+    generated config so the table can never lie again.
+    """
     doc = AGENTS_DOC.read_text()
-    rows = re.findall(r"^\|\s*([a-z0-9-]+)\s*\|\s*`([^`]+)`", doc, re.MULTILINE)
+    rows = re.findall(
+        r"^\|\s*([a-z0-9-]+)\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`",
+        doc,
+        re.MULTILINE,
+    )
     assert len(rows) >= 12, f"could not parse agents.md table (got {len(rows)})"
-    for name, model in rows:
+    for name, model, fb1, fb2 in rows:
         assert name in config["agent"], f"{name} documented but not generated"
-        assert config["agent"][name]["model"] == model, (
-            f"{name}: agents.md says {model}, " f"generated {config['agent'][name]['model']}"
+        spec = config["agent"][name]
+        assert spec["model"] == model, (
+            f"{name}: agents.md says {model}, " f"generated {spec['model']}"
+        )
+        assert spec["fallback_models"][0] == fb1, (
+            f"{name}: agents.md fallback 1 says {fb1}, "
+            f"generated {spec['fallback_models'][0]}"
+        )
+        assert spec["fallback_models"][1] == fb2, (
+            f"{name}: agents.md fallback 2 says {fb2}, "
+            f"generated {spec['fallback_models'][1]}"
         )
 
 
