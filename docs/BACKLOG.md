@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-171 done — k8s agent-default-wf2.yaml made
+**Last Updated:** 2026-10-01 (BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; 2026-09-30: BITB-171 done — k8s agent-default-wf2.yaml made
 self-contained: configRef + persistence + full credentials, parity-tested against
 deployment/agent.yaml so applying it converges instead of stripping fields from the
 live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
@@ -4396,9 +4396,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
+### ✅ BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1127, 2026-10-01)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30
@@ -4410,10 +4410,10 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
-- [ ] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
+- [x] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
+- [x] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-166-versescited-startswith-prefix-match.md`
+**Full Story:** `docs/DONE/BITB-166-versescited-startswith-prefix-match.md`
 
 ---
 
