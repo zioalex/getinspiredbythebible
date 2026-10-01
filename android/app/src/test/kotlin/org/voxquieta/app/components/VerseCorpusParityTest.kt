@@ -1,8 +1,11 @@
 package org.voxquieta.app.components
 
+import org.voxquieta.app.domain.models.Message
+import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
 import org.voxquieta.app.presentation.components.injectVerseLinks
 import org.voxquieta.app.presentation.components.parseVerseLink
+import org.voxquieta.app.presentation.components.referencedVerses
 import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -142,6 +145,40 @@ class VerseCorpusParityTest {
             }
             if (link.verseNumber != expected.verseStart) {
                 failures += "${case.id}: verseStart mismatch — expected ${expected.verseStart}, got ${link.verseNumber}"
+            }
+        }
+
+        assertTrue("Corpus mismatches:\n" + failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    @Test
+    fun `corpus cases also surface through referencedVerses (Cited-tab fallback, BITB-164)`() {
+        val corpus = loadCorpus()
+        val multiWordNames = LOCALIZED_BOOK_TO_ENGLISH.keys.filter { it.contains(' ') && !it.first().isDigit() }
+        val cjkBookNames = LOCALIZED_BOOK_TO_ENGLISH.keys.filter { key ->
+            key.length >= 2 && key.all { ch ->
+                val script = Character.UnicodeScript.of(ch.code)
+                script == Character.UnicodeScript.HAN || script == Character.UnicodeScript.HANGUL
+            }
+        }
+        val regex = buildVerseRefRegex(multiWordNames, cjkBookNames)
+        val failures = mutableListOf<String>()
+
+        for (case in corpus.testCases) {
+            if ("android" in case.skip || case.expectNone) continue
+            val expected = case.expected ?: continue
+
+            val target = Verse(
+                book = expected.book,
+                chapter = expected.chapter,
+                verse = expected.verseStart,
+                text = "",
+            )
+            val message = Message(id = case.id, role = Message.Role.ASSISTANT, content = case.input)
+            val result = referencedVerses(listOf(target), listOf(message), emptyMap(), regex)
+            if (result != listOf(target)) {
+                failures += "${case.id}: '${case.input}' did not surface ${expected.book} " +
+                    "${expected.chapter}:${expected.verseStart} through referencedVerses"
             }
         }
 

@@ -1831,7 +1831,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install httpx asyncpg sqlalchemy openai
+          pip install httpx asyncpg sqlalchemy openai greenlet
 
       - name: Login to Azure
         uses: azure/login@v3

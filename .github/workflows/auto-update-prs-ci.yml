@@ -1,0 +1,27 @@
+name: CI - Auto-update PRs
+
+# BITB-165. Hermetic tests for the auto-update-prs workflow and script.
+"on":
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "scripts/auto_update_prs.py"
+      - "scripts/test_auto_update_prs.py"
+      - ".github/workflows/auto-update-prs.yml"
+      - ".github/workflows/auto-update-prs-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pytest pyyaml
+      - run: python -m pytest scripts/test_auto_update_prs.py -v
