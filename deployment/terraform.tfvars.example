@@ -118,16 +118,17 @@ cloudflare_origin_cert_password = ""
 # LLM provider: "openrouter" (recommended - has free models), "claude", or "ollama"
 llm_provider = "openrouter"
 
-# OpenRouter API key (get FREE at https://openrouter.ai/keys)
-# OpenRouter offers free models like google/gemma-3-27b-it:free
+# OpenRouter API key (get one at https://openrouter.ai/keys)
+# OpenRouter offers free models like inclusionai/ling-3.0-flash-sante:free
+# (note: most free tiers require waiving ZDR/training opt-out)
 openrouter_api_key = "sk-or-v1-..."  # pragma: allowlist secret
 
-# OpenRouter model (free models available!)
-# Free options: meta-llama/llama-3.3-70b-instruct:free, google/gemma-3-27b-it:free
-openrouter_model = "meta-llama/llama-3.3-70b-instruct:free"
+# OpenRouter model (BITB-155: paid Llama 3.3 70B primary, paid Gemma 4 31B fallback)
+# Options: meta-llama/llama-3.3-70b-instruct, google/gemma-4-31b-it
+openrouter_model = "meta-llama/llama-3.3-70b-instruct"
 
-# OpenRouter fallback configuration (when free model is rate limited)
-openrouter_fallback_models = "meta-llama/llama-3.3-70b-instruct"  # Paid fallback
+# OpenRouter fallback configuration (cross-provider: Google, activates on rate limit/outage)
+openrouter_fallback_models = "google/gemma-4-31b-it"  # Paid fallback
 openrouter_allow_fallbacks = true
 
 # --- OR use Claude (paid) ---

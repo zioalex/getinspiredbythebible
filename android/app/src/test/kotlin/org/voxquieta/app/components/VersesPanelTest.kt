@@ -302,4 +302,121 @@ class VersesPanelTest {
 
         assertEquals(2, result.size)
     }
+
+    // ── Shared-grammar cross-language coverage (BITB-164) ───────────────────
+
+    /** (language, text, canonical English book, chapter, first verse). */
+    private data class CitedCase(
+        val lang: String,
+        val text: String,
+        val book: String,
+        val chapter: Int,
+        val verse: Int,
+    )
+
+    private val crossLanguageCases = listOf(
+        CitedCase("en", "(John 3:16)", "John", 3, 16),
+        CitedCase("en", "Romans 8:28\u201330", "Romans", 8, 28),
+        CitedCase("it", "Giovanni 3,16", "John", 3, 16),
+        CitedCase("it", "Cantico dei Cantici 2:1", "Song of Solomon", 2, 1),
+        CitedCase("de", "R\u00f6mer 13,1\u20132", "Romans", 13, 1),
+        CitedCase("de", "1. Mose 1:1", "Genesis", 1, 1),
+        CitedCase("es", "[Juan 3:16]", "John", 3, 16),
+        CitedCase("fr", "Jean 3,16", "John", 3, 16),
+        CitedCase("pt", "Jo\u00e3o 3:16", "John", 3, 16),
+        CitedCase("pt", "C\u00e2ntico dos C\u00e2nticos 2:1", "Song of Solomon", 2, 1),
+        CitedCase("ar", "\u064a\u0648\u062d\u0646\u0627 \u0663:\u0661\u0666", "John", 3, 16),
+        CitedCase("ar", "1 \u0623\u062e\u0628\u0627\u0631 \u0627\u0644\u0623\u064a\u0627\u0645 1:1", "1 Chronicles", 1, 1),
+        CitedCase("ru", "\u0418\u043e\u0430\u043d\u043d\u0430 3:16", "John", 3, 16),
+        CitedCase("ru", "1-\u0435 \u041a\u043e\u0440\u0438\u043d\u0444\u044f\u043d\u0430\u043c 13:4", "1 Corinthians", 13, 4),
+        CitedCase("zh", "\u300a\u7ea6\u7ff0\u798f\u97f3\u300b3:16", "John", 3, 16),
+        CitedCase("zh", "\uff08\u7ea6\u7ff0\u798f\u97f3 3:16\uff09", "John", 3, 16),
+        CitedCase("zh", "\u8bf7\u9605\u8bfb\u7ea6\u7ff0\u798f\u97f310:28\u6765\u83b7\u5f97\u9f13\u52b1", "John", 10, 28),
+        CitedCase("hi", "\u092f\u0942\u0939\u0928\u094d\u0928\u093e \u096b:\u0968\u096a", "John", 5, 24),
+        CitedCase("hi", "\u0930\u094b\u092e\u093f\u092f\u094b\u0902 12:1-2", "Romans", 12, 1),
+        CitedCase("ko", "\u300c\uc694\ud55c\ubcf5\uc74c\u300d3:16", "John", 3, 16),
+        CitedCase("ko", "\uc694\ud55c\ubcf5\uc74c3:16", "John", 3, 16),
+    )
+
+    @Test
+    fun `referencedVerses resolves cited references in all 11 languages via the shared grammar`() {
+        val languages = setOf("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko")
+        assertEquals(languages, crossLanguageCases.map { it.lang }.toSet())
+
+        val failures = mutableListOf<String>()
+        for (c in crossLanguageCases) {
+            val target = verse(c.book, c.chapter, c.verse)
+            // Same-book, same-chapter "prefix" distractor (e.g. John 3:1 for a John 3:16 cite):
+            // the old startsWith matching wrongly surfaced it.
+            val distractorVerse = if (c.verse >= 10) c.verse / 10 else c.verse * 10 + 1
+            val distractor = verse(c.book, c.chapter, distractorVerse)
+            val msgs = listOf(assistantMsg("${c.text} \u2014 text"))
+            val result = referencedVerses(listOf(distractor, target), msgs, emptyMap())
+            if (result != listOf(target)) {
+                failures += "[${c.lang}] '${c.text}': expected [$target], got $result"
+            }
+        }
+        assertTrue("Cross-language mismatches:\n" + failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    @Test
+    fun `referencedVerses is version-faithful - matches on reference not on verse text or translation`() {
+        val kjv = Verse(book = "John", chapter = 3, verse = 16, text = "kjv text", translation = "kjv")
+        val web = Verse(book = "John", chapter = 3, verse = 16, text = "web text", translation = "web")
+
+        assertEquals(listOf(kjv), referencedVerses(listOf(kjv), listOf(assistantMsg("John 3:16"))))
+        assertEquals(listOf(web), referencedVerses(listOf(web), listOf(assistantMsg("John 3:16"))))
+    }
+
+    @Test
+    fun `referencedVerses cited John 3-16 does not surface John 3-1`() {
+        val john31 = verse("John", 3, 1)
+        val john316 = verse("John", 3, 16)
+
+        val result = referencedVerses(listOf(john31, john316), listOf(assistantMsg("John 3:16")))
+
+        assertEquals(listOf(john316), result)
+    }
+
+    @Test
+    fun `referencedVerses ignores German decimal-like numbers`() {
+        val john350 = verse("John", 3, 50)
+
+        val result = referencedVerses(listOf(john350), listOf(assistantMsg("Ich habe 3,50 Euro")))
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `referencedVerses does not duplicate verses and keeps input order`() {
+        val john316 = verse("John", 3, 16)
+        val rom828 = verse("Romans", 8, 28)
+
+        val result = referencedVerses(
+            listOf(rom828, john316),
+            listOf(assistantMsg("John 3:16, Romans 8:28 and again John 3:16")),
+        )
+
+        assertEquals(listOf(rom828, john316), result)
+    }
+
+    @Test
+    fun `referencedVerses recovers a reference hidden inside a greedy over-match`() {
+        val psalm569 = verse("Psalms", 56, 9)
+
+        val result = referencedVerses(listOf(psalm569), listOf(assistantMsg("trust you of Psalm 56:9")))
+
+        // "Psalm" is the singular alias for Psalms in the bundled map.
+        assertEquals(listOf(psalm569), result)
+    }
+
+    @Test
+    fun `referencedVerses does not rewind a numbered-book citation into its unnumbered suffix`() {
+        // Only John 3:16 is in allVerses; the message cites 1 John 3:16. The rewind must not
+        // re-match the "John 3:16" suffix of a real (known) book name -- in any language.
+        val john316 = verse("John", 3, 16)
+        for (text in listOf("As 1 John 3:16 says", "Wie 1. Johannes 3:16 sagt", "Come dice 1 Giovanni 3:16")) {
+            assertTrue(text, referencedVerses(listOf(john316), listOf(assistantMsg(text))).isEmpty())
+        }
+    }
 }

@@ -93,12 +93,26 @@ kubectl -n kubeopencode-system get secret opencode-server-auth \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
-Add the `OPENCODE_SERVER_PASSWORD` credential to the agent (see
-`agent-default-wf2.yaml`; reconcile with your live spec first):
+Add the `OPENCODE_SERVER_PASSWORD` credential to the agent. It is **not
+pre-wired** in `agent-default-wf2.yaml` (BITB-172): pre-wiring it made pods
+crashloop with `CreateContainerConfigError` on clusters without the secret.
+Opt in per agent — `kubectl edit` and append this block under
+`spec.credentials`:
+
+```yaml
+    - name: server-password
+      secretRef:
+        name: opencode-server-auth
+        key: password
+      env: OPENCODE_SERVER_PASSWORD
+```
+
+(A `kubectl patch --type merge` also works but merge-patch **replaces the
+whole list** — include all four credential entries, not just the new one.)
+
+Then:
 
 ```bash
-kubectl -n kubeopencode-system get agent default-wf2 -o yaml   # compare
-kubectl apply -f agent-default-wf2.yaml
 kubectl -n kubeopencode-system rollout status deploy/default-wf2-server
 # confirm the warning is gone:
 kubectl -n kubeopencode-system logs deploy/default-wf2-server | grep -i password || echo "no 'unsecured' warning — good"
@@ -285,7 +299,7 @@ config, less per-pod overhead.
 
 | File | Purpose |
 |---|---|
-| `agent-default-wf2.yaml` | Agent with `OPENCODE_SERVER_PASSWORD` added |
+| `agent-default-wf2.yaml` | Self-contained `default-wf2` Agent (configRef + persistence + provider credentials + pinned custom image, BITB-171/172); the `OPENCODE_SERVER_PASSWORD` credential is added per-agent as an opt-in patch (see Phase 1) |
 | `service-mobile.yaml` | Stable Service both paths target (+ Tailscale annotations) |
 | `cloudflared-deployment.yaml` | In-cluster cloudflared connector (token mode) |
 | `README.md` | This plan / story / runbook |

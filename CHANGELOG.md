@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.56.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.55.0...v1.56.0) (2026-09-29)
+
+### Features
+
+* **alembic:** audit column types against production (BITB-094) ([#1061](https://github.com/zioalex/getinspiredbythebible/issues/1061)) ([decb22e](https://github.com/zioalex/getinspiredbythebible/commit/decb22eb6745b66b7c94cb0d08962cbaafee0414))
+* **android:** add server-driven session limit and non-destructive continue (BITB-156) ([#1103](https://github.com/zioalex/getinspiredbythebible/issues/1103)) ([c3eb14d](https://github.com/zioalex/getinspiredbythebible/commit/c3eb14d63447f01cf50ac190263bfc6ad5b38350))
+* **android:** add suggested follow-up question chips (BITB-149) ([#1109](https://github.com/zioalex/getinspiredbythebible/issues/1109)) ([56a5048](https://github.com/zioalex/getinspiredbythebible/commit/56a5048a4d4edd8ea1339eed97aac3812f9e856f))
+* **api,frontend,android:** unify verse-parser separator/range grammar (BITB-113) ([#1105](https://github.com/zioalex/getinspiredbythebible/issues/1105)) ([1bb70cf](https://github.com/zioalex/getinspiredbythebible/commit/1bb70cf61b7cc275fca4517056463ae899104651))
+* **chat:** intent-gated Italian pastoral register, merged dark (BITB-151) ([#1101](https://github.com/zioalex/getinspiredbythebible/issues/1101)) ([07fd4c2](https://github.com/zioalex/getinspiredbythebible/commit/07fd4c2e4f7c55765a8f696ea5ac88563e9437c8))
+* **chat:** non-destructive session-limit continue, server-driven cap (BITB-118) ([#1083](https://github.com/zioalex/getinspiredbythebible/issues/1083)) ([a061659](https://github.com/zioalex/getinspiredbythebible/commit/a0616598b6f0d6df91d43f40aa610e1aa011d311))
+* **chat:** suggested follow-up question chips, backend+web (BITB-080) ([#1062](https://github.com/zioalex/getinspiredbythebible/issues/1062)) ([fb25f2a](https://github.com/zioalex/getinspiredbythebible/commit/fb25f2a4eb0165ebc71dfff3b829b4b26e2cc565))
+* **chat:** validate corpus topic tagging across all seven languages (BITB-106) ([#1085](https://github.com/zioalex/getinspiredbythebible/issues/1085)) ([4243ddc](https://github.com/zioalex/getinspiredbythebible/commit/4243ddcf1ea24032367a54dab20e64ffcc078950))
+* **frontend:** versioned service worker for the PWA offline shell (BITB-102) ([#1063](https://github.com/zioalex/getinspiredbythebible/issues/1063)) ([e6f01d4](https://github.com/zioalex/getinspiredbythebible/commit/e6f01d41417a543eb2090ff29b4439ac3789a1b6))
+* **k8s:** add CoreDNS watchdog and cluster triage tooling (BITB-159, BITB-160) ([#1091](https://github.com/zioalex/getinspiredbythebible/issues/1091)) ([c9de9ab](https://github.com/zioalex/getinspiredbythebible/commit/c9de9ab2ccbcc120bbd8017352da84d26d92af59))
+* **k8s:** add kubeopencode config (default-wf2 agent, mobile access, custom image docs) ([#1089](https://github.com/zioalex/getinspiredbythebible/issues/1089)) ([867cd4c](https://github.com/zioalex/getinspiredbythebible/commit/867cd4c676186aa05a2ef352fe49f417d49f3123))
+* **k8s:** bake dev toolchain into KubeOpenCode agent image (BITB-158) ([#1104](https://github.com/zioalex/getinspiredbythebible/issues/1104)) ([de0fa01](https://github.com/zioalex/getinspiredbythebible/commit/de0fa0174a6afab9bc5d31534e740efa930bdd1e))
+* **opencode:** enforce openrouter as provider for paid models ([#1080](https://github.com/zioalex/getinspiredbythebible/issues/1080)) ([1d4da2f](https://github.com/zioalex/getinspiredbythebible/commit/1d4da2f84ca3098d04ec2880a00034c3b28ae728))
+* **web,android:** add Support Us funding entry points (BITB-074) ([#1084](https://github.com/zioalex/getinspiredbythebible/issues/1084)) ([eccdeb1](https://github.com/zioalex/getinspiredbythebible/commit/eccdeb1e3b9866bda6ba1ed85243ec2728417281))
+
+### Bug Fixes
+
+* **api:** refresh OpenRouter models to paid Llama 3.3 primary + Gemma 4 31B fallback ([#1081](https://github.com/zioalex/getinspiredbythebible/issues/1081)) ([5171158](https://github.com/zioalex/getinspiredbythebible/commit/517115821bc095ffb13251de1ee620c2d7c486ed))
+* **ci:** install greenlet alongside sqlalchemy in seeding steps ([#1106](https://github.com/zioalex/getinspiredbythebible/issues/1106)) ([d756731](https://github.com/zioalex/getinspiredbythebible/commit/d75673116975c6baae9290a97d22be38c64cddb6))
+* **docs:** resolve backlog story-ID collisions and add a CI guard (BITB-111) ([#1068](https://github.com/zioalex/getinspiredbythebible/issues/1068)) ([a38c379](https://github.com/zioalex/getinspiredbythebible/commit/a38c379c19a42dc7901e35bf24b9b01aff741b73))
+* **docs:** sync backlog index status with finished stories (BITB-153) ([#1070](https://github.com/zioalex/getinspiredbythebible/issues/1070)) ([5649104](https://github.com/zioalex/getinspiredbythebible/commit/56491049c7a077bf4007571a3eb0ed48b1b4776e))
+* interpret Makefile color escape codes as real ESC bytes ([#1078](https://github.com/zioalex/getinspiredbythebible/issues/1078)) ([f77f2ff](https://github.com/zioalex/getinspiredbythebible/commit/f77f2ff04827d43c84c75b08dd5ea8add4704dc5))
+* **migrations:** stop scripts/migrations/utils.py silently dropping TLS for ?ssl=verify-ca/verify-full (BITB-125) ([#1090](https://github.com/zioalex/getinspiredbythebible/issues/1090)) ([e0087c0](https://github.com/zioalex/getinspiredbythebible/commit/e0087c06f6dcca167777adde0183490ec95399bd))
+* **opencode:** use nemotron-super-free + gpt-oss-120b fallbacks for ultra ([#1079](https://github.com/zioalex/getinspiredbythebible/issues/1079)) ([f7a0b67](https://github.com/zioalex/getinspiredbythebible/commit/f7a0b67caa6a8195e43294a5242f6a8021f43ffb))
+
+### Documentation
+
+* add BITB-158 KubeOpenCode dev image backlog item ([#1082](https://github.com/zioalex/getinspiredbythebible/issues/1082)) ([a1ce56e](https://github.com/zioalex/getinspiredbythebible/commit/a1ce56ea44daff549e0bd3fd9c31140593036851))
+* add BITB-161 kubeopencode agent file-mount story for copilot auth ([#1069](https://github.com/zioalex/getinspiredbythebible/issues/1069)) ([f7d514f](https://github.com/zioalex/getinspiredbythebible/commit/f7d514f02f631604cbb2afeabea157fa4f4308bc))
+* add comprehensive LLM code agentic capabilities ranking analysis ([#1088](https://github.com/zioalex/getinspiredbythebible/issues/1088)) ([57fb6bd](https://github.com/zioalex/getinspiredbythebible/commit/57fb6bdbb1d9427e6f9b0b6cdda72627190e2552))
+* **backlog:** reconcile 15 stale backlog entries against merged history ([#1107](https://github.com/zioalex/getinspiredbythebible/issues/1107)) ([b5c7350](https://github.com/zioalex/getinspiredbythebible/commit/b5c735067b4aab11ee30c2c358e874d9e7b33713))
+* correct stale German comma-separator parity claim ([#1108](https://github.com/zioalex/getinspiredbythebible/issues/1108)) ([fb3f88f](https://github.com/zioalex/getinspiredbythebible/commit/fb3f88f4d12165164037c1f0018bee0bf20f80c1))
+* mark BITB-074 done and move story to docs/DONE ([#1102](https://github.com/zioalex/getinspiredbythebible/issues/1102)) ([99ea4c1](https://github.com/zioalex/getinspiredbythebible/commit/99ea4c195dbf28b959d7bb2be6b864b7b9635f0f))
+* mark BITB-149 done and move story to docs/DONE ([#1116](https://github.com/zioalex/getinspiredbythebible/issues/1116)) ([2cec4f6](https://github.com/zioalex/getinspiredbythebible/commit/2cec4f6c8ea400b1260ef40e9ef989445dfebbc5))
+
 ## [1.55.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.54.0...v1.55.0) (2026-09-18)
 
 ### Features
