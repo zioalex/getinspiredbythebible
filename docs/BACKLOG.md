@@ -2,7 +2,11 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-171 done — k8s agent-default-wf2.yaml made
+**Last Updated:** 2026-09-30 (BITB-172 done — repo-vs-live drift fixed: custom
+agentImage + ghcr-pull committed into all Agent manifests (was cluster-only),
+server-password made opt-in so pods don't crashloop on the missing
+opencode-server-auth secret, validated agent-default-wf3.yaml committed, T7
+parity tests, PR #1126; BITB-171 done — k8s agent-default-wf2.yaml made
 self-contained: configRef + persistence + full credentials, parity-tested against
 deployment/agent.yaml so applying it converges instead of stripping fields from the
 live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
@@ -4367,6 +4371,48 @@ section and `mobile-access.md` updated for consistency.
 - [x] `pytest scripts/test_kubeopencode_manifests.py` + `markdownlint` green
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-171-kubeopencode-agent-default-wf2-selfcontained.md`
+
+---
+
+### ✅ BITB-172: Repo-vs-Live Drift — agentImage Wiring Uncommitted, Mobile Credential Pre-Wired
+
+**Status:** ✅ Done (PR #1126)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-30
+**Completed:** 2026-09-30
+**Found by:** Live `default-wf3` deployment test (follow-up to BITB-170/171)
+
+**As** the operator of the home k3s cluster, **I want** the committed Agent manifests to match what the live `default-wf2` object actually runs — custom `agentImage` + pull secret included, mobile Basic auth opt-in — **so that** repo applies converge with live and a fresh agent (wf3) starts without missing-secret or default-image surprises.
+
+Surfaced while testing `default-wf3`: the pod crashlooped on
+`secret "opencode-server-auth" not found` (BITB-171 pre-wired the mobile
+credential, but the flow was never rolled out — no cluster had the secret), and
+it ran the default opencode image, not the custom build (`agentImage` +
+`ghcr-pull` were wired only on the live object via kubectl patch, existing
+nowhere in git). Live wf2 worked because it predates mobile auth and was
+patched directly. Fix: `agentImage`/`imagePullSecrets` committed into both
+`default-wf2` manifests and the new cluster-validated
+`agent-default-wf3.yaml`; `server-password` removed from manifests and made an
+opt-in `kubectl edit` patch in `mobile-access.md` (merge-patch replaces the
+whole credential list — documented); T7 tests pin the image + pull secret on
+every manifest, keep wf3 in parity with wf2, assert exact credential match,
+and parametrize doc coverage over both k8s manifests; README secrets section
+now marks optional (`opencode-server-auth`, mobile-only) vs required
+(`ghcr-pull`, private package) and the Files row no longer overstates
+"safe to apply standalone".
+
+**Acceptance Criteria (summary):**
+
+- [x] `agentImage` + `imagePullSecrets` in `deployment/agent.yaml`,
+      `k8s/agent-default-wf2.yaml`, and the new `k8s/agent-default-wf3.yaml` — repo = live
+- [x] No manifest pre-wires `server-password`; mobile-access.md documents the opt-in patch
+- [x] `agent-default-wf3.yaml` committed, matching the cluster-validated shape
+- [x] T7 green: image pinning (3 manifests), wf3 parity, exact credential match, doc coverage ×2
+- [x] README optional/required secrets + no standalone overstatement
+- [x] `pytest` + `markdownlint` + `yamllint` + `prettier` (pinned) green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-172-kubeopencode-agent-image-drift.md`
 
 ---
 

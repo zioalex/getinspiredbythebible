@@ -305,7 +305,9 @@ kubectl -n kubeopencode-system delete pvc <workspace-pvc>
 
 - `agent.yaml` — the `Agent` CRD (`default-wf2`): `configRef` pointing at the
   `opencode-config` ConfigMap, credentials wiring (incl. the GitHub Copilot
-  OAuth token), and `spec.persistence` (workspace + sessions PVCs)
+  OAuth token), `spec.persistence` (workspace + sessions PVCs), and the pinned
+  custom `agentImage` + `ghcr-pull` pull secret (BITB-172 — matches what the
+  live object runs; see `k8s/kubeopencode/custom-opencode-image.md`)
 - `agents.md` — documented 12-agent model table (mirrors the `agent` section of
   the generated `opencode.json`)
 
