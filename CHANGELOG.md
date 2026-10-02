@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.57.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.56.0...v1.57.0) (2026-10-02)
+
+### Features
+
+* **opencode:** add task-reliability plugin and registry-first runbook ([#1123](https://github.com/zioalex/getinspiredbythebible/issues/1123)) ([2f7711c](https://github.com/zioalex/getinspiredbythebible/commit/2f7711c8603e59c47ac2344c827dc3fd16b55bfa))
+
+### Bug Fixes
+
+* **android:** share verse-reference grammar with Cited tab (BITB-164) ([#1117](https://github.com/zioalex/getinspiredbythebible/issues/1117)) ([c20e5ed](https://github.com/zioalex/getinspiredbythebible/commit/c20e5ed608a4a9f60f8e48375698b44acdcf3fe0))
+* **k8s:** commit custom agent image wiring, make mobile auth opt-in (BITB-172) ([#1126](https://github.com/zioalex/getinspiredbythebible/issues/1126)) ([07bc3c4](https://github.com/zioalex/getinspiredbythebible/commit/07bc3c484342aa46059de0417ff28ae1871d7958))
+* **k8s:** make agent-default-wf2 self-contained (BITB-171) ([#1125](https://github.com/zioalex/getinspiredbythebible/issues/1125)) ([c71cc71](https://github.com/zioalex/getinspiredbythebible/commit/c71cc71f25a258e6567da83dfa106ded1c525350))
+* **opencode:** correct runtime fallback model IDs (BITB-173) ([#1128](https://github.com/zioalex/getinspiredbythebible/issues/1128)) ([11ac2fd](https://github.com/zioalex/getinspiredbythebible/commit/11ac2fd6c2e10ae84486fda084d1e7136626ece8))
+
+### Documentation
+
+* add BITB-168 support-us discoverability story ([#1120](https://github.com/zioalex/getinspiredbythebible/issues/1120)) ([c15d6e8](https://github.com/zioalex/getinspiredbythebible/commit/c15d6e83f7e9a37f78770e45b2aa5bb2d9d5f6f1))
+* add BITB-169 task-reliability story ([#1122](https://github.com/zioalex/getinspiredbythebible/issues/1122)) ([625017d](https://github.com/zioalex/getinspiredbythebible/commit/625017d19933d213d8269a81c5d189cc5a4e1703))
+* **backlog:** record BITB-167 creation and cross-reference from BITB-164 done story ([#1119](https://github.com/zioalex/getinspiredbythebible/issues/1119)) ([f89d49a](https://github.com/zioalex/getinspiredbythebible/commit/f89d49aa8f677d0d2a5b60b1ea64f8b1f39fff93))
+* **k8s:** document egress, RBAC, and config-sync in kubeopencode README (BITB-170) ([#1124](https://github.com/zioalex/getinspiredbythebible/issues/1124)) ([e0020bb](https://github.com/zioalex/getinspiredbythebible/commit/e0020bb5e2943e5b69ba12836b0bc68360ecda34))
+
 ## [1.56.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.55.0...v1.56.0) (2026-09-29)
 
 ### Features
