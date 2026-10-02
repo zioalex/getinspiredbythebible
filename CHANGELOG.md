@@ -4,11 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.57.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.56.0...v1.57.0) (2026-10-02)
 
-
 ### Features
 
 * **opencode:** add task-reliability plugin and registry-first runbook ([#1123](https://github.com/zioalex/getinspiredbythebible/issues/1123)) ([2f7711c](https://github.com/zioalex/getinspiredbythebible/commit/2f7711c8603e59c47ac2344c827dc3fd16b55bfa))
-
 
 ### Bug Fixes
 
@@ -16,7 +14,6 @@ All notable changes to this project will be documented in this file.
 * **k8s:** commit custom agent image wiring, make mobile auth opt-in (BITB-172) ([#1126](https://github.com/zioalex/getinspiredbythebible/issues/1126)) ([07bc3c4](https://github.com/zioalex/getinspiredbythebible/commit/07bc3c484342aa46059de0417ff28ae1871d7958))
 * **k8s:** make agent-default-wf2 self-contained (BITB-171) ([#1125](https://github.com/zioalex/getinspiredbythebible/issues/1125)) ([c71cc71](https://github.com/zioalex/getinspiredbythebible/commit/c71cc71f25a258e6567da83dfa106ded1c525350))
 * **opencode:** correct runtime fallback model IDs (BITB-173) ([#1128](https://github.com/zioalex/getinspiredbythebible/issues/1128)) ([11ac2fd](https://github.com/zioalex/getinspiredbythebible/commit/11ac2fd6c2e10ae84486fda084d1e7136626ece8))
-
 
 ### Documentation
 
