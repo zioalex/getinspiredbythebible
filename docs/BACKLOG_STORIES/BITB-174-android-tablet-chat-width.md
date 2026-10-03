@@ -62,7 +62,7 @@ than the old 320dp (so phones look unchanged), and never more than a readable
 - [ ] Tablet landscape (e.g. 1280dp) bubbles are capped at 840dp
 - [ ] JVM unit tests cover the function across phone / tablet portrait / tablet
       landscape / narrow edge cases
-- [ ] Robolectric Compose test at tablet qualifiers proves a long assistant message
+- [ ] Robolectric Compose test at tablet qualifiers proves a long message bubble (user message — same capped bubble Column, avoids mounting Markwon under Robolectric)
       renders wider than 320dp
 - [ ] Android unit tests, Compose tests and lint pass
 - [ ] PR merged

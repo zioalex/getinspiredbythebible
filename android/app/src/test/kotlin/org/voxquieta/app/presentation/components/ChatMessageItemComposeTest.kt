@@ -13,7 +13,8 @@ import java.util.UUID
 
 /**
  * Robolectric-backed Compose UI tests for [ChatMessageItem] — specifically the
- * one-tap copy-user-prompt button added in BITB-047.
+ * one-tap copy-user-prompt button added in BITB-047, and the adaptive tablet
+ * bubble width added in BITB-174.
  *
  * Runs under the `testDebugCompose` task / `android-compose-tests.yml` lane.
  */
@@ -59,7 +60,7 @@ class ChatMessageItemComposeTest : ComposeTestHarness() {
     }
 
     // --- BITB-174: bubbles adapt to the available width (user message: its copy-button
-    // Row(fillMaxWidth) makes the Column exactly as wide as the cap) ---------------------------------
+    // Row(fillMaxWidth) makes the Column exactly as wide as the cap) ---------
 
     private val longAnswer = "This is a long answer about the Bible that keeps going. ".repeat(40)
 
