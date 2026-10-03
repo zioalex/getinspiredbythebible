@@ -34,7 +34,7 @@ than the old 320dp (so phones look unchanged), and never more than a readable
 
 ## Requirements (spec)
 
-**Functional**
+### Functional
 
 - FR1: On tablets, chat bubbles (user and assistant) use the available width in
   portrait and in landscape.
@@ -42,7 +42,7 @@ than the old 320dp (so phones look unchanged), and never more than a readable
 - FR3: On very wide screens, bubbles are capped at a readable 840dp, and keep
   their start (assistant) / end (user) alignment.
 
-**Non-functional**
+### Non-functional
 
 - Platform: native Android app only (confirmed by the reporter); the web frontend
   is out of scope.
