@@ -32,6 +32,26 @@ leaving most of the screen empty. The surrounding `ChatScreen` Scaffold /
 than the old 320dp (so phones look unchanged), and never more than a readable
 840dp cap on very wide landscape screens. Bubbles keep their start/end alignment.
 
+## Requirements (spec)
+
+**Functional**
+
+- FR1: On tablets, chat bubbles (user and assistant) use the available width in
+  portrait and in landscape.
+- FR2: Phone layout stays visually the same (bubble cap 320dp).
+- FR3: On very wide screens, bubbles are capped at a readable 840dp, and keep
+  their start (assistant) / end (user) alignment.
+
+**Non-functional**
+
+- Platform: native Android app only (confirmed by the reporter); the web frontend
+  is out of scope.
+- Language-agnostic: the layout depends only on width, so it applies to all 11
+  locales, including RTL Arabic (start/end alignment mirrors automatically).
+- No change to scrolling, streaming or bottom-sheet behaviour.
+
+**Open questions:** none. A two-pane tablet layout is a possible follow-up.
+
 ## Acceptance Criteria
 
 - [ ] Bubble max width is computed from the available width by a pure function

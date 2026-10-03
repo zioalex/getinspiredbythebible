@@ -13,9 +13,17 @@ Next.js / React / TypeScript / Kotlin / Jetpack Compose / Terraform / Azure
 
 **This is the default operating procedure for any non-trivial task** (a feature,
 a bug fix, or a refactor — anything beyond a true one-line/typo change). It runs
-as a three-stage relay across models so that planning and verification are done
+as a four-stage relay across models so that specifying, planning and verification are done
 by a stronger model and the bulk implementation by a faster one:
 
+0. **Specify — Opus.** Gather *all* the requirements before planning. Do a quick
+   code read so the questions are informed, then interview the user with
+   `AskUserQuestion` (2–4 options per question, recommended option first) and
+   write a short spec into the `BITB-NNN` story file: user story / bug report,
+   functional requirements, non-functional requirements (platforms, the 11
+   languages, accessibility, performance), acceptance criteria, out of scope, and
+   open questions. The user confirms the spec before Plan starts; nothing gets
+   built without one.
 1. **Plan — Opus.** Explore the codebase first (read the relevant files, find
    existing utilities/patterns to reuse), then write an explicit plan: the
    problem, the precise changes per file, and how it will be verified. Resolve
@@ -48,9 +56,9 @@ the user instead of looping when the same finding recurs twice or the fix needs
 a decision the plan didn't make.
 
 ```text
-Plan (Opus) ──► Build (Sonnet) ──► Verify (Opus) ──PASS──► commit / PR / CI green ──► done
-                    ▲                    │                        │
-                    └──── FAIL: findings ┘◄──── CI red ───────────┘
+Specify (Opus) ──► Plan (Opus) ──► Build (Sonnet) ──► Verify (Opus) ──PASS──► commit / PR / CI green ──► done
+                                      ▲                    │                        │
+                                      └──── FAIL: findings ┘◄──── CI red ───────────┘
 ```
 
 **Bug reports use the same relay.** When the user reports a bug ("I installed
