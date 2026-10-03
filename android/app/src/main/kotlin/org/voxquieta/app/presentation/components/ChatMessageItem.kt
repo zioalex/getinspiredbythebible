@@ -631,7 +631,7 @@ fun ChatMessageItem(
 
     // BITB-174: size bubbles from the real available width instead of a phone-only 320dp cap.
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val bubbleMaxWidth = bubbleMaxWidth(maxWidth - BubbleRowHorizontalPadding * 2)
+        val bubbleWidthCap = bubbleMaxWidth(maxWidth - BubbleRowHorizontalPadding * 2)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -640,7 +640,7 @@ fun ChatMessageItem(
         ) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = bubbleMaxWidth)
+                    .widthIn(max = bubbleWidthCap)
                     .testTag("chat_bubble"),
                 horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
             ) {

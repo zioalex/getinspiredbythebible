@@ -43,7 +43,7 @@ class BubbleMaxWidthTest {
     fun `boundary where 85 percent equals the ceiling`() {
         // 840 / 0.85 = 988.23..
         assertEquals(840.dp, bubbleMaxWidth(1000.dp))
-        assertEquals(840.dp, bubbleMaxWidth(988.dp).coerceAtLeast(840.dp))
+        assertEquals(839.8f, bubbleMaxWidth(988.dp).value, 0.01f)
         assertTrue(bubbleMaxWidth(980.dp) < 840.dp)
     }
 

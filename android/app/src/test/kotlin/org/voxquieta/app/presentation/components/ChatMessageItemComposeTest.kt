@@ -1,9 +1,9 @@
 package org.voxquieta.app.presentation.components
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
-import org.junit.Assert.assertTrue
+import androidx.compose.ui.test.onNodeWithTag
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.robolectric.annotation.Config
 import org.voxquieta.app.domain.models.Message
@@ -58,7 +58,8 @@ class ChatMessageItemComposeTest : ComposeTestHarness() {
             .assertDoesNotExist()
     }
 
-    // --- BITB-174: bubbles adapt to the available width ---------------------------------
+    // --- BITB-174: bubbles adapt to the available width (user message: its copy-button
+    // Row(fillMaxWidth) makes the Column exactly as wide as the cap) ---------------------------------
 
     private val longAnswer = "This is a long answer about the Bible that keeps going. ".repeat(40)
 
@@ -66,7 +67,7 @@ class ChatMessageItemComposeTest : ComposeTestHarness() {
         mountItem(
             Message(
                 id = UUID.randomUUID().toString(),
-                role = Message.Role.ASSISTANT,
+                role = Message.Role.USER,
                 content = longAnswer,
             ),
         )
@@ -80,20 +81,21 @@ class ChatMessageItemComposeTest : ComposeTestHarness() {
     @Config(qualifiers = "w360dp-h640dp")
     fun `bubble stays within 320dp on a phone`() {
         val w = bubbleWidthDp()
-        assertTrue("phone bubble was $w", w <= 320.5f)
+        assertEquals(320f, w, 1f)
     }
 
     @Test
     @Config(qualifiers = "w800dp-h1280dp")
     fun `bubble is wider than 320dp on a tablet in portrait`() {
         val w = bubbleWidthDp()
-        assertTrue("tablet portrait bubble was $w", w > 320f && w <= 840.5f)
+        // (800 - 2 * 12) * 0.85
+        assertEquals(659.6f, w, 1f)
     }
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp")
     fun `bubble is wider than 320dp but capped at 840dp on a tablet in landscape`() {
         val w = bubbleWidthDp()
-        assertTrue("tablet landscape bubble was $w", w > 320f && w <= 840.5f)
+        assertEquals(840f, w, 1f)
     }
 }
