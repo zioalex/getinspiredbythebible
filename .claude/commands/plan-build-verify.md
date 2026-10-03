@@ -50,7 +50,15 @@ main session must treat the PR's CI run as the gate it watches to green.
 
 ## Close-out
 
-- Fix any gaps the verifier found (re-delegating to Sonnet if substantial).
+- **Loop until PASS.** If the verifier reports FAIL or any gap, do not close
+  out: hand the verifier's findings back to Build (Sonnet, continuing the same
+  agent when possible) as a fix brief, then run a *fresh* Opus verifier on the
+  new diff. Repeat Build → Verify until the verifier returns PASS. Trivial
+  fixes (a typo, an import) may be made directly by the main session, but still
+  get re-verified. If the loop stops converging (the same finding twice in a
+  row, or a design question the plan didn't settle), stop and ask the user
+  instead of looping again.
+- After the PR is open, a red CI run counts as a FAIL and re-enters the loop.
 - Mark the story status and update `docs/BACKLOG.md`.
 - Summarize for the user: what changed, test results, and any follow-ups.
 - Commit/push only when the user has asked; never push to a closed/merged PR

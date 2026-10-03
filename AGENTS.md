@@ -41,6 +41,18 @@ by a stronger model and the bulk implementation by a faster one:
    > is only for cheap pre-gating (lint / typecheck / a quick smoke run), never
    > the final correctness verifier.
 
+**Loop back until it passes.** The relay is a loop, not a single pass:
+Verify FAIL (or red CI on the PR) → hand the findings back to Build as a fix
+brief → re-verify with a fresh Opus verifier → repeat until PASS. Escalate to
+the user instead of looping when the same finding recurs twice or the fix needs
+a decision the plan didn't make.
+
+```text
+Plan (Opus) ──► Build (Sonnet) ──► Verify (Opus) ──PASS──► commit / PR / CI green ──► done
+                    ▲                    │                        │
+                    └──── FAIL: findings ┘◄──── CI red ───────────┘
+```
+
 **Bug reports use the same relay.** When the user reports a bug ("I installed
 the app on a tablet and …"), treat requirement gathering as part of Stage 1:
 find the root cause in code first, then ask the user only the decisions that
