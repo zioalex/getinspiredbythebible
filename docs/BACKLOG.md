@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-01 (BITB-173 done — runtime fallback chain rebuilt with
+**Last Updated:** 2026-10-03 (BITB-174 opened — Android tablet chat bubbles hard-capped at 320dp; adaptive width fix; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
 chain never once fired and agents died on primary 503s), broken
@@ -233,6 +233,28 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🚧 BITB-174: Android Tablet — Chat Messages Don't Fill the Available Width
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-03
+
+Bug: on tablets (portrait and landscape) chat bubbles are hard-capped at 320dp
+(`ChatMessageItem.kt`), so the conversation sits in a narrow strip. Fix: adaptive
+bubble width (~85% of available, min 320dp, max 840dp).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Bubble width derived from available width via a tested pure function
+- [ ] Phones unchanged; tablet portrait wider; tablet landscape capped at 840dp
+- [ ] Unit + Robolectric Compose tests at tablet qualifiers
+- [ ] PR merged
+
+Full story: [`BITB-174-android-tablet-chat-width.md`](BACKLOG_STORIES/BITB-174-android-tablet-chat-width.md)
+
+---
 
 ### 🚧 BITB-155: OpenRouter Model Refresh — Paid Llama 3.3 Primary + Gemma 4 31B Cross-Provider Fallback
 

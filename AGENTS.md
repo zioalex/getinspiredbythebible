@@ -41,6 +41,19 @@ by a stronger model and the bulk implementation by a faster one:
    > is only for cheap pre-gating (lint / typecheck / a quick smoke run), never
    > the final correctness verifier.
 
+**Bug reports use the same relay.** When the user reports a bug ("I installed
+the app on a tablet and …"), treat requirement gathering as part of Stage 1:
+find the root cause in code first, then ask the user only the decisions that
+change the outcome (which platform, desired behaviour) via `AskUserQuestion`,
+and file the bug as a `BITB-NNN` story *before* delegating the build — never as
+a GitHub Issue.
+
+**When a suite can't run in the sandbox** (e.g. Android Gradle can't fetch the
+AGP plugin behind the agent proxy), both Build and Verify must say so
+explicitly. The verifier compensates with a deeper static review, and the PR's
+CI run becomes the authoritative test gate: watch it and fix any failure
+before calling the task done.
+
 This composes with — it does not replace — the **Testing** rule (every change
 ships with tests) and **Backlog Hygiene** (every change has a story). Trivial
 one-liners may skip the relay, but still need tests where behaviour changes.

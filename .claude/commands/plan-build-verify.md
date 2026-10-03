@@ -44,6 +44,10 @@ Launch a *separate* `Agent` with `model: opus` (read-capable, e.g.
 - Report **PASS/FAIL with evidence** (test output, specific gaps). It must not
   rubber-stamp — call out anything missing or untested.
 
+If a suite cannot run in this environment (no network for Gradle, no DB,
+etc.), the verifier must say which, do a deeper static review instead, and the
+main session must treat the PR's CI run as the gate it watches to green.
+
 ## Close-out
 
 - Fix any gaps the verifier found (re-delegating to Sonnet if substantial).
