@@ -111,10 +111,10 @@ fun ChatScreen(
     // are excluded: the numbered-prefix branch (Alt 1) already handles them via the generic book
     // pattern, and including them here would double-consume the "1 " prefix.
     //
-    // NB: we intentionally do NOT seed CJK names here. A non-empty CJK list makes
-    // buildVerseRefRegex exclude BOTH Han and Hangul from the generic pattern, but only Han
-    // names get an explicit alternation — so seeding it offline would break Korean. CJK/Hangul
-    // are matched by the generic pattern (they are \p{L}) plus the isKnownBook gate instead.
+    // CJK names are handled separately below via cjkBookNamesFrom(), which returns BOTH Han
+    // (Chinese) and Hangul (Korean) names from the localized map. A non-empty CJK list makes
+    // buildVerseRefRegex exclude Han AND Hangul from the generic book pattern, so every name of
+    // either script must be in the explicit alternation or it would stop matching.
     val bundledMultiWord = remember {
         LOCALIZED_BOOK_TO_ENGLISH.keys.filter { it.contains(' ') && !it.first().isDigit() }
     }
