@@ -70,7 +70,7 @@ analysis below disagree, **this section wins**.
      | ru | `{book}, глава {c}, стих {v}` | `{book}, глава {c}, стихи с {v} по {e}` | `{book}, глава {c}` |
      | zh | `{book}第{c}章第{v}节` | `{book}第{c}章第{v}至{e}节` | `{book}第{c}章` |
      | hi | `{book} अध्याय {c}, पद {v}` | `{book} अध्याय {c}, पद {v} से {e}` | `{book} अध्याय {c}` |
-     | ko | `{book} {c}장 {v}절` | `{book} {c}장 {v}절에서 {e}절` | `{book} {c}장` |
+     | ko | `{book} {c}장 {v}절` | `{book} {c}장 {v}절부터 {e}절까지` | `{book} {c}장` |
 
      Templates live in the fixture (single source); clients load/mirror them and a parity test
      asserts each client's table equals the fixture.
@@ -102,7 +102,7 @@ analysis below disagree, **this section wins**.
 ### Non-functional requirements
 
 - **Platforms:** web (Chrome, Edge, Safari incl. iOS user-gesture start, Firefox — hidden if no
-  local voice); Android `minSdk 26`+. iOS app out of scope (BITB-087 inherits FR5/FR6 fixture).
+  local voice); Android `minSdk 24`+ (BITB-122): API 26 audio-focus APIs behind an SDK check, legacy `requestAudioFocus` on 24–25. iOS app out of scope (BITB-087 inherits FR5/FR6 fixture).
 - **Languages:** all 11 (en, it, de, es, fr, pt, ar, ru, zh, hi, ko) for UI strings, templates and
   fixture cases; parametrized cross-language tests on both clients.
 - **Privacy:** no message text or audio leaves the device; telemetry sink accepts only whitelisted
