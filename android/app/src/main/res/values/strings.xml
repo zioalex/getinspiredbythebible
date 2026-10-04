@@ -306,4 +306,13 @@
 
     <!-- Share -->
     <string name="share_prefix">I found this inspiring biblical insight:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">Listen to this answer</string>
+    <string name="action_stop_listening">Stop listening</string>
+    <string name="state_listening">Reading aloud</string>
+    <string name="state_not_listening">Not reading aloud</string>
+    <string name="settings_tts_title">Read aloud</string>
+    <string name="settings_tts_show_listen">Show Listen button</string>
+    <string name="settings_tts_show_listen_desc">Adds a Listen button to answers. Speech is generated on your device only, and nothing is sent anywhere.</string>
 </resources>

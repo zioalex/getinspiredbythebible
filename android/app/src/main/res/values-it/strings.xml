@@ -298,4 +298,13 @@
 
     <!-- Share -->
     <string name="share_prefix">Ho trovato questa riflessione biblica ispiratrice:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">Ascolta la risposta</string>
+    <string name="action_stop_listening">Interrompi l\'ascolto</string>
+    <string name="state_listening">In lettura</string>
+    <string name="state_not_listening">Lettura ferma</string>
+    <string name="settings_tts_title">Lettura ad alta voce</string>
+    <string name="settings_tts_show_listen">Mostra il pulsante Ascolta</string>
+    <string name="settings_tts_show_listen_desc">Aggiunge un pulsante Ascolta alle risposte. La voce è generata solo sul tuo dispositivo e nulla viene inviato altrove.</string>
 </resources>
