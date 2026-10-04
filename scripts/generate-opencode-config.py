@@ -20,13 +20,26 @@ SCHEMA = "https://opencode.ai/config.json"
 
 DEFAULT_MODEL = "opencode/nemotron-3-ultra-free"
 DEFAULT_SMALL_MODEL = "opencode/nemotron-3-ultra-free"
-DEFAULT_FALLBACK = "opencode/nemotron-3-super-free"
-# Cross-provider fallback activates when OpenCode Zen itself is down (the
-# DEFAULT_FALLBACK shares the same provider, so it fails too on a full
-# provider outage). Tier-1 is same-family Zen fallback (Ultra -> Super);
-# Tier-2 is cross-provider same-120B-class safety net (GPT-OSS-120B free
-# via OpenRouter).
-CROSS_PROVIDER_FALLBACK = "openrouter/openai/gpt-oss-120b:free"
+# BITB-173: every model ID here must exist in `opencode models` (the live
+# gateway catalog). The pre-BITB-173 chain pinned two non-existent IDs —
+# `opencode/nemotron-3-super-free` (Zen serves no Super variant; its Nemotron
+# lineup is ultra + 3.5-lightning only) and `openrouter/openai/gpt-oss-120b:free`
+# (no ":free" variant of gpt-oss-120b exists on OpenRouter) — so the
+# runtime-fallback plugin's hops never once fired, and agents died on the
+# primary's 503s (the 2026-09-30/10-01 verifier losses).
+#
+# Corrected chain, per the original #1079 intent — powerful FREE model first,
+# PAID model last:
+#   tier 1 — Nemotron-3-Super-120B-A12B, the free variant, served by OpenRouter
+#     (`openrouter/nvidia/nemotron-3-super-120b-a12b:free`). OpenCode Zen has no
+#     Super variant, so the free hop lives on the provider that actually serves
+#     it. Being a different provider from the (Zen) primary, it survives a full
+#     Zen outage.
+#   tier 2 — gpt-oss-120b, the PAID OpenRouter ID (`openrouter/openai/gpt-oss-120b`,
+#     ~$0.10/$0.40 per 1M tokens; no free variant exists). Engages only when
+#     both free hops fail, so cost is bounded to double-failure events.
+TIER1_FALLBACK = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+TIER2_FALLBACK = "openrouter/openai/gpt-oss-120b"
 
 # Built-in (non-.md) agents still need a fallback so they degrade instead of
 # hard-failing when the primary provider returns 429/5xx.
@@ -146,7 +159,7 @@ def parse_agent_md(path: pathlib.Path):
         "prompt": body,
     }
 
-    fallback = fm.get("fallback_models") or [DEFAULT_FALLBACK]
+    fallback = fm.get("fallback_models") or [TIER1_FALLBACK]
     agent["fallback_models"] = fallback
 
     # Only forwarded when declared, so the generated config stays minimal.
@@ -197,7 +210,7 @@ def main():
         agent["prompt"] = agent["prompt"] + shared
 
     builtins = {
-        name: {**spec, "fallback_models": [DEFAULT_FALLBACK, CROSS_PROVIDER_FALLBACK]}
+        name: {**spec, "fallback_models": [TIER1_FALLBACK, TIER2_FALLBACK]}
         for name, spec in BUILTIN_AGENTS.items()
     }
 

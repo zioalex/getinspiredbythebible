@@ -2,7 +2,10 @@ package org.voxquieta.app.presentation.components
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.robolectric.annotation.Config
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import org.voxquieta.app.testing.ComposeTestHarness
@@ -10,7 +13,8 @@ import java.util.UUID
 
 /**
  * Robolectric-backed Compose UI tests for [ChatMessageItem] — specifically the
- * one-tap copy-user-prompt button added in BITB-047.
+ * one-tap copy-user-prompt button added in BITB-047, and the adaptive tablet
+ * bubble width added in BITB-174.
  *
  * Runs under the `testDebugCompose` task / `android-compose-tests.yml` lane.
  */
@@ -53,5 +57,46 @@ class ChatMessageItemComposeTest : ComposeTestHarness() {
         composeRule
             .onNodeWithContentDescription("Copy message")
             .assertDoesNotExist()
+    }
+
+    // --- BITB-174: bubbles adapt to the available width (user message: its copy-button
+    // Row(fillMaxWidth) makes the Column exactly as wide as the cap) ---------
+
+    private val longAnswer = "This is a long answer about the Bible that keeps going. ".repeat(40)
+
+    private fun bubbleWidthDp(): Float {
+        mountItem(
+            Message(
+                id = UUID.randomUUID().toString(),
+                role = Message.Role.USER,
+                content = longAnswer,
+            ),
+        )
+        val node = composeRule.onNodeWithTag("chat_bubble").fetchSemanticsNode()
+        val density = node.layoutInfo.density.density
+        val widthPx = node.size.width
+        return widthPx / density
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h640dp")
+    fun `bubble stays within 320dp on a phone`() {
+        val w = bubbleWidthDp()
+        assertEquals(320f, w, 1f)
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h1280dp")
+    fun `bubble is wider than 320dp on a tablet in portrait`() {
+        val w = bubbleWidthDp()
+        // (800 - 2 * 12) * 0.85
+        assertEquals(659.6f, w, 1f)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun `bubble is wider than 320dp but capped at 840dp on a tablet in landscape`() {
+        val w = bubbleWidthDp()
+        assertEquals(840f, w, 1f)
     }
 }

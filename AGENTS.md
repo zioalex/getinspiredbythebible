@@ -13,9 +13,17 @@ Next.js / React / TypeScript / Kotlin / Jetpack Compose / Terraform / Azure
 
 **This is the default operating procedure for any non-trivial task** (a feature,
 a bug fix, or a refactor — anything beyond a true one-line/typo change). It runs
-as a three-stage relay across models so that planning and verification are done
+as a four-stage relay across models so that specifying, planning and verification are done
 by a stronger model and the bulk implementation by a faster one:
 
+0. **Specify — Opus.** Gather *all* the requirements before planning. Do a quick
+   code read so the questions are informed, then interview the user with
+   `AskUserQuestion` (2–4 options per question, recommended option first) and
+   write a short spec into the `BITB-NNN` story file: user story / bug report,
+   functional requirements, non-functional requirements (platforms, the 11
+   languages, accessibility, performance), acceptance criteria, out of scope, and
+   open questions. The user confirms the spec before Plan starts; nothing gets
+   built without one.
 1. **Plan — Opus.** Explore the codebase first (read the relevant files, find
    existing utilities/patterns to reuse), then write an explicit plan: the
    problem, the precise changes per file, and how it will be verified. Resolve
@@ -40,6 +48,31 @@ by a stronger model and the bulk implementation by a faster one:
    > fails differently) — but keep Opus in the primary critic seat. **Haiku 4.5**
    > is only for cheap pre-gating (lint / typecheck / a quick smoke run), never
    > the final correctness verifier.
+
+**Loop back until it passes.** The relay is a loop, not a single pass:
+Verify FAIL (or red CI on the PR) → hand the findings back to Build as a fix
+brief → re-verify with a fresh Opus verifier → repeat until PASS. Escalate to
+the user instead of looping when the same finding recurs twice or the fix needs
+a decision the plan didn't make.
+
+```text
+Specify (Opus) ──► Plan (Opus) ──► Build (Sonnet) ──► Verify (Opus) ──PASS──► commit / PR / CI green ──► done
+                                      ▲                    │                        │
+                                      └──── FAIL: findings ┘◄──── CI red ───────────┘
+```
+
+**Bug reports use the same relay.** When the user reports a bug ("I installed
+the app on a tablet and …"), treat requirement gathering as part of Stage 1:
+find the root cause in code first, then ask the user only the decisions that
+change the outcome (which platform, desired behaviour) via `AskUserQuestion`,
+and file the bug as a `BITB-NNN` story *before* delegating the build — never as
+a GitHub Issue.
+
+**When a suite can't run in the sandbox** (e.g. Android Gradle can't fetch the
+AGP plugin behind the agent proxy), both Build and Verify must say so
+explicitly. The verifier compensates with a deeper static review, and the PR's
+CI run becomes the authoritative test gate: watch it and fix any failure
+before calling the task done.
 
 This composes with — it does not replace — the **Testing** rule (every change
 ships with tests) and **Backlog Hygiene** (every change has a story). Trivial

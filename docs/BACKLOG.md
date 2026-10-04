@@ -2,7 +2,17 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-01 (BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; 2026-09-30: BITB-171 done — k8s agent-default-wf2.yaml made
+**Last Updated:** 2026-10-04 (BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-174 opened — Android tablet chat bubbles hard-capped at 320dp; adaptive width fix; BITB-173 done — runtime fallback chain rebuilt with
+valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
+Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
+chain never once fired and agents died on primary 503s), broken
+mimo-v2.5-free primaries (verse-parity-keeper, i18n-qa) moved to
+mimo-v2.6-flash-free, agents.md table parity test extended to fallback
+columns, PR #1128; BITB-172 done — repo-vs-live drift fixed: custom
+agentImage + ghcr-pull committed into all Agent manifests (was cluster-only),
+server-password made opt-in so pods don't crashloop on the missing
+opencode-server-auth secret, validated agent-default-wf3.yaml committed, T7
+parity tests, PR #1126; BITB-171 done — k8s agent-default-wf2.yaml made
 self-contained: configRef + persistence + full credentials, parity-tested against
 deployment/agent.yaml so applying it converges instead of stripping fields from the
 live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
@@ -223,6 +233,28 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🚧 BITB-174: Android Tablet — Chat Messages Don't Fill the Available Width
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-03
+
+Bug: on tablets (portrait and landscape) chat bubbles are hard-capped at 320dp
+(`ChatMessageItem.kt`), so the conversation sits in a narrow strip. Fix: adaptive
+bubble width (~85% of available, min 320dp, max 840dp).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Bubble width derived from available width via a tested pure function
+- [ ] Phones unchanged; tablet portrait wider; tablet landscape capped at 840dp
+- [ ] Unit + Robolectric Compose tests at tablet qualifiers
+- [ ] PR merged
+
+Full story: [`BITB-174-android-tablet-chat-width.md`](BACKLOG_STORIES/BITB-174-android-tablet-chat-width.md)
+
+---
 
 ### 🚧 BITB-155: OpenRouter Model Refresh — Paid Llama 3.3 Primary + Gemma 4 31B Cross-Provider Fallback
 
@@ -4367,6 +4399,90 @@ section and `mobile-access.md` updated for consistency.
 - [x] `pytest scripts/test_kubeopencode_manifests.py` + `markdownlint` green
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-171-kubeopencode-agent-default-wf2-selfcontained.md`
+
+---
+
+### ✅ BITB-172: Repo-vs-Live Drift — agentImage Wiring Uncommitted, Mobile Credential Pre-Wired
+
+**Status:** ✅ Done (PR #1126)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-30
+**Completed:** 2026-09-30
+**Found by:** Live `default-wf3` deployment test (follow-up to BITB-170/171)
+
+**As** the operator of the home k3s cluster, **I want** the committed Agent manifests to match what the live `default-wf2` object actually runs — custom `agentImage` + pull secret included, mobile Basic auth opt-in — **so that** repo applies converge with live and a fresh agent (wf3) starts without missing-secret or default-image surprises.
+
+Surfaced while testing `default-wf3`: the pod crashlooped on
+`secret "opencode-server-auth" not found` (BITB-171 pre-wired the mobile
+credential, but the flow was never rolled out — no cluster had the secret), and
+it ran the default opencode image, not the custom build (`agentImage` +
+`ghcr-pull` were wired only on the live object via kubectl patch, existing
+nowhere in git). Live wf2 worked because it predates mobile auth and was
+patched directly. Fix: `agentImage`/`imagePullSecrets` committed into both
+`default-wf2` manifests and the new cluster-validated
+`agent-default-wf3.yaml`; `server-password` removed from manifests and made an
+opt-in `kubectl edit` patch in `mobile-access.md` (merge-patch replaces the
+whole credential list — documented); T7 tests pin the image + pull secret on
+every manifest, keep wf3 in parity with wf2, assert exact credential match,
+and parametrize doc coverage over both k8s manifests; README secrets section
+now marks optional (`opencode-server-auth`, mobile-only) vs required
+(`ghcr-pull`, private package) and the Files row no longer overstates
+"safe to apply standalone".
+
+**Acceptance Criteria (summary):**
+
+- [x] `agentImage` + `imagePullSecrets` in `deployment/agent.yaml`,
+      `k8s/agent-default-wf2.yaml`, and the new `k8s/agent-default-wf3.yaml` — repo = live
+- [x] No manifest pre-wires `server-password`; mobile-access.md documents the opt-in patch
+- [x] `agent-default-wf3.yaml` committed, matching the cluster-validated shape
+- [x] T7 green: image pinning (3 manifests), wf3 parity, exact credential match, doc coverage ×2
+- [x] README optional/required secrets + no standalone overstatement
+- [x] `pytest` + `markdownlint` + `yamllint` + `prettier` (pinned) green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-172-kubeopencode-agent-image-drift.md`
+
+---
+
+### ✅ BITB-173: Runtime Fallback Chain Pins Non-Existent Model IDs — Failovers Never Fire
+
+**Status:** ✅ Done (PR #1128)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-01
+**Completed:** 2026-10-01
+**Found by:** PR #1125/#1126 post-merge verification (verifier dispatches died on the primary's Nvidia 503; both fallback hops failed with ProviderModelNotFoundError)
+
+**As** the operator of the KubeOpenCode agent graph, **I want** every `model`/`fallback_models` ID to be a model the provider actually serves, **so that** runtime failovers fire when a primary 503s and agents degrade instead of dying mid-dispatch.
+
+The #1079 chain had never once fired: `opencode/nemotron-3-super-free` (Zen
+serves no Super variant — it is an OpenRouter model,
+`openrouter/nvidia/nemotron-3-super-120b-a12b:free`) and
+`openrouter/openai/gpt-oss-120b:free` (no free variant of gpt-oss-120b exists
+on OpenRouter; the paid ID is `openrouter/openai/gpt-oss-120b`). The same
+pass found `verse-parity-keeper` + `i18n-qa` primaries on
+`opencode/mimo-v2.5-free`, which Zen no longer serves — dead agents on every
+dispatch. Tests asserted internal consistency, not existence, so all three
+sources (frontmatter, opencode.json, agents.md) agreed on the same wrong IDs.
+Fix (IDs verified against `opencode models`, the gateway being the source of
+truth): tier 1 free `nemotron-3-super` via OpenRouter, tier 2 paid
+`gpt-oss-120b` — free first, paid last; broken primaries moved to
+`opencode/mimo-v2.6-flash-free`; generator constants renamed
+`TIER1/TIER2_FALLBACK`; agents.md table + coverage matrix corrected with the
+android-gemini all-OpenRouter trade-off documented; opencode.json regenerated;
+new regression tests (free-first/paid-last, exact chain, cross-provider hop
+for Zen primaries, retired-ID tripwire, agents.md parity extended to the
+fallback columns).
+
+**Acceptance Criteria (summary):**
+
+- [x] Every configured ID exists in the live gateway catalog; retired IDs tripwired in tests
+- [x] Tier 1 free + tier 2 paid on every agent (incl. builtins); Zen primaries keep a cross-provider hop
+- [x] agents.md table parity test now covers primary + both fallback columns
+- [x] `gen/verify-opencode-config` + `pytest` (generator + manifest suites) green
+- [x] Operator follow-up after merge: `make sync-opencode-configmap` + pod restart (live ConfigMap still carries the broken IDs)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-173-opencode-fallback-model-ids.md`
 
 ---
 

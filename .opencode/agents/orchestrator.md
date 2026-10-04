@@ -3,8 +3,8 @@ description: High-level planner and coordinator. Starts every session by plannin
 mode: primary
 model: opencode/nemotron-3-ultra-free
 fallback_models:
-  - opencode/nemotron-3-super-free
-  - openrouter/openai/gpt-oss-120b:free
+  - openrouter/nvidia/nemotron-3-super-120b-a12b:free
+  - openrouter/openai/gpt-oss-120b
 tools:
   bash: true
   read: true

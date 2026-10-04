@@ -19,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -54,7 +55,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
 import org.voxquieta.app.R
@@ -596,6 +599,35 @@ internal fun handleVerseLink(
     onLoadChapter(book, chapter, preferredTranslation)
 }
 
+/** Horizontal padding of a chat message row; subtracted from the available width (BITB-174). */
+internal val BubbleRowHorizontalPadding = 12.dp
+
+/** Floor for the bubble max width so phones keep their historical 320dp cap (BITB-174). */
+internal val BubbleMinMaxWidth = 320.dp
+
+/** Ceiling for the bubble max width so lines stay readable on large tablets (BITB-174). */
+internal val BubbleMaxMaxWidth = 840.dp
+
+/** Fraction of the available row width a bubble may occupy (BITB-174). */
+internal const val BubbleWidthFraction = 0.85f
+
+/**
+ * Maximum width of a chat bubble given the [available] row width (after row padding). BITB-174.
+ *
+ * `available * 0.85`, raised to at least 320dp (phones unchanged), capped at 840dp, and never
+ * wider than [available] itself. Infinite/unspecified input yields the 840dp cap; non-positive
+ * input yields 0dp.
+ */
+internal fun bubbleMaxWidth(available: Dp): Dp {
+    if (available == Dp.Unspecified || available == Dp.Infinity || available.value.isNaN()) {
+        return BubbleMaxMaxWidth
+    }
+    if (available <= 0.dp) return 0.dp
+    return (available * BubbleWidthFraction)
+        .coerceIn(BubbleMinMaxWidth, BubbleMaxMaxWidth)
+        .coerceAtMost(available)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatMessageItem(
@@ -661,273 +693,279 @@ fun ChatMessageItem(
     var pendingVerseLink by remember { mutableStateOf<PendingVerseLink?>(null) }
     val linkSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = arrangement,
-    ) {
-        Column(
-            modifier = Modifier.widthIn(max = 320.dp),
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+    // BITB-174: size bubbles from the real available width instead of a phone-only 320dp cap.
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val bubbleWidthCap = bubbleMaxWidth(maxWidth - BubbleRowHorizontalPadding * 2)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BubbleRowHorizontalPadding, vertical = 4.dp),
+            horizontalArrangement = arrangement,
         ) {
-            if (showBubble) {
-                val bubbleModifier = if (isUser) {
-                    // User bubble: filled primary, no border
-                    Modifier
-                        .background(
-                            color = bubbleColor,
-                            shape = RoundedCornerShape(
-                                topStart = 18.dp,
-                                topEnd = 18.dp,
-                                bottomStart = 18.dp,
-                                bottomEnd = 4.dp,
-                            ),
-                        )
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                } else {
-                    // Assistant bubble: white surface with primary border — matches web card style
-                    Modifier
-                        .background(
-                            color = bubbleColor,
-                            shape = RoundedCornerShape(
-                                topStart = 4.dp,
-                                topEnd = 18.dp,
-                                bottomStart = 18.dp,
-                                bottomEnd = 18.dp,
-                            ),
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(
-                                topStart = 4.dp,
-                                topEnd = 18.dp,
-                                bottomStart = 18.dp,
-                                bottomEnd = 18.dp,
-                            ),
-                        )
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                }
-
-                Box(modifier = bubbleModifier) {
-                    when {
-                        // (a) Waiting for the first chunk — show animated typing dots
-                        !isUser && message.isStreaming && message.content.isEmpty() -> {
-                            TypingIndicator()
-                        }
-
-                        // (b) Streaming with partial content — show text + blinking cursor
-                        !isUser && message.isStreaming && message.content.isNotEmpty() -> {
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                SelectionContainer {
-                                    Text(
-                                        text = message.content,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = textColor,
-                                    )
-                                }
-                                Text(
-                                    text = "▌",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = textColor,
-                                    modifier = Modifier.alpha(cursorAlpha),
-                                )
-                            }
-                        }
-
-                        // (c) Finished assistant message — render as Markdown with tappable verse refs.
-                        !isUser -> {
-                            val bodyMedium = MaterialTheme.typography.bodyMedium
-                            // Amber colour for verse links — matches web's amber-600 link colour
-                            val amberColor = MaterialTheme.colorScheme.tertiary
-                            MarkdownText(
-                                markdown = injectVerseQuoteHighlights(
-                                    injectVerseLinks(
-                                        message.content,
-                                        verseRefRegex,
-                                        message.verses,
-                                        localizedToEnglish,
-                                    ),
+            Column(
+                modifier = Modifier
+                    .widthIn(max = bubbleWidthCap)
+                    .testTag("chat_bubble"),
+                horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+            ) {
+                if (showBubble) {
+                    val bubbleModifier = if (isUser) {
+                        // User bubble: filled primary, no border
+                        Modifier
+                            .background(
+                                color = bubbleColor,
+                                shape = RoundedCornerShape(
+                                    topStart = 18.dp,
+                                    topEnd = 18.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 4.dp,
                                 ),
-                                style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                                linkColor = amberColor,
-                                isTextSelectable = true,
-                                // MUST stay true: compose-markdowntext is built on Markwon, whose
-                                // softBreakAddsNewLine default flipped from true (0.5.x) to false (0.7.x).
-                                // With false, single newlines in assistant messages collapse into one
-                                // paragraph, breaking existing chat formatting. Do not remove. (BITB-135)
-                                enableSoftBreakAddsNewLine = true,
-                                onLinkClicked = { url ->
-                                    val parsed = parseVerseLink(url, preferredTranslation)
-                                    if (parsed != null) {
-                                        // Reset chapter state so VerseDetailBottomSheet always gets a fresh load.
-                                        onDismissSheet()
-                                        pendingVerseLink = parsed
-                                        onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
-                                    }
-                                },
-                                beforeSetMarkdown = { _, spanned ->
-                                    if (spanned is Spannable) {
-                                        applyQuoteHighlights(spanned)
-                                    }
-                                },
                             )
-                        }
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    } else {
+                        // Assistant bubble: white surface with primary border — matches web card style
+                        Modifier
+                            .background(
+                                color = bubbleColor,
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 18.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 18.dp,
+                                ),
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 18.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 18.dp,
+                                ),
+                            )
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    }
 
-                        // (d) User message — plain text bubble, selectable so the
-                        // question text can be copied manually (matches assistant text).
-                        else -> {
-                            // The default selection highlight is derived from the primary
-                            // colour, which is also this bubble's background — so a selection
-                            // would be nearly invisible. Pick a highlight that contrasts with
-                            // the bubble in both themes: dark when the text is light, light
-                            // when the text is dark, keeping the selected text readable.
-                            val selectionHighlight =
-                                if (textColor.luminance() > 0.5f) Color.Black else Color.White
-                            val bubbleSelectionColors = remember(selectionHighlight) {
-                                TextSelectionColors(
-                                    handleColor = selectionHighlight,
-                                    backgroundColor = selectionHighlight.copy(alpha = 0.4f),
-                                )
+                    Box(modifier = bubbleModifier) {
+                        when {
+                            // (a) Waiting for the first chunk — show animated typing dots
+                            !isUser && message.isStreaming && message.content.isEmpty() -> {
+                                TypingIndicator()
                             }
-                            CompositionLocalProvider(
-                                LocalTextSelectionColors provides bubbleSelectionColors,
-                            ) {
-                                SelectionContainer {
+
+                            // (b) Streaming with partial content — show text + blinking cursor
+                            !isUser && message.isStreaming && message.content.isNotEmpty() -> {
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    SelectionContainer {
+                                        Text(
+                                            text = message.content,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = textColor,
+                                        )
+                                    }
                                     Text(
-                                        text = message.content,
+                                        text = "▌",
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = textColor,
+                                        modifier = Modifier.alpha(cursorAlpha),
                                     )
+                                }
+                            }
+
+                            // (c) Finished assistant message — render as Markdown with tappable verse refs.
+                            !isUser -> {
+                                val bodyMedium = MaterialTheme.typography.bodyMedium
+                                // Amber colour for verse links — matches web's amber-600 link colour
+                                val amberColor = MaterialTheme.colorScheme.tertiary
+                                MarkdownText(
+                                    markdown = injectVerseQuoteHighlights(
+                                        injectVerseLinks(
+                                            message.content,
+                                            verseRefRegex,
+                                            message.verses,
+                                            localizedToEnglish,
+                                        ),
+                                    ),
+                                    style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                                    linkColor = amberColor,
+                                    isTextSelectable = true,
+                                    // MUST stay true: compose-markdowntext is built on Markwon, whose
+                                    // softBreakAddsNewLine default flipped from true (0.5.x) to false (0.7.x).
+                                    // With false, single newlines in assistant messages collapse into one
+                                    // paragraph, breaking existing chat formatting. Do not remove. (BITB-135)
+                                    enableSoftBreakAddsNewLine = true,
+                                    onLinkClicked = { url ->
+                                        val parsed = parseVerseLink(url, preferredTranslation)
+                                        if (parsed != null) {
+                                            // Reset chapter state so VerseDetailBottomSheet always gets a fresh load.
+                                            onDismissSheet()
+                                            pendingVerseLink = parsed
+                                            onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
+                                        }
+                                    },
+                                    beforeSetMarkdown = { _, spanned ->
+                                        if (spanned is Spannable) {
+                                            applyQuoteHighlights(spanned)
+                                        }
+                                    },
+                                )
+                            }
+
+                            // (d) User message — plain text bubble, selectable so the
+                            // question text can be copied manually (matches assistant text).
+                            else -> {
+                                // The default selection highlight is derived from the primary
+                                // colour, which is also this bubble's background — so a selection
+                                // would be nearly invisible. Pick a highlight that contrasts with
+                                // the bubble in both themes: dark when the text is light, light
+                                // when the text is dark, keeping the selected text readable.
+                                val selectionHighlight =
+                                    if (textColor.luminance() > 0.5f) Color.Black else Color.White
+                                val bubbleSelectionColors = remember(selectionHighlight) {
+                                    TextSelectionColors(
+                                        handleColor = selectionHighlight,
+                                        backgroundColor = selectionHighlight.copy(alpha = 0.4f),
+                                    )
+                                }
+                                CompositionLocalProvider(
+                                    LocalTextSelectionColors provides bubbleSelectionColors,
+                                ) {
+                                    SelectionContainer {
+                                        Text(
+                                            text = message.content,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = textColor,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Copy button for user messages — one-tap copy of the prompt text (BITB-047).
-            if (isUser && message.content.isNotBlank()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("question", message.content))
-                            Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
-                        },
+                // Copy button for user messages — one-tap copy of the prompt text (BITB-047).
+                if (isUser && message.content.isNotBlank()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = stringResource(R.string.action_copy_message),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-            // Inline scripture cards — show the actual text of the verses the backend cited
-            // for this answer, directly under the message (matching the web's verse cards),
-            // so the verse text is visible without opening the top-bar Verses panel.
-            if (!isUser && !message.isStreaming && !message.isError) {
-                val cited = citedVerses(message)
-                if (cited.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        cited.forEach { verse ->
-                            InlineVerseCard(
-                                verse = verse,
-                                preferredTranslation = preferredTranslation,
-                                chapterState = chapterSheetState,
-                                onLoadChapter = onLoadChapter,
-                                onDismissSheet = onDismissSheet,
-                                modifier = Modifier.fillMaxWidth(),
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("question", message.content))
+                                Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.action_copy_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                 }
-            }
 
-            // Action row — feedback (left) and copy+share (right).
-            val showFeedback = message.role == Message.Role.ASSISTANT
-                && !message.isStreaming
-                && message.messageId.isNotBlank()
-                && onFeedback != null
-
-            // Copy + share actions, reused as the trailing slot of FeedbackControls
-            // or rendered alone when there is no feedback row.
-            val trailingActions: @Composable RowScope.() -> Unit = {
-                if (showShare) {
-                    IconButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
-                            Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = stringResource(R.string.action_copy_message),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            val shareText = if (userMessage.isNotBlank()) {
-                                "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
-                            } else {
-                                "$sharePrefix\n\n${message.content}"
+                // Inline scripture cards — show the actual text of the verses the backend cited
+                // for this answer, directly under the message (matching the web's verse cards),
+                // so the verse text is visible without opening the top-bar Verses panel.
+                if (!isUser && !message.isStreaming && !message.isError) {
+                    val cited = citedVerses(message)
+                    if (cited.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            cited.forEach { verse ->
+                                InlineVerseCard(
+                                    verse = verse,
+                                    preferredTranslation = preferredTranslation,
+                                    chapterState = chapterSheetState,
+                                    onLoadChapter = onLoadChapter,
+                                    onDismissSheet = onDismissSheet,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
-                            ShareCompat.IntentBuilder(context)
-                                .setType("text/plain")
-                                .setText(shareText)
-                                .startChooser()
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = stringResource(R.string.action_share_message),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        }
                     }
                 }
-            }
 
-            if (showFeedback) {
-                FeedbackControls(
-                    feedbackGiven = feedbackGiven,
-                    onSubmit = { rating, comment, reason -> onFeedback!!(message.id, rating, comment, reason) },
-                    trailing = trailingActions,
-                )
-            } else if (showShare) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Spacer(modifier = Modifier.weight(1f))
-                    trailingActions()
+                // Action row — feedback (left) and copy+share (right).
+                val showFeedback = message.role == Message.Role.ASSISTANT
+                    && !message.isStreaming
+                    && message.messageId.isNotBlank()
+                    && onFeedback != null
+
+                // Copy + share actions, reused as the trailing slot of FeedbackControls
+                // or rendered alone when there is no feedback row.
+                val trailingActions: @Composable RowScope.() -> Unit = {
+                    if (showShare) {
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                                Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.action_copy_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                val shareText = if (userMessage.isNotBlank()) {
+                                    "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
+                                } else {
+                                    "$sharePrefix\n\n${message.content}"
+                                }
+                                ShareCompat.IntentBuilder(context)
+                                    .setType("text/plain")
+                                    .setText(shareText)
+                                    .startChooser()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = stringResource(R.string.action_share_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
-            }
 
-            // Inline Retry button for error assistant messages
-            if (showRetry && onRetry != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedButton(
-                    onClick = onRetry,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 4.dp),
+                if (showFeedback) {
+                    FeedbackControls(
+                        feedbackGiven = feedbackGiven,
+                        onSubmit = { rating, comment, reason -> onFeedback!!(message.id, rating, comment, reason) },
+                        trailing = trailingActions,
                     )
-                    Text(text = stringResource(R.string.action_retry))
+                } else if (showShare) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        trailingActions()
+                    }
                 }
-            }
 
+                // Inline Retry button for error assistant messages
+                if (showRetry && onRetry != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = onRetry,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 4.dp),
+                        )
+                        Text(text = stringResource(R.string.action_retry))
+                    }
+                }
+
+            }
         }
     }
 
