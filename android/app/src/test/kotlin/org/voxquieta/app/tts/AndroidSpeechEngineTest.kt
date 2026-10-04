@@ -44,6 +44,8 @@ class AndroidSpeechEngineTest {
         every { tts.isLanguageAvailable(any()) } returns TextToSpeech.LANG_AVAILABLE
         val audio = mockk<AudioManager>(relaxed = true)
         every { audio.requestAudioFocus(any<android.media.AudioFocusRequest>()) } returns focusResult
+        @Suppress("DEPRECATION")
+        every { audio.requestAudioFocus(any(), any(), any()) } returns focusResult
         val context = mockk<Context>(relaxed = true)
         every { context.getSystemService(Context.AUDIO_SERVICE) } returns audio
 
@@ -127,5 +129,65 @@ class AndroidSpeechEngineTest {
         repeat(5) { h.engine.hasLocalVoice("en") }
         verify(exactly = 1) { h.tts.voices }
         verify(exactly = 1) { h.tts.isLanguageAvailable(any()) }
+    }
+
+    @Test
+    @Config(sdk = [25])
+    fun `api 25 engine constructs and uses the legacy audio focus calls`() {
+        val h = harness(listOf(voice("en-US")))
+        assertTrue(h.engine.speak("m1", listOf("Hello."), "en"))
+        assertEquals("m1", h.engine.speakingId.value)
+        @Suppress("DEPRECATION")
+        verify(exactly = 1) {
+            h.audio.requestAudioFocus(
+                any(),
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
+            )
+        }
+        verify(exactly = 0) { h.audio.requestAudioFocus(any<android.media.AudioFocusRequest>()) }
+        h.engine.stop()
+        assertNull(h.engine.speakingId.value)
+        @Suppress("DEPRECATION")
+        verify(exactly = 1) { h.audio.abandonAudioFocus(any()) }
+        verify(exactly = 0) { h.audio.abandonAudioFocusRequest(any()) }
+    }
+
+    @Test
+    @Config(sdk = [25])
+    fun `api 25 denied legacy focus speaks nothing`() {
+        val h = harness(listOf(voice("en-US")), focusResult = AudioManager.AUDIOFOCUS_REQUEST_FAILED)
+        assertFalse(h.engine.speak("m1", listOf("Hello."), "en"))
+        assertNull(h.engine.speakingId.value)
+    }
+
+    @Test
+    fun `api 34 uses the AudioFocusRequest path`() {
+        val h = harness(listOf(voice("en-US")))
+        assertTrue(h.engine.speak("m1", listOf("Hello."), "en"))
+        verify(exactly = 1) { h.audio.requestAudioFocus(any<android.media.AudioFocusRequest>()) }
+        @Suppress("DEPRECATION")
+        verify(exactly = 0) { h.audio.requestAudioFocus(any(), any(), any()) }
+    }
+
+    @Test
+    fun `rankLocalVoices prefers exact tag then regional default then quality`() {
+        val enGbHigh = voice("en-GB", quality = Voice.QUALITY_VERY_HIGH)
+        val enUs = voice("en-US")
+        val enAu = voice("en-AU", quality = Voice.QUALITY_HIGH)
+        val fr = voice("fr-FR")
+        // Region default en-US beats higher-quality en-GB/en-AU; other languages dropped.
+        assertEquals(listOf(enUs, enGbHigh, enAu), rankLocalVoices(listOf(enGbHigh, enAu, fr, enUs), "en"))
+        // Exact tag beats the regional default.
+        assertEquals(enGbHigh, rankLocalVoices(listOf(enUs, enGbHigh), "en-GB").first())
+        // zh falls back to zh-CN over zh-TW / zh-HK regardless of quality.
+        val zhTw = voice("zh-TW", quality = Voice.QUALITY_VERY_HIGH)
+        val zhCn = voice("zh-CN")
+        assertEquals(zhCn, rankLocalVoices(listOf(zhTw, zhCn), "zh").first())
+        // Without a regional default, quality decides.
+        val ptPt = voice("pt-PT", quality = Voice.QUALITY_HIGH)
+        val ptAo = voice("pt-AO")
+        assertEquals(ptPt, rankLocalVoices(listOf(ptAo, ptPt), "pt").first())
+        assertEquals(emptyList<Voice>(), rankLocalVoices(listOf(fr), "de"))
     }
 }
