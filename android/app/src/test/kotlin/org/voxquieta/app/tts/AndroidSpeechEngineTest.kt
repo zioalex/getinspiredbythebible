@@ -2,6 +2,7 @@ package org.voxquieta.app.tts
 
 import android.content.Context
 import android.media.AudioManager
+import android.os.Build
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import io.mockk.every
@@ -43,7 +44,11 @@ class AndroidSpeechEngineTest {
         every { tts.voices } returns voices.toSet()
         every { tts.isLanguageAvailable(any()) } returns TextToSpeech.LANG_AVAILABLE
         val audio = mockk<AudioManager>(relaxed = true)
-        every { audio.requestAudioFocus(any<android.media.AudioFocusRequest>()) } returns focusResult
+        // The AudioFocusRequest overload only exists on API 26+; stubbing it under an API 25
+        // Robolectric SDK throws NoSuchMethodError before the engine runs.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            every { audio.requestAudioFocus(any<android.media.AudioFocusRequest>()) } returns focusResult
+        }
         @Suppress("DEPRECATION")
         every { audio.requestAudioFocus(any(), any(), any()) } returns focusResult
         val context = mockk<Context>(relaxed = true)
@@ -145,12 +150,12 @@ class AndroidSpeechEngineTest {
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
             )
         }
-        verify(exactly = 0) { h.audio.requestAudioFocus(any<android.media.AudioFocusRequest>()) }
+        // No verify on the AudioFocusRequest overloads here: they don't exist on API 25, so any
+        // call from the engine would already have failed this test with NoSuchMethodError.
         h.engine.stop()
         assertNull(h.engine.speakingId.value)
         @Suppress("DEPRECATION")
         verify(exactly = 1) { h.audio.abandonAudioFocus(any()) }
-        verify(exactly = 0) { h.audio.abandonAudioFocusRequest(any()) }
     }
 
     @Test

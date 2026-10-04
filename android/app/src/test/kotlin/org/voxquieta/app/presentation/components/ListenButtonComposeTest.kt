@@ -112,4 +112,3 @@ class ListenButtonComposeTest : ComposeTestHarness() {
         composeRule.onNodeWithTag("listen_button").assertDoesNotExist()
     }
 }
-

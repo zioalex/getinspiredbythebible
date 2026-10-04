@@ -158,10 +158,12 @@ analysis below disagree, **this section wins**.
 ## Implementation Plan (2026-10-04)
 
 ### Problem / why
+
 Answers are text-only. Add an on-device Listen ↔ Stop control per the Specification above, with one
 shared normalization/chunking spec so web and Android cannot drift (the BITB-059 lesson).
 
 ### Shared fixture — `tests/fixtures/speakable_text.json` (+ README section)
+
 ```jsonc
 {
   "description": "BITB-119 speakable-text rules: normalization + chunking, shared by web and Android",
@@ -171,6 +173,7 @@ shared normalization/chunking spec so web and Android cannot drift (the BITB-059
   "chunk_cases":     [ { "id", "language", "input", "expected": ["chunk1", …] } ]
 }
 ```
+
 - `verseTemplates` = the table in FR5 (the `chapter`-only template is **dropped**: the web parser
   only matches `chapter:verse`, so chapter-only references are left as written on both clients; the
   Android parser must skip matches without a verse number for parity).
@@ -185,6 +188,7 @@ shared normalization/chunking spec so web and Android cannot drift (the BITB-059
   Android must reproduce them exactly.
 
 ### Backend (`api/`)
+
 - `config.py`: `tts_enabled: bool = True`.
 - `main.py` `GET /config`: add `"features": {"tts_enabled": settings.tts_enabled}`.
 - `main.py`: `POST /api/v1/client-events` (`include_in_schema=False`,
@@ -196,7 +200,7 @@ shared normalization/chunking spec so web and Android cannot drift (the BITB-059
   `{"status": "ok"}`.
 - `utils/metrics.py`: `client_tts_events_counter` = `client.tts_events_total`.
 - `scripts/env-manifest.yaml`: `TTS_ENABLED` (required_in: none, default true). `deployment/main.tf`
-  + `variables.tf`: `TTS_ENABLED = tostring(var.tts_enabled)`, variable default `true`. Run
+  and `variables.tf`: `TTS_ENABLED = tostring(var.tts_enabled)`, variable default `true`. Run
   `scripts/validate-env.py` (or the repo's equivalent) if present.
 - Tests: `api/tests/test_client_events.py` (happy path both events, locale whitelist incl. `zh-CN`
   → `zh`, unknown locale → `other`, unknown event → 422, extra field → 422, counter called with
@@ -204,6 +208,7 @@ shared normalization/chunking spec so web and Android cannot drift (the BITB-059
   false).
 
 ### Web (`frontend/`)
+
 - `src/lib/speakableText.ts` (pure): `normalizeForSpeech(markdown, locale)` and
   `chunkForSpeech(text, max=200)`, plus `VERSE_SPEECH_TEMPLATES` table. Reference detection reuses
   `createVersePatternGlobal()` + `isKnownBook()` (+ `normalizeTraditionalToSimplified` for
@@ -247,6 +252,7 @@ shared normalization/chunking spec so web and Android cannot drift (the BITB-059
   `ttsPreference.test.ts`, `clientEvents.test.ts` (payload only event+locale), MainMenu toggle test.
 
 ### Android (`android/`)
+
 - `tts/SpeakableText.kt` (pure, `internal`): `normalizeForSpeech(markdown, language, verseRefRegex,
   localizedToEnglish)`, `chunkForSpeech(text, max = 200)`, `VERSE_SPEECH_TEMPLATES`. Uses the
   same `verseRefRegex` that `ChatScreen` already builds and passes to `ChatMessageItem`; skip
@@ -295,11 +301,13 @@ shared normalization/chunking spec so web and Android cannot drift (the BITB-059
   click callback).
 
 ### Backlog / commit
+
 - `docs/BACKLOG.md` entry → 🚧 In Progress (→ ✅ Done with PR number once merged), `Last Updated`.
 - Single commit type `feat:` (user-visible) so release-please puts it in CHANGELOG → both What's
   New surfaces (which are generated from CHANGELOG, not hand-edited).
 
 ### Verification
+
 - `cd api && python -m pytest tests/ -x -q` (+ ruff, black, mypy on touched files)
 - `cd frontend && npx vitest run && npm run lint && npx tsc --noEmit && npm run build`
 - `cd android && ./gradlew testDebugUnitTest testDebugCompose lint` — likely unavailable in the
