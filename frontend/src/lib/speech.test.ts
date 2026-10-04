@@ -57,6 +57,26 @@ describe("findLocalVoice (local-only)", () => {
     expect(findLocalVoice("zh")?.lang).toBe("zh-CN");
   });
 
+  it("prefers the regional default before other same-language voices", () => {
+    synth.voices = [
+      makeVoice("zh-HK"),
+      makeVoice("zh-TW", { default: true }),
+      makeVoice("zh-CN"),
+    ];
+    expect(findLocalVoice("zh")?.lang).toBe("zh-CN");
+    synth.voices = [makeVoice("pt-PT", { default: true }), makeVoice("pt-BR")];
+    expect(findLocalVoice("pt")?.lang).toBe("pt-BR");
+    synth.voices = [makeVoice("en-GB", { default: true }), makeVoice("en-US")];
+    expect(findLocalVoice("en")?.lang).toBe("en-US");
+  });
+
+  it("falls back to default then first when no regional default is installed", () => {
+    synth.voices = [makeVoice("zh-HK"), makeVoice("zh-TW", { default: true })];
+    expect(findLocalVoice("zh")?.lang).toBe("zh-TW");
+    synth.voices = [makeVoice("zh-HK"), makeVoice("zh-TW")];
+    expect(findLocalVoice("zh")?.lang).toBe("zh-HK");
+  });
+
   it("handles underscore language tags (Android-style)", () => {
     synth.voices = [makeVoice("ko_KR")];
     expect(findLocalVoice("ko")?.lang).toBe("ko_KR");

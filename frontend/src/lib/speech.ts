@@ -31,13 +31,33 @@ export function isSpeechSupported(): boolean {
   );
 }
 
+/** Regional default per UI locale, preferred over arbitrary same-language voices. */
+const REGION_DEFAULTS: Record<string, string> = {
+  en: "en-us",
+  es: "es-es",
+  pt: "pt-br",
+  fr: "fr-fr",
+  de: "de-de",
+  ar: "ar-sa",
+  ko: "ko-kr",
+  hi: "hi-in",
+  ru: "ru-ru",
+  it: "it-it",
+  zh: "zh-cn",
+};
+
+function normalizeTag(lang: string): string {
+  return lang.toLowerCase().replace("_", "-");
+}
+
 function primaryTag(lang: string): string {
   return lang.toLowerCase().replace("_", "-").split("-")[0];
 }
 
 /**
  * The best on-device voice for `locale`, or null. Remote (cloud) voices are ignored.
- * Preference: exact language-tag match, then the engine's default voice, then first.
+ * Preference: exact language-tag match, the locale's regional default (e.g. zh-CN), the
+ * engine's default voice, then first.
  */
 export function findLocalVoice(locale: string): SpeechSynthesisVoice | null {
   if (!isSpeechSupported()) return null;
@@ -47,9 +67,14 @@ export function findLocalVoice(locale: string): SpeechSynthesisVoice | null {
     .filter((v) => v.localService === true && primaryTag(v.lang) === wanted);
   if (candidates.length === 0) return null;
   const exact = candidates.find(
-    (v) => v.lang.toLowerCase().replace("_", "-") === locale.toLowerCase(),
+    (v) => normalizeTag(v.lang) === normalizeTag(locale),
   );
-  return exact ?? candidates.find((v) => v.default) ?? candidates[0];
+  if (exact) return exact;
+  const regionDefault = REGION_DEFAULTS[wanted];
+  const regional = regionDefault
+    ? candidates.find((v) => normalizeTag(v.lang) === regionDefault)
+    : undefined;
+  return regional ?? candidates.find((v) => v.default) ?? candidates[0];
 }
 
 /**
