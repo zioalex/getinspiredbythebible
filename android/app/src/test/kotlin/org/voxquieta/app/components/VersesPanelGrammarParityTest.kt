@@ -29,8 +29,7 @@ class VersesPanelGrammarParityTest {
     // Compare the parsed link, not the raw URL: injectVerseLinks keeps the source digits
     // (e.g. "verse://John/३/१६") and may emit the bundled map's lowercase canonical
     // ("verse://john/3/16"); toIntOrNull handles the non-ASCII digits. The verse segment is
-    // read here (split on every range separator) rather than via parseVerseLink.verseNumber,
-    // which splits on '-' only and so falls back to verse 1 for an en-dash range.
+    // read here (split on every range separator) as an independent check on parseVerseLink.verseNumber.
     private fun linked(text: String, map: Map<String, String> = emptyMap()): Boolean {
         val url = Regex("""verse://[^)\]\s]+""").find(injectVerseLinks(text, localizedToEnglish = map))?.value
             ?: return false

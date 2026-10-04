@@ -503,8 +503,9 @@ internal fun parseVerseLink(url: String, preferredTranslation: String?): Pending
     if (parts.size < 2) return null
     val book = runCatching { URLDecoder.decode(parts[0], "UTF-8") }.getOrNull() ?: return null
     val chapter = parts[1].toIntOrNull() ?: return null
-    // Verse number may be a range like "16-18" — take the first number.
-    val verseNumber = parts.getOrNull(2)?.split("-")?.firstOrNull()?.toIntOrNull() ?: 1
+    // Verse number may be a range like "16-18" or "16–18" — take the first number.
+    val verseNumber = parts.getOrNull(2)
+        ?.split(*VerseGrammar.RANGE_SEPARATORS.toCharArray())?.firstOrNull()?.toIntOrNull() ?: 1
     return PendingVerseLink(
         book = book,
         chapter = chapter,
