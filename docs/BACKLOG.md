@@ -2,7 +2,8 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-01 (BITB-173 done — runtime fallback chain rebuilt with
+**Last Updated:** 2026-10-04 (BITB-167 in progress — `parseVerseLink` splits on
+`VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
 chain never once fired and agents died on primary 503s), broken
@@ -4511,9 +4512,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
+### 🚧 BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR pending, 2026-10-04)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30

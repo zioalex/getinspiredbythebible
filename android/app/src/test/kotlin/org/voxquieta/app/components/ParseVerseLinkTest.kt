@@ -1,6 +1,7 @@
 package org.voxquieta.app.components
 
 import org.voxquieta.app.presentation.components.parseVerseLink
+import org.voxquieta.app.utils.VerseGrammar
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -215,5 +216,25 @@ class ParseVerseLinkTest {
         assertEquals(23, result.chapter)
         assertEquals(1, result.verseNumber)
         assertEquals("Salmi", result.localizedBook)
+    }
+
+    @Test
+    fun `parseVerseLink takes first verse of a range for every range separator`() {
+        for (sep in VerseGrammar.RANGE_SEPARATORS) {
+            val result = parseVerseLink("verse://Romans/8/28${sep}30", preferredTranslation = null)
+            assertNotNull(result)
+            assertEquals("separator '$sep'", 28, result!!.verseNumber)
+        }
+    }
+
+    @Test
+    fun `parseVerseLink en-dash range works for non-ASCII digits and localized book`() {
+        // Arabic-Indic, Devanagari, fullwidth digits as emitted by injectVerseLinks (source digits kept).
+        for (verse in listOf("٢٨–٣٠", "२८–३०", "２８–３０")) {
+            val result = parseVerseLink("verse://Romans/8/$verse?localizedBook=Rom", preferredTranslation = "KJV")
+            assertNotNull(result)
+            assertEquals(verse, 28, result!!.verseNumber)
+            assertEquals("KJV", result.translation)
+        }
     }
 }
