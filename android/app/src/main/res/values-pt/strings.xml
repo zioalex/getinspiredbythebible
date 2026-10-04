@@ -306,5 +306,5 @@
     <string name="state_not_listening">Leitura parada</string>
     <string name="settings_tts_title">Leitura em voz alta</string>
     <string name="settings_tts_show_listen">Mostrar o botão Ouvir</string>
-    <string name="settings_tts_show_listen_desc">Adiciona um botão Ouvir às respostas. A voz é gerada apenas no seu dispositivo e nada é enviado para outro lugar.</string>
+    <string name="settings_tts_show_listen_desc">Adiciona um botão Ouvir às respostas. As respostas são lidas pela voz do seu dispositivo; o texto nunca sai do seu dispositivo.</string>
 </resources>

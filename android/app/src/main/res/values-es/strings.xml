@@ -306,5 +306,5 @@
     <string name="state_not_listening">Sin leer en voz alta</string>
     <string name="settings_tts_title">Lectura en voz alta</string>
     <string name="settings_tts_show_listen">Mostrar el botón Escuchar</string>
-    <string name="settings_tts_show_listen_desc">Añade un botón Escuchar a las respuestas. La voz se genera solo en tu dispositivo y no se envía nada a ningún sitio.</string>
+    <string name="settings_tts_show_listen_desc">Añade un botón Escuchar a las respuestas. Las respuestas las lee la voz de tu dispositivo; el texto nunca sale de tu dispositivo.</string>
 </resources>

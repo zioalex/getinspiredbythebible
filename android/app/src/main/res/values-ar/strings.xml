@@ -309,5 +309,5 @@
     <string name="state_not_listening">القراءة متوقفة</string>
     <string name="settings_tts_title">القراءة بصوت عالٍ</string>
     <string name="settings_tts_show_listen">إظهار زر الاستماع</string>
-    <string name="settings_tts_show_listen_desc">يضيف زر استماع إلى الإجابات. يتم توليد الصوت على جهازك فقط ولا يُرسل أي شيء إلى أي مكان.</string>
+    <string name="settings_tts_show_listen_desc">يضيف زر استماع إلى الإجابات. تُقرأ الإجابات بصوت جهازك، ولا يغادر النص جهازك أبدًا.</string>
 </resources>

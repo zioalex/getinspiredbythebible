@@ -304,5 +304,5 @@
     <string name="state_not_listening">읽기 중지됨</string>
     <string name="settings_tts_title">소리 내어 읽기</string>
     <string name="settings_tts_show_listen">듣기 버튼 표시</string>
-    <string name="settings_tts_show_listen_desc">답변에 듣기 버튼을 추가합니다. 음성은 기기에서만 생성되며 어디에도 전송되지 않습니다.</string>
+    <string name="settings_tts_show_listen_desc">답변에 듣기 버튼을 추가합니다. 답변은 기기의 음성으로 읽어 주며, 텍스트는 기기 밖으로 나가지 않습니다.</string>
 </resources>

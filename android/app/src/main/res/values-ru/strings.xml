@@ -307,5 +307,5 @@
     <string name="state_not_listening">Чтение остановлено</string>
     <string name="settings_tts_title">Чтение вслух</string>
     <string name="settings_tts_show_listen">Показывать кнопку «Слушать»</string>
-    <string name="settings_tts_show_listen_desc">Добавляет к ответам кнопку «Слушать». Озвучивание выполняется только на вашем устройстве, ничего никуда не отправляется.</string>
+    <string name="settings_tts_show_listen_desc">Добавляет к ответам кнопку «Слушать». Ответы читает голос вашего устройства; текст никогда не покидает устройство.</string>
 </resources>

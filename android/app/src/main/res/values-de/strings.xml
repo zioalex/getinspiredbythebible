@@ -305,5 +305,5 @@
     <string name="state_not_listening">Wird nicht vorgelesen</string>
     <string name="settings_tts_title">Vorlesen</string>
     <string name="settings_tts_show_listen">Schaltfläche „Anhören“ anzeigen</string>
-    <string name="settings_tts_show_listen_desc">Fügt den Antworten eine Schaltfläche zum Anhören hinzu. Die Sprache wird nur auf deinem Gerät erzeugt, es wird nichts übertragen.</string>
+    <string name="settings_tts_show_listen_desc">Fügt den Antworten eine Schaltfläche zum Anhören hinzu. Die Antworten werden von der Stimme deines Geräts vorgelesen; der Text verlässt dein Gerät nie.</string>
 </resources>

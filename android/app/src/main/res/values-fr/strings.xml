@@ -306,5 +306,5 @@
     <string name="state_not_listening">Lecture arrêtée</string>
     <string name="settings_tts_title">Lecture à voix haute</string>
     <string name="settings_tts_show_listen">Afficher le bouton Écouter</string>
-    <string name="settings_tts_show_listen_desc">Ajoute un bouton Écouter aux réponses. La voix est générée uniquement sur votre appareil et rien n\'est envoyé ailleurs.</string>
+    <string name="settings_tts_show_listen_desc">Ajoute un bouton Écouter aux réponses. Les réponses sont lues par la voix de votre appareil ; le texte ne quitte jamais votre appareil.</string>
 </resources>
