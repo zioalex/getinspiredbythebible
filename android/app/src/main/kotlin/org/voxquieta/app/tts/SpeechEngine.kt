@@ -8,6 +8,7 @@ import android.os.Build
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
+import androidx.annotation.RequiresApi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -146,18 +147,23 @@ class AndroidSpeechEngine @Inject constructor(
         onAudioFocusChange(change)
     }
 
-    /** API 26+ focus request; lazy so API 24-25 never load [AudioFocusRequest]. */
-    private val focusRequest: AudioFocusRequest by lazy {
-        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-            .setAudioAttributes(speechAttributes)
-            .setOnAudioFocusChangeListener(focusChangeListener)
-            .build()
-    }
+    // Held untyped and built on first use from an API 26+ path only, so API 24-25 never
+    // load [AudioFocusRequest] and lint's NewApi check sees every use behind @RequiresApi.
+    private var focusRequestHolder: Any? = null
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun focusRequest(): AudioFocusRequest =
+        focusRequestHolder as? AudioFocusRequest
+            ?: AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(speechAttributes)
+                .setOnAudioFocusChangeListener(focusChangeListener)
+                .build()
+                .also { focusRequestHolder = it }
 
     private fun requestFocus(): Boolean {
         val am = audioManager ?: return false
         val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            am.requestAudioFocus(focusRequest)
+            am.requestAudioFocus(focusRequest())
         } else {
             @Suppress("DEPRECATION")
             am.requestAudioFocus(
@@ -172,7 +178,7 @@ class AndroidSpeechEngine @Inject constructor(
     private fun abandonFocus() {
         val am = audioManager ?: return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            am.abandonAudioFocusRequest(focusRequest)
+            am.abandonAudioFocusRequest(focusRequest())
         } else {
             @Suppress("DEPRECATION")
             am.abandonAudioFocus(focusChangeListener)
