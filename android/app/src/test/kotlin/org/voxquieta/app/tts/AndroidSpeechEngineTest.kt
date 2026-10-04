@@ -167,6 +167,17 @@ class AndroidSpeechEngineTest {
     }
 
     @Test
+    fun `replacing playback keeps audio focus instead of releasing it in between`() {
+        val h = harness(listOf(voice("en-US")))
+        assertTrue(h.engine.speak("m1", listOf("First."), "en"))
+        assertTrue(h.engine.speak("m2", listOf("Second."), "en"))
+        assertEquals("m2", h.engine.speakingId.value)
+        verify(exactly = 0) { h.audio.abandonAudioFocusRequest(any()) }
+        h.engine.stop()
+        verify(exactly = 1) { h.audio.abandonAudioFocusRequest(any()) }
+    }
+
+    @Test
     fun `api 34 uses the AudioFocusRequest path`() {
         val h = harness(listOf(voice("en-US")))
         assertTrue(h.engine.speak("m1", listOf("Hello."), "en"))

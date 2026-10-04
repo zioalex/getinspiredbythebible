@@ -253,9 +253,15 @@ class AndroidSpeechEngine @Inject constructor(
         val engine = tts ?: return false
         val voice = localVoices(languageTag).firstOrNull() ?: return false
 
-        // Replace whatever is speaking, then take (transient, ducking) audio focus.
-        stop()
-        if (!requestFocus()) return false
+        // Replace whatever is speaking without releasing focus first (a release/re-request
+        // would briefly un-duck other apps), then take (transient, ducking) audio focus.
+        token++
+        lastUtteranceId = null
+        runCatching { tts?.stop() }
+        if (!requestFocus()) {
+            finish()
+            return false
+        }
 
         val myToken = ++token
         engine.voice = voice
