@@ -319,6 +319,42 @@
       "skipReason": ""
     },
     {
+      "id": "bare_url_cjk_period_zh",
+      "language": "zh",
+      "input": "请参见 https://x.com/a。然后祷告。",
+      "origin": "URL stops at the ideographic full stop; CJK text after it is kept",
+      "expected": "请参见。然后祷告。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "bare_url_fullwidth_parens_zh",
+      "language": "zh",
+      "input": "请参见（https://x.com/a）然后祷告。",
+      "origin": "URL inside fullwidth parentheses: URL and emptied （） removed",
+      "expected": "请参见然后祷告。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "bare_url_hangul_ko",
+      "language": "ko",
+      "input": "참고 https://x.com/a 그리고 기도하세요.",
+      "origin": "URL followed by Hangul text",
+      "expected": "참고 그리고 기도하세요.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "bare_url_balanced_parens_en",
+      "language": "en",
+      "input": "See https://en.wikipedia.org/wiki/Foo_(bar) now.",
+      "origin": "balanced parentheses inside a URL are part of the URL",
+      "expected": "See now.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
       "id": "guillemet_angle_en",
       "language": "en",
       "input": "See <<John>> 3:16 now.",

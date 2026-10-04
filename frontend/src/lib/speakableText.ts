@@ -136,8 +136,13 @@ export function normalizeForSpeech(markdown: string, locale: string): string {
   text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1");
   text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
   // Leading blanks go with the URL; trailing sentence punctuation / ")" stays in place.
-  text = text.replace(/[ \t]*https?:\/\/\S*[^\s.,;:!?)]/g, "");
-  text = text.replace(/[ \t]*\(\)/g, "");
+  // URL characters are printable ASCII only (CJK text has no spaces, so \S would swallow the
+  // sentence); parentheses are kept only when balanced, e.g. Wikipedia ".../Foo_(bar)".
+  text = text.replace(
+    /[ \t]*https?:\/\/(?:[!-'*-~]|\([!-'*-~]*\))*(?<![.,;:!?])/g,
+    "",
+  );
+  text = text.replace(/[ \t]*(?:\(\)|（）)/g, "");
 
   // Guillemets around a book name: <<Book>> / 《Book》 -> Book.
   text = text.replace(/<<\s*([^<>]*?)\s*>>/g, "$1");
