@@ -46,6 +46,16 @@ interface SpeechEngine {
     fun stop()
 }
 
+/**
+ * Installed, offline voices only: drops voices that need the network (their text would leave
+ * the device) and voices whose language data is not installed.
+ */
+internal fun filterLocalVoices(voices: Collection<Voice>?): List<Voice> =
+    voices.orEmpty().filter { voice ->
+        !voice.isNetworkConnectionRequired &&
+            !voice.features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)
+    }
+
 /** Platform [TextToSpeech] implementation; a process-wide singleton (see SpeechModule). */
 @Singleton
 class AndroidSpeechEngine @Inject constructor(
@@ -59,6 +69,19 @@ class AndroidSpeechEngine @Inject constructor(
     override val speakingId: StateFlow<String?> = _speakingId.asStateFlow()
 
     private var tts: TextToSpeech? = null
+
+    /** Creates the platform engine; replaceable in tests. */
+    internal var ttsFactory: (Context, TextToSpeech.OnInitListener) -> TextToSpeech =
+        { ctx, listener -> TextToSpeech(ctx, listener) }
+
+    /**
+     * Offline voices, fetched once after init: `TextToSpeech.getVoices()` is a binder call and
+     * must not run on every recomposition / telemetry recompute on the main thread.
+     */
+    @Volatile private var cachedLocalVoices: List<Voice> = emptyList()
+
+    /** Per-language availability, cached for the same reason (`isLanguageAvailable` is IPC). */
+    private val languageAvailability = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
     /** Identifies the current speak() call; callbacks from older calls are ignored. */
     @Volatile private var token = 0L
@@ -75,15 +98,17 @@ class AndroidSpeechEngine @Inject constructor(
     private val focusRequest: AudioFocusRequest =
         AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(speechAttributes)
-            .setOnAudioFocusChangeListener { change ->
-                // A call, alarm or another media app took focus: stop (never talk over it).
-                if (change == AudioManager.AUDIOFOCUS_LOSS ||
-                    change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
-                ) {
-                    stop()
-                }
-            }
+            .setOnAudioFocusChangeListener { change -> onAudioFocusChange(change) }
             .build()
+
+    /** A call, alarm or another media app took focus: stop (never talk over it). */
+    internal fun onAudioFocusChange(change: Int) {
+        if (change == AudioManager.AUDIOFOCUS_LOSS ||
+            change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+        ) {
+            stop()
+        }
+    }
 
     private val progressListener = object : UtteranceProgressListener() {
         override fun onStart(utteranceId: String?) = Unit
@@ -108,13 +133,18 @@ class AndroidSpeechEngine @Inject constructor(
     @Synchronized
     override fun warmUp() {
         if (tts != null) return
-        tts = TextToSpeech(context) { status ->
+        // (Re-)initialising invalidates anything cached from a previous engine.
+        cachedLocalVoices = emptyList()
+        languageAvailability.clear()
+        tts = ttsFactory(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts?.setAudioAttributes(speechAttributes)
                 tts?.setOnUtteranceProgressListener(progressListener)
+                cachedLocalVoices = filterLocalVoices(runCatching { tts?.voices }.getOrNull())
                 _isReady.value = true
             } else {
                 Timber.w("TextToSpeech init failed (status=%d); Listen stays hidden", status)
+                cachedLocalVoices = emptyList()
                 _isReady.value = false
             }
         }
@@ -124,15 +154,13 @@ class AndroidSpeechEngine @Inject constructor(
     private fun localVoices(languageTag: String): List<Voice> {
         val engine = tts?.takeIf { _isReady.value } ?: return emptyList()
         val locale = Locale.forLanguageTag(languageTag)
-        val installed = runCatching { engine.voices }.getOrNull() ?: return emptyList()
         // `isLanguageAvailable` reports missing language data: hide rather than prompt.
-        if (engine.isLanguageAvailable(locale) < TextToSpeech.LANG_AVAILABLE) return emptyList()
-        return installed
-            .filter { voice ->
-                !voice.isNetworkConnectionRequired &&
-                    voice.locale.language == locale.language &&
-                    !voice.features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)
-            }
+        val available = languageAvailability.getOrPut(locale.toLanguageTag()) {
+            engine.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE
+        }
+        if (!available) return emptyList()
+        return cachedLocalVoices
+            .filter { voice -> voice.locale.language == locale.language }
             .sortedWith(
                 compareByDescending<Voice> { it.locale.toLanguageTag() == locale.toLanguageTag() }
                     .thenByDescending { it.quality },
