@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.os.Build
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
@@ -56,6 +57,43 @@ internal fun filterLocalVoices(voices: Collection<Voice>?): List<Voice> =
             !voice.features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED)
     }
 
+/** Regional default per UI language; mirrors REGION_DEFAULTS in frontend/src/lib/speech.ts. */
+private val REGION_DEFAULTS = mapOf(
+    "en" to "en-US",
+    "es" to "es-ES",
+    "pt" to "pt-BR",
+    "fr" to "fr-FR",
+    "de" to "de-DE",
+    "ar" to "ar-SA",
+    "ko" to "ko-KR",
+    "hi" to "hi-IN",
+    "ru" to "ru-RU",
+    "it" to "it-IT",
+    "zh" to "zh-CN",
+)
+
+/**
+ * Orders offline [voices] of [languageTag]'s language, best first. Same preference as the web
+ * `findLocalVoice`: exact tag, then the language's regional default (e.g. zh-CN), then any
+ * other voice of the language; engine-reported quality breaks ties within a tier.
+ */
+internal fun rankLocalVoices(voices: Collection<Voice>, languageTag: String): List<Voice> {
+    val locale = Locale.forLanguageTag(languageTag)
+    val wantedTag = locale.toLanguageTag()
+    val regionDefault = REGION_DEFAULTS[locale.language]
+    fun tier(voice: Voice): Int {
+        val tag = voice.locale.toLanguageTag()
+        return when {
+            tag.equals(wantedTag, ignoreCase = true) -> 0
+            regionDefault != null && tag.equals(regionDefault, ignoreCase = true) -> 1
+            else -> 2
+        }
+    }
+    return voices
+        .filter { it.locale.language == locale.language }
+        .sortedWith(compareBy<Voice> { tier(it) }.thenByDescending { it.quality })
+}
+
 /** Platform [TextToSpeech] implementation; a process-wide singleton (see SpeechModule). */
 @Singleton
 class AndroidSpeechEngine @Inject constructor(
@@ -77,6 +115,8 @@ class AndroidSpeechEngine @Inject constructor(
     /**
      * Offline voices, fetched once after init: `TextToSpeech.getVoices()` is a binder call and
      * must not run on every recomposition / telemetry recompute on the main thread.
+     * Voices (or language data) installed mid-session are only picked up after a process
+     * restart; accepted for v1.
      */
     @Volatile private var cachedLocalVoices: List<Voice> = emptyList()
 
@@ -88,18 +128,56 @@ class AndroidSpeechEngine @Inject constructor(
     @Volatile private var lastUtteranceId: String? = null
 
     private val speechAttributes: AudioAttributes = AudioAttributes.Builder()
-        .setUsage(AudioAttributes.USAGE_ASSISTANT)
+        // USAGE_ASSISTANT is API 26; minSdk is 24.
+        .setUsage(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                AudioAttributes.USAGE_ASSISTANT
+            } else {
+                AudioAttributes.USAGE_MEDIA
+            },
+        )
         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
         .build()
 
     private val audioManager: AudioManager?
         get() = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
 
-    private val focusRequest: AudioFocusRequest =
+    private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { change ->
+        onAudioFocusChange(change)
+    }
+
+    /** API 26+ focus request; lazy so API 24-25 never load [AudioFocusRequest]. */
+    private val focusRequest: AudioFocusRequest by lazy {
         AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(speechAttributes)
-            .setOnAudioFocusChangeListener { change -> onAudioFocusChange(change) }
+            .setOnAudioFocusChangeListener(focusChangeListener)
             .build()
+    }
+
+    private fun requestFocus(): Boolean {
+        val am = audioManager ?: return false
+        val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            am.requestAudioFocus(focusRequest)
+        } else {
+            @Suppress("DEPRECATION")
+            am.requestAudioFocus(
+                focusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
+            )
+        }
+        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    }
+
+    private fun abandonFocus() {
+        val am = audioManager ?: return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            am.abandonAudioFocusRequest(focusRequest)
+        } else {
+            @Suppress("DEPRECATION")
+            am.abandonAudioFocus(focusChangeListener)
+        }
+    }
 
     /** A call, alarm or another media app took focus: stop (never talk over it). */
     internal fun onAudioFocusChange(change: Int) {
@@ -159,12 +237,7 @@ class AndroidSpeechEngine @Inject constructor(
             engine.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE
         }
         if (!available) return emptyList()
-        return cachedLocalVoices
-            .filter { voice -> voice.locale.language == locale.language }
-            .sortedWith(
-                compareByDescending<Voice> { it.locale.toLanguageTag() == locale.toLanguageTag() }
-                    .thenByDescending { it.quality },
-            )
+        return rankLocalVoices(cachedLocalVoices, languageTag)
     }
 
     override fun hasLocalVoice(languageTag: String): Boolean = localVoices(languageTag).isNotEmpty()
@@ -176,9 +249,7 @@ class AndroidSpeechEngine @Inject constructor(
 
         // Replace whatever is speaking, then take (transient, ducking) audio focus.
         stop()
-        val granted = audioManager?.requestAudioFocus(focusRequest) ==
-            AudioManager.AUDIOFOCUS_REQUEST_GRANTED
-        if (!granted) return false
+        if (!requestFocus()) return false
 
         val myToken = ++token
         engine.voice = voice
@@ -205,6 +276,6 @@ class AndroidSpeechEngine @Inject constructor(
 
     private fun finish() {
         _speakingId.value = null
-        audioManager?.abandonAudioFocusRequest(focusRequest)
+        abandonFocus()
     }
 }
