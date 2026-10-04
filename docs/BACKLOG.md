@@ -2,7 +2,9 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-04 (BITB-119 in progress — read-aloud spec + plan agreed; BITB-175/176 opened — localized What's New, background read-aloud; BITB-174 opened — Android tablet chat bubbles hard-capped at 320dp; adaptive width fix; BITB-173 done — runtime fallback chain rebuilt with
+**Last Updated:** 2026-10-04 (BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+What's New, background read-aloud; BITB-167 in progress — `parseVerseLink` splits on
+`VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
 chain never once fired and agents died on primary 503s), broken
@@ -234,12 +236,13 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🚧 BITB-174: Android Tablet — Chat Messages Don't Fill the Available Width
+### ✅ BITB-174: Android Tablet — Chat Messages Don't Fill the Available Width
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1129 merged 2026-10-04)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-03
+**Completed:** 2026-10-04
 
 Bug: on tablets (portrait and landscape) chat bubbles are hard-capped at 320dp
 (`ChatMessageItem.kt`), so the conversation sits in a narrow strip. Fix: adaptive
@@ -247,12 +250,12 @@ bubble width (~85% of available, min 320dp, max 840dp).
 
 **Acceptance Criteria (summary):**
 
-- [ ] Bubble width derived from available width via a tested pure function
-- [ ] Phones unchanged; tablet portrait wider; tablet landscape capped at 840dp
-- [ ] Unit + Robolectric Compose tests at tablet qualifiers
-- [ ] PR merged
+- [x] Bubble width derived from available width via a tested pure function
+- [x] Phones unchanged; tablet portrait wider; tablet landscape capped at 840dp
+- [x] Unit + Robolectric Compose tests at tablet qualifiers
+- [x] PR merged
 
-Full story: [`BITB-174-android-tablet-chat-width.md`](BACKLOG_STORIES/BITB-174-android-tablet-chat-width.md)
+Full story: [`BITB-174-android-tablet-chat-width.md`](DONE/BITB-174-android-tablet-chat-width.md)
 
 ---
 
@@ -4575,9 +4578,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
+### 🚧 BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR pending, 2026-10-04)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30
