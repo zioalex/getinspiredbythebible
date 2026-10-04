@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-04 (BITB-119 in progress — read-aloud spec + plan agreed; BITB-174 opened — Android tablet chat bubbles hard-capped at 320dp; adaptive width fix; BITB-173 done — runtime fallback chain rebuilt with
+**Last Updated:** 2026-10-04 (BITB-119 in progress — read-aloud spec + plan agreed; BITB-175/176 opened — localized What's New, background read-aloud; BITB-174 opened — Android tablet chat bubbles hard-capped at 320dp; adaptive width fix; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
 chain never once fired and agents died on primary 503s), broken
@@ -3110,6 +3110,46 @@ BITB-059/108/113/114 family for what the alternative looks like).
 - [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, tests, changelog
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-119-read-aloud-assistant-responses.md`
+
+---
+
+### 🎯 BITB-175: Localized What's New / Changelog Entries (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
+
+What's New on both platforms is derived from the English, release-please-generated `CHANGELOG.md`,
+so non-English users read English release notes (surfaced by BITB-119). Add a per-locale
+release-notes source with English fallback.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Localized notes for all 11 locales keyed by version; English fallback
+- [ ] Web + Android pick the UI locale's entry; tests for selection and fallback
+- [ ] Release process documented without breaking release-please
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-175-localized-whats-new.md`
+
+---
+
+### 🎯 BITB-176: Read Aloud — Keep Playing with the Screen Off (Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
+
+BITB-119 v1 stops playback when the app is backgrounded or the screen turns off. Add a
+foreground media-playback service with a Stop notification, gated on listen-rate telemetry.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Continues with screen off; notification Stop action; focus loss / new answer stop it
+- [ ] Foreground-service Play declaration reviewed; Robolectric + device tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-176-read-aloud-background-playback.md`
 
 ---
 

@@ -141,6 +141,9 @@ analysis below disagree, **this section wins**.
 
 ### Out of scope
 
+- Playback with the screen off / app in background (stops on `ON_STOP` by design) — BITB-176.
+- Localized What's New text: v1 ships the English release-please entry only (decided 2026-10-04) — BITB-175.
+
 - Cloud/neural TTS, a speech endpoint, server-side audio (Option 2 — separate story).
 - Pause/resume, speed/pitch/voice pickers, highlighting the word being read, auto-read on arrival.
 - Prompting Android users to install TTS language data (`ACTION_INSTALL_TTS_DATA`).
@@ -480,7 +483,7 @@ What ongoing cost this adds *after* it ships, assuming Option 1:
 
 ## Verification
 
-The headline demo is one tap on a real phone with the display off. The criteria that actually
+The headline demo is one tap on a real phone with the app in the foreground (v1 stops on screen-off / background by design — FR4; background playback is BITB-176). The criteria that actually
 protect users are the unglamorous ones: that the control is *absent* where no voice exists, that a
 second tap doesn't produce two overlapping voices, and that navigating away leaves silence rather
 than a disembodied reading. Test those on hardware, not in an emulator.
