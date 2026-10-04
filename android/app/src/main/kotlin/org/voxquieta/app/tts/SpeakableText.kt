@@ -172,8 +172,8 @@ private val IMAGE_REGEX = Regex("""!\[([^\]]*)\]\([^)]*\)""")
 private val LINK_REGEX = Regex("""\[([^\]]*)\]\([^)]*\)""")
 // Leading blanks are consumed; trailing sentence punctuation / closing paren is left in place.
 // URL characters are printable ASCII only (CJK has no spaces); parens only when balanced.
-private val URL_REGEX = Regex("""[ \t]*https?://(?:[!-'*-~]|\([!-'*-~]*\))*(?<![.,;:!?])""")
-private val EMPTY_PARENS_REGEX = Regex("""[ \t]*(?:\(\)|（）)""")
+private val URL_REGEX = Regex("""(?<![ \t])[ \t]*https?://[!-'*-~]*(?:\([!-'*-~]*\)[!-'*-~]*)*(?<![.,;:!?])""")
+private val EMPTY_PARENS_REGEX = Regex("""(?<![ \t])[ \t]*(?:\(\)|（）)""")
 private val ANGLE_GUILLEMET_REGEX = Regex("""<<\s*([^<>]*?)\s*>>""")
 private val CJK_GUILLEMET_REGEX = Regex("""《\s*([^《》]*?)\s*》""")
 private val HORIZONTAL_RULE_REGEX = Regex("""^\s*([-*_]\s*){3,}$""")

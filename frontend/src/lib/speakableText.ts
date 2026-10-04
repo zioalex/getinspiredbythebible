@@ -139,10 +139,10 @@ export function normalizeForSpeech(markdown: string, locale: string): string {
   // URL characters are printable ASCII only (CJK text has no spaces, so \S would swallow the
   // sentence); parentheses are kept only when balanced, e.g. Wikipedia ".../Foo_(bar)".
   text = text.replace(
-    /[ \t]*https?:\/\/(?:[!-'*-~]|\([!-'*-~]*\))*(?<![.,;:!?])/g,
+    /(?<![ \t])[ \t]*https?:\/\/[!-'*-~]*(?:\([!-'*-~]*\)[!-'*-~]*)*(?<![.,;:!?])/g,
     "",
   );
-  text = text.replace(/[ \t]*(?:\(\)|（）)/g, "");
+  text = text.replace(/(?<![ \t])[ \t]*(?:\(\)|（）)/g, "");
 
   // Guillemets around a book name: <<Book>> / 《Book》 -> Book.
   text = text.replace(/<<\s*([^<>]*?)\s*>>/g, "$1");
