@@ -1,9 +1,11 @@
 # BITB-174: Android Tablet — Chat Messages Don't Fill the Available Width
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-03
+**Completed:** 2026-10-04
+**PR:** #1129
 **Type:** Bug (Android)
 
 ## User Story
@@ -54,18 +56,18 @@ than the old 320dp (so phones look unchanged), and never more than a readable
 
 ## Acceptance Criteria
 
-- [ ] Bubble max width is computed from the available width by a pure function
+- [x] Bubble max width is computed from the available width by a pure function
       (`bubbleMaxWidth(available: Dp): Dp`) — no hardcoded 320dp cap
-- [ ] Phone widths (≤ ~411dp) render as before (max = 320dp, or the available
+- [x] Phone widths (≤ ~411dp) render as before (max = 320dp, or the available
       width if narrower)
-- [ ] Tablet portrait (e.g. 800dp) bubbles are wider than 320dp
-- [ ] Tablet landscape (e.g. 1280dp) bubbles are capped at 840dp
-- [ ] JVM unit tests cover the function across phone / tablet portrait / tablet
+- [x] Tablet portrait (e.g. 800dp) bubbles are wider than 320dp
+- [x] Tablet landscape (e.g. 1280dp) bubbles are capped at 840dp
+- [x] JVM unit tests cover the function across phone / tablet portrait / tablet
       landscape / narrow edge cases
-- [ ] Robolectric Compose test at tablet qualifiers proves a long message bubble (user message — same capped bubble Column, avoids mounting Markwon under Robolectric)
+- [x] Robolectric Compose test at tablet qualifiers proves a long message bubble (user message — same capped bubble Column, avoids mounting Markwon under Robolectric)
       renders wider than 320dp
-- [ ] Android unit tests, Compose tests and lint pass
-- [ ] PR merged
+- [x] Android unit tests, Compose tests and lint pass
+- [x] PR merged
 
 ## Out of Scope
 
