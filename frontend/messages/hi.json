@@ -144,7 +144,10 @@
     "mainMenuLabel": "मेनू",
     "changeLanguage": "भाषा बदलें",
     "changeBibleVersion": "बाइबिल संस्करण बदलें",
-    "searchCommunity": "एक समुदाय खोजें"
+    "searchCommunity": "एक समुदाय खोजें",
+    "listenAnswer": "उत्तर सुनें",
+    "stopListening": "सुनना बंद करें",
+    "showListenButton": "सुनें बटन दिखाएँ"
   },
   "Verses": {
     "scriptureReferences": "पवित्रशास्त्र संदर्भ",

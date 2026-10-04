@@ -144,7 +144,10 @@
     "mainMenuLabel": "Menü",
     "changeLanguage": "Sprache ändern",
     "changeBibleVersion": "Bibelversion ändern",
-    "searchCommunity": "Gemeinschaft suchen"
+    "searchCommunity": "Gemeinschaft suchen",
+    "listenAnswer": "Antwort anhören",
+    "stopListening": "Wiedergabe beenden",
+    "showListenButton": "Schaltfläche „Anhören“ anzeigen"
   },
   "Verses": {
     "scriptureReferences": "Bibelstellen",
