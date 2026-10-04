@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-03 (BITB-174 opened — Android tablet chat bubbles hard-capped at 320dp; adaptive width fix; BITB-173 done — runtime fallback chain rebuilt with
+**Last Updated:** 2026-10-04 (BITB-119 in progress — read-aloud spec + plan agreed; BITB-174 opened — Android tablet chat bubbles hard-capped at 320dp; adaptive width fix; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
 chain never once fired and agents died on primary 503s), broken
@@ -3075,9 +3075,11 @@ Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](DONE/BITB-129-rig
 
 ---
 
-### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+### 🚧 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (spec + plan agreed 2026-10-04: on-device voices only, localized verse
+speech, Listen ↔ Stop, enabled by default, user "Show Listen button" option, web telemetry via
+`POST /api/v1/client-events`)
 **Priority:** P2
 **Size:** L (M per platform + a shared text-normalization layer)
 **Created:** 2026-09-04
