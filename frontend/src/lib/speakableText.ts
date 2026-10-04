@@ -70,7 +70,7 @@ export const VERSE_SPEECH_TEMPLATES: Record<string, VerseSpeechTemplate> = {
   },
   ko: {
     verse: "{book} {c}장 {v}절",
-    range: "{book} {c}장 {v}절에서 {e}절",
+    range: "{book} {c}장 {v}절부터 {e}절까지",
   },
 };
 
@@ -135,7 +135,9 @@ export function normalizeForSpeech(markdown: string, locale: string): string {
   // Markdown images -> alt text; links -> link text; bare URLs removed.
   text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1");
   text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
-  text = text.replace(/https?:\/\/\S+/g, "");
+  // Leading blanks go with the URL; trailing sentence punctuation / ")" stays in place.
+  text = text.replace(/[ \t]*https?:\/\/\S*[^\s.,;:!?)]/g, "");
+  text = text.replace(/[ \t]*\(\)/g, "");
 
   // Guillemets around a book name: <<Book>> / 《Book》 -> Book.
   text = text.replace(/<<\s*([^<>]*?)\s*>>/g, "$1");

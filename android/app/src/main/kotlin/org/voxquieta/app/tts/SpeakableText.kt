@@ -69,7 +69,7 @@ internal val VERSE_SPEECH_TEMPLATES: Map<String, VerseSpeechTemplate> = mapOf(
     ),
     "ko" to VerseSpeechTemplate(
         "{book} {c}장 {v}절",
-        "{book} {c}장 {v}절에서 {e}절",
+        "{book} {c}장 {v}절부터 {e}절까지",
     ),
 )
 
@@ -170,7 +170,9 @@ private fun speakVerseReferences(
 
 private val IMAGE_REGEX = Regex("""!\[([^\]]*)\]\([^)]*\)""")
 private val LINK_REGEX = Regex("""\[([^\]]*)\]\([^)]*\)""")
-private val URL_REGEX = Regex("""https?://[^\s 　]+""")
+// Leading blanks are consumed; trailing sentence punctuation / closing paren is left in place.
+private val URL_REGEX = Regex("""[ \t]*https?://[^\s 　]*[^\s 　.,;:!?)]""")
+private val EMPTY_PARENS_REGEX = Regex("""[ \t]*\(\)""")
 private val ANGLE_GUILLEMET_REGEX = Regex("""<<\s*([^<>]*?)\s*>>""")
 private val CJK_GUILLEMET_REGEX = Regex("""《\s*([^《》]*?)\s*》""")
 private val HORIZONTAL_RULE_REGEX = Regex("""^\s*([-*_]\s*){3,}$""")
@@ -201,6 +203,7 @@ internal fun normalizeForSpeech(
     text = IMAGE_REGEX.replace(text, "$1")
     text = LINK_REGEX.replace(text, "$1")
     text = URL_REGEX.replace(text, "")
+    text = EMPTY_PARENS_REGEX.replace(text, "")
 
     // Guillemets around a book name: <<Book>> / 《Book》 -> Book.
     text = ANGLE_GUILLEMET_REGEX.replace(text, "$1")

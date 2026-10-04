@@ -44,7 +44,7 @@
     },
     "ko": {
       "verse": "{book} {c}장 {v}절",
-      "range": "{book} {c}장 {v}절에서 {e}절"
+      "range": "{book} {c}장 {v}절부터 {e}절까지"
     }
   },
   "normalize_cases": [
@@ -242,7 +242,7 @@
       "language": "ko",
       "input": "우리가 로마서 8:28-30에 나오듯이, 사랑에 대한 말씀입니다.",
       "origin": "verse range spoken with the locale range template",
-      "expected": "우리가 로마서 8장 28절에서 30절에 나오듯이, 사랑에 대한 말씀입니다.",
+      "expected": "우리가 로마서 8장 28절부터 30절까지에 나오듯이, 사랑에 대한 말씀입니다.",
       "skip": [],
       "skipReason": ""
     },
@@ -297,6 +297,24 @@
       "input": "Visit https://example.com/path?q=1 for details.",
       "origin": "bare URL removed",
       "expected": "Visit for details.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "bare_url_trailing_punct_en",
+      "language": "en",
+      "input": "Please (see https://x.com/a). Then pray: https://y.org/b, amen!",
+      "origin": "URL removed alone: trailing paren, period, colon and comma stay",
+      "expected": "Please (see). Then pray:, amen!",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "bare_url_only_parens_en",
+      "language": "en",
+      "input": "Read this (https://x.com/a). Then pray.",
+      "origin": "parentheses emptied by URL removal disappear",
+      "expected": "Read this. Then pray.",
       "skip": [],
       "skipReason": ""
     },
