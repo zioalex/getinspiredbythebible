@@ -3077,7 +3077,7 @@ Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](DONE/BITB-129-rig
 
 ### 🚧 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
-**Status:** 🚧 In Progress (spec + plan agreed 2026-10-04: on-device voices only, localized verse
+**Status:** 🚧 In Review — PR #1132 (spec + plan agreed 2026-10-04: on-device voices only, localized verse
 speech, Listen ↔ Stop, enabled by default, user "Show Listen button" option, web telemetry via
 `POST /api/v1/client-events`)
 **Priority:** P2

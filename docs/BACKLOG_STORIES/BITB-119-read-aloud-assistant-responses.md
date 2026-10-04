@@ -1,6 +1,6 @@
 # BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
-**Status:** 🚧 In Progress
+**Status:** 🚧 In Review — PR #1132
 **Priority:** P2 — new capability, not a defect; sequence after the cost decision below is made
 **Size:** L (M per platform + a shared text-normalization layer; see Cost of Implementation)
 **Created:** 2026-09-04
