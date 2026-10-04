@@ -413,6 +413,12 @@ variable "content_safety_enabled" {
   default     = true
 }
 
+variable "tts_enabled" {
+  description = "Show the on-device Listen (read aloud) button in web and Android clients (BITB-119)"
+  type        = bool
+  default     = true
+}
+
 variable "content_safety_mode" {
   description = "Content safety pipeline mode: keyword_only (fast, no external call), ml_only (keyword + Llama Guard ~270ms), hybrid (keyword + Llama Guard + Azure Content Safety)"
   type        = string

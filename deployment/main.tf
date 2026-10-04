@@ -86,6 +86,9 @@ locals {
       "CONTENT_SAFETY_MODE" = {
         value = var.content_safety_mode
       }
+      "TTS_ENABLED" = {
+        value = tostring(var.tts_enabled)
+      }
       "CORS_ORIGINS" = {
         value = local.cors_origins_value
       }
