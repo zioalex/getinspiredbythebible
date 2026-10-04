@@ -1,0 +1,617 @@
+{
+  "description": "BITB-119 speakable-text rules: normalization + chunking, shared by web and Android",
+  "maxChunkChars": 200,
+  "verseTemplates": {
+    "en": {
+      "verse": "{book} chapter {c}, verse {v}",
+      "range": "{book} chapter {c}, verses {v} to {e}"
+    },
+    "it": {
+      "verse": "{book} capitolo {c}, versetto {v}",
+      "range": "{book} capitolo {c}, versetti da {v} a {e}"
+    },
+    "de": {
+      "verse": "{book} Kapitel {c}, Vers {v}",
+      "range": "{book} Kapitel {c}, Verse {v} bis {e}"
+    },
+    "es": {
+      "verse": "{book} capítulo {c}, versículo {v}",
+      "range": "{book} capítulo {c}, versículos {v} al {e}"
+    },
+    "fr": {
+      "verse": "{book} chapitre {c}, verset {v}",
+      "range": "{book} chapitre {c}, versets {v} à {e}"
+    },
+    "pt": {
+      "verse": "{book} capítulo {c}, versículo {v}",
+      "range": "{book} capítulo {c}, versículos {v} a {e}"
+    },
+    "ar": {
+      "verse": "{book} الإصحاح {c}، الآية {v}",
+      "range": "{book} الإصحاح {c}، الآيات {v} إلى {e}"
+    },
+    "ru": {
+      "verse": "{book}, глава {c}, стих {v}",
+      "range": "{book}, глава {c}, стихи с {v} по {e}"
+    },
+    "zh": {
+      "verse": "{book}第{c}章第{v}节",
+      "range": "{book}第{c}章第{v}至{e}节"
+    },
+    "hi": {
+      "verse": "{book} अध्याय {c}, पद {v}",
+      "range": "{book} अध्याय {c}, पद {v} से {e}"
+    },
+    "ko": {
+      "verse": "{book} {c}장 {v}절",
+      "range": "{book} {c}장 {v}절에서 {e}절"
+    }
+  },
+  "normalize_cases": [
+    {
+      "id": "verse_en",
+      "language": "en",
+      "input": "As we read in John 3:16 it speaks of love.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "As we read in John chapter 3, verse 16 it speaks of love.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_en",
+      "language": "en",
+      "input": "As we read in Romans 8:28-30 it speaks of love.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "As we read in Romans chapter 8, verses 28 to 30 it speaks of love.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_it",
+      "language": "it",
+      "input": "Come leggiamo in Giovanni 3:16 si parla d'amore.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "Come leggiamo in Giovanni capitolo 3, versetto 16 si parla d'amore.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_it",
+      "language": "it",
+      "input": "Come leggiamo in Romani 8:28-30 si parla d'amore.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "Come leggiamo in Romani capitolo 8, versetti da 28 a 30 si parla d'amore.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_de",
+      "language": "de",
+      "input": "Wie wir in Johannes 3,16 lesen, geht es um Liebe.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "Wie wir in Johannes Kapitel 3, Vers 16 lesen, geht es um Liebe.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_de",
+      "language": "de",
+      "input": "Wie wir in Römer 8,28-30 lesen, geht es um Liebe.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "Wie wir in Römer Kapitel 8, Verse 28 bis 30 lesen, geht es um Liebe.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_es",
+      "language": "es",
+      "input": "Como leemos en Juan 3:16 se habla de amor.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "Como leemos en Juan capítulo 3, versículo 16 se habla de amor.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_es",
+      "language": "es",
+      "input": "Como leemos en Romanos 8:28-30 se habla de amor.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "Como leemos en Romanos capítulo 8, versículos 28 al 30 se habla de amor.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_fr",
+      "language": "fr",
+      "input": "Comme nous le lisons dans Jean 3:16 il est question d'amour.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "Comme nous le lisons dans Jean chapitre 3, verset 16 il est question d'amour.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_fr",
+      "language": "fr",
+      "input": "Comme nous le lisons dans Romains 8:28-30 il est question d'amour.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "Comme nous le lisons dans Romains chapitre 8, versets 28 à 30 il est question d'amour.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_pt",
+      "language": "pt",
+      "input": "Como lemos em João 3:16 fala-se de amor.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "Como lemos em João capítulo 3, versículo 16 fala-se de amor.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_pt",
+      "language": "pt",
+      "input": "Como lemos em Romanos 8:28-30 fala-se de amor.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "Como lemos em Romanos capítulo 8, versículos 28 a 30 fala-se de amor.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_ar",
+      "language": "ar",
+      "input": "كما نقرأ في يوحنا 3:16 يتحدث عن المحبة.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "كما نقرأ في يوحنا الإصحاح 3، الآية 16 يتحدث عن المحبة.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_ar",
+      "language": "ar",
+      "input": "كما نقرأ في رومية 8:28-30 يتحدث عن المحبة.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "كما نقرأ في رومية الإصحاح 8، الآيات 28 إلى 30 يتحدث عن المحبة.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_ru",
+      "language": "ru",
+      "input": "Как мы читаем в Иоанна 3:16 говорится о любви.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "Как мы читаем в Иоанна, глава 3, стих 16 говорится о любви.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_ru",
+      "language": "ru",
+      "input": "Как мы читаем в Римлянам 8:28-30 говорится о любви.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "Как мы читаем в Римлянам, глава 8, стихи с 28 по 30 говорится о любви.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_zh",
+      "language": "zh",
+      "input": "正如我们在约翰福音 3:16中所读，说的是爱。",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "正如我们在约翰福音第3章第16节中所读，说的是爱。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_zh",
+      "language": "zh",
+      "input": "正如我们在罗马书 8:28-30中所读，说的是爱。",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "正如我们在罗马书第8章第28至30节中所读，说的是爱。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_hi",
+      "language": "hi",
+      "input": "जैसा कि हम यूहन्ना 3:16 में पढ़ते हैं, यह प्रेम के बारे में है।",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "जैसा कि हम यूहन्ना अध्याय 3, पद 16 में पढ़ते हैं, यह प्रेम के बारे में है।",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_hi",
+      "language": "hi",
+      "input": "जैसा कि हम रोमियों 8:28-30 में पढ़ते हैं, यह प्रेम के बारे में है।",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "जैसा कि हम रोमियों अध्याय 8, पद 28 से 30 में पढ़ते हैं, यह प्रेम के बारे में है।",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verse_ko",
+      "language": "ko",
+      "input": "우리가 요한복음 3:16에 나오듯이, 사랑에 대한 말씀입니다.",
+      "origin": "single verse reference spoken with the locale template",
+      "expected": "우리가 요한복음 3장 16절에 나오듯이, 사랑에 대한 말씀입니다.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_ko",
+      "language": "ko",
+      "input": "우리가 로마서 8:28-30에 나오듯이, 사랑에 대한 말씀입니다.",
+      "origin": "verse range spoken with the locale range template",
+      "expected": "우리가 로마서 8장 28절에서 30절에 나오듯이, 사랑에 대한 말씀입니다.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "bold_reference_en",
+      "language": "en",
+      "input": "Read **John 3:16** today.",
+      "origin": "emphasis markers removed before the verse is spoken",
+      "expected": "Read John chapter 3, verse 16 today.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "parenthesized_en",
+      "language": "en",
+      "input": "God so loved the world (John 3:16).",
+      "origin": "parenthesized citation keeps its brackets",
+      "expected": "God so loved the world (John chapter 3, verse 16).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "bracketed_it",
+      "language": "it",
+      "input": "Il Signore è il mio pastore [Salmi 23:1].",
+      "origin": "bracketed citation",
+      "expected": "Il Signore è il mio pastore [Salmi capitolo 23, versetto 1].",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "link_with_verse_text_en",
+      "language": "en",
+      "input": "See [John 3:16](verse://John/3/16) for more.",
+      "origin": "markdown link keeps its text, which is then spoken as a verse",
+      "expected": "See John chapter 3, verse 16 for more.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "link_external_en",
+      "language": "en",
+      "input": "Read more at [the Vatican site](https://www.vatican.va/archive) today.",
+      "origin": "external link keeps only its text",
+      "expected": "Read more at the Vatican site today.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "bare_url_en",
+      "language": "en",
+      "input": "Visit https://example.com/path?q=1 for details.",
+      "origin": "bare URL removed",
+      "expected": "Visit for details.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "guillemet_angle_en",
+      "language": "en",
+      "input": "See <<John>> 3:16 now.",
+      "origin": "angle guillemets stripped",
+      "expected": "See John chapter 3, verse 16 now.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "guillemet_cjk_zh",
+      "language": "zh",
+      "input": "请阅读《约翰福音》3:16。",
+      "origin": "CJK guillemets stripped around the book name",
+      "expected": "请阅读约翰福音第3章第16节。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "german_comma_de",
+      "language": "de",
+      "input": "Siehe Römer 13,1 und Johannes 3,16.",
+      "origin": "German comma chapter/verse separator",
+      "expected": "Siehe Römer Kapitel 13, Vers 1 und Johannes Kapitel 3, Vers 16.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "numbered_book_en",
+      "language": "en",
+      "input": "Love is patient (1 Corinthians 13:4).",
+      "origin": "numbered book",
+      "expected": "Love is patient (1 Corinthians chapter 13, verse 4).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "numbered_book_de",
+      "language": "de",
+      "input": "Lies 1. Mose 1:1 noch einmal.",
+      "origin": "German dotted numbered book",
+      "expected": "Lies 1. Mose Kapitel 1, Vers 1 noch einmal.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "range_en_dash_en",
+      "language": "en",
+      "input": "Read John 3:16–18 slowly.",
+      "origin": "en-dash range separator",
+      "expected": "Read John chapter 3, verses 16 to 18 slowly.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_parenthesis_zh",
+      "language": "zh",
+      "input": "神爱世人（约翰福音3:16）。",
+      "origin": "fullwidth parentheses, no space before chapter",
+      "expected": "神爱世人（约翰福音第3章第16节）。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "rtl_arabic_parenthesized",
+      "language": "ar",
+      "input": "لأنه هكذا أحب الله العالم (يوحنا 3:16).",
+      "origin": "RTL Arabic parenthesized citation",
+      "expected": "لأنه هكذا أحب الله العالم (يوحنا الإصحاح 3، الآية 16).",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "devanagari_digits_hi",
+      "language": "hi",
+      "input": "देखें यूहन्ना ३:१६ आज।",
+      "origin": "Devanagari digits normalized to ASCII",
+      "expected": "देखें यूहन्ना अध्याय 3, पद 16 आज।",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "eastern_arabic_digits_ar",
+      "language": "ar",
+      "input": "اقرأ يوحنا ٣:١٦ اليوم.",
+      "origin": "Eastern Arabic digits normalized to ASCII",
+      "expected": "اقرأ يوحنا الإصحاح 3، الآية 16 اليوم.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "traditional_chinese_zh",
+      "language": "zh",
+      "input": "請讀約翰福音3:16。",
+      "origin": "Traditional-script book name recognised, text kept as written",
+      "expected": "請讀約翰福音第3章第16节。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "chapter_only_en",
+      "language": "en",
+      "input": "Psalm 23 is comforting.",
+      "origin": "chapter-only references are left as written",
+      "expected": "Psalm 23 is comforting.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "not_a_book_en",
+      "language": "en",
+      "input": "We meet at 10:30 on Sunday.",
+      "origin": "clock time is not a verse reference",
+      "expected": "We meet at 10:30 on Sunday.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "multi_word_book_ru",
+      "language": "ru",
+      "input": "Читайте Плач Иеремии 3:22 сегодня.",
+      "origin": "multi-word Russian book name",
+      "expected": "Читайте Плач Иеремии, глава 3, стих 22 сегодня.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "multi_word_book_en",
+      "language": "en",
+      "input": "Song of Solomon 2:1 is poetry.",
+      "origin": "connector-word book name",
+      "expected": "Song of Solomon chapter 2, verse 1 is poetry.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "heading_list_quote_en",
+      "language": "en",
+      "input": "# Peace\n\n> A quiet voice\n\n- first point\n* second point\n+ third point\n1. numbered point\n\n---\n\nDone.",
+      "origin": "heading, blockquote, bullets and rules stripped; numbered list numbers kept",
+      "expected": "Peace\nA quiet voice\nfirst point\nsecond point\nthird point\n1. numbered point\nDone.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "inline_code_and_strike_en",
+      "language": "en",
+      "input": "Use `code` and ~~gone~~ and __bold__ and _italic_ text.",
+      "origin": "code/strike/underscore emphasis markers removed",
+      "expected": "Use code and gone and bold and italic text.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "snake_case_underscore_en",
+      "language": "en",
+      "input": "The file_name stays intact.",
+      "origin": "intra-word underscores are kept",
+      "expected": "The file_name stays intact.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "emoji_untouched_en",
+      "language": "en",
+      "input": "Blessings 🙏 to you 😊",
+      "origin": "emoji left untouched",
+      "expected": "Blessings 🙏 to you 😊",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "whitespace_collapse_en",
+      "language": "en",
+      "input": "One   two\t\tthree\n\n\n\nfour   ",
+      "origin": "whitespace collapsed, blank lines become sentence breaks",
+      "expected": "One two three\nfour",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "empty_en",
+      "language": "en",
+      "input": "   \n\n  ",
+      "origin": "whitespace-only input yields empty text",
+      "expected": "",
+      "skip": [],
+      "skipReason": ""
+    }
+  ],
+  "chunk_cases": [
+    {
+      "id": "short_en",
+      "language": "en",
+      "input": "Peace be with you.",
+      "expected": [
+        "Peace be with you."
+      ]
+    },
+    {
+      "id": "multi_sentence_pack_en",
+      "language": "en",
+      "input": "First sentence here. First sentence here. First sentence here. First sentence here. First sentence here. First sentence here. Second sentence follows right now! Second sentence follows right now! Second sentence follows right now! Second sentence follows right now! And a question comes last?",
+      "expected": [
+        "First sentence here. First sentence here. First sentence here. First sentence here. First sentence here. First sentence here. Second sentence follows right now! Second sentence follows right now!",
+        "Second sentence follows right now! Second sentence follows right now! And a question comes last?"
+      ]
+    },
+    {
+      "id": "newline_boundary_en",
+      "language": "en",
+      "input": "Line one without period\nLine two without period",
+      "expected": [
+        "Line one without period",
+        "Line two without period"
+      ]
+    },
+    {
+      "id": "hard_split_en",
+      "language": "en",
+      "input": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word.",
+      "expected": [
+        "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word",
+        "word word word word word word word word word word word word word word word word word word word word."
+      ]
+    },
+    {
+      "id": "hard_split_no_space_en",
+      "language": "en",
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ]
+    },
+    {
+      "id": "decimal_not_boundary_en",
+      "language": "en",
+      "input": "The value 1.5 is fine. Another one.",
+      "expected": [
+        "The value 1.5 is fine. Another one."
+      ]
+    },
+    {
+      "id": "cjk_sentences_zh",
+      "language": "zh",
+      "input": "神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。这是最后一句！",
+      "expected": [
+        "神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。神爱世人。这是最后一句！"
+      ]
+    },
+    {
+      "id": "cjk_hard_split_zh",
+      "language": "zh",
+      "input": "神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神",
+      "expected": [
+        "神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神",
+        "神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神",
+        "神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神神"
+      ]
+    },
+    {
+      "id": "devanagari_danda_hi",
+      "language": "hi",
+      "input": "ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। यह अंतिम वाक्य है।",
+      "expected": [
+        "ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है।",
+        "ईश्वर प्रेम है। ईश्वर प्रेम है। ईश्वर प्रेम है। यह अंतिम वाक्य है।"
+      ]
+    },
+    {
+      "id": "arabic_question_ar",
+      "language": "ar",
+      "input": "هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ نعم.",
+      "expected": [
+        "هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ هل تحب الله؟",
+        "هل تحب الله؟ هل تحب الله؟ هل تحب الله؟ نعم."
+      ]
+    },
+    {
+      "id": "korean_en_sentences_ko",
+      "language": "ko",
+      "input": "하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 끝.",
+      "expected": [
+        "하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 하나님은 사랑이십니다. 끝."
+      ]
+    },
+    {
+      "id": "surrogate_pair_en",
+      "language": "en",
+      "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx😊 tail",
+      "expected": [
+        "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "😊 tail"
+      ]
+    },
+    {
+      "id": "lines_are_boundaries_en",
+      "language": "en",
+      "input": "Heading line\nList item one. Still item one.\nList item two",
+      "expected": [
+        "Heading line",
+        "List item one. Still item one.",
+        "List item two"
+      ]
+    },
+    {
+      "id": "empty_en",
+      "language": "en",
+      "input": "",
+      "expected": []
+    }
+  ]
+}
