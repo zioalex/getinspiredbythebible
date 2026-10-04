@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from main import _normalize_client_event_locale, app  # noqa: E402
-
 from utils.security import require_rate_limit  # noqa: E402
 
 
