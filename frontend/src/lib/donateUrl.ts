@@ -4,11 +4,14 @@
 export const DONATE_BASE_URL =
   process.env.NEXT_PUBLIC_DONATE_URL || "https://ko-fi.com/voxquieta";
 
-export type DonateRef =
-  | "web-menu"
-  | "web-footer"
-  | "web-chat-footer"
-  | "web-about";
+export const DONATE_REFS = [
+  "web-menu",
+  "web-footer",
+  "web-chat-footer",
+  "web-about",
+] as const;
+
+export type DonateRef = (typeof DONATE_REFS)[number];
 
 export function donateUrl(
   ref: DonateRef,
