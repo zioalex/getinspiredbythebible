@@ -3,6 +3,7 @@ package org.voxquieta.app.screens
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.voxquieta.app.presentation.components.shouldShowSupportNote
 import org.voxquieta.app.presentation.components.shouldShowWhatsNew
 
 /**
@@ -37,5 +38,20 @@ class WhatsNewTest {
     @Test
     fun `stored newer than current does not show (downgrade guard)`() {
         assertFalse(shouldShowWhatsNew(storedVersionCode = current + 1, currentVersionCode = current))
+    }
+
+    @Test
+    fun `support note shows when latest body carries the BITB-168 marker`() {
+        assertTrue(shouldShowSupportNote("- Support Vox Quieta from the menu (BITB-168)"))
+    }
+
+    @Test
+    fun `support note hidden for unrelated body`() {
+        assertFalse(shouldShowSupportNote("- Fixed a crash (BITB-170)"))
+    }
+
+    @Test
+    fun `support note hidden for empty body`() {
+        assertFalse(shouldShowSupportNote(""))
     }
 }

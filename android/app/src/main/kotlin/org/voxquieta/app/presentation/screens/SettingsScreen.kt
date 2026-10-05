@@ -46,7 +46,9 @@ import org.voxquieta.app.R
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
 import org.voxquieta.app.presentation.components.DiagnosticReportBottomSheet
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
+import org.voxquieta.app.utils.DonateRef
 import org.voxquieta.app.utils.aboutUrl
+import org.voxquieta.app.utils.donateUrl
 import org.voxquieta.app.utils.privacyUrl
 import org.voxquieta.app.utils.termsUrl
 
@@ -173,6 +175,17 @@ fun SettingsScreen(
             ) {
                 Text(stringResource(R.string.contact_open_button))
             }
+            TextButton(
+                onClick = {
+                    runCatching { uriHandler.openUri(donateUrl(DonateRef.SETTINGS)) }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_support_us),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
 
             // ── About section ──────────────────────────────────────────────────
             Spacer(modifier = Modifier.height(24.dp))
@@ -243,17 +256,6 @@ fun SettingsScreen(
             ) {
                 Text(
                     text = stringResource(R.string.settings_changelog_link),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-            TextButton(
-                onClick = {
-                    runCatching { uriHandler.openUri(BuildConfig.DONATE_URL) }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = stringResource(R.string.settings_support_us),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }

@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-04 (BITB-167 in progress — `parseVerseLink` splits on
+**Last Updated:** 2026-10-05 (BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR pending; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
@@ -4231,9 +4231,9 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 
 ---
 
-### 🎯 BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
+### 🚧 BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-30

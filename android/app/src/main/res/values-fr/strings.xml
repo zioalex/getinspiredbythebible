@@ -182,10 +182,12 @@
     <string name="settings_changelog_title">Nouveautés</string>
     <string name="settings_changelog_link">Nouveautés</string>
     <string name="settings_support_us">Soutenez Vox Quieta</string>
+    <string name="drawer_support_us">Soutenez Vox Quieta</string>
     <string name="changelog_empty">Aucune note de version n\'est disponible pour le moment.</string>
     <string name="whats_new_title">Nouveautés</string>
     <string name="whats_new_dismiss">J\'ai compris</string>
     <string name="whats_new_see_all">Tout voir</string>
+    <string name="whats_new_support_note">Vous pouvez désormais soutenir Vox Quieta depuis le menu, si vous le souhaitez. C\'est entièrement facultatif — l\'application reste gratuite pour tous.</string>
 
     <!-- About intro bottom sheet (BITB-082) -->
     <string name="about_intro_title">Pourquoi Vox Quieta</string>
