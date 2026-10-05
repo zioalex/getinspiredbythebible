@@ -1,8 +1,9 @@
 package org.voxquieta.app.presentation.screens
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.voxquieta.app.testing.ComposeTestHarness
@@ -42,7 +43,11 @@ class ChatHistoryDrawerComposeTest : ComposeTestHarness() {
     fun `clicking the support item fires the callback once`() {
         var clicks = 0
         mountDrawer(onOpenSupport = { clicks++ })
-        composeRule.onNodeWithText("Support Vox Quieta").performClick()
+        // Semantic click, not a pointer tap: the drawer is taller than Robolectric's default
+        // screen, so the item's centre can fall outside the visible area and a tap would miss.
+        composeRule
+            .onNodeWithText("Support Vox Quieta")
+            .performSemanticsAction(SemanticsActions.OnClick)
         assertEquals(1, clicks)
     }
 
