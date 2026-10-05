@@ -301,4 +301,13 @@
 
     <!-- Share -->
     <string name="share_prefix">Я нашёл это вдохновляющее библейское откровение:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">Прослушать ответ</string>
+    <string name="action_stop_listening">Остановить прослушивание</string>
+    <string name="state_listening">Идёт чтение вслух</string>
+    <string name="state_not_listening">Чтение остановлено</string>
+    <string name="settings_tts_title">Чтение вслух</string>
+    <string name="settings_tts_show_listen">Показывать кнопку «Слушать»</string>
+    <string name="settings_tts_show_listen_desc">Добавляет к ответам кнопку «Слушать». Ответы читает голос вашего устройства; текст никогда не покидает устройство.</string>
 </resources>

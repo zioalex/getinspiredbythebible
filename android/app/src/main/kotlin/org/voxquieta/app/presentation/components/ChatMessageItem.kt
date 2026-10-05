@@ -34,8 +34,10 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +59,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
@@ -281,6 +285,25 @@ internal fun buildVerseRefRegex(
     )
 }
 
+/**
+ * Han (Chinese) and Hangul (Korean) book names of length >= 2 from [localizedToEnglish],
+ * longest first, for [buildVerseRefRegex]'s no-space alternation.
+ *
+ * BOTH scripts must be included: as soon as the list is non-empty, [buildVerseRefRegex]
+ * excludes Han AND Hangul from its generic book-name pattern, so a Han-only list silently
+ * stops matching Korean references ("요한복음 3:16") the moment the server's book-name map
+ * loads.
+ */
+internal fun cjkBookNamesFrom(localizedToEnglish: Map<String, String>): List<String> =
+    localizedToEnglish.keys
+        .filter { key ->
+            key.length >= 2 && key.all { ch ->
+                val script = Character.UnicodeScript.of(ch.code)
+                script == Character.UnicodeScript.HAN || script == Character.UnicodeScript.HANGUL
+            }
+        }
+        .sortedByDescending { it.length }
+
 private const val VERSE_SCHEME = "verse://"
 
 /**
@@ -459,27 +482,91 @@ internal val QUOTE_HIGHLIGHT_REGEX = Regex(
 
 internal fun injectVerseQuoteHighlights(markdown: String): String = markdown
 
+/** A parsed server citation, e.g. "John 3:16-17" -> (John, 3, 16, 17). */
+internal data class CitedRef(
+    val book: String,
+    val chapter: Int,
+    val verseStart: Int,
+    val verseEnd: Int,
+)
+
+// Server citation grammar: "<book> <chapter><sep><verse>[<range-sep><verse>]". The book is lazy so
+// a numbered book ("1 John") keeps its prefix and the chapter is the digit run right before the
+// separator. Composed from the shared VerseGrammar fragments (same as the scan regexes above).
+private val CITED_REF_REGEX = Regex(
+    "^\\s*(.+?)\\s*($CV_DIGIT+)[$CV_SEPARATOR_CLASS]\\s*($CV_DIGIT+)" +
+        "(?:\\s*[$RANGE_SEPARATOR_CLASS]\\s*($CV_DIGIT+))?\\s*$"
+)
+
+/**
+ * Parses one server `versesCited` entry. Returns null when it is not a book + chapter + verse
+ * citation (e.g. chapter-only "John 3"). A reversed range ("John 3:17-16") degrades to the
+ * start verse only.
+ */
+internal fun parseCitedRef(raw: String): CitedRef? {
+    val m = CITED_REF_REGEX.matchEntire(raw) ?: return null
+    val book = m.groupValues[1].trim()
+    val chapter = m.groupValues[2].toIntOrNull() ?: return null
+    val start = m.groupValues[3].toIntOrNull() ?: return null
+    val endRaw = m.groupValues[4]
+    val end = if (endRaw.isEmpty()) start else endRaw.toIntOrNull() ?: start
+    return CitedRef(book, chapter, start, if (end < start) start else end)
+}
+
+/**
+ * True when [verse] is covered by any of [refs]: exact chapter, verse within the cited
+ * start..end range (inclusive -- a range such as "Romans 8:28-30" matches every verse inside it),
+ * and an exact case-insensitive book match against the verse's English or localized book name.
+ * The cited book is tried as-is and normalized (Traditional->Simplified, localized->English),
+ * mirroring the book keys used by the fallback scan in [referencedVerses].
+ */
+internal fun matchesCitation(
+    verse: Verse,
+    refs: List<CitedRef>,
+    localizedToEnglish: Map<String, String> = emptyMap(),
+): Boolean {
+    val verseBooks = listOfNotNull(verse.book.lowercase(), verse.localizedBook?.lowercase())
+    return refs.any { ref ->
+        if (verse.chapter != ref.chapter || verse.verse !in ref.verseStart..ref.verseEnd) {
+            return@any false
+        }
+        val bookKeys = setOf(
+            ref.book.lowercase(),
+            normalizeBookName(normalizeTraditionalToSimplified(ref.book), localizedToEnglish)
+                .lowercase(),
+        )
+        verseBooks.any { it in bookKeys }
+    }
+}
+
+/** Verses from [verses] covered by the server [cited] strings (parsed once). */
+internal fun filterByCitations(
+    verses: List<Verse>,
+    cited: List<String>,
+    localizedToEnglish: Map<String, String> = emptyMap(),
+): List<Verse> {
+    val refs = cited.mapNotNull { parseCitedRef(it) }
+    if (refs.isEmpty()) return emptyList()
+    return verses.filter { matchesCitation(it, refs, localizedToEnglish) }
+}
+
 /**
  * Returns the verses to show as inline cards under [message]: the ones the backend reported
  * this answer actually cited.
  *
- * Prefers the server-provided [Message.versesCited] (English canonical, e.g. "John 3:16"),
- * intersecting it with [Message.verses] (which carry the text). When [Message.versesCited]
- * is empty (older messages, or none reported) it falls back to all [Message.verses] so the
- * text is still shown. Matching mirrors [referencedVerses] in VersesPanel.
+ * Prefers the server-provided [Message.versesCited] (e.g. "John 3:16"), intersecting it with
+ * [Message.verses] (which carry the text) by exact book + chapter + verse (BITB-166), so
+ * "John 3:16" no longer surfaces John 3:1. A cited range matches every verse inside it. When
+ * [Message.versesCited] is empty (older messages, or none reported) or nothing matches, it
+ * falls back to all [Message.verses] so the text is still shown. Matching is shared with
+ * [referencedVerses] in VersesPanel via [filterByCitations].
  */
 internal fun citedVerses(message: Message): List<Verse> {
     if (message.verses.isEmpty()) return emptyList()
     if (message.versesCited.isEmpty()) return message.verses
-
-    val citedLower = message.versesCited.map { it.lowercase() }.toHashSet()
-    val filtered = message.verses.filter { verse ->
-        val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}".lowercase()
-        citedLower.any { it.startsWith(baseRef) }
-    }
     // If nothing matched (e.g. citation/verse book-name mismatch) fall back to all verses
     // rather than hiding the text entirely.
-    return filtered.ifEmpty { message.verses }
+    return filterByCitations(message.verses, message.versesCited).ifEmpty { message.verses }
 }
 
 /**
@@ -580,6 +667,11 @@ fun ChatMessageItem(
     feedbackGiven: String? = null,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
     localizedToEnglish: Map<String, String> = emptyMap(),
+    // BITB-119: read-aloud. `showListen` already folds in the server flag, the user
+    // preference and "an offline voice exists"; the item adds finished/non-empty itself.
+    showListen: Boolean = false,
+    isSpeaking: Boolean = false,
+    onToggleListen: (() -> Unit)? = null,
 ) {
     val isUser = message.role == Message.Role.USER
     val arrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -835,6 +927,9 @@ fun ChatMessageItem(
                 // Copy + share actions, reused as the trailing slot of FeedbackControls
                 // or rendered alone when there is no feedback row.
                 val trailingActions: @Composable RowScope.() -> Unit = {
+                    if (showShare && showListen && onToggleListen != null) {
+                        ListenButton(isSpeaking = isSpeaking, onClick = onToggleListen)
+                    }
                     if (showShare) {
                         IconButton(
                             onClick = {
@@ -921,6 +1016,35 @@ fun ChatMessageItem(
                 pendingVerseLink = null
                 onDismissSheet()
             },
+        )
+    }
+}
+
+/**
+ * BITB-119: Listen <-> Stop toggle. One button whose icon, accessible name and state
+ * description all flip while the answer is being read (48dp minimum touch target comes from
+ * [IconButton]).
+ */
+@Composable
+internal fun ListenButton(
+    isSpeaking: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val label = stringResource(if (isSpeaking) R.string.action_stop_listening else R.string.action_listen)
+    val stateText = stringResource(
+        if (isSpeaking) R.string.state_listening else R.string.state_not_listening,
+    )
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .testTag("listen_button")
+            .semantics { stateDescription = stateText },
+    ) {
+        Icon(
+            imageVector = if (isSpeaking) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

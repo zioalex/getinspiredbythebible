@@ -144,7 +144,10 @@
     "mainMenuLabel": "菜单",
     "changeLanguage": "更改语言",
     "changeBibleVersion": "更改圣经版本",
-    "searchCommunity": "寻找信仰团体"
+    "searchCommunity": "寻找信仰团体",
+    "listenAnswer": "朗读回答",
+    "stopListening": "停止朗读",
+    "showListenButton": "显示朗读按钮"
   },
   "Verses": {
     "scriptureReferences": "圣经参考",

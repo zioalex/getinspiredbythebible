@@ -144,7 +144,10 @@
     "mainMenuLabel": "Menu",
     "changeLanguage": "Mudar idioma",
     "changeBibleVersion": "Mudar versão da Bíblia",
-    "searchCommunity": "Procurar uma comunidade"
+    "searchCommunity": "Procurar uma comunidade",
+    "listenAnswer": "Ouvir a resposta",
+    "stopListening": "Parar de ouvir",
+    "showListenButton": "Mostrar o botão Ouvir"
   },
   "Verses": {
     "scriptureReferences": "Referências Bíblicas",

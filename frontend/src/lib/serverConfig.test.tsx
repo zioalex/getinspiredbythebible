@@ -224,4 +224,62 @@ describe("ServerConfigProvider", () => {
       );
     });
   });
+
+  // BITB-119: read-aloud flag — fails OPEN; only an explicit false hides the control.
+  describe("ttsEnabled", () => {
+    it("is on before /config resolves", () => {
+      const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+      fetchMock.mockReturnValue(new Promise(() => {}));
+      const { result } = renderHook(() => useServerConfig(), {
+        wrapper: wrapper(),
+      });
+      expect(result.current.ttsEnabled).toBe(true);
+    });
+
+    it("turns off only for an explicit features.tts_enabled=false", async () => {
+      const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ features: { tts_enabled: false } }),
+      });
+      const { result } = renderHook(() => useServerConfig(), {
+        wrapper: wrapper(),
+      });
+      await waitFor(() => expect(result.current.ttsEnabled).toBe(false));
+    });
+
+    it.each([
+      ["true flag", { features: { tts_enabled: true } }],
+      ["missing features (older backend)", { chat: {} }],
+      ["null flag", { features: { tts_enabled: null } }],
+      ["string false", { features: { tts_enabled: "false" } }],
+    ])("stays on for %s", async (_label, body) => {
+      const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+      fetchMock.mockResolvedValue({ ok: true, json: async () => body });
+      const { result } = renderHook(() => useServerConfig(), {
+        wrapper: wrapper(),
+      });
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+      await Promise.resolve();
+      expect(result.current.ttsEnabled).toBe(true);
+    });
+
+    it("stays on when /config fails or errors", async () => {
+      const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+      fetchMock.mockResolvedValue({ ok: false });
+      const { result, rerender } = renderHook(() => useServerConfig(), {
+        wrapper: wrapper(),
+      });
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+      rerender();
+      expect(result.current.ttsEnabled).toBe(true);
+
+      fetchMock.mockRejectedValue(new Error("network"));
+      const second = renderHook(() => useServerConfig(), {
+        wrapper: wrapper("http://other.example"),
+      });
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+      expect(second.result.current.ttsEnabled).toBe(true);
+    });
+  });
 });

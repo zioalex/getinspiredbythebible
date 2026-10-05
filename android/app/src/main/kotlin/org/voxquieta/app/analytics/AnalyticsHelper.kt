@@ -56,6 +56,12 @@ interface AnalyticsHelper {
         /** User submitted the contact form. */
         const val EVENT_CONTACT_SUBMITTED = "contact_submitted"
 
+        /** User started reading an answer aloud (BITB-119). */
+        const val EVENT_TTS_STARTED = "tts_started"
+
+        /** Listen is enabled but this device has no on-device voice for the language (BITB-119). */
+        const val EVENT_TTS_UNAVAILABLE = "tts_unavailable"
+
         // -------------------------------------------------------------------------
         // Parameter name constants
         // -------------------------------------------------------------------------
@@ -67,6 +73,7 @@ interface AnalyticsHelper {
         const val PARAM_BOOK = "book"
         const val PARAM_CHAPTER = "chapter"
         const val PARAM_LOCATION = "location"
+        const val PARAM_LOCALE = "locale"
         const val PARAM_RESULT_COUNT = "result_count"
     }
 

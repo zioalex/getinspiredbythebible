@@ -144,7 +144,10 @@
     "mainMenuLabel": "القائمة",
     "changeLanguage": "تغيير اللغة",
     "changeBibleVersion": "تغيير إصدار الكتاب المقدس",
-    "searchCommunity": "البحث عن مجتمع إيماني"
+    "searchCommunity": "البحث عن مجتمع إيماني",
+    "listenAnswer": "الاستماع إلى الإجابة",
+    "stopListening": "إيقاف الاستماع",
+    "showListenButton": "إظهار زر الاستماع"
   },
   "Verses": {
     "scriptureReferences": "المراجع الكتابية",
