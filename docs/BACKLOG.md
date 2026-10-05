@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-04 (BITB-167 in progress — `parseVerseLink` splits on
+**Last Updated:** 2026-10-04 (BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
@@ -4514,9 +4514,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
+### ✅ BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1127, 2026-10-01)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30
@@ -4528,10 +4528,10 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
-- [ ] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
+- [x] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
+- [x] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-166-versescited-startswith-prefix-match.md`
+**Full Story:** `docs/DONE/BITB-166-versescited-startswith-prefix-match.md`
 
 ---
 
