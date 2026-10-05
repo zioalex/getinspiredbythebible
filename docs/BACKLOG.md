@@ -2,7 +2,8 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-04 (BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
+**Last Updated:** 2026-10-04 (BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
@@ -3077,9 +3078,11 @@ Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](DONE/BITB-129-rig
 
 ---
 
-### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+### 🚧 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Review — PR #1132 (spec + plan agreed 2026-10-04: on-device voices only, localized verse
+speech, Listen ↔ Stop, enabled by default, user "Show Listen button" option, web telemetry via
+`POST /api/v1/client-events`)
 **Priority:** P2
 **Size:** L (M per platform + a shared text-normalization layer)
 **Created:** 2026-09-04
@@ -3110,6 +3113,46 @@ BITB-059/108/113/114 family for what the alternative looks like).
 - [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, tests, changelog
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-119-read-aloud-assistant-responses.md`
+
+---
+
+### 🎯 BITB-175: Localized What's New / Changelog Entries (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
+
+What's New on both platforms is derived from the English, release-please-generated `CHANGELOG.md`,
+so non-English users read English release notes (surfaced by BITB-119). Add a per-locale
+release-notes source with English fallback.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Localized notes for all 11 locales keyed by version; English fallback
+- [ ] Web + Android pick the UI locale's entry; tests for selection and fallback
+- [ ] Release process documented without breaking release-please
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-175-localized-whats-new.md`
+
+---
+
+### 🎯 BITB-176: Read Aloud — Keep Playing with the Screen Off (Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
+
+BITB-119 v1 stops playback when the app is backgrounded or the screen turns off. Add a
+foreground media-playback service with a Stop notification, gated on listen-rate telemetry.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Continues with screen off; notification Stop action; focus loss / new answer stop it
+- [ ] Foreground-service Play declaration reviewed; Robolectric + device tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-176-read-aloud-background-playback.md`
 
 ---
 

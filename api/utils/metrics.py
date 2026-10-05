@@ -326,6 +326,12 @@ client_errors_counter = meter.create_counter(
     unit="1",
 )  # attributes: type (window_onerror|unhandledrejection|api_failure|react_render|turnstile|other)
 
+client_tts_events_counter = meter.create_counter(
+    name="client.tts_events_total",
+    description="Read-aloud client events received at /api/v1/client-events (BITB-119)",
+    unit="1",
+)  # attributes: event (tts_started|tts_unavailable), locale (11 supported locales|other)
+
 preflight_errors_counter = meter.create_counter(
     name="api.preflight_errors_total",
     description="CORS preflight (OPTIONS) requests that returned HTTP 5xx — browser-only failure signal (BITB-066)",

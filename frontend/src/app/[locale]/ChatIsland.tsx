@@ -64,6 +64,7 @@ import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
 import { useServerConfig } from "@/lib/serverConfig";
 import { isSmokeMode } from "@/lib/smoke";
+import { useStopSpeechOnChange } from "@/lib/useStopSpeechOnChange";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import {
@@ -840,6 +841,10 @@ export default function ChatIsland({
     }
   };
 
+  // BITB-119: starting or switching conversation silences any answer being read
+  // aloud (messages are keyed by index, so their unmount cleanup alone is not enough).
+  useStopSpeechOnChange(conversationId);
+
   const handleNewChat = () => {
     setMessages([]);
     setRelevantVerses([]);
@@ -1174,6 +1179,7 @@ export default function ChatIsland({
                       citations: message.citations,
                     }}
                     messageId={message.messageId}
+                    isStreaming={isLoading && index === messages.length - 1}
                     userMessage={message.userMessage}
                     onVerseClick={handleVerseClick}
                     onSubmitFeedback={

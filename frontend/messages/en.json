@@ -144,7 +144,10 @@
     "mainMenuLabel": "Menu",
     "changeLanguage": "Change language",
     "changeBibleVersion": "Change Bible version",
-    "searchCommunity": "Search a community"
+    "searchCommunity": "Search a community",
+    "listenAnswer": "Listen to this answer",
+    "stopListening": "Stop listening",
+    "showListenButton": "Show Listen button"
   },
   "Verses": {
     "scriptureReferences": "Scripture References",

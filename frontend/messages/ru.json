@@ -144,7 +144,10 @@
     "mainMenuLabel": "Меню",
     "changeLanguage": "Сменить язык",
     "changeBibleVersion": "Сменить версию Библии",
-    "searchCommunity": "Найти общину"
+    "searchCommunity": "Найти общину",
+    "listenAnswer": "Прослушать ответ",
+    "stopListening": "Остановить прослушивание",
+    "showListenButton": "Показывать кнопку «Слушать»"
   },
   "Verses": {
     "scriptureReferences": "Ссылки на Писание",

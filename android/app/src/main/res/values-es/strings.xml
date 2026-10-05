@@ -298,4 +298,13 @@
 
     <!-- Share -->
     <string name="share_prefix">Encontré esta inspiradora reflexión bíblica:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">Escuchar la respuesta</string>
+    <string name="action_stop_listening">Detener la lectura</string>
+    <string name="state_listening">Leyendo en voz alta</string>
+    <string name="state_not_listening">Sin leer en voz alta</string>
+    <string name="settings_tts_title">Lectura en voz alta</string>
+    <string name="settings_tts_show_listen">Mostrar el botón Escuchar</string>
+    <string name="settings_tts_show_listen_desc">Añade un botón Escuchar a las respuestas. Las respuestas las lee la voz de tu dispositivo; el texto nunca sale de tu dispositivo.</string>
 </resources>

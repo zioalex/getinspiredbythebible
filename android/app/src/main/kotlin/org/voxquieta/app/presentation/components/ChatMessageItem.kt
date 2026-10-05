@@ -34,8 +34,10 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,6 +59,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
@@ -280,6 +284,25 @@ internal fun buildVerseRefRegex(
             "($dynamicBookName)[$CLOSE_BRACKETS]?$COND_WS($CV_DIGIT+)(?:[$CV_SEPARATOR_CLASS]($CV_DIGIT+(?:[$RANGE_SEPARATOR_CLASS]$CV_DIGIT+)?)(?!$CV_DIGIT)|(?!$CV_DIGIT)(?!\\s+[\\p{Lu}\\p{Lo}]))"
     )
 }
+
+/**
+ * Han (Chinese) and Hangul (Korean) book names of length >= 2 from [localizedToEnglish],
+ * longest first, for [buildVerseRefRegex]'s no-space alternation.
+ *
+ * BOTH scripts must be included: as soon as the list is non-empty, [buildVerseRefRegex]
+ * excludes Han AND Hangul from its generic book-name pattern, so a Han-only list silently
+ * stops matching Korean references ("요한복음 3:16") the moment the server's book-name map
+ * loads.
+ */
+internal fun cjkBookNamesFrom(localizedToEnglish: Map<String, String>): List<String> =
+    localizedToEnglish.keys
+        .filter { key ->
+            key.length >= 2 && key.all { ch ->
+                val script = Character.UnicodeScript.of(ch.code)
+                script == Character.UnicodeScript.HAN || script == Character.UnicodeScript.HANGUL
+            }
+        }
+        .sortedByDescending { it.length }
 
 private const val VERSE_SCHEME = "verse://"
 
@@ -644,6 +667,11 @@ fun ChatMessageItem(
     feedbackGiven: String? = null,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
     localizedToEnglish: Map<String, String> = emptyMap(),
+    // BITB-119: read-aloud. `showListen` already folds in the server flag, the user
+    // preference and "an offline voice exists"; the item adds finished/non-empty itself.
+    showListen: Boolean = false,
+    isSpeaking: Boolean = false,
+    onToggleListen: (() -> Unit)? = null,
 ) {
     val isUser = message.role == Message.Role.USER
     val arrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -899,6 +927,9 @@ fun ChatMessageItem(
                 // Copy + share actions, reused as the trailing slot of FeedbackControls
                 // or rendered alone when there is no feedback row.
                 val trailingActions: @Composable RowScope.() -> Unit = {
+                    if (showShare && showListen && onToggleListen != null) {
+                        ListenButton(isSpeaking = isSpeaking, onClick = onToggleListen)
+                    }
                     if (showShare) {
                         IconButton(
                             onClick = {
@@ -985,6 +1016,35 @@ fun ChatMessageItem(
                 pendingVerseLink = null
                 onDismissSheet()
             },
+        )
+    }
+}
+
+/**
+ * BITB-119: Listen <-> Stop toggle. One button whose icon, accessible name and state
+ * description all flip while the answer is being read (48dp minimum touch target comes from
+ * [IconButton]).
+ */
+@Composable
+internal fun ListenButton(
+    isSpeaking: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val label = stringResource(if (isSpeaking) R.string.action_stop_listening else R.string.action_listen)
+    val stateText = stringResource(
+        if (isSpeaking) R.string.state_listening else R.string.state_not_listening,
+    )
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .testTag("listen_button")
+            .semantics { stateDescription = stateText },
+    ) {
+        Icon(
+            imageVector = if (isSpeaking) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

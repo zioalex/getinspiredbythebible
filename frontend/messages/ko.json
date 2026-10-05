@@ -144,7 +144,10 @@
     "mainMenuLabel": "메뉴",
     "changeLanguage": "언어 변경",
     "changeBibleVersion": "성경 버전 변경",
-    "searchCommunity": "커뮤니티 찾기"
+    "searchCommunity": "커뮤니티 찾기",
+    "listenAnswer": "답변 듣기",
+    "stopListening": "듣기 중지",
+    "showListenButton": "듣기 버튼 표시"
   },
   "Verses": {
     "scriptureReferences": "성경 참조",

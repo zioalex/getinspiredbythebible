@@ -297,4 +297,13 @@
 
     <!-- Share -->
     <string name="share_prefix">मुझे यह प्रेरणादायक बाइबिल अंतर्दृष्टि मिली:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">उत्तर सुनें</string>
+    <string name="action_stop_listening">सुनना बंद करें</string>
+    <string name="state_listening">पढ़कर सुनाया जा रहा है</string>
+    <string name="state_not_listening">पढ़ना बंद है</string>
+    <string name="settings_tts_title">ज़ोर से पढ़ना</string>
+    <string name="settings_tts_show_listen">सुनें बटन दिखाएँ</string>
+    <string name="settings_tts_show_listen_desc">उत्तरों में सुनें बटन जोड़ता है। उत्तर आपके डिवाइस की आवाज़ में पढ़े जाते हैं; टेक्स्ट आपके डिवाइस से बाहर कभी नहीं जाता।</string>
 </resources>
