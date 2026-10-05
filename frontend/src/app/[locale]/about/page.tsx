@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowLeft, Github, Mail, BookOpen } from "lucide-react";
+import { ArrowLeft, Github, Mail, BookOpen, Heart } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { pageMetadata } from "@/lib/seo";
+import { donateUrl } from "@/lib/donateUrl";
 
 const GITHUB_URL = "https://github.com/zioalex/getinspiredbythebible";
 const ORIGIN_STORY_URL =
@@ -141,6 +142,28 @@ export default async function AboutPage({
       <p className="text-center text-sm text-gray-400 mb-10">
         {t("closingSignature")}
       </p>
+
+      <section className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white border border-primary-100 rounded-xl mb-10">
+        <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-primary-50 text-primary-600">
+          <Heart className="w-5 h-5" aria-hidden="true" />
+        </div>
+        <div className="flex-1">
+          <h2 className="font-semibold text-primary-900 mb-1">
+            {t("supportTitle")}
+          </h2>
+          <p className="text-sm text-gray-500 leading-relaxed mb-3">
+            {t("supportBody")}
+          </p>
+          <a
+            href={donateUrl("web-about")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:text-primary-800 transition-colors"
+          >
+            {t("supportLinkLabel")}
+          </a>
+        </div>
+      </section>
 
       <section className="border-t border-gray-100 pt-8 text-center">
         <h2 className="text-lg font-semibold text-gray-800 mb-2">

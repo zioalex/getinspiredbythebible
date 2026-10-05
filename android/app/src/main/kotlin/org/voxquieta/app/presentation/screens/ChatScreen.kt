@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationOn
@@ -61,6 +62,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -68,6 +70,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.voxquieta.app.R
+import org.voxquieta.app.utils.DonateRef
+import org.voxquieta.app.utils.donateUrl
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
@@ -149,6 +153,7 @@ fun ChatScreen(
     }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
     val snackbarHostState = remember { SnackbarHostState() }
     var inputText by rememberSaveable { mutableStateOf("") }
 
@@ -313,6 +318,10 @@ fun ChatScreen(
                     scope.launch { drawerState.close() }
                     showChurchFinderSheet = true
                     viewModel.openChurchFinder()
+                },
+                onOpenSupport = {
+                    scope.launch { drawerState.close() }
+                    runCatching { uriHandler.openUri(donateUrl(DonateRef.DRAWER)) }
                 },
                 onOpenSettings = {
                     scope.launch { drawerState.close() }
@@ -593,7 +602,7 @@ fun ChatScreen(
 }
 
 @Composable
-private fun ChatHistoryDrawer(
+internal fun ChatHistoryDrawer(
     conversations: List<org.voxquieta.app.domain.models.Conversation>,
     currentConversationId: String?,
     hasMessages: Boolean,
@@ -604,6 +613,7 @@ private fun ChatHistoryDrawer(
     onOpenLanguagePicker: () -> Unit,
     onOpenTranslationPicker: () -> Unit,
     onOpenChurchFinder: () -> Unit,
+    onOpenSupport: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     ModalDrawerSheet {
@@ -720,6 +730,18 @@ private fun ChatHistoryDrawer(
             label = { Text(stringResource(R.string.drawer_search_community)) },
             selected = false,
             onClick = onOpenChurchFinder,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        NavigationDrawerItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = null,
+                )
+            },
+            label = { Text(stringResource(R.string.drawer_support_us)) },
+            selected = false,
+            onClick = onOpenSupport,
             modifier = Modifier.padding(horizontal = 12.dp),
         )
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

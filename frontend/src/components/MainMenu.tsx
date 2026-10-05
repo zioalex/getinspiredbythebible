@@ -6,12 +6,14 @@ import {
   History as HistoryIcon,
   MapPin,
   Info,
+  Heart,
   Volume2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TranslationSwitcher from "@/components/TranslationSwitcher";
 import { Link } from "@/i18n/navigation";
+import { donateUrl } from "@/lib/donateUrl";
 import type { TranslationInfo } from "@/lib/api";
 import { setShowListen, useShowListenPreference } from "@/lib/ttsPreference";
 
@@ -141,6 +143,17 @@ export default function MainMenu({
             <Info className="w-4 h-4 flex-shrink-0" />
             {tFooter("about")}
           </Link>
+
+          <a
+            href={donateUrl("web-menu")}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Heart className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            {tFooter("supportUs")}
+          </a>
         </div>
       )}
     </div>

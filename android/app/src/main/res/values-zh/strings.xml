@@ -182,10 +182,12 @@
     <string name="settings_changelog_title">更新内容</string>
     <string name="settings_changelog_link">更新内容</string>
     <string name="settings_support_us">支持 Vox Quieta</string>
+    <string name="drawer_support_us">支持 Vox Quieta</string>
     <string name="changelog_empty">暂无版本说明。</string>
     <string name="whats_new_title">更新内容</string>
     <string name="whats_new_dismiss">知道了</string>
     <string name="whats_new_see_all">查看全部</string>
+    <string name="whats_new_support_note">现在你可以通过菜单支持 Vox Quieta，完全自愿。应用对所有人始终免费。</string>
 
     <!-- About intro bottom sheet (BITB-082) -->
     <string name="about_intro_title">为什么会有 Vox Quieta</string>
