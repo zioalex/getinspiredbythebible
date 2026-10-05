@@ -79,7 +79,7 @@ This story is bound by the following anti-nag rules (acceptance criteria enforce
 ### Measurement (no in-app analytics)
 
 7. Append per-surface `ref` query params to the donate URL — `?ref=web-menu`,
-   `?ref=web-footer`, `?ref=web-about`, `?ref=android-drawer`, `?ref=android-settings` — so the
+   `?ref=web-footer`, `?ref=web-chat-footer`, `?ref=web-about`, `?ref=android-drawer`, `?ref=android-settings` — so the
    destination page's own analytics show which entry point works. Add a tiny helper per platform
    to compose base URL + `ref`; do **not** inline string concatenation at each call site.
    Ordering with BITB-157 (env wiring): either story may land first, but keep a single shared
