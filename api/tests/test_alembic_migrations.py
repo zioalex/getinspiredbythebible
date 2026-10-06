@@ -44,6 +44,7 @@ import os
 import subprocess
 import sys
 import uuid
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
@@ -277,6 +278,27 @@ def _role_can_select(database_url: str, table: str) -> bool:
         conn.close()
 
 
+def _column_data_type(database_url: str, table: str, column: str) -> str:
+    parsed = urlparse(database_url)
+    conn = psycopg2.connect(
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        user=parsed.username,
+        password=parsed.password,
+        dbname=parsed.path.lstrip("/"),
+    )
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT data_type FROM information_schema.columns "
+                "WHERE table_schema = 'public' AND table_name = %s AND column_name = %s",
+                (table, column),
+            )
+            return cur.fetchone()[0]
+    finally:
+        conn.close()
+
+
 _ORM_BACKED_TABLES = {
     "translations",
     "books",
@@ -369,6 +391,71 @@ def test_search_eval_topic_grants_upgrade_and_downgrade(throwaway_database_url):
     _run_alembic("downgrade", "r0005", database_url=throwaway_database_url)
     assert not _role_can_select(throwaway_database_url, "topics")
     assert not _role_can_select(throwaway_database_url, "verse_topics")
+
+
+def test_translations_created_at_timestamptz_upgrade_and_downgrade(throwaway_database_url):
+    """BITB-127: r0007 converts translations.created_at without shifting the instant."""
+    _run_alembic("upgrade", "r0006", database_url=throwaway_database_url)
+    parsed = urlparse(throwaway_database_url)
+
+    def _connect():
+        return psycopg2.connect(
+            host=parsed.hostname,
+            port=parsed.port or 5432,
+            user=parsed.username,
+            password=parsed.password,
+            dbname=parsed.path.lstrip("/"),
+        )
+
+    assert (
+        _column_data_type(throwaway_database_url, "translations", "created_at")
+        == "timestamp without time zone"
+    )
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO translations (code, name, language, language_code, created_at) "
+                "VALUES ('tz127', 'TZ Test', 'English', 'en', '2026-01-01 12:00:00')"
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    _run_alembic("upgrade", "head", database_url=throwaway_database_url)
+    assert (
+        _column_data_type(throwaway_database_url, "translations", "created_at")
+        == "timestamp with time zone"
+    )
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SET TIME ZONE 'America/New_York'")
+            cur.execute(
+                "SELECT extract(epoch FROM created_at), "
+                "extract(epoch FROM TIMESTAMPTZ '2026-01-01 12:00:00+00') "
+                "FROM translations WHERE code = 'tz127'"
+            )
+            actual, expected = cur.fetchone()
+            assert actual == expected
+    finally:
+        conn.close()
+
+    _run_alembic("downgrade", "r0006", database_url=throwaway_database_url)
+    assert (
+        _column_data_type(throwaway_database_url, "translations", "created_at")
+        == "timestamp without time zone"
+    )
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SET TIME ZONE 'America/New_York'")
+            cur.execute("SELECT created_at FROM translations WHERE code = 'tz127'")
+            assert cur.fetchone()[0] == datetime(2026, 1, 1, 12, 0, 0)
+    finally:
+        conn.close()
+
+    _run_alembic("upgrade", "head", database_url=throwaway_database_url)
 
 
 class TestHostSafetyGuard:
