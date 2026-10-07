@@ -1,6 +1,6 @@
 # BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR pending, 2026-10-07; PR #1079 merged 2026-09-29)
 **Priority:** P3 — doc-only drift, no functional impact
 **Size:** XS (single table edit in one Markdown file)
 **Created:** 2026-09-25
@@ -39,12 +39,12 @@ sync explicitly instead of leaving it as an unowned code comment.
 
 ## Acceptance Criteria
 
-- [ ] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s "Cross-provider
+- [x] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s "Cross-provider
       Resilience" table (tier 1 / tier 2 model names, and the `agents.md` doc table if it also
       references the pre-#1079 names) to match the merged state
-- [ ] Cross-check against the generated `opencode.json` (`make gen-opencode-config`) so the
+- [x] Cross-check against the generated `opencode.json` (`make gen-opencode-config`) so the
       documented names are exactly what ships, not paraphrased
-- [ ] `make verify-opencode-config` still passes (this is a documentation-only change; no
+- [x] `make verify-opencode-config` still passes (this is a documentation-only change; no
       functional/config edit expected)
 
 ## Notes

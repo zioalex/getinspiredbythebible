@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-05 (BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-07 (BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -2403,9 +2403,9 @@ not yet proven to help is low value.
 
 ---
 
-### 🎯 BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
+### ✅ BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR pending, 2026-10-07; PR #1079 merged 2026-09-29)
 **Priority:** P3 — doc-only drift, no functional impact
 **Size:** XS
 **Created:** 2026-09-25
@@ -2418,11 +2418,11 @@ still untouched by that PR's own edits — see `git diff main -- deployment/kube
 
 **Acceptance Criteria:**
 
-- [ ] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
+- [x] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
       model names) to match the merged `agents.md` / generated `opencode.json`
-- [ ] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
+- [x] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
 
-**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](BACKLOG_STORIES/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
+**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](DONE/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
 
 ---
 
