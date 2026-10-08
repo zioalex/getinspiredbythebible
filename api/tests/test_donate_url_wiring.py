@@ -67,9 +67,7 @@ def test_every_dockerfile_public_arg_is_in_azure_build_args():
     """Any NEXT_PUBLIC_* ARG the image declares must be baked by CI too."""
     declared = set(re.findall(r"^ARG (NEXT_PUBLIC_\w+)", _DOCKERFILE.read_text(), re.M))
     assert _VAR in declared
-    passed = {
-        ln.strip().partition("=")[0] for ln in _frontend_build_step_args().splitlines()
-    }
+    passed = {ln.strip().partition("=")[0] for ln in _frontend_build_step_args().splitlines()}
     assert declared <= passed, f"missing from azure-deploy build-args: {declared - passed}"
 
 
