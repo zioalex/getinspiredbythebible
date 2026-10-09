@@ -111,6 +111,16 @@ class Settings(BaseSettings):
 
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
+    # BITB-177: surrounding-verse context for referenced verses. A direct lookup of
+    # "Luke 1:79" otherwise fetches only that verse, whose opening pronoun refers back to
+    # 1:78 -- so the model guessed the referent. When a verse reference is in the message
+    # (or, on a reference-less follow-up, in recent history), the prompt also carries the
+    # verses around it. Prompt-only: never added to the scripture_context sent to clients.
+    passage_context_enabled: bool = True
+    passage_context_verses_before: int = 4  # verses before the first referenced verse
+    passage_context_verses_after: int = 2  # verses after the last referenced verse
+    passage_context_max_references: int = 2  # references expanded per turn (bounds extra queries)
+    passage_context_history_lookback: int = 4  # history messages scanned; 0 disables carry-over
     max_conversation_history: int = 10  # Max messages to keep in context
     # BITB-058: fail closed when a scripture-seeking request cannot be grounded in any
     # verse (hard retrieval failure OR zero results). Rather than answer without
