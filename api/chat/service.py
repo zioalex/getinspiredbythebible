@@ -965,7 +965,7 @@ Keep it under 120 words."""
                 op_name="Scripture search",
             )
 
-            # BITB-177: surrounding verses for the referenced verse(s), prompt-only. Its own
+            # BITB-178: surrounding verses for the referenced verse(s), prompt-only. Its own
             # fail-open guard: a failure here must never cost the user the answer.
             passage_context: list[dict] = []
             passage_carried_over = False
@@ -1019,7 +1019,7 @@ Keep it under 120 words."""
             logger.error(f"Scripture search failed: {type(e).__name__}: {e}", exc_info=True)
             return None, ""
 
-        # Build context prompt from search results (plus BITB-177 surrounding passage, which
+        # Build context prompt from search results (plus BITB-178 surrounding passage, which
         # goes into the prompt only -- scripture_context is returned to clients unchanged).
         if scripture_context and (scripture_context.verses or scripture_context.passages):
             search_context_prompt = build_search_context_prompt(
@@ -1039,7 +1039,7 @@ Keep it under 120 words."""
         return scripture_context, search_context_prompt
 
     def _history_references(self, history: list[ConversationMessage]) -> list[VerseReference]:
-        """Verse references to re-ground a follow-up that names none itself (BITB-177 FR2).
+        """Verse references to re-ground a follow-up that names none itself (BITB-178 FR2).
 
         Scans the last ``passage_context_history_lookback`` history messages: first the most
         recent user message containing a reference, then the most recent assistant message
@@ -1079,7 +1079,7 @@ Keep it under 120 words."""
         translation: str | None,
         carried_over: bool = False,
     ) -> list[dict]:
-        """Fetch the verses around each reference for the prompt (BITB-177 FR1).
+        """Fetch the verses around each reference for the prompt (BITB-178 FR1).
 
         For the first ``passage_context_max_references`` references, fetches
         ``passage_context_verses_before`` verses before and ``passage_context_verses_after``

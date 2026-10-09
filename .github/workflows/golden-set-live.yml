@@ -1,6 +1,6 @@
 name: Golden Set Live
 
-# Weekly live run of the golden set's `interpretation` category against production (BITB-177).
+# Weekly live run of the golden set's `interpretation` category against production (BITB-178).
 #
 # What it measures: whether the deployed model names the right person for a verse ("who is the 'he' of
 # Luke 1:79?") and whether it holds its answer, or corrects it for a reason, when the user pushes back.

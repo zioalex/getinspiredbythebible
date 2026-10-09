@@ -457,7 +457,7 @@ first and must not be skipped.
 
 
 # ---------------------------------------------------------------------------
-# Interpretation integrity guidance (BITB-177)
+# Interpretation integrity guidance (BITB-178)
 # ---------------------------------------------------------------------------
 # Appended to the default, verse-lookup and prayer-lookup system prompts. A reported
 # conversation about Luke 1:79 named the wrong person, then reversed itself on a bare
@@ -591,7 +591,7 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
 
 
 def _build_surrounding_passage_blocks(passage_context: list[dict]) -> list[str]:
-    """Render "Surrounding Passage" sub-blocks for build_search_context_prompt (BITB-177).
+    """Render "Surrounding Passage" sub-blocks for build_search_context_prompt (BITB-178).
 
     Each entry is ``{"focus": str, "carried_over": bool, "verses": [{"reference", "text",
     "is_focus"}]}``. The verse(s) under discussion are marked so the model can tell them from
@@ -627,7 +627,7 @@ def build_search_context_prompt(
 
     Args:
         search_results: Dictionary with 'verses' and 'passages' lists
-        passage_context: Optional BITB-177 surrounding-verse blocks (see
+        passage_context: Optional BITB-178 surrounding-verse blocks (see
             _build_surrounding_passage_blocks). Falsy leaves the output exactly as before.
 
     Returns:

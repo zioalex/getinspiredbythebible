@@ -59,7 +59,7 @@ api/golden_set/
 ├── models.py            # Pydantic models (inputs, expectations, scores)
 ├── evaluators.py        # 9 automated checks + orchestrator
 ├── loader.py            # YAML file loading and filtering
-├── runner.py            # Mock and live runs, save/load, summary (BITB-177)
+├── runner.py            # Mock and live runs, save/load, summary (BITB-178)
 ├── results/             # Saved run JSON (gitignored)
 └── test_cases/          # YAML test case definitions
     ├── encouragement.yaml
@@ -157,7 +157,7 @@ cases:
 | `theological` | `theological.yaml` | 8 | Doctrinal questions and theological topics |
 | `multilingual` | `multilingual.yaml` | 6 | Italian and German language responses |
 | `edge_cases` | `edge_cases.yaml` | 4 | Off-topic, adversarial, and boundary inputs |
-| `interpretation` | `interpretation.yaml` | 81 | Who or what a verse refers to; stability under pushback (BITB-177) |
+| `interpretation` | `interpretation.yaml` | 81 | Who or what a verse refers to; stability under pushback (BITB-178) |
 
 **Total: 121 test cases across 7 categories.** (`theological` has 6 cases, not 8.)
 
@@ -177,7 +177,7 @@ class GoldenSetInput(BaseModel):
     conversation_history: list[dict] = []     # Prior messages (multi-turn)
     include_search: bool = True               # Enable scripture search
     preferred_translation: str | None = None  # e.g., "kjv", "ita1927"
-    language: str | None = None               # UI language code sent to the API (BITB-177)
+    language: str | None = None               # UI language code sent to the API (BITB-178)
 ```
 
 ### Expectations
@@ -191,7 +191,7 @@ class Expectations(BaseModel):
     expected_books: list[str] = []
     must_not_contain: list[str] = []
     must_contain: list[str] = []
-    must_contain_any: list[list[str]] = []    # one alternative from EVERY group (BITB-177)
+    must_contain_any: list[list[str]] = []    # one alternative from EVERY group (BITB-178)
     response_language: str = "en"
     source_statement_required: bool = False
     source_is_biblical: bool | None = None
@@ -291,7 +291,7 @@ check functions and one orchestrator. Each check returns a
 - **`check_required_alternatives`** - For every group in
   `must_contain_any`, at least one alternative must appear
   (case-insensitive). Lets a case accept `1:78`, `1,78` or native digits.
-  Reports the groups with no match (BITB-177).
+  Reports the groups with no match (BITB-178).
 - **`check_source_statement`** - Looks for source attribution in the
   first 500 characters. Checks for biblical patterns ("from the Bible",
   "found in scripture") or non-biblical patterns based on
@@ -691,7 +691,7 @@ assert score.passed_checks == 10
 
 ## The `interpretation` Category
 
-Added for BITB-177. A reported conversation asked "who is spoken of in Luke
+Added for BITB-178. A reported conversation asked "who is spoken of in Luke
 1:79?"; the app named John the Baptist (the "he" is the sunrise from on high
 of 1:78, the Messiah) and, asked "are you sure?", flipped without citing any
 text. The category checks two things:

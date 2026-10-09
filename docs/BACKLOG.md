@@ -2,11 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-09 (BITB-177 in progress — wrong referent for Luke 1:79 then a flip on
+**Last Updated:** 2026-10-09 (BITB-178 in progress — wrong referent for Luke 1:79 then a flip on
 "are you sure?": passage context for referenced verses, follow-up re-grounding, interpretation and
 pushback prompt rules, 81-case `interpretation` golden-set category, async live runner and a weekly
-scheduled live run against production, PR pending; 2026-10-05:
-BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+scheduled live run against production, PR pending; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5) — previously 2026-10-06 (BITB-127 in progress — translations.created_at → timestamptz via r0007, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -240,7 +239,7 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🚧 BITB-177: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
+### 🚧 BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
 
 **Status:** 🚧 In Progress (PR pending)
 **Priority:** P1
@@ -266,7 +265,7 @@ against production through the existing server-to-server probe bypass; a measure
       `golden-set-live.yml` workflow, docs updated
 - [ ] Live pass rate against the production model recorded (owner-run)
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-177-verse-referent-passage-context-and-pushback.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-178-verse-referent-passage-context-and-pushback.md`
 
 ---
 
@@ -4632,9 +4631,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-127: Make `translations.created_at` Timezone-Aware
+### 🚧 BITB-127: Make `translations.created_at` Timezone-Aware
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR pending)
 **Size:** S
 **Created:** 2026-09-10
 **Surfaced by:** BITB-094 (column-type audit)
@@ -5155,6 +5154,13 @@ bookkeeping table.
 ---
 
 ## Done (Recent Completions)
+
+### BITB-177: Bump Next.js to clear npm-audit CI gate
+
+**Status:** In review (2026-10-09)
+**Size:** XS
+Bump `next` to ^16.4.0 (plus sharp/source-map-js via lockfile) to clear new high advisories failing the
+`Security & Dependency Check` job. [Full story](BACKLOG_STORIES/BITB-177-bump-next-clear-npm-audit-gate.md)
 
 ### ✅ BITB-132: Verify and Fix Verse Linking in Android Chat
 

@@ -1,4 +1,4 @@
-# BITB-177: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
+# BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
 
 **Status:** 🚧 In Progress
 **Priority:** P1
@@ -410,7 +410,7 @@ Model it on `prod-monitor.yml` (probe secret, `BACKEND_URL` with the same fallba
 - `docs/GOLDEN_SET_GUIDE.md`: `must_contain_any`, `language`, the `interpretation` category, the
   no-vacuous-groups rule, the runner (manual and scheduled, exit codes, the probe secret env var),
   and a note that wording outside en / de / it has not had native review.
-- `docs/BACKLOG.md`: update the BITB-177 entry (81 cases, scheduled workflow) and `Last Updated`.
+- `docs/BACKLOG.md`: update the BITB-178 entry (81 cases, scheduled workflow) and `Last Updated`.
 - Tick the acceptance criteria in this story only once the verifier has confirmed them.
 
 ### Verification (rev. 2)

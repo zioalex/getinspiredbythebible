@@ -1,4 +1,4 @@
-"""Guards for `.github/workflows/golden-set-live.yml` (BITB-177).
+"""Guards for `.github/workflows/golden-set-live.yml` (BITB-178).
 
 The workflow runs the `interpretation` golden set against production once a week through the
 server-to-server probe bypass. These tests pin the properties that must not regress silently:

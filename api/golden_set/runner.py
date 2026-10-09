@@ -1,4 +1,4 @@
-"""Run golden set cases and record results (BITB-177).
+"""Run golden set cases and record results (BITB-178).
 
 Two modes:
 

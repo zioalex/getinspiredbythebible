@@ -1,4 +1,4 @@
-"""BITB-177: surrounding-passage context and history carry-over for verse referents.
+"""BITB-178: surrounding-passage context and history carry-over for verse referents.
 
 A direct lookup of "Luke 1:79" used to fetch only that verse, whose opening pronoun points back
 to 1:78, and a reference-less follow-up ("are you sure?") was not re-grounded at all. These tests

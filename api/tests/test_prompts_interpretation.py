@@ -1,4 +1,4 @@
-"""Prompt-level tests for BITB-177: the interpretation guidance and the surrounding-passage block.
+"""Prompt-level tests for BITB-178: the interpretation guidance and the surrounding-passage block.
 
 The service-level behaviour (what is fetched, when, through chat() and chat_stream()) is in
 ``test_passage_context.py``; these tests pin the prompt text itself.
@@ -17,7 +17,7 @@ from chat.prompts import (
 LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
 PROMPT_BUILDERS = [get_system_prompt, get_verse_lookup_prompt, get_prayer_lookup_prompt]
 
-# build_search_context_prompt output on main (fd5e45d), before BITB-177 touched it.
+# build_search_context_prompt output on main (fd5e45d), before BITB-178 touched it.
 _RESULTS = {
     "verses": [{"reference": "Luke 1:79", "text": "To give light to them that sit in darkness."}],
     "passages": [

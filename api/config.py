@@ -111,7 +111,7 @@ class Settings(BaseSettings):
 
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
-    # BITB-177: surrounding-verse context for referenced verses. A direct lookup of
+    # BITB-178: surrounding-verse context for referenced verses. A direct lookup of
     # "Luke 1:79" otherwise fetches only that verse, whose opening pronoun refers back to
     # 1:78 -- so the model guessed the referent. When a verse reference is in the message
     # (or, on a reference-less follow-up, in recent history), the prompt also carries the

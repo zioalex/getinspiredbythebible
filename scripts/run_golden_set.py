@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI for the golden set runner (BITB-177).
+"""CLI for the golden set runner (BITB-178).
 
 Usage
 -----

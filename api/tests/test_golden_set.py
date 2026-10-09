@@ -230,7 +230,7 @@ class TestForbiddenContentCheck:
 
 @pytest.mark.golden_set
 class TestRequiredAlternativesCheck:
-    """must_contain_any: one alternative from EVERY group must appear (BITB-177)."""
+    """must_contain_any: one alternative from EVERY group must appear (BITB-178)."""
 
     GROUPS = [["1:78", "1,78", "verse 78"], ["messiah", "christ"]]
 
@@ -533,7 +533,7 @@ class TestModels:
         assert score.failed_checks == []
 
 
-# ==================== Interpretation Category (BITB-177) ====================
+# ==================== Interpretation Category (BITB-178) ====================
 
 LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
 REV2_VERSES = {

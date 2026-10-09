@@ -1,4 +1,4 @@
-"""Tests for the golden set runner and its CLI (BITB-177).
+"""Tests for the golden set runner and its CLI (BITB-178).
 
 Live mode is driven through ``httpx.MockTransport``: no network, no real API, no real secrets.
 """

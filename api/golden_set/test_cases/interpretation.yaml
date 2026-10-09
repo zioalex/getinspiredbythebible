@@ -1,5 +1,5 @@
 category: interpretation
-description: "Who/what a verse refers to (speaker, addressee, subject) and stability under pushback (BITB-177)"
+description: "Who/what a verse refers to (speaker, addressee, subject) and stability under pushback (BITB-178)"
 # String checks are a floor, not a proof of correct exegesis: see docs/GOLDEN_SET_GUIDE.md.
 # For ar/ru/zh/hi/ko the scripture-reference regex is ASCII-only, so those cases set
 # must_contain_scripture: false and rely on must_contain_any (including native digits).
