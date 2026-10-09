@@ -6,15 +6,19 @@ Two modes:
   loading / scoring / saving pipeline (the checks themselves are expected to fail).
 - ``run_live``: POSTs each case, including its conversation history, language and
   translation, to a running API's ``/api/v1/chat`` and scores the real answer with the
-  automated checks. Meant for a local or dev API where Turnstile is off; a 403 is reported
+  automated checks. Meant for a local or dev API where Turnstile is off, or for production
+  through the server-to-server probe header (``X-Monitor-Probe-Secret``); a 403 is reported
   as "blocked", distinct from a model failure.
 
 String checks are a floor, not a proof of correct exegesis; read the saved responses.
 """
 
+import asyncio
+import os
 import sys
 import time
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO
@@ -26,6 +30,10 @@ from golden_set.models import AutomatedScore, CaseResult, EvalRun, GoldenSetCase
 
 RESULTS_DIR = Path(__file__).parent / "results"
 CHAT_PATH = "/api/v1/chat"
+# Same header name as utils.monitor_probe.PROBE_HEADER. Repeated here (not imported) because
+# importing utils.monitor_probe pulls config.settings, which a CLI run should not need.
+PROBE_HEADER = "X-Monitor-Probe-Secret"  # noqa: S105 - header name, not a secret
+PROBE_SECRET_ENV = "GOLDEN_SET_PROBE_SECRET"  # noqa: S105 - env var name, not a secret
 MOCK_RESPONSE = "[mock response] No API was called; this only exercises the runner pipeline."
 
 # failed_checks markers for results that never reached the automated checks.
@@ -95,8 +103,13 @@ def run_mock(cases: list[GoldenSetCase]) -> EvalRun:
     )
 
 
-def _live_one(
-    client: httpx.Client, url: str, case: GoldenSetCase, run_id: str, timeout: float
+async def _live_one(
+    client: httpx.AsyncClient,
+    url: str,
+    case: GoldenSetCase,
+    run_id: str,
+    timeout: float,
+    headers: dict[str, str] | None,
 ) -> CaseResult:
     """Send one case and turn the outcome (answer, HTTP error or transport error) into a result."""
     started = time.monotonic()
@@ -104,9 +117,11 @@ def _live_one(
     response_text = ""
     scripture_context: dict | None = None
     try:
-        resp = client.post(url, json=build_payload(case), timeout=timeout)
+        resp = await client.post(url, json=build_payload(case), headers=headers, timeout=timeout)
     except httpx.HTTPError as e:
-        score = _failed_score(REQUEST_ERROR, f"{type(e).__name__}: {e}")
+        # Exception class only, not its message: the request carries the probe header and a
+        # message may echo request details.
+        score = _failed_score(REQUEST_ERROR, type(e).__name__)
     else:
         if resp.status_code == 200:
             try:
@@ -136,35 +151,38 @@ def _live_one(
     )
 
 
-def run_live(
+async def run_live(
     cases: list[GoldenSetCase],
     base_url: str,
     timeout: float = 120.0,
     delay: float = 0.0,
-    client: httpx.Client | None = None,
+    client: httpx.AsyncClient | None = None,
+    headers: dict[str, str] | None = None,
 ) -> EvalRun:
     """Send every case to ``{base_url}/api/v1/chat`` and score the answers.
 
     Args:
-        cases: Cases to run, in order.
+        cases: Cases to run, in order (sequential, so ``delay`` is a real pause).
         base_url: API root, e.g. ``http://localhost:8000``.
         timeout: Per-request timeout in seconds.
         delay: Seconds to sleep between requests (be kind to rate limits).
-        client: Optional ``httpx.Client`` (tests inject a mocked transport).
+        client: Optional ``httpx.AsyncClient`` (tests inject a mocked transport).
+        headers: Extra request headers, e.g. the probe header from ``probe_headers_from_env``.
+            Their values are never stored in the returned run.
     """
     run_id = _new_run_id("live")
     url = base_url.rstrip("/") + CHAT_PATH
     owns_client = client is None
-    http = client or httpx.Client()
+    http = client or httpx.AsyncClient()
     results: list[CaseResult] = []
     try:
         for i, case in enumerate(cases):
             if i and delay > 0:
-                time.sleep(delay)
-            results.append(_live_one(http, url, case, run_id, timeout))
+                await asyncio.sleep(delay)
+            results.append(await _live_one(http, url, case, run_id, timeout, headers))
     finally:
         if owns_client:
-            http.close()
+            await http.aclose()
 
     answered = [r for r in results if r.provider != "unknown"]
     return EvalRun(
@@ -174,8 +192,29 @@ def run_live(
         model=answered[0].model if answered else "unknown",
         mode="live",
         results=results,
-        metadata={"base_url": base_url, "case_count": len(cases), "timeout": timeout},
+        metadata={
+            "base_url": base_url,
+            "case_count": len(cases),
+            "timeout": timeout,
+            "probe_header_sent": bool(headers and PROBE_HEADER in headers),
+        },
     )
+
+
+def probe_headers_from_env(environ: Mapping[str, str] | None = None) -> dict[str, str] | None:
+    """Build the probe header from ``GOLDEN_SET_PROBE_SECRET``; None when unset or empty.
+
+    The secret is read from the environment only (never argv, so it cannot show up in a
+    process list) and is not printed or saved anywhere by this module.
+    """
+    env = os.environ if environ is None else environ
+    secret = env.get(PROBE_SECRET_ENV, "")
+    return {PROBE_HEADER: secret} if secret else None
+
+
+def has_scorable_answer(run: EvalRun) -> bool:
+    """True when at least one case reached the automated checks (not blocked / errored)."""
+    return any(_failure_kind(r) is None for r in run.results)
 
 
 def save_run(run: EvalRun, path: Path | None = None) -> Path:

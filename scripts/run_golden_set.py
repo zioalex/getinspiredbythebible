@@ -14,6 +14,17 @@ Usage
 --timeout SECONDS    Per-request timeout (default 120).
 --fail-under RATE    Exit 1 when the pass rate (0-1) is below RATE (default 0: never fail).
 
+Environment
+-----------
+GOLDEN_SET_PROBE_SECRET   When set (live mode), sent as the X-Monitor-Probe-Secret header so a
+                          production run passes Turnstile / rate limits. Read from the
+                          environment only (never argv); never printed or saved.
+
+Exit codes
+----------
+0  ok                                  2  no case matches the filters
+1  pass rate below --fail-under        3  nothing was scorable (every case blocked or errored)
+
 Example
 -------
     python scripts/run_golden_set.py --mock --category interpretation
@@ -22,6 +33,7 @@ Example
 """
 
 import argparse
+import asyncio
 import sys
 from pathlib import Path
 
@@ -35,7 +47,9 @@ from golden_set.loader import (  # noqa: E402
     load_test_cases,
 )
 from golden_set.runner import (  # noqa: E402
+    has_scorable_answer,
     print_summary,
+    probe_headers_from_env,
     run_live,
     run_mock,
     save_run,
@@ -78,11 +92,23 @@ def main(argv: list[str] | None = None) -> int:
     if args.mock:
         run = run_mock(cases)
     else:
-        run = run_live(cases, args.base_url, timeout=args.timeout, delay=args.delay)
+        run = asyncio.run(
+            run_live(
+                cases,
+                args.base_url,
+                timeout=args.timeout,
+                delay=args.delay,
+                headers=probe_headers_from_env(),
+            )
+        )
 
     path = save_run(run, args.output)
     print_summary(run)
     print(f"Saved: {path}")
+
+    if not has_scorable_answer(run):
+        print("No case produced a scorable answer (all blocked or errored).", file=sys.stderr)
+        return 3
 
     rate = summarize(run)["pass_rate"]
     if rate < args.fail_under:

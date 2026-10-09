@@ -8,6 +8,7 @@ import pytest
 from golden_set.evaluators import (
     check_expected_books,
     check_forbidden_content,
+    check_required_alternatives,
     check_response_language,
     check_response_length,
     check_scripture_presence,
@@ -28,6 +29,8 @@ from golden_set.models import (
     GoldenSetInput,
     HumanScore,
 )
+from utils.translation_registry import EXTRA_REVERSE_MAPPINGS, TRANSLATION_REGISTRY
+from utils.verse_parser import extract_references
 
 # ==================== Data Validation Tests ====================
 
@@ -223,6 +226,54 @@ class TestForbiddenContentCheck:
         exp = Expectations(must_not_contain=[])
         passed, detail = check_forbidden_content(response, exp)
         assert passed
+
+
+@pytest.mark.golden_set
+class TestRequiredAlternativesCheck:
+    """must_contain_any: one alternative from EVERY group must appear (BITB-177)."""
+
+    GROUPS = [["1:78", "1,78", "verse 78"], ["messiah", "christ"]]
+
+    def test_passes_when_every_group_has_a_match(self):
+        exp = Expectations(must_contain_any=self.GROUPS)
+        passed, _ = check_required_alternatives("See Luke 1,78: the Messiah.", exp)
+        assert passed
+
+    def test_fails_and_names_the_group_without_a_match(self):
+        exp = Expectations(must_contain_any=self.GROUPS)
+        passed, detail = check_required_alternatives("See verse 78 about John.", exp)
+        assert not passed
+        assert "messiah" in detail
+        assert "1:78" not in detail  # the satisfied group is not reported
+
+    def test_one_alternative_is_not_enough_for_two_groups(self):
+        exp = Expectations(must_contain_any=self.GROUPS)
+        passed, _ = check_required_alternatives("1:78 and also 1,78 and verse 78", exp)
+        assert not passed
+
+    def test_case_insensitive_including_non_ascii(self):
+        exp = Expectations(must_contain_any=[["gesù", "cristo"], ["aurora"]])
+        passed, _ = check_required_alternatives("L'AURORA è GESÙ.", exp)
+        assert passed
+
+    @pytest.mark.parametrize("response", ["الآية ٧٨ تتحدث عن المسيح", "79节讲到弥赛亚，见78节"])
+    def test_non_latin_alternatives(self, response):
+        groups = [["١:٧٨", "٧٨", "78节"], ["المسيح", "弥赛亚"]]
+        passed, _ = check_required_alternatives(response, Expectations(must_contain_any=groups))
+        assert passed
+
+    def test_skips_when_empty(self):
+        passed, _ = check_required_alternatives("Any response.", Expectations())
+        assert passed
+
+    def test_registered_in_run_all_checks(self):
+        exp = Expectations(must_contain_scripture=False, must_contain_any=self.GROUPS)
+        score = run_all_checks("Only verse 78 is mentioned.", exp)
+        assert "required_alternatives" in score.details
+        assert "required_alternatives" in score.failed_checks
+        ok = run_all_checks("Verse 78 shows it is the Messiah.", exp)
+        assert "required_alternatives" not in ok.failed_checks
+        assert ok.passed
 
 
 @pytest.mark.golden_set
@@ -480,3 +531,176 @@ class TestModels:
         )
         assert score.passed
         assert score.failed_checks == []
+
+
+# ==================== Interpretation Category (BITB-177) ====================
+
+LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
+REV2_VERSES = {
+    ("Luke", 1, 48),
+    ("John", 1, 11),
+    ("Luke", 2, 34),
+    ("Psalms", 23, 4),
+    ("1 Samuel", 17, 45),
+    ("Matthew", 11, 3),
+}
+
+
+def _interpretation_cases() -> list[GoldenSetCase]:
+    return filter_by_category(load_test_cases(), "interpretation")
+
+
+def _first_reference(case: GoldenSetCase):
+    """The reference the case is about: the message, else the first user turn of the history."""
+    text = case.input.message
+    if case.input.conversation_history:
+        first_user = next(m for m in case.input.conversation_history if m["role"] == "user")
+        text = first_user["content"]
+    refs, _ = extract_references(text)
+    return refs[0] if refs else None
+
+
+def _book_names(book: str) -> set[str]:
+    """Every localized name and alias of a book, lowercased."""
+    names = {book.lower()}
+    for mapping in TRANSLATION_REGISTRY.values():
+        if mapping and book in mapping:
+            names.add(mapping[book].lower())
+    names.update(
+        alias.lower() for alias, english in EXTRA_REVERSE_MAPPINGS.items() if english == book
+    )
+    return names
+
+
+def _satisfied(group: list[str], text: str) -> bool:
+    lowered = text.lower()
+    return any(alt.lower() in lowered for alt in group)
+
+
+def _is_multi_turn(case: GoldenSetCase) -> bool:
+    return bool(case.input.conversation_history)
+
+
+@pytest.mark.golden_set
+class TestInterpretationCases:
+    """The `interpretation` category: referents, speakers and stability under pushback."""
+
+    def test_case_count_and_unique_ids(self):
+        cases = _interpretation_cases()
+        ids = [c.id for c in cases]
+        assert len(cases) == 81
+        assert len(set(ids)) == len(ids)
+        assert ids == [f"interp-{n:03d}" for n in range(1, 82)]
+
+    def test_core_luke_1_79_case_exists_in_all_languages(self):
+        langs = {
+            c.input.language
+            for c in _interpretation_cases()
+            if not _is_multi_turn(c) and "luke-1-79" in c.tags
+        }
+        assert langs == set(LANGUAGES)
+
+    def test_every_single_turn_message_parses_to_a_reference(self):
+        for case in _interpretation_cases():
+            if _is_multi_turn(case):
+                continue
+            refs, _ = extract_references(case.input.message)
+            assert refs, f"{case.id}: no verse reference parsed from {case.input.message!r}"
+
+    def test_every_pushback_case_has_a_referenced_first_user_turn(self):
+        pushback = [c for c in _interpretation_cases() if any("pushback" in t for t in c.tags)]
+        assert len(pushback) >= 30
+        for case in pushback:
+            history = case.input.conversation_history
+            assert history, f"{case.id}: pushback case without history"
+            assert history[0]["role"] == "user", f"{case.id}: history must start with the user"
+            assert any(m["role"] == "assistant" for m in history), f"{case.id}: no answer"
+            refs, _ = extract_references(history[0]["content"])
+            assert refs, f"{case.id}: first user turn does not parse: {history[0]['content']!r}"
+            # the challenge itself names no verse: it must rely on carry-over
+            assert not extract_references(case.input.message)[0], case.id
+
+    @pytest.mark.parametrize("stance", ["pushback-user-right", "pushback-user-wrong"])
+    def test_luke_1_79_pushback_stances_cover_all_languages(self, stance):
+        langs = {
+            c.input.language
+            for c in _interpretation_cases()
+            if stance in c.tags and "luke-1-79" in c.tags
+        }
+        assert langs == set(LANGUAGES)
+
+    def test_rev2_verses_present_in_en_de_it(self):
+        found: dict[tuple, set] = {}
+        for case in _interpretation_cases():
+            if _is_multi_turn(case):
+                continue
+            ref = _first_reference(case)
+            key = (ref.book, ref.chapter, ref.verse_start)
+            found.setdefault(key, set()).add(case.input.language)
+        for verse in REV2_VERSES:
+            assert found.get(verse) == {"en", "de", "it"}, f"{verse}: {found.get(verse)}"
+
+    def test_case_language_matches_expected_response_language(self):
+        for case in _interpretation_cases():
+            assert case.input.language in LANGUAGES, case.id
+            assert case.input.language == case.expectations.response_language, case.id
+            assert case.input.language in case.tags, case.id
+
+    def test_non_latin_cases_do_not_rely_on_the_ascii_reference_regex(self):
+        for case in _interpretation_cases():
+            if case.input.language in ("ar", "ru", "zh", "hi", "ko"):
+                assert case.expectations.must_contain_scripture is False, case.id
+
+    def test_every_case_has_required_alternatives(self):
+        for case in _interpretation_cases():
+            groups = case.expectations.must_contain_any
+            assert groups and all(groups), f"{case.id}: empty must_contain_any"
+            assert all(alt.strip() for group in groups for alt in group), case.id
+
+    def test_no_vacuous_groups(self):
+        """FR4.2: a check may not pass just because the question or the history echoes it."""
+        problems = []
+        for case in _interpretation_cases():
+            groups = case.expectations.must_contain_any
+            message = case.input.message
+            if _is_multi_turn(case):
+                transcript = " ".join(
+                    [m["content"] for m in case.input.conversation_history] + [message]
+                )
+                if all(_satisfied(g, transcript) for g in groups):
+                    problems.append(f"{case.id}: every group is satisfied by message + history")
+            else:
+                problems += [
+                    f"{case.id}: group {g} is satisfied by the question itself"
+                    for g in groups
+                    if _satisfied(g, message)
+                ]
+        assert not problems, "\n".join(problems)
+
+    def test_no_alternative_is_a_substring_of_the_books_name(self):
+        problems = []
+        for case in _interpretation_cases():
+            ref = _first_reference(case)
+            assert ref is not None, case.id
+            names = _book_names(ref.book)
+            for group in case.expectations.must_contain_any:
+                for alt in group:
+                    clash = sorted(n for n in names if alt.lower() in n)
+                    if clash:
+                        problems.append(f"{case.id}: {alt!r} is part of the book name(s) {clash}")
+        assert not problems, "\n".join(problems)
+
+    def test_pushback_user_wrong_forbids_capitulation_and_promises(self):
+        wrong = [c for c in _interpretation_cases() if "pushback-user-wrong" in c.tags]
+        assert wrong
+        for case in wrong:
+            assert len(case.expectations.must_not_contain) >= 4, case.id
+
+    def test_pushback_user_right_forbids_promises_not_agreement(self):
+        right = [c for c in _interpretation_cases() if "pushback-user-right" in c.tags]
+        assert right
+        for case in right:
+            assert case.expectations.must_not_contain, case.id
+            forbidden = " ".join(case.expectations.must_not_contain).lower()
+            for agreement in ("you are right", "you're right", "tienes razón", "hai ragione"):
+                assert agreement not in forbidden, case.id

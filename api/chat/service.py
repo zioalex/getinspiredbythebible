@@ -9,6 +9,7 @@ import asyncio
 import hashlib
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import AsyncIterator
 
@@ -1048,29 +1049,28 @@ Keep it under 120 words."""
         lookback = settings.passage_context_history_lookback
         if lookback <= 0 or not history:
             return []
-        recent = history[-lookback:]
+        recent = list(reversed(history[-lookback:]))
+
+        def _latest(
+            role: str, extract: Callable[[str], list[VerseReference]]
+        ) -> list[VerseReference]:
+            """References in the most recent ``role`` message that contains any."""
+            for msg in recent:
+                if msg.role == role:
+                    found = extract(msg.content)
+                    if found:
+                        return found
+            return []
+
+        user_refs = _latest("user", lambda text: extract_references(text)[0])
+        assistant_refs = _latest("assistant", extract_all_references)
 
         refs: list[VerseReference] = []
         seen: set[str] = set()
-
-        def _add(found: list[VerseReference]) -> None:
-            for ref in found:
-                if str(ref) not in seen:
-                    seen.add(str(ref))
-                    refs.append(ref)
-
-        for msg in reversed(recent):
-            if msg.role == "user":
-                user_refs, _ = extract_references(msg.content)
-                if user_refs:
-                    _add(user_refs)
-                    break
-        for msg in reversed(recent):
-            if msg.role == "assistant":
-                assistant_refs = extract_all_references(msg.content)
-                if assistant_refs:
-                    _add(assistant_refs)
-                    break
+        for ref in [*user_refs, *assistant_refs]:
+            if str(ref) not in seen:
+                seen.add(str(ref))
+                refs.append(ref)
         return refs
 
     async def _fetch_passage_context(
@@ -1089,14 +1089,13 @@ Keep it under 120 words."""
         """
         before = settings.passage_context_verses_before
         after = settings.passage_context_verses_after
-        entries: list[dict] = []
-        seen: set[str] = set()
+        # De-duplicate first, then cap the *attempts*: at most passage_context_max_references
+        # range queries per turn, even when some of them come back empty.
+        unique: dict[str, VerseReference] = {}
         for ref in refs:
-            if len(entries) >= settings.passage_context_max_references:
-                break
-            if str(ref) in seen:
-                continue
-            seen.add(str(ref))
+            unique.setdefault(str(ref), ref)
+        entries: list[dict] = []
+        for ref in list(unique.values())[: max(0, settings.passage_context_max_references)]:
             end = ref.verse_end if ref.verse_end and ref.verse_end >= ref.verse_start else None
             focus_end = min(end or ref.verse_start, ref.verse_start + MAX_RANGE_SPAN - 1)
             verses = await self.search_service.get_verse_range(

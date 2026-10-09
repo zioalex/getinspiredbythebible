@@ -4,7 +4,8 @@ Prioritized list of user stories and features for Vox Quieta.
 
 **Last Updated:** 2026-10-09 (BITB-177 in progress — wrong referent for Luke 1:79 then a flip on
 "are you sure?": passage context for referenced verses, follow-up re-grounding, interpretation and
-pushback prompt rules, `interpretation` golden-set category + live runner, PR pending; 2026-10-05:
+pushback prompt rules, 81-case `interpretation` golden-set category, async live runner and a weekly
+scheduled live run against production, PR pending; 2026-10-05:
 BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
@@ -250,16 +251,19 @@ Bug: asked who Luke 1:79 speaks of, the app named John the Baptist, then reverse
 when the user doubted it. Causes: a direct lookup fetches only the named verse (the antecedent is in
 1:78), follow-up turns are not re-grounded, no prompt rule covers interpretation or pushback, and the
 golden set has no live runner. Fix: prompt-only passage context (4 before / 2 after), reference
-carry-over from recent history, a shared interpretation-and-pushback guidance block, and an
-`interpretation` golden-set category with a manual live runner.
+carry-over from recent history, a shared interpretation-and-pushback guidance block, and an 81-case
+`interpretation` golden-set category with a live runner (manual CLI plus a weekly scheduled run
+against production through the existing server-to-server probe bypass; a measurement, not a gate).
 
 **Acceptance Criteria (summary):**
 
 - [ ] Referenced verses carry their surrounding passage into the prompt (11 languages, both chat paths)
 - [ ] Follow-ups without a reference re-fetch the passage from history; verse panel unchanged
 - [ ] Guidance block in default, verse-lookup and prayer-lookup prompts
-- [ ] `interpretation` cases (core in 11 languages, wider set + pushback pairs in en/de/it)
-- [ ] `must_contain_any` evaluator, live runner script, docs updated
+- [ ] 81 `interpretation` cases (core and the Luke 1:79 pushback pair in 11 languages, wider set in
+      en/de/it), no vacuous groups
+- [ ] `must_contain_any` evaluator, async live runner + CLI (probe header, exit codes 0-3), weekly
+      `golden-set-live.yml` workflow, docs updated
 - [ ] Live pass rate against the production model recorded (owner-run)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-177-verse-referent-passage-context-and-pushback.md`
