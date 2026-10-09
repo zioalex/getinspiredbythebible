@@ -451,6 +451,20 @@ class TestCrisisKinds:
         ok = run(lambda r: sse(*stream_events(chips=None)), make_kind_case("crisis-ml"))
         assert summarize([ok])["crisis_ml_hint"] is None
 
+    def test_no_crisis_hint_when_crisis_ml_case_errored(self):
+        # A transport/HTTP error says nothing about the safety classifier.
+        errored = run(lambda r: httpx.Response(500, text="boom"), make_kind_case("crisis-ml"))
+        assert errored.error and not errored.passed
+        assert summarize([errored])["crisis_ml_hint"] is None
+
+    def test_scenario_tally_columns_align(self):
+        ml = run(self._chips_everywhere, make_kind_case("crisis-ml"))
+        ok = run(lambda r: sse(*stream_events(chips=None)), make_kind_case("off-topic"))
+        text = render_text_report([ml, ok])
+        block = text.split("By scenario:\n", 1)[1].split("\n\n", 1)[0].splitlines()
+        assert len(block) == 2
+        assert len({line.rindex(" ") for line in block}) == 1, block
+
     def test_checklist_shows_kind(self):
         cases = filter_by_category(load_test_cases(), "follow_ups")
         text = render_checklist(cases)
@@ -510,6 +524,21 @@ class TestSummaryAndReports:
         assert s["by_scenario"]["suppressed"]["passed"] == 1
         assert s["hint"] is None
         assert "content-safety" in s["note"]
+
+    def test_complete_run_is_not_flagged_incomplete(self):
+        s = summarize(self._results(True), planned=2)
+        assert s["planned"] == 2 and s["incomplete"] is False
+        assert "INCOMPLETE" not in render_text_report(self._results(True), planned=2)
+        assert summarize(self._results(True))["incomplete"] is False
+
+    def test_partial_run_is_flagged_incomplete(self):
+        results = self._results(True)
+        s = summarize(results, planned=7)
+        assert s["planned"] == 7 and s["incomplete"] is True
+        assert "INCOMPLETE: backend went away after 2/7 cases" in render_text_report(
+            results, planned=7
+        )
+        assert json.loads(render_json(results, planned=7))["summary"]["incomplete"] is True
 
     def test_hint_when_all_expected_empty(self):
         s = summarize(self._results(False))
@@ -584,7 +613,9 @@ class TestCli:
         assert cli.main(argv) == 2
         captured = capsys.readouterr()
         assert "Cannot reach backend" in captured.err and "Total: 1/1" in captured.out
-        assert json.loads(out.read_text())["summary"]["total"] == 1
+        assert "INCOMPLETE: backend went away after 1/2 cases" in captured.out
+        summary = json.loads(out.read_text())["summary"]
+        assert summary["total"] == 1 and summary["planned"] == 2 and summary["incomplete"]
 
     def test_unreachable_exit_two(self, monkeypatch, capsys):
         def handler(request):

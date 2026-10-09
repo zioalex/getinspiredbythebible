@@ -358,7 +358,8 @@ def _tally(results: list[FollowUpCaseResult], key: Callable[[FollowUpCaseResult]
 
 CRISIS_ML_BUCKET = "crisis-ml (needs classifier)"
 CRISIS_ML_HINT = (
-    "only crisis-ml cases failed: no ML content-safety classifier is configured on this backend"
+    "only crisis-ml cases failed: an ML content-safety classifier is probably not configured "
+    "on this backend"
 )
 KIND_LABELS = {"crisis-ml": "crisis-ml: needs ML safety classifier"}
 
@@ -372,15 +373,25 @@ def _label(scenario: str, kind: str | None) -> str:
     return f"{scenario} · {KIND_LABELS.get(kind or '', kind)}" if kind else scenario
 
 
-def summarize(results: list[FollowUpCaseResult]) -> dict[str, Any]:
-    """Totals overall, per language and per scenario, plus diagnostic hints."""
+def summarize(results: list[FollowUpCaseResult], planned: int | None = None) -> dict[str, Any]:
+    """Totals overall, per language and per scenario, plus diagnostic hints.
+
+    ``planned`` is how many cases the run set out to execute; when fewer results
+    exist (the backend went away mid-run) the summary is flagged ``incomplete`` so
+    a saved partial report can't be mistaken for a clean, complete run.
+    """
+    planned = len(results) if planned is None else planned
     expected = [r for r in results if r.expects_chips and r.error is None]
     all_empty = bool(expected) and all(not (r.chips and r.chips[0]) for r in expected)
     failures = [r for r in results if not r.passed]
-    only_ml = bool(failures) and all(r.kind == "crisis-ml" for r in failures)
+    # Only a crisis-ml case that actually *answered* (no transport/HTTP error) and
+    # still failed says anything about the safety classifier.
+    only_ml = bool(failures) and all(r.kind == "crisis-ml" and r.error is None for r in failures)
     crisis_ml = [r for r in results if r.kind == "crisis-ml"]
     return {
         "total": len(results),
+        "planned": planned,
+        "incomplete": len(results) < planned,
         "passed": sum(r.passed for r in results),
         "failed": sum(not r.passed for r in results),
         "by_language": _tally(results, lambda r: r.language),
@@ -404,18 +415,23 @@ def _case_line(r: FollowUpCaseResult) -> str:
 
 
 def _tally_lines(title: str, tally: dict) -> list[str]:
+    width = max((len(k) for k in tally), default=0)
     lines = [f"{title}:"]
-    lines += [f"  {k:<14} {v['passed']}/{v['total']}" for k, v in tally.items()]
+    lines += [f"  {k:<{width}} {v['passed']}/{v['total']}" for k, v in tally.items()]
     return lines
 
 
-def render_text_report(results: list[FollowUpCaseResult]) -> str:
+def render_text_report(results: list[FollowUpCaseResult], planned: int | None = None) -> str:
     """Human-readable per-case, per-language and per-scenario report."""
-    summary = summarize(results)
+    summary = summarize(results, planned)
     lines = [_case_line(r) for r in results]
     lines += [""] + _tally_lines("By language", summary["by_language"])
     lines += [""] + _tally_lines("By scenario", summary["by_scenario"])
     lines += ["", f"Total: {summary['passed']}/{summary['total']} passed"]
+    if summary["incomplete"]:
+        lines.append(
+            f"INCOMPLETE: backend went away after {summary['total']}/{summary['planned']} cases"
+        )
     if summary["hint"]:
         lines.append(f"HINT: {summary['hint']}")
     if summary["crisis_ml_hint"]:
@@ -424,10 +440,10 @@ def render_text_report(results: list[FollowUpCaseResult]) -> str:
     return "\n".join(lines)
 
 
-def render_json(results: list[FollowUpCaseResult]) -> str:
+def render_json(results: list[FollowUpCaseResult], planned: int | None = None) -> str:
     """Machine-readable results plus the summary."""
     payload = {
-        "summary": summarize(results),
+        "summary": summarize(results, planned),
         "results": [r.model_dump() | {"passed": r.passed} for r in results],
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)

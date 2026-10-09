@@ -57,15 +57,15 @@ flag on") has no tooling behind it either.
 
 ## Acceptance Criteria
 
-- [ ] `follow_ups.yaml` has ≥1 case per (language × scenario) for all 11 languages and 4 scenarios;
+- [x] `follow_ups.yaml` has ≥1 case per (language × scenario) for all 11 languages and 4 scenarios;
       a data-integrity test enforces this.
-- [ ] Follow-up evaluator unit-tested for every check incl. CJK, RTL and Devanagari chips.
-- [ ] Runner unit-tested end to end against a mocked backend (stream + JSON, multi-turn, 429 retry,
+- [x] Follow-up evaluator unit-tested for every check incl. CJK, RTL and Devanagari chips.
+- [x] Runner unit-tested end to end against a mocked backend (stream + JSON, multi-turn, 429 retry,
       suppressed, failure exit code, checklist output).
-- [ ] `CHAT_FOLLOW_UPS_ENABLED=true` in `.env.local` / `.env.production` reaches the API container
+- [x] `CHAT_FOLLOW_UPS_ENABLED=true` in `.env.local` / `.env.production` reaches the API container
       in every compose stack; default stays `false`.
-- [ ] Terraform variable defaults to `false`; `validate-env.py` passes; a test pins both.
-- [ ] `make follow-up-eval` runs the runner; docs explain the Android debug-build flow.
+- [x] Terraform variable defaults to `false`; `validate-env.py` passes; a test pins both.
+- [x] `make follow-up-eval` runs the runner; docs explain the Android debug-build flow.
 
 ## Out of Scope
 

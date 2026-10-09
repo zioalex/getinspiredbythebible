@@ -124,9 +124,10 @@ def main(argv: list[str] | None = None) -> int:
             f"Backend went away after {len(results)}/{len(cases)} cases; partial results:",
             file=sys.stderr,
         )
+    planned = len(cases)
     if args.out:
-        Path(args.out).write_text(render_json(results), encoding="utf-8")
-    print(render_json(results) if args.json else render_text_report(results))
+        Path(args.out).write_text(render_json(results, planned), encoding="utf-8")
+    print(render_json(results, planned) if args.json else render_text_report(results, planned))
     if unreachable is not None:
         return 2
     return 0 if all(r.passed for r in results) else 1

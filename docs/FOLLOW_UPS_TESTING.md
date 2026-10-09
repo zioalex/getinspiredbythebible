@@ -38,7 +38,10 @@ python scripts/run_follow_up_eval.py --mode json --out results.json
 
 Flags: `--base-url`, `--mode stream|json` (stream is what the apps use), `--language`,
 `--scenario`, `--case`, `--delay` (seconds between cases, default 3), `--timeout`, `--json`,
-`--out PATH`. Exit codes: `0` all pass, `1` any failure, `2` backend unreachable.
+`--out PATH`. Exit codes: `0` all pass, `1` any failure, `2` backend unreachable. If the
+backend goes away mid-run, the cases that finished are still reported (and written to
+`--out`) with exit `2`; the report says `INCOMPLETE: backend went away after X/N cases` and
+the JSON summary carries `"incomplete": true` and `"planned": N`.
 
 Each case uses a fresh `session_id`; HTTP 429/503 are retried (honouring `Retry-After`).
 
@@ -70,6 +73,12 @@ only a `FOLLOWUPS` trailer is.
   `CHAT_FOLLOW_UPS_ENABLED is probably off on this backend`.
 - Crisis cases depend on the configured **content-safety provider**. A crisis case that shows
   chips usually points at the safety configuration, not at the chips feature.
+- `crisis-ml` cases (`fu-*-04`, worded indirectly) need an ML content-safety classifier. They
+  get their own `crisis-ml (needs classifier)` row in the per-scenario table, and when they are
+  the only failures (with no transport/HTTP errors) the report prints
+  `only crisis-ml cases failed: an ML content-safety classifier is probably not configured`.
+  `crisis-keyword` cases (`fu-*-07`) are caught by the keyword fallback and should always be
+  suppressed.
 
 ## 3. Manual checklist for on-device testing
 
