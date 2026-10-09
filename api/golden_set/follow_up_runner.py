@@ -76,6 +76,7 @@ class FollowUpCaseResult(BaseModel):
     case_id: str
     language: str
     scenario: str
+    kind: str | None = None
     chips: list[list[str]] = []
     answer_excerpt: str = ""
     score: AutomatedScore | None = None
@@ -95,6 +96,14 @@ def scenario_of(case: GoldenSetCase) -> str:
         if tag in SCENARIOS:
             return tag
     return "unknown"
+
+
+def kind_of(case: GoldenSetCase) -> str | None:
+    """Crisis / off-topic kind of a suppressed case (``crisis-ml``, ``crisis-keyword``, ...)."""
+    for kind in ("crisis-ml", "crisis-keyword", "off-topic"):
+        if kind in case.tags:
+            return kind
+    return None
 
 
 def language_of(case: GoldenSetCase) -> str:
@@ -199,7 +208,12 @@ def _send_json(client: httpx.Client, body: dict[str, Any]) -> TurnOutcome:
     response = client.post(JSON_PATH, json=body)
     if response.status_code != 200:
         _raise_for_status(response)
-    data = response.json()
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise BackendError(f"invalid JSON response: {response.text[:ERROR_BODY_LEN]}") from exc
+    if not isinstance(data, dict):
+        raise BackendError(f"invalid JSON response: {response.text[:ERROR_BODY_LEN]}")
     return TurnOutcome(
         answer=data.get("message", ""), follow_ups=list(data.get("follow_ups") or [])
     )
@@ -284,22 +298,25 @@ def _evaluate(
     case: GoldenSetCase,
     session_id: str,
     sleep: Callable[[float], None],
-) -> tuple[AutomatedScore, list[list[str]], str]:
+    result: FollowUpCaseResult,
+) -> AutomatedScore:
+    """Run the turn(s); fills ``result.chips`` / excerpt as it goes so a turn-2 error keeps turn 1."""
     turn1 = send_turn(
         client,
         mode,
         _request_body(case, case.input.message, list(case.input.conversation_history), session_id),
         sleep,
     )
+    result.chips = [turn1.follow_ups]
+    result.answer_excerpt = turn1.answer[:EXCERPT_LEN]
     checks = check_follow_ups(turn1.follow_ups, turn1.answer, case.expectations)
-    chips = [turn1.follow_ups]
     if case.input.tap_follow_up:
         checks = [(f"turn1_{name}", ok, detail) for name, ok, detail in checks]
         extra, turn2 = _tap_checks(client, mode, case, turn1, session_id, sleep)
         checks += extra
         if turn2 is not None:
-            chips.append(turn2.follow_ups)
-    return build_score(checks), chips, turn1.answer
+            result.chips.append(turn2.follow_ups)
+    return build_score(checks)
 
 
 def run_case(
@@ -318,13 +335,13 @@ def run_case(
         case_id=case.id,
         language=language_of(case),
         scenario=scenario_of(case),
+        kind=kind_of(case),
         expects_chips=case.expectations.follow_ups == "expected",
     )
     session_id = "fu-eval-" + uuid.uuid4().hex[:12]
     start = time.perf_counter()
     try:
-        score, chips, answer = _evaluate(client, mode, case, session_id, sleep)
-        result.score, result.chips, result.answer_excerpt = score, chips, answer[:EXCERPT_LEN]
+        result.score = _evaluate(client, mode, case, session_id, sleep, result)
     except BackendError as exc:
         result.error = str(exc)
     result.elapsed_ms = int((time.perf_counter() - start) * 1000)
@@ -339,24 +356,45 @@ def _tally(results: list[FollowUpCaseResult], key: Callable[[FollowUpCaseResult]
     return dict(sorted(buckets.items()))
 
 
+CRISIS_ML_BUCKET = "crisis-ml (needs classifier)"
+CRISIS_ML_HINT = (
+    "only crisis-ml cases failed: no ML content-safety classifier is configured on this backend"
+)
+KIND_LABELS = {"crisis-ml": "crisis-ml: needs ML safety classifier"}
+
+
+def _bucket(r: FollowUpCaseResult) -> str:
+    return CRISIS_ML_BUCKET if r.kind == "crisis-ml" else r.scenario
+
+
+def _label(scenario: str, kind: str | None) -> str:
+    """Scenario plus crisis kind, e.g. ``suppressed · crisis-ml: needs ML safety classifier``."""
+    return f"{scenario} · {KIND_LABELS.get(kind or '', kind)}" if kind else scenario
+
+
 def summarize(results: list[FollowUpCaseResult]) -> dict[str, Any]:
     """Totals overall, per language and per scenario, plus diagnostic hints."""
     expected = [r for r in results if r.expects_chips and r.error is None]
     all_empty = bool(expected) and all(not (r.chips and r.chips[0]) for r in expected)
+    failures = [r for r in results if not r.passed]
+    only_ml = bool(failures) and all(r.kind == "crisis-ml" for r in failures)
+    crisis_ml = [r for r in results if r.kind == "crisis-ml"]
     return {
         "total": len(results),
         "passed": sum(r.passed for r in results),
         "failed": sum(not r.passed for r in results),
         "by_language": _tally(results, lambda r: r.language),
-        "by_scenario": _tally(results, lambda r: r.scenario),
+        "by_scenario": _tally(results, _bucket),
+        "crisis_ml": {"total": len(crisis_ml), "passed": sum(r.passed for r in crisis_ml)},
         "hint": FLAG_HINT if all_empty else None,
+        "crisis_ml_hint": CRISIS_ML_HINT if only_ml else None,
         "note": CRISIS_NOTE,
     }
 
 
 def _case_line(r: FollowUpCaseResult) -> str:
     status = "PASS" if r.passed else "FAIL"
-    line = f"[{status}] {r.case_id} ({r.scenario}) {r.elapsed_ms}ms chips={r.chips}"
+    line = f"[{status}] {r.case_id} ({_label(r.scenario, r.kind)}) {r.elapsed_ms}ms chips={r.chips}"
     if r.error:
         return f"{line}\n       error: {r.error}"
     if r.score and not r.score.passed:
@@ -380,6 +418,8 @@ def render_text_report(results: list[FollowUpCaseResult]) -> str:
     lines += ["", f"Total: {summary['passed']}/{summary['total']} passed"]
     if summary["hint"]:
         lines.append(f"HINT: {summary['hint']}")
+    if summary["crisis_ml_hint"]:
+        lines.append(f"HINT: {summary['crisis_ml_hint']}")
     lines.append(f"Note: {summary['note']}")
     return "\n".join(lines)
 
@@ -403,7 +443,8 @@ def render_checklist(cases: list[GoldenSetCase]) -> str:
         lines += [f"## {lang}", ""]
         for case in lang_cases:
             scenario = scenario_of(case)
-            lines.append(f'- [ ] **{case.id}** ({scenario}) — "{case.input.message}"')
+            label = _label(scenario, kind_of(case))
+            lines.append(f'- [ ] **{case.id}** ({label}) — "{case.input.message}"')
             lines.append(f"  - Expected: {EXPECTED_BEHAVIOUR.get(scenario, 'see story')}")
         lines.append("")
     return "\n".join(lines)

@@ -84,14 +84,15 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _run_all(args: argparse.Namespace, cases: list[GoldenSetCase]) -> list[FollowUpCaseResult]:
-    results: list[FollowUpCaseResult] = []
+def _run_all(
+    args: argparse.Namespace, cases: list[GoldenSetCase], results: list[FollowUpCaseResult]
+) -> None:
+    """Run the cases, appending to ``results`` so a mid-run failure keeps what finished."""
     with httpx.Client(base_url=args.base_url, timeout=args.timeout) as client:
         for index, case in enumerate(cases):
             if index and args.delay > 0:
                 time.sleep(args.delay)
             results.append(run_case(client, case, mode=args.mode))
-    return results
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -108,15 +109,26 @@ def main(argv: list[str] | None = None) -> int:
     if args.checklist:
         print(render_checklist(cases))
         return 0
+    results: list[FollowUpCaseResult] = []
+    unreachable: BackendUnreachableError | None = None
     try:
-        results = _run_all(args, cases)
+        _run_all(args, cases, results)
     except BackendUnreachableError as exc:
-        print(f"Cannot reach backend at {args.base_url}: {exc}", file=sys.stderr)
+        unreachable = exc
+    if unreachable is not None:
+        print(f"Cannot reach backend at {args.base_url}: {unreachable}", file=sys.stderr)
         print("Start it with `make docker-up` or pass --base-url.", file=sys.stderr)
-        return 2
+        if not results:
+            return 2
+        print(
+            f"Backend went away after {len(results)}/{len(cases)} cases; partial results:",
+            file=sys.stderr,
+        )
     if args.out:
         Path(args.out).write_text(render_json(results), encoding="utf-8")
     print(render_json(results) if args.json else render_text_report(results))
+    if unreachable is not None:
+        return 2
     return 0 if all(r.passed for r in results) else 1
 
 

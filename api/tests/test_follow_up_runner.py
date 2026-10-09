@@ -10,6 +10,7 @@ import pytest
 from golden_set.follow_up_runner import (
     BackendUnreachableError,
     FollowUpCaseResult,
+    kind_of,
     render_checklist,
     render_json,
     render_text_report,
@@ -354,6 +355,110 @@ class TestVersesCommentAndHistory:
         assert summarize(results)["hint"] is None
 
 
+class _BrokenStream(httpx.SyncByteStream):
+    """Yields one SSE line, then fails like a dropped connection."""
+
+    def __init__(self, exc: Exception) -> None:
+        self.exc = exc
+
+    def __iter__(self):
+        yield b'data: {"type": "content", "content": "Hel"}\n\n'
+        raise self.exc
+
+
+class TestRobustness:
+    @pytest.mark.parametrize(
+        "exc,prefix",
+        [
+            (httpx.ReadTimeout("slow"), "timeout after"),
+            (httpx.RemoteProtocolError("peer closed"), "connection dropped:"),
+        ],
+    )
+    def test_stream_failing_midway_is_a_per_case_error(self, exc, prefix):
+        result = run(lambda r: httpx.Response(200, stream=_BrokenStream(exc)))
+        assert result.error.startswith(prefix)
+
+    def test_non_json_200_in_json_mode(self):
+        result = run(lambda r: httpx.Response(200, text="<html>oops</html>"), mode="json")
+        assert result.error == "invalid JSON response: <html>oops</html>"
+
+    def test_json_array_body_in_json_mode(self):
+        result = run(lambda r: httpx.Response(200, json=["x"]), mode="json")
+        assert result.error.startswith("invalid JSON response")
+
+    def test_turn_two_error_keeps_turn_one_chips(self):
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return sse(*stream_events(text="First answer."))
+            return httpx.Response(500, text="down")
+
+        result = run(handler, make_case("multi-turn", tap=True))
+        assert result.error == "HTTP 500: down"
+        assert result.chips == [["What is faith?", "Who was Paul?"]]
+        assert result.answer_excerpt == "First answer."
+
+
+def make_kind_case(kind, scenario="suppressed", lang="en"):
+    case = make_case(scenario, "suppressed", lang=lang)
+    case.tags.append(kind)
+    return case
+
+
+class TestCrisisKinds:
+    def _chips_everywhere(self, request):
+        return sse(*stream_events())
+
+    def test_kind_of(self):
+        assert kind_of(make_kind_case("crisis-ml")) == "crisis-ml"
+        assert kind_of(make_kind_case("crisis-keyword")) == "crisis-keyword"
+        assert kind_of(make_kind_case("off-topic")) == "off-topic"
+        assert kind_of(make_case()) is None
+
+    def test_kind_carried_on_result_and_json(self):
+        result = run(self._chips_everywhere, make_kind_case("crisis-ml"))
+        assert result.kind == "crisis-ml"
+        assert json.loads(render_json([result]))["results"][0]["kind"] == "crisis-ml"
+
+    def test_case_line_shows_kind(self):
+        ml = run(self._chips_everywhere, make_kind_case("crisis-ml"))
+        kw = run(self._chips_everywhere, make_kind_case("crisis-keyword"))
+        plain = run(self._chips_everywhere, make_case())
+        text = render_text_report([ml, kw, plain])
+        assert "(suppressed · crisis-ml: needs ML safety classifier)" in text
+        assert "(suppressed · crisis-keyword)" in text
+        assert "(expected)" in text
+
+    def test_crisis_ml_has_separate_tally_and_hint_when_only_failures(self):
+        ml = run(self._chips_everywhere, make_kind_case("crisis-ml"))
+        ok = run(lambda r: sse(*stream_events(chips=None)), make_kind_case("off-topic"))
+        summary = summarize([ml, ok])
+        assert summary["by_scenario"]["crisis-ml (needs classifier)"] == {
+            "total": 1,
+            "passed": 0,
+        }
+        assert summary["by_scenario"]["suppressed"] == {"total": 1, "passed": 1}
+        assert summary["crisis_ml"] == {"total": 1, "passed": 0}
+        assert "only crisis-ml cases failed" in summary["crisis_ml_hint"]
+        assert "only crisis-ml cases failed" in render_text_report([ml, ok])
+
+    def test_no_crisis_hint_when_other_failures_or_none(self):
+        ml = run(self._chips_everywhere, make_kind_case("crisis-ml"))
+        kw = run(self._chips_everywhere, make_kind_case("crisis-keyword"))
+        assert summarize([ml, kw])["crisis_ml_hint"] is None
+        ok = run(lambda r: sse(*stream_events(chips=None)), make_kind_case("crisis-ml"))
+        assert summarize([ok])["crisis_ml_hint"] is None
+
+    def test_checklist_shows_kind(self):
+        cases = filter_by_category(load_test_cases(), "follow_ups")
+        text = render_checklist(cases)
+        assert text.count("crisis-ml: needs ML safety classifier") == 11
+        assert text.count("(suppressed · crisis-keyword)") == 7
+        assert "(suppressed · off-topic)" in text
+
+
 class TestMultiTurn:
     def test_taps_first_chip_with_history(self):
         bodies = []
@@ -463,6 +568,23 @@ class TestCli:
         self._patch_transport(monkeypatch, lambda r: sse(*stream_events(chips=None)))
         assert cli.main(["--case", "fu-en-01", "--delay", "0", "--json"]) == 1
         assert json.loads(capsys.readouterr().out)["summary"]["failed"] == 1
+
+    def test_backend_going_down_midway_writes_partial_results(self, monkeypatch, tmp_path, capsys):
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            if calls["n"] > 1:
+                raise httpx.ConnectError("refused")
+            return sse(*stream_events())
+
+        self._patch_transport(monkeypatch, handler)
+        out = tmp_path / "r.json"
+        argv = ["--case", "fu-en-01,fu-en-02", "--delay", "0", "--out", str(out)]
+        assert cli.main(argv) == 2
+        captured = capsys.readouterr()
+        assert "Cannot reach backend" in captured.err and "Total: 1/1" in captured.out
+        assert json.loads(out.read_text())["summary"]["total"] == 1
 
     def test_unreachable_exit_two(self, monkeypatch, capsys):
         def handler(request):
