@@ -33,7 +33,10 @@ STREAM_PATH = "/api/v1/chat/stream"
 JSON_PATH = "/api/v1/chat"
 RETRY_STATUSES = frozenset({429, 503})
 MAX_RETRIES = 3
-DEFAULT_RETRY_AFTER = 10.0
+DEFAULT_RETRY_AFTER = 60.0  # matches the backend's own hint for per-minute limits
+DEFAULT_UPSTREAM_RETRY_AFTER = 10.0
+MAX_UPSTREAM_RETRIES = 1
+ERROR_BODY_LEN = 200
 EXCERPT_LEN = 200
 
 EXPECTED_BEHAVIOUR = {
@@ -53,7 +56,7 @@ FLAG_HINT = "CHAT_FOLLOW_UPS_ENABLED is probably off on this backend."
 
 
 class BackendUnreachableError(Exception):
-    """The backend could not be contacted at all (connection refused, DNS, timeout)."""
+    """The backend could not be contacted at all (connection refused, DNS, connect timeout)."""
 
 
 class BackendError(Exception):
@@ -76,6 +79,7 @@ class FollowUpCaseResult(BaseModel):
     chips: list[list[str]] = []
     answer_excerpt: str = ""
     score: AutomatedScore | None = None
+    expects_chips: bool = False
     elapsed_ms: int = 0
     error: str | None = None
 
@@ -98,12 +102,62 @@ def language_of(case: GoldenSetCase) -> str:
     return case.input.language or case.expectations.response_language
 
 
-def _retry_delay(response: httpx.Response) -> float:
-    raw = response.headers.get("Retry-After", "")
+class _RetryableError(Exception):
+    """Internal: a failure worth retrying after ``delay`` seconds."""
+
+    def __init__(self, delay: float, reason: str, kind: str) -> None:
+        super().__init__(reason)
+        self.delay = delay
+        self.reason = reason
+        self.kind = kind  # "http" (429/503) or "upstream" (stream error event)
+
+
+def _error_detail(response: httpx.Response) -> dict[str, Any]:
+    """The ``detail`` object of an error body, or ``{}`` when absent / not an object."""
     try:
-        return max(0.0, float(raw))
+        body = response.json()
     except ValueError:
-        return DEFAULT_RETRY_AFTER
+        return {}
+    detail = body.get("detail") if isinstance(body, dict) else None
+    return detail if isinstance(detail, dict) else {}
+
+
+def _retry_delay(response: httpx.Response) -> float:
+    """Retry-After header, else ``detail.retry_after`` from the body, else the default."""
+    for raw in (response.headers.get("Retry-After"), _error_detail(response).get("retry_after")):
+        try:
+            return max(0.0, float(raw))  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            continue
+    return DEFAULT_RETRY_AFTER
+
+
+def _http_failure_reason(response: httpx.Response) -> str:
+    detail = _error_detail(response)
+    text = str(detail["error"]) if "error" in detail else response.text[:ERROR_BODY_LEN]
+    return f"HTTP {response.status_code}: {text}".rstrip(": ")
+
+
+def _raise_for_status(response: httpx.Response) -> None:
+    """Turn a non-200 response into ``_RetryableError`` or ``BackendError``."""
+    reason = _http_failure_reason(response)
+    if _error_detail(response).get("error") == "session_lifetime_limit":
+        raise BackendError(f"{reason} (session request cap reached; use a fresh session)")
+    if response.status_code in RETRY_STATUSES:
+        raise _RetryableError(_retry_delay(response), reason, "http")
+    raise BackendError(reason)
+
+
+def _raise_stream_error(event: dict[str, Any]) -> None:
+    code = event.get("error_code")
+    reason = f"stream error [{code}]: {event.get('error', 'unknown error')}"
+    if code == "upstream_unavailable":
+        try:
+            delay = max(0.0, float(event.get("retry_after")))
+        except (TypeError, ValueError):
+            delay = DEFAULT_UPSTREAM_RETRY_AFTER
+        raise _RetryableError(delay, reason, "upstream")
+    raise BackendError(reason)
 
 
 def _parse_sse(lines: Any) -> TurnOutcome:
@@ -125,7 +179,7 @@ def _parse_sse(lines: Any) -> TurnOutcome:
         if kind == "content":
             parts.append(event.get("content", ""))
         elif kind == "error":
-            raise BackendError(f"stream error: {event.get('error', 'unknown error')}")
+            _raise_stream_error(event)
         elif kind == "completion":
             corrected = event.get("corrected_message")
             follow_ups = list(event.get("follow_ups") or [])
@@ -133,24 +187,32 @@ def _parse_sse(lines: Any) -> TurnOutcome:
     return TurnOutcome(answer=answer, follow_ups=follow_ups)
 
 
-def _send_stream(client: httpx.Client, body: dict[str, Any]) -> tuple[int, TurnOutcome, float]:
+def _send_stream(client: httpx.Client, body: dict[str, Any]) -> TurnOutcome:
     with client.stream("POST", STREAM_PATH, json=body) as response:
         if response.status_code != 200:
             response.read()
-            return response.status_code, TurnOutcome(), _retry_delay(response)
-        return 200, _parse_sse(response.iter_lines()), 0.0
+            _raise_for_status(response)
+        return _parse_sse(response.iter_lines())
 
 
-def _send_json(client: httpx.Client, body: dict[str, Any]) -> tuple[int, TurnOutcome, float]:
+def _send_json(client: httpx.Client, body: dict[str, Any]) -> TurnOutcome:
     response = client.post(JSON_PATH, json=body)
     if response.status_code != 200:
-        return response.status_code, TurnOutcome(), _retry_delay(response)
+        _raise_for_status(response)
     data = response.json()
-    return (
-        200,
-        TurnOutcome(answer=data.get("message", ""), follow_ups=list(data.get("follow_ups") or [])),
-        0.0,
+    return TurnOutcome(
+        answer=data.get("message", ""), follow_ups=list(data.get("follow_ups") or [])
     )
+
+
+def _transport_failure(client: httpx.Client, exc: httpx.TransportError) -> Exception:
+    """Map a transport error: only "cannot connect" is unreachable; the rest is per-case."""
+    if isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout)):
+        return BackendUnreachableError(f"{type(exc).__name__}: {exc}")
+    if isinstance(exc, httpx.TimeoutException):
+        seconds = client.timeout.read
+        return BackendError(f"timeout after {seconds:g}s" if seconds else "timeout")
+    return BackendError(f"connection dropped: {type(exc).__name__}: {exc}")
 
 
 def send_turn(
@@ -159,20 +221,24 @@ def send_turn(
     body: dict[str, Any],
     sleep: Callable[[float], None] = time.sleep,
 ) -> TurnOutcome:
-    """POST one chat turn, retrying 429/503 up to ``MAX_RETRIES`` times."""
+    """POST one chat turn.
+
+    429/503 are retried up to ``MAX_RETRIES`` times and a stream
+    ``upstream_unavailable`` error once, each after the server's hinted delay.
+    """
     sender = _send_stream if mode == "stream" else _send_json
-    for attempt in range(MAX_RETRIES + 1):
+    limits = {"http": MAX_RETRIES, "upstream": MAX_UPSTREAM_RETRIES}
+    used = {"http": 0, "upstream": 0}
+    while True:
         try:
-            status, outcome, delay = sender(client, body)
+            return sender(client, body)
         except httpx.TransportError as exc:
-            raise BackendUnreachableError(f"{type(exc).__name__}: {exc}") from exc
-        if status == 200:
-            return outcome
-        if status in RETRY_STATUSES and attempt < MAX_RETRIES:
-            sleep(delay)
-            continue
-        raise BackendError(f"HTTP {status}")
-    raise BackendError("retries exhausted")  # pragma: no cover
+            raise _transport_failure(client, exc) from exc
+        except _RetryableError as retry:
+            if used[retry.kind] >= limits[retry.kind]:
+                raise BackendError(retry.reason) from retry
+            used[retry.kind] += 1
+            sleep(retry.delay)
 
 
 def _request_body(
@@ -201,6 +267,7 @@ def _tap_checks(
         return [("follow_up_tap", False, "no chip to tap")], None
     tapped = turn1.follow_ups[0]
     history = [
+        *case.input.conversation_history,
         {"role": "user", "content": case.input.message},
         {"role": "assistant", "content": turn1.answer},
     ]
@@ -218,7 +285,12 @@ def _evaluate(
     session_id: str,
     sleep: Callable[[float], None],
 ) -> tuple[AutomatedScore, list[list[str]], str]:
-    turn1 = send_turn(client, mode, _request_body(case, case.input.message, [], session_id), sleep)
+    turn1 = send_turn(
+        client,
+        mode,
+        _request_body(case, case.input.message, list(case.input.conversation_history), session_id),
+        sleep,
+    )
     checks = check_follow_ups(turn1.follow_ups, turn1.answer, case.expectations)
     chips = [turn1.follow_ups]
     if case.input.tap_follow_up:
@@ -243,7 +315,10 @@ def run_case(
     so the CLI can exit with a clear message.
     """
     result = FollowUpCaseResult(
-        case_id=case.id, language=language_of(case), scenario=scenario_of(case)
+        case_id=case.id,
+        language=language_of(case),
+        scenario=scenario_of(case),
+        expects_chips=case.expectations.follow_ups == "expected",
     )
     session_id = "fu-eval-" + uuid.uuid4().hex[:12]
     start = time.perf_counter()
@@ -266,7 +341,7 @@ def _tally(results: list[FollowUpCaseResult], key: Callable[[FollowUpCaseResult]
 
 def summarize(results: list[FollowUpCaseResult]) -> dict[str, Any]:
     """Totals overall, per language and per scenario, plus diagnostic hints."""
-    expected = [r for r in results if r.scenario == "expected"]
+    expected = [r for r in results if r.expects_chips and r.error is None]
     all_empty = bool(expected) and all(not (r.chips and r.chips[0]) for r in expected)
     return {
         "total": len(results),

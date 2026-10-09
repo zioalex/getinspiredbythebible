@@ -17,21 +17,22 @@ from utils.verse_parser import extract_all_references
 CheckResult = tuple[str, bool, str]
 
 
-def _load_max_follow_up_len() -> int:
-    """Read ``_MAX_FOLLOW_UP_LEN`` from the pure ``chat/follow_ups.py`` module.
+def _load_follow_up_constants() -> tuple[int, re.Pattern[str]]:
+    """Read the production chip limits from the pure ``chat/follow_ups.py`` module.
 
-    Loaded by file path so the standalone runner does not import the ``chat``
-    package (which builds app Settings and demands a DATABASE_URL).
+    Loaded by file path, not ``from chat.follow_ups import ...``, because importing
+    through the ``chat`` package runs ``chat/__init__`` and pulls in the whole chat
+    service. This keeps the checks in lock-step with production without copying.
     """
     path = Path(__file__).resolve().parent.parent / "chat" / "follow_ups.py"
     spec = importlib.util.spec_from_file_location("_follow_ups_constants", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return int(module._MAX_FOLLOW_UP_LEN)
+    return int(module._MAX_FOLLOW_UP_LEN), module._MARKUP_PATTERN
 
 
-_MAX_FOLLOW_UP_LEN = _load_max_follow_up_len()
+_MAX_FOLLOW_UP_LEN, _MARKUP_PATTERN = _load_follow_up_constants()
 
 _MIN_CHIPS = 2
 _MAX_CHIPS = 3
@@ -66,7 +67,7 @@ def _check_length(follow_ups: list[str]) -> CheckResult:
 
 
 def _check_markup(follow_ups: list[str]) -> CheckResult:
-    bad = [c for c in follow_ups if "<" in c or ">" in c or "<!--" in c]
+    bad = [c for c in follow_ups if _MARKUP_PATTERN.search(c)]
     if bad:
         return "follow_up_markup", False, f"markup in chip(s): {bad}"
     return "follow_up_markup", True, "no markup in chips"
@@ -94,10 +95,13 @@ def _check_language(follow_ups: list[str], expectations: Expectations) -> CheckR
     return name, False, f"expected {expectations.response_language}, detected {detected}"
 
 
+_TRAILER_LEAK = re.compile(r"<!--\s*FOLLOWUPS|FOLLOWUPS\s*:")
+
+
 def _check_trailer_leak(response: str) -> CheckResult:
-    leaked = [marker for marker in ("FOLLOWUPS", "<!--") if marker in response]
-    if leaked:
-        return "follow_up_no_trailer_leak", False, f"answer contains {leaked}"
+    """Only the FOLLOWUPS trailer must be stripped; the VERSES comment legitimately stays."""
+    if _TRAILER_LEAK.search(response):
+        return "follow_up_no_trailer_leak", False, "answer contains a FOLLOWUPS trailer"
     return "follow_up_no_trailer_leak", True, "no trailer in answer"
 
 

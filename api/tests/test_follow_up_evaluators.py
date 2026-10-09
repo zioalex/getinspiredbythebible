@@ -48,7 +48,7 @@ class TestShapeChecks:
         assert _result(check_follow_ups(ok, "", _exp()), "follow_up_length")[0]
         assert not _result(check_follow_ups(bad, "", _exp()), "follow_up_length")[0]
 
-    @pytest.mark.parametrize("chip", ["a <b> c", "x > y", "<!-- hi", "oops <"])
+    @pytest.mark.parametrize("chip", ["a <b> c", "x > y", "<!-- hi", "oops <", "**bold**", "`c`"])
     def test_markup_fail(self, chip):
         assert not _result(check_follow_ups([chip, "fine?"], "", _exp()), "follow_up_markup")[0]
 
@@ -65,39 +65,79 @@ class TestShapeChecks:
 
 
 class TestTrailerLeak:
-    @pytest.mark.parametrize("body", ["answer <!-- FOLLOWUPS: a|b -->", "FOLLOWUPS: a|b", "x <!--"])
+    @pytest.mark.parametrize(
+        "body", ["answer <!-- FOLLOWUPS: a|b -->", "FOLLOWUPS: a|b", "x <!--FOLLOWUPS : a|b-->"]
+    )
     def test_leak_detected(self, body):
         assert not _result(check_follow_ups(CHIPS, body, _exp()), "follow_up_no_trailer_leak")[0]
 
     def test_clean_body(self):
-        assert _result(
-            check_follow_ups(CHIPS, "Plain answer.", _exp()), "follow_up_no_trailer_leak"
-        )[0]
+        ok = _result(check_follow_ups(CHIPS, "Plain answer.", _exp()), "follow_up_no_trailer_leak")
+        assert ok[0]
+
+    def test_verses_comment_is_not_a_leak(self):
+        body = "God works for good. Romans 8:28\n<!-- VERSES: Romans 8:28 -->"
+        assert _result(check_follow_ups(CHIPS, body, _exp()), "follow_up_no_trailer_leak")[0]
+
+    def test_verses_comment_counts_as_cited_for_fabricated_refs(self):
+        body = "<!-- VERSES: Romans 8:28 -->"
+        checks = check_follow_ups(["What about Romans 8:28?", "x"], body, _exp())
+        assert _result(checks, "follow_up_no_fabricated_refs")[0]
 
 
-# (chip citing a verse, answer that cites it, answer that does not)
+# native book name + ref, plus an answer citing it and one that does not
 REF_CASES = {
-    "en": ("Can you explain John 3:16 more?", "See John 3:16 for this.", "Love is patient."),
-    "de": ("Was bedeutet Johannes 3,16 genau?", "Siehe Johannes 3,16.", "Liebe ist geduldig."),
-    "zh": ("请解释约翰福音3:16", "参见约翰福音3:16。", "爱是恒久忍耐。"),
-    "ko": ("요한복음 3:16이 무슨 뜻인가요?", "요한복음 3:16을 보세요.", "사랑은 오래 참고."),
-    "ar": ("ماذا يعني يوحنا 3:16؟", "انظر يوحنا 3:16.", "المحبة تتأنى."),
-    "hi": ("यूहन्ना 3:16 का क्या अर्थ है?", "यूहन्ना 3:16 देखें।", "प्रेम धीरजवन्त है।"),
+    "en": "Romans 8:28",
+    "it": "Romani 8:28",
+    "de": "Römer 8,28",
+    "es": "Romanos 8:28",
+    "fr": "Romains 8:28",
+    "pt": "Romanos 8:28",
+    "ar": "رومية 8:28",
+    "ru": "Римлянам 8:28",
+    "zh": "罗马书8:28",
+    "hi": "रोमियों 8:28",
+    "ko": "로마서 8:28",
 }
 
 
 class TestFabricatedRefs:
     @pytest.mark.parametrize("lang", list(REF_CASES))
     def test_cited_ref_passes(self, lang):
-        chip, cited, _ = REF_CASES[lang]
-        checks = check_follow_ups([chip, "x"], cited, _exp(lang=lang))
+        ref = REF_CASES[lang]
+        checks = check_follow_ups([f"{ref} ?", "x"], f"See {ref} for this.", _exp(lang=lang))
         assert _result(checks, "follow_up_no_fabricated_refs")[0]
 
     @pytest.mark.parametrize("lang", list(REF_CASES))
     def test_uncited_ref_fails(self, lang):
-        chip, _, uncited = REF_CASES[lang]
-        checks = check_follow_ups([chip, "x"], uncited, _exp(lang=lang))
+        ref = REF_CASES[lang]
+        checks = check_follow_ups([f"{ref} ?", "x"], "Love is patient.", _exp(lang=lang))
         assert not _result(checks, "follow_up_no_fabricated_refs")[0]
+
+    @pytest.mark.parametrize("lang", list(REF_CASES))
+    def test_localized_chip_matches_english_verses_comment(self, lang):
+        ref = REF_CASES[lang]
+        body = "Answer text.\n<!-- VERSES: Romans 8:28 -->"
+        checks = check_follow_ups([f"{ref} ?", "x"], body, _exp(lang=lang))
+        assert _result(checks, "follow_up_no_fabricated_refs")[0]
+
+    @pytest.mark.parametrize(
+        "chip,cited",
+        [
+            ("What does (Romanos 8:28) mean?", "Romanos 8:28"),
+            ("¿Qué significa [Romanos 8:28]?", "Romanos 8:28"),
+            ("Что значит [Римлянам 8:28]?", "Римлянам 8:28"),
+            ("（罗马书8:28）是什么意思", "罗马书8:28"),
+            ("「罗马书8:28」是什么意思", "罗马书8:28"),
+            ("Was heißt Römer 8,28-30?", "Römer 8,28-30"),
+            ("What about Romans 8:28-30?", "Romans 8:28-30"),
+        ],
+    )
+    def test_wrapped_and_range_variants(self, chip, cited):
+        ok = check_follow_ups([chip, "x"], f"As in {cited}.", _exp())
+        assert _result(ok, "follow_up_no_fabricated_refs")[0]
+        bad = check_follow_ups([chip, "x"], "Nothing cited.", _exp())
+        assert not _result(bad, "follow_up_no_fabricated_refs")[0]
 
     def test_chip_without_reference_passes(self):
         checks = check_follow_ups(CHIPS, "No refs here.", _exp())
@@ -196,7 +236,7 @@ class TestRunFollowUpChecks:
         assert set(score.details) >= {"follow_up_count", "follow_up_unique"}
 
     def test_failures_listed(self):
-        score = run_follow_up_checks([], "Body FOLLOWUPS", _exp("expected"))
+        score = run_follow_up_checks([], "Body <!-- FOLLOWUPS: a|b -->", _exp("expected"))
         assert not score.passed
         assert "follow_up_count" in score.failed_checks
         assert "follow_up_no_trailer_leak" in score.failed_checks

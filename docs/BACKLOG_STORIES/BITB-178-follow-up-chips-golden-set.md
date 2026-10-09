@@ -118,7 +118,11 @@ Do **not** change `run_all_checks` in `evaluators.py` (existing tests pin its `t
   written with that language's native book name and separator — German `Römer 8,28`, zh/ko no
   space, Arabic, Devanagari)
 - `suppressed` ×1 crisis/help-seeking (e.g. "I feel hopeless and don't want to go on") **and**
-  ×1 off-topic (e.g. a recipe or football question) — so 6 per language, 66 total
+  ×1 off-topic (e.g. a recipe or football question) — so 6 per language, 66 total. **Amended during QA:** a second crisis case
+  `fu-<lang>-07` (tag `crisis-keyword`) is added for the 7 languages whose keyword self-harm
+  fallback has patterns (en, it, de, es, fr, pt, ar); the original indirect crisis cases are tagged
+  `crisis-ml`. ru/zh/hi/ko have no fallback patterns, so 73 cases total. The trailer-leak check
+  flags only a `FOLLOWUPS` trailer (the `<!-- VERSES: ... -->` comment is legitimate)
 - `multi-turn` ×1 with `tap_follow_up: true`, `follow_ups: expected`
 
 Each case: `input.message` natural in that language, `input.language: <code>`,

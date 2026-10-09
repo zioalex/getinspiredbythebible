@@ -10,11 +10,12 @@ Put the variable in the env file your stack uses (every compose file passes it t
 default `false`):
 
 ```bash
-echo 'CHAT_FOLLOW_UPS_ENABLED=true' >> .env.local        # make docker-up
-echo 'CHAT_FOLLOW_UPS_ENABLED=true' >> .env.dev          # make docker-up-dev (API on :8001)
-echo 'CHAT_FOLLOW_UPS_ENABLED=true' >> .env.production   # make docker-up-local-prod
-make docker-up        # restart so the container picks it up
+echo 'CHAT_FOLLOW_UPS_ENABLED=true' >> .env.local        # then: make docker-up
+echo 'CHAT_FOLLOW_UPS_ENABLED=true' >> .env.dev          # then: make docker-up-dev (API on :8001)
+echo 'CHAT_FOLLOW_UPS_ENABLED=true' >> .env.production   # then: make docker-up-local-prod
 ```
+
+Restart the stack with the matching command so the container picks the variable up.
 
 Production is unaffected: Terraform's `chat_follow_ups_enabled` also defaults to `false`.
 
@@ -24,8 +25,9 @@ Production is unaffected: Terraform's `chat_follow_ups_enabled` also defaults to
 
 ## 2. Run the golden set against a live backend
 
-The set lives in `api/golden_set/test_cases/follow_ups.yaml` (66 cases: 11 languages x
-expected x2, verse-citing, suppressed x2, multi-turn).
+The set lives in `api/golden_set/test_cases/follow_ups.yaml` (73 cases: 11 languages x
+expected x2, verse-citing, suppressed x2, multi-turn, plus a keyword-crisis case for the 7
+languages that have one).
 
 ```bash
 make follow-up-eval                                   # everything, http://localhost:8000
@@ -46,6 +48,12 @@ Each case uses a fresh `session_id`; HTTP 429/503 are retried (honouring `Retry-
 - **verse-citing**: as above, and any verse reference inside a chip must also be cited in the
   answer (no fabricated references).
 - **suppressed**: a crisis / help-seeking message or an off-topic message must yield **no** chips.
+  Crisis cases come in two kinds. `crisis-ml` cases (`fu-<lang>-04`) are indirect wording that
+  needs a content-safety ML classifier to be recognised. `crisis-keyword` cases (`fu-<lang>-07`)
+  use wording that the built-in keyword self-harm fallback matches, so they work on a local
+  stack with no classifier. The fallback only has patterns for en, it, de, es, fr, pt and ar;
+  **ru, zh, hi and ko have none**, so those languages only get the `crisis-ml` case and rely on
+  the configured classifier.
 - **multi-turn**: the runner taps the first chip and sends it as turn 2 with history; turn 2
   must also yield valid chips, must not repeat the tapped question, and must not repeat turn 1's
   chip set.
@@ -54,7 +62,9 @@ Each case uses a fresh `session_id`; HTTP 429/503 are retried (honouring `Retry-
 
 The report lists each case (with failed checks), then totals per language and per scenario.
 Checks: chip count, length (<= 120), no markup, no duplicates, chip language matches, no
-`FOLLOWUPS` trailer in the answer, no fabricated references.
+`FOLLOWUPS` trailer in the answer, no fabricated references. The `<!-- VERSES: ... -->`
+comment the model appends to scripture answers is expected and is not treated as a leak;
+only a `FOLLOWUPS` trailer is.
 
 - If every `expected` case returns zero chips the report prints
   `CHAT_FOLLOW_UPS_ENABLED is probably off on this backend`.

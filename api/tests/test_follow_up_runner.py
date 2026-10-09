@@ -125,8 +125,8 @@ class TestStream:
         assert "follow_up_no_trailer_leak" in result.score.failed_checks
 
     def test_http_error(self):
-        result = run(lambda r: httpx.Response(500))
-        assert result.error == "HTTP 500"
+        result = run(lambda r: httpx.Response(500, text="kaboom"))
+        assert result.error == "HTTP 500: kaboom"
 
     def test_unreachable_raises(self):
         def handler(request):
@@ -175,15 +175,183 @@ class TestRetry:
             return httpx.Response(503) if calls["n"] == 1 else sse(*stream_events())
 
         run(handler, sleep=sleeps.append)
-        assert sleeps == [10.0]
+        assert sleeps == [60.0]
 
     def test_gives_up_after_three_retries(self):
         sleeps: list[float] = []
         result = run(
             lambda r: httpx.Response(429, headers={"Retry-After": "1"}), sleep=sleeps.append
         )
-        assert result.error == "HTTP 429"
+        assert result.error.startswith("HTTP 429")
         assert len(sleeps) == 3
+
+
+RATE_LIMIT_BODY = {"detail": {"error": "Rate limit exceeded", "retry_after": 60}}
+LIFETIME_BODY = {"detail": {"error": "session_lifetime_limit", "retry_after": None, "limit": 100}}
+
+
+class TestRealRateLimitShapes:
+    def test_body_retry_after_used_when_no_header(self):
+        sleeps: list[float] = []
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return httpx.Response(429, json={"detail": {"retry_after": 7}})
+            return sse(*stream_events())
+
+        assert run(handler, sleep=sleeps.append).error is None
+        assert sleeps == [7.0]
+
+    def test_real_429_body_without_header_defaults_to_hinted_60(self):
+        sleeps: list[float] = []
+        result = run(lambda r: httpx.Response(429, json=RATE_LIMIT_BODY), sleep=sleeps.append)
+        assert sleeps == [60.0, 60.0, 60.0]
+        assert result.error == "HTTP 429: Rate limit exceeded"
+
+    def test_header_wins_over_body(self):
+        sleeps: list[float] = []
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return httpx.Response(429, headers={"Retry-After": "2"}, json=RATE_LIMIT_BODY)
+            return sse(*stream_events())
+
+        run(handler, sleep=sleeps.append)
+        assert sleeps == [2.0]
+
+    def test_session_lifetime_limit_is_not_retried(self):
+        sleeps: list[float] = []
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            return httpx.Response(429, json=LIFETIME_BODY)
+
+        result = run(handler, sleep=sleeps.append)
+        assert calls["n"] == 1 and sleeps == []
+        assert "session_lifetime_limit" in result.error
+
+    def test_json_mode_uses_same_handling(self):
+        sleeps: list[float] = []
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return httpx.Response(429, json=RATE_LIMIT_BODY)
+            return httpx.Response(200, json={"message": "A.", "follow_ups": ["A one?", "B two?"]})
+
+        assert run(handler, mode="json", sleep=sleeps.append).chips == [["A one?", "B two?"]]
+        assert sleeps == [60.0]
+
+
+class TestTransportAndErrorReporting:
+    def test_read_timeout_is_a_per_case_error(self):
+        def handler(request):
+            raise httpx.ReadTimeout("slow")
+
+        result = run(handler)
+        assert result.error.startswith("timeout after")
+
+    def test_dropped_connection_is_a_per_case_error(self):
+        def handler(request):
+            raise httpx.RemoteProtocolError("peer closed")
+
+        result = run(handler)
+        assert result.error.startswith("connection dropped:") and "peer closed" in result.error
+
+    def test_cli_continues_after_timeout_and_still_writes_report(self, monkeypatch, tmp_path):
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise httpx.ReadTimeout("slow")
+            return sse(*stream_events())
+
+        real = httpx.Client
+        monkeypatch.setattr(
+            cli.httpx,
+            "Client",
+            lambda *a, **k: real(*a, **{**k, "transport": httpx.MockTransport(handler)}),
+        )
+        out = tmp_path / "r.json"
+        argv = ["--case", "fu-en-01,fu-en-02", "--delay", "0", "--out", str(out)]
+        assert cli.main(argv) == 1
+        data = json.loads(out.read_text())
+        assert data["summary"]["total"] == 2 and data["results"][0]["error"]
+        assert data["results"][1]["passed"] is True
+
+    def test_non_retryable_http_error_includes_status_and_body(self):
+        result = run(lambda r: httpx.Response(422, json={"detail": {"error": "bad language"}}))
+        assert result.error == "HTTP 422: bad language"
+        long = run(lambda r: httpx.Response(502, text="x" * 500))
+        assert long.error == "HTTP 502: " + "x" * 200
+
+    def test_stream_error_includes_error_code(self):
+        result = run(lambda r: sse({"type": "error", "error": "no", "error_code": "weird"}))
+        assert result.error == "stream error [weird]: no"
+
+    def test_upstream_unavailable_retried_once(self):
+        sleeps: list[float] = []
+        calls = {"n": 0}
+        busy = {"type": "error", "error": "busy", "error_code": "upstream_unavailable"}
+
+        def handler(request):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return sse({**busy, "retry_after": 4})
+            return sse(*stream_events())
+
+        assert run(handler, sleep=sleeps.append).error is None
+        assert sleeps == [4.0]
+
+    def test_upstream_unavailable_gives_up_after_one_retry(self):
+        sleeps: list[float] = []
+        busy = {"type": "error", "error": "busy", "error_code": "upstream_unavailable"}
+        result = run(lambda r: sse(busy), sleep=sleeps.append)
+        assert len(sleeps) == 1
+        assert "upstream_unavailable" in result.error
+
+
+class TestVersesCommentAndHistory:
+    def test_answer_ending_with_verses_comment_passes_end_to_end(self):
+        body = "Romans 8:28 says all things work together.\n<!-- VERSES: Romans 8:28 -->"
+        events = stream_events(
+            text=body,
+            chips=("What does Romans 8:28 mean?", "How can I trust God more?"),
+            corrected_message=body,
+        )
+        result = run(lambda r: sse(*events))
+        assert result.passed, result.score.failed_checks
+
+    def test_turn_one_sends_configured_history(self):
+        bodies = []
+        case = make_case()
+        case.input.conversation_history = [{"role": "user", "content": "hi"}]
+
+        def handler(request):
+            bodies.append(json.loads(request.content))
+            return sse(*stream_events())
+
+        run(handler, case)
+        assert bodies[0]["conversation_history"] == [{"role": "user", "content": "hi"}]
+
+    def test_hint_fires_for_verse_citing_and_multi_turn_when_all_empty(self):
+        empty = lambda r: sse(*stream_events(chips=None))  # noqa: E731
+        results = [
+            run(empty, make_case("verse-citing")),
+            run(empty, make_case("multi-turn", tap=True)),
+        ]
+        assert "CHAT_FOLLOW_UPS_ENABLED" in summarize(results)["hint"]
+
+    def test_hint_absent_when_only_errors(self):
+        results = [run(lambda r: httpx.Response(500), make_case("expected"))]
+        assert summarize(results)["hint"] is None
 
 
 class TestMultiTurn:

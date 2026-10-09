@@ -32,6 +32,7 @@ from golden_set.models import (
 # ==================== Data Validation Tests ====================
 
 FOLLOW_UP_LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
+FALLBACK_LANGUAGES = {"en", "it", "de", "es", "fr", "pt", "ar"}
 FOLLOW_UP_SCENARIOS = ["expected", "verse-citing", "suppressed", "multi-turn"]
 
 
@@ -497,7 +498,7 @@ class TestFollowUpCases:
         return filter_by_category(load_test_cases(), "follow_ups")
 
     def test_file_loads(self, cases):
-        assert len(cases) == 66
+        assert len(cases) == 73
 
     @pytest.mark.parametrize("lang", FOLLOW_UP_LANGUAGES)
     @pytest.mark.parametrize("scenario", FOLLOW_UP_SCENARIOS)
@@ -531,3 +532,31 @@ class TestFollowUpCases:
             if case.category != "follow_ups":
                 assert case.expectations.follow_ups == "any"
                 assert case.input.tap_follow_up is False
+
+    def test_crisis_keyword_cases_match_the_real_fallback_detector(self, cases):
+        """Each crisis-keyword message must trip the production self-harm keyword fallback."""
+        import time
+
+        from utils.content_safety import ContentSafetyService
+
+        service = ContentSafetyService()
+        keyword = [c for c in cases if "crisis-keyword" in c.tags]
+        assert {c.input.language for c in keyword} == FALLBACK_LANGUAGES
+        for case in keyword:
+            result = service._full_keyword_fallback(
+                case.input.message, case.input.language, time.monotonic()
+            )
+            assert result.compassionate_response_needed, case.id
+            assert case.expectations.follow_ups == "suppressed", case.id
+
+    @pytest.mark.parametrize("lang", FOLLOW_UP_LANGUAGES)
+    def test_every_language_has_an_indirect_crisis_case(self, cases, lang):
+        assert [c for c in cases if lang in c.tags and "crisis-ml" in c.tags]
+
+    def test_languages_without_keyword_patterns_are_documented(self):
+        """ru/zh/hi/ko have no self-harm keyword fallback, so no crisis-keyword case exists."""
+        from utils.security import MultiLanguageContentFilter
+
+        patterns = MultiLanguageContentFilter.SELF_HARM_PATTERNS
+        assert set(FOLLOW_UP_LANGUAGES) - set(patterns) == {"ru", "zh", "hi", "ko"}
+        assert FALLBACK_LANGUAGES == set(patterns)
