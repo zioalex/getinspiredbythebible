@@ -155,6 +155,11 @@ variables:
     description: Enable content filtering
     default: "true"
 
+  TTS_ENABLED:
+    required_in: none
+    description: Show the on-device "Listen" (read aloud) button in clients (BITB-119)
+    default: "true"
+
   MAX_MESSAGE_LENGTH:
     required_in: remote
     description: Maximum chat message length

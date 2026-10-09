@@ -144,7 +144,10 @@
     "mainMenuLabel": "菜单",
     "changeLanguage": "更改语言",
     "changeBibleVersion": "更改圣经版本",
-    "searchCommunity": "寻找信仰团体"
+    "searchCommunity": "寻找信仰团体",
+    "listenAnswer": "朗读回答",
+    "stopListening": "停止朗读",
+    "showListenButton": "显示朗读按钮"
   },
   "Verses": {
     "scriptureReferences": "圣经参考",
@@ -345,6 +348,9 @@
     "contactTitle": "联系我",
     "contactBody": "哪些做得好?哪些还可以改进?怎样才能让它更有帮助?我很想听听你的想法。",
     "contactLinkLabel": "发送反馈",
+    "supportTitle": "让 Vox Quieta 保持免费",
+    "supportBody": "Vox Quieta 免费使用，没有广告，也无需账号。如果它对你有帮助，并且你愿意，捐款可以帮助支付托管和 AI 的费用。捐款完全自愿，也没有任何特权——所有功能对所有人始终免费。",
+    "supportLinkLabel": "支持 Vox Quieta",
     "introTitle": "为什么会有 Vox Quieta",
     "introBody": "抑郁症和心理健康困扰影响着许多人。Vox Quieta 的诞生,是为了简单、易用、扎根于圣经——在艰难时刻给予温柔陪伴,而不是替代心理治疗或牧灵辅导。",
     "introPrimaryCta": "了解更多",

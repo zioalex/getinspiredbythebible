@@ -182,10 +182,12 @@
     <string name="settings_changelog_title">ما الجديد</string>
     <string name="settings_changelog_link">ما الجديد</string>
     <string name="settings_support_us">ادعم Vox Quieta</string>
+    <string name="drawer_support_us">ادعم Vox Quieta</string>
     <string name="changelog_empty">لا تتوفر ملاحظات إصدار حتى الآن.</string>
     <string name="whats_new_title">ما الجديد</string>
     <string name="whats_new_dismiss">حسناً</string>
     <string name="whats_new_see_all">عرض الكل</string>
+    <string name="whats_new_support_note">يمكنك الآن دعم Vox Quieta من القائمة إن رغبت. الأمر اختياري تماماً — يبقى التطبيق مجانياً للجميع.</string>
 
     <!-- About intro bottom sheet (BITB-082) -->
     <string name="about_intro_title">لماذا Vox Quieta</string>
@@ -301,4 +303,13 @@
 
     <!-- Share -->
     <string name="share_prefix">وجدت هذه الرؤية الكتابية الملهمة:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">الاستماع إلى الإجابة</string>
+    <string name="action_stop_listening">إيقاف الاستماع</string>
+    <string name="state_listening">جارٍ القراءة بصوت عالٍ</string>
+    <string name="state_not_listening">القراءة متوقفة</string>
+    <string name="settings_tts_title">القراءة بصوت عالٍ</string>
+    <string name="settings_tts_show_listen">إظهار زر الاستماع</string>
+    <string name="settings_tts_show_listen_desc">يضيف زر استماع إلى الإجابات. تُقرأ الإجابات بصوت جهازك، ولا يغادر النص جهازك أبدًا.</string>
 </resources>

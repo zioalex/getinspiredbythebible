@@ -182,10 +182,12 @@
     <string name="settings_changelog_title">새로운 기능</string>
     <string name="settings_changelog_link">새로운 기능</string>
     <string name="settings_support_us">Vox Quieta 후원하기</string>
+    <string name="drawer_support_us">Vox Quieta 후원하기</string>
     <string name="changelog_empty">아직 릴리스 노트가 없습니다.</string>
     <string name="whats_new_title">새로운 기능</string>
     <string name="whats_new_dismiss">확인</string>
     <string name="whats_new_see_all">모두 보기</string>
+    <string name="whats_new_support_note">이제 원하신다면 메뉴에서 Vox Quieta를 후원하실 수 있습니다. 전적으로 선택 사항이며, 앱은 모두에게 계속 무료입니다.</string>
 
     <!-- About intro bottom sheet (BITB-082) -->
     <string name="about_intro_title">Vox Quieta를 만든 이유</string>
@@ -296,4 +298,13 @@
 
     <!-- Share -->
     <string name="share_prefix">이 영감적인 성경 통찰을 발견했습니다:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">답변 듣기</string>
+    <string name="action_stop_listening">듣기 중지</string>
+    <string name="state_listening">소리 내어 읽는 중</string>
+    <string name="state_not_listening">읽기 중지됨</string>
+    <string name="settings_tts_title">소리 내어 읽기</string>
+    <string name="settings_tts_show_listen">듣기 버튼 표시</string>
+    <string name="settings_tts_show_listen_desc">답변에 듣기 버튼을 추가합니다. 답변은 기기의 음성으로 읽어 주며, 텍스트는 기기 밖으로 나가지 않습니다.</string>
 </resources>
