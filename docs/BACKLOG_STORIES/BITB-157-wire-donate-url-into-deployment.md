@@ -1,6 +1,6 @@
 # BITB-157: Wire `NEXT_PUBLIC_DONATE_URL` Into Docker Compose / Dockerfile / Azure Deploy
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-17
@@ -42,12 +42,27 @@ say so explicitly) are the honest current state, not the target state.
 
 ## Acceptance Criteria
 
-- [ ] Setting `NEXT_PUBLIC_DONATE_URL` in `.env.local`/`.env.dev` changes the link under
+- [x] Setting `NEXT_PUBLIC_DONATE_URL` in `.env.local`/`.env.dev` changes the link under
       `make docker-up` / `make docker-up-dev` without a source edit
-- [ ] `azure-deploy.yml` passes the var through to the production build
-- [ ] `Footer.tsx`'s comment updated to reflect the var is now live end-to-end
-- [ ] `scripts/env-manifest.yaml`'s `NEXT_PUBLIC_DONATE_URL` entry's `required_in` reconsidered
+- [x] `azure-deploy.yml` passes the var through to the production build
+- [x] AC3 (retargeted): the donate URL is now composed in `frontend/src/lib/donateUrl.ts`
+      (BITB-168 refactor moved it out of `Footer.tsx`); its header comment already states the var is
+      env-driven with a Ko-fi fallback
+- [x] `scripts/env-manifest.yaml`'s `NEXT_PUBLIC_DONATE_URL` entry's `required_in` reconsidered
       now that it can actually be required somewhere (currently `none`)
+
+## Implementation Notes (2026-10-08)
+
+- `docker-compose.dev.yml`'s `frontend` service builds the production stage (no `target: deps`), so a
+  runtime `environment:` entry would do nothing; the var is passed via `build.args` instead. Same for
+  `docker-compose.prod.yml`. `docker-compose.yml` (dev-server `deps` target) forwards it at runtime.
+- `azure-deploy.yml` sources it from the optional repo variable `NEXT_PUBLIC_DONATE_URL`
+  (not a secret; unset => empty => Ko-fi fallback).
+- `env-manifest.yaml` `required_in` set to `local` (compose forwards it; Terraform does not, so
+  `remote`/`both` would fail `validate-env`).
+- Tests: `api/tests/test_donate_url_wiring.py`, `frontend/src/lib/donateUrl.test.ts`.
+
+Done pending PR merge.
 
 ## Related
 
