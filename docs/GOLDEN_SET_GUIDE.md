@@ -17,10 +17,11 @@ This guide covers everything you need to use, extend, and contribute to the gold
 - [Evaluators](#evaluators)
 - [Loader](#loader)
 - [Running Tests](#running-tests)
+- [The `interpretation` Category](#the-interpretation-category)
+- [Live Runner](#live-runner)
 - [Adding New Test Cases](#adding-new-test-cases)
 - [Adding a New Category](#adding-a-new-category)
 - [Adding a New Evaluator](#adding-a-new-evaluator)
-- [Future: Live Runner (PR #107)](#future-live-runner-pr-107)
 - [Future: Reports (PR #108)](#future-reports-pr-108)
 - [FAQ](#faq)
 
@@ -56,18 +57,26 @@ cd api
 api/golden_set/
 ├── __init__.py          # Public exports
 ├── models.py            # Pydantic models (inputs, expectations, scores)
-├── evaluators.py        # 7 automated check functions + orchestrator
+├── evaluators.py        # 9 automated checks + orchestrator
 ├── loader.py            # YAML file loading and filtering
+├── runner.py            # Mock and live runs, save/load, summary (BITB-178)
+├── results/             # Saved run JSON (gitignored)
 └── test_cases/          # YAML test case definitions
     ├── encouragement.yaml
     ├── verse_lookup.yaml
     ├── prayer_lookup.yaml
     ├── theological.yaml
     ├── multilingual.yaml
-    └── edge_cases.yaml
+    ├── edge_cases.yaml
+    └── interpretation.yaml
+
+scripts/
+└── run_golden_set.py    # CLI for the runner (mock or live)
 
 api/tests/
-└── test_golden_set.py   # 51 pytest tests for the golden set system
+├── test_golden_set.py          # data integrity, evaluators, interpretation rules
+├── test_golden_set_runner.py   # runner + CLI (mocked HTTP transport)
+└── test_golden_set_live_workflow.py  # guards for the scheduled workflow
 ```
 
 **Data flow:**
@@ -77,6 +86,8 @@ api/tests/
 3. A response (from the real API or a mock) is evaluated by the **evaluators**
 4. Evaluators produce an `AutomatedScore` with pass/fail for each check
 5. Tests in `test_golden_set.py` validate data integrity and evaluator correctness
+6. The **runner** (`runner.py`, `scripts/run_golden_set.py`) sends cases to a running API and
+   scores the real answers with the same evaluators (see [Live Runner](#live-runner))
 
 ---
 
@@ -115,6 +126,7 @@ cases:
 | `input.conversation_history` | No | Prior messages for multi-turn tests (list of `{role, content}` dicts). |
 | `input.include_search` | No | Whether to include scripture search (default: `true`). |
 | `input.preferred_translation` | No | Bible translation code (e.g., `kjv`, `ita1927`). |
+| `input.language` | No | UI language code sent to the API as `language` (e.g., `de`). Overrides server-side language detection, as the apps do. The live runner sends it; the field is documentation only for the pure evaluators. |
 | `expectations` | Yes | Machine-checkable criteria (see below). |
 | `reference_response` | No | An ideal response for human comparison. |
 | `tags` | No | Free-form labels for filtering (e.g., `["grief", "comfort"]`). |
@@ -127,7 +139,9 @@ cases:
 | `min_verses_cited` | `0` | Minimum number of verse references required. |
 | `expected_books` | `[]` | At least one of these books must appear in the response. |
 | `must_not_contain` | `[]` | Phrases that must NOT appear (case-insensitive). |
-| `response_language` | `"en"` | Expected language code (`en`, `it`, `de`). |
+| `must_contain` | `[]` | Phrases that must ALL appear (case-insensitive). |
+| `must_contain_any` | `[]` | Groups of alternatives: one alternative from EVERY group must appear (case-insensitive). See [The `interpretation` Category](#the-interpretation-category). |
+| `response_language` | `"en"` | Expected language code (`en`, `it`, `de`, ... any of the 11 UI languages). |
 | `source_statement_required` | `false` | Response must state whether the content is from the Bible. |
 | `source_is_biblical` | `null` | If set, checks for biblical (`true`) or non-biblical (`false`) source attribution. |
 | `must_acknowledge_situation` | `false` | Response must reference keywords from the user's message in its first 500 characters. |
@@ -141,10 +155,11 @@ cases:
 | `verse_lookup` | `verse_lookup.yaml` | 8 | Specific verse requests with source attribution |
 | `prayer_lookup` | `prayer_lookup.yaml` | 8 | Prayer identification (biblical vs. non-biblical) |
 | `theological` | `theological.yaml` | 8 | Doctrinal questions and theological topics |
-| `multilingual` | `multilingual.yaml` | 4 | Italian and German language responses |
+| `multilingual` | `multilingual.yaml` | 6 | Italian and German language responses |
 | `edge_cases` | `edge_cases.yaml` | 4 | Off-topic, adversarial, and boundary inputs |
+| `interpretation` | `interpretation.yaml` | 81 | Who or what a verse refers to; stability under pushback (BITB-178) |
 
-**Total: 40 test cases across 6 categories.**
+**Total: 121 test cases across 7 categories.** (`theological` has 6 cases, not 8.)
 
 ---
 
@@ -162,6 +177,7 @@ class GoldenSetInput(BaseModel):
     conversation_history: list[dict] = []     # Prior messages (multi-turn)
     include_search: bool = True               # Enable scripture search
     preferred_translation: str | None = None  # e.g., "kjv", "ita1927"
+    language: str | None = None               # UI language code sent to the API (BITB-178)
 ```
 
 ### Expectations
@@ -174,6 +190,8 @@ class Expectations(BaseModel):
     min_verses_cited: int = 0
     expected_books: list[str] = []
     must_not_contain: list[str] = []
+    must_contain: list[str] = []
+    must_contain_any: list[list[str]] = []    # one alternative from EVERY group (BITB-178)
     response_language: str = "en"
     source_statement_required: bool = False
     source_is_biblical: bool | None = None
@@ -203,7 +221,7 @@ Result of running all automated evaluators on a response:
 ```python
 class AutomatedScore(BaseModel):
     passed: bool            # True if all checks passed
-    total_checks: int       # Number of checks run (currently 7)
+    total_checks: int       # Number of checks run (currently 9)
     passed_checks: int      # Number of checks that passed
     failed_checks: list[str] = []  # Names of failed checks
     details: dict = {}      # Check name -> detail message
@@ -225,7 +243,7 @@ class HumanScore(BaseModel):
 
 ### CaseResult and EvalRun
 
-Results from running a test case against the live API (used by the runner in PR #107):
+Results from running a test case against the live API (written by the [runner](#live-runner)):
 
 ```python
 class CaseResult(BaseModel):
@@ -255,7 +273,7 @@ class EvalRun(BaseModel):
 
 ## Evaluators
 
-The evaluator module (`api/golden_set/evaluators.py`) contains 7 independent
+The evaluator module (`api/golden_set/evaluators.py`) contains 9 independent
 check functions and one orchestrator. Each check returns a
 `(passed: bool, detail: str)` tuple.
 
@@ -268,12 +286,20 @@ check functions and one orchestrator. Each check returns a
   `expected_books` appears in the response (case-insensitive).
 - **`check_forbidden_content`** - Ensures no phrase in
   `must_not_contain` appears in the response (case-insensitive).
+- **`check_required_content`** - Ensures every phrase in `must_contain`
+  appears in the response (case-insensitive).
+- **`check_required_alternatives`** - For every group in
+  `must_contain_any`, at least one alternative must appear
+  (case-insensitive). Lets a case accept `1:78`, `1,78` or native digits.
+  Reports the groups with no match (BITB-178).
 - **`check_source_statement`** - Looks for source attribution in the
   first 500 characters. Checks for biblical patterns ("from the Bible",
   "found in scripture") or non-biblical patterns based on
   `source_is_biblical`.
 - **`check_response_language`** - Uses `lingua-language-detector` to
-  verify the response language. Gracefully skips if unavailable.
+  verify the response language. Gracefully skips if unavailable (this
+  is the case in the scheduled live workflow, which installs only the
+  runner's dependencies).
 - **`check_response_length`** - Checks that response length doesn't
   exceed `max_response_length`.
 - **`check_situation_acknowledgment`** - Extracts keywords (>3 chars,
@@ -282,7 +308,7 @@ check functions and one orchestrator. Each check returns a
 
 ### Orchestrator
 
-`run_all_checks(response, expectations, input_message="")` runs all 7 checks and returns an `AutomatedScore`:
+`run_all_checks(response, expectations, input_message="")` runs all 9 checks and returns an `AutomatedScore`:
 
 ```python
 from golden_set.evaluators import run_all_checks
@@ -320,7 +346,7 @@ from golden_set.loader import load_test_cases
 
 # Load all cases from the default directory (golden_set/test_cases/)
 cases = load_test_cases()
-print(f"Loaded {len(cases)} test cases")  # 40
+print(f"Loaded {len(cases)} test cases")  # 121
 
 # Load from a custom directory
 from pathlib import Path
@@ -375,21 +401,33 @@ cd api
 ../.venv/bin/python -m pytest tests/test_golden_set.py::TestYamlDataIntegrity -v
 ```
 
+### Runner and Workflow Tests
+
+```bash
+cd api
+../.venv/bin/python -m pytest tests/test_golden_set_runner.py tests/test_golden_set_live_workflow.py -v
+```
+
+The runner tests use `httpx.MockTransport`: no network, no API, no secrets.
+
 ### What the Tests Cover
 
-The test suite (`test_golden_set.py`) has 51 tests organized in 4 groups:
+The test suite (`test_golden_set.py`) is organized in these groups (counts
+grow; see the file):
 
 1. **Data Validation (8 tests)** - Verifies all YAML files parse
    correctly, case IDs are unique, required categories exist, and
    category-specific rules are enforced.
 2. **Loader Tests (6 tests)** - Tests `load_test_cases()`,
    `filter_by_category()`, `filter_by_tags()`, and `get_case_ids()`.
-3. **Evaluator Tests (31 tests)** - Tests each of the 7 check
+3. **Evaluator Tests** - Tests each of the 9 check
    functions with passing, failing, and edge cases. Also tests the
    `run_all_checks()` orchestrator.
-4. **Model Tests (6 tests)** - Tests Pydantic model construction,
+4. **Model Tests** - Tests Pydantic model construction,
    defaults, and validation (e.g., `HumanScore` rejects values
    outside 1-5).
+5. **Interpretation Cases** - The rules of the next section (case count,
+   language coverage, every reference parses, no vacuous groups).
 
 ---
 
@@ -407,6 +445,7 @@ Pick the YAML file that matches your case's category:
 - Doctrinal questions → `theological.yaml`
 - Non-English responses → `multilingual.yaml`
 - Off-topic or adversarial inputs → `edge_cases.yaml`
+- Who a verse is about, or holding an answer under pushback → `interpretation.yaml`
 
 ### Step 2: Write the Test Case
 
@@ -441,6 +480,7 @@ Use a prefix based on the category:
 | theological | `th-` | `th-009` |
 | multilingual | `ml-` | `ml-005` |
 | edge_cases | `ec-` | `ec-005` |
+| interpretation | `interp-` | `interp-082` |
 
 Find the highest existing ID in the file and increment by 1.
 
@@ -643,59 +683,160 @@ class TestYourNewCheck:
 In `test_golden_set.py::TestRunAllChecks::test_all_checks_pass`, update the assertion:
 
 ```python
-assert score.total_checks == 8  # was 7, now 8
-assert score.passed_checks == 8
+assert score.total_checks == 10  # was 9, now 10
+assert score.passed_checks == 10
 ```
 
 ---
 
-## Future: Live Runner (PR #107)
+## The `interpretation` Category
 
-PR #107 adds a runner module (`api/golden_set/runner.py`) that sends
-test cases to the actual chat API and records results. Key functions:
+Added for BITB-178. A reported conversation asked "who is spoken of in Luke
+1:79?"; the app named John the Baptist (the "he" is the sunrise from on high
+of 1:78, the Messiah) and, asked "are you sure?", flipped without citing any
+text. The category checks two things:
+
+- **Referents and speakers**: who is the "he" / "you", who speaks, to whom.
+  The Luke 1:79 question exists in all 11 languages; further verses (Luke
+  1:76, 1:48 and 2:34, John 1:8, 1:11 and 3:30, Acts 8:34, Matthew 3:17 and
+  11:3, Ruth 1:16, Psalm 23:4, 1 Samuel 17:45) in `en`, `de`, `it`.
+- **Stability under pushback**: cases with `conversation_history` where the
+  user challenges an answer. *User is right* (the earlier answer was wrong:
+  the reply should correct itself and name the verse) and *user is wrong*
+  (the reply should keep the answer kindly and show the verse). The Luke
+  1:79 pair exists in all 11 languages. A bare "are you sure?" after a right
+  answer is a *user is wrong* case. Capitulation and "I will be more careful"
+  phrases go in `must_not_contain`.
+
+### Writing checks with `must_contain_any`
+
+Each inner list is one *group* of equivalent spellings or names; one
+alternative from every group must appear:
+
+```yaml
+must_contain_any:
+  - ["1:78", "1,78", "1.78", "verse 78"]   # cites the verse that holds the antecedent
+  - ["jesus", "christ", "messiah"]         # names the right person
+```
+
+Rules (enforced by `TestInterpretationCases`):
+
+- **No vacuous groups.** A check must not pass just because the question
+  echoes it. For a single-turn case no group may already be satisfied by
+  `input.message`. For a multi-turn case at least one group must not be
+  satisfied by the message plus the history. (A history answer that says
+  "verse 78" makes a "verse 78" group meaningless; word the history as "the
+  verse before it" instead.)
+- **No alternative may be a substring of a localized name of the book under
+  discussion.** This is why Exodus 3:14 is not in the set: German "2. Mose"
+  would satisfy an addressee check for "Mose".
+- Every single-turn message, and the first user turn of every history, must
+  parse to a verse reference with `utils.verse_parser.extract_references`.
+  A challenge ("Are you sure?") names no verse itself: the service must
+  carry the passage over from history.
+- For `ar`, `ru`, `zh`, `hi`, `ko` set `must_contain_scripture: false`: the
+  reference regex in `evaluators.py` is ASCII-only. Include native-digit and
+  ASCII forms of the verse number in the alternatives.
+- History answers are short prose in the case's language and do not quote
+  scripture at length.
+- Do not forbid "you are right" in a *user is wrong* case: a good answer may
+  grant that verses 76-77 are about John while holding that verse 79 is about
+  the Messiah.
+
+String checks are a floor, not a proof of correct exegesis. Read the saved
+answers (`actual_response` in the run JSON) before drawing conclusions. Case
+wording outside `en`, `de` and `it` has not had native-speaker review.
+
+---
+
+## Live Runner
+
+`api/golden_set/runner.py` and the CLI `scripts/run_golden_set.py` send cases
+(including `conversation_history`, `language` and `preferred_translation`) to
+a running API's `POST /api/v1/chat`, score the real answers with the
+evaluators above, save an `EvalRun` as JSON and print a summary.
 
 | Function | Description |
 |----------|-------------|
-| `run_mock(cases)` | Runs all cases with a mock response for testing the pipeline |
-| `run_live(cases, base_url)` | Sends each case to the real chat API and records responses |
-| `save_run(run)` | Saves an `EvalRun` to `golden_set/results/` as JSON |
-| `load_run(path)` | Loads a saved run from JSON |
-| `list_runs()` | Lists all saved runs |
-| `get_latest_run()` | Returns the most recent run |
-| `print_summary(run)` | Prints a human-readable summary of results |
+| `run_mock(cases)` | Every case gets a placeholder answer. Exercises the pipeline only; the checks are expected to fail. No API needed. |
+| `async run_live(cases, base_url, timeout, delay, client, headers)` | Sends each case sequentially with `httpx.AsyncClient` and scores the answer. `headers` are extra request headers (the probe header). |
+| `probe_headers_from_env()` | Builds `{"X-Monitor-Probe-Secret": ...}` from `GOLDEN_SET_PROBE_SECRET`, or `None`. |
+| `save_run(run, path=None)` / `load_run(path)` | Write / read a run as JSON. Default location: `api/golden_set/results/<run_id>.json` (gitignored). |
+| `summarize(run)` / `print_summary(run)` | Counts and a human-readable summary. |
 
-It also adds a human review CLI (`api/golden_set/reviewer.py`) for manual scoring:
-
-| Function | Description |
-|----------|-------------|
-| `review_run(run)` | Interactive CLI to score each case result on a 1-5 scale |
-| `review_case(result)` | Score a single case result |
-
-**Usage (once merged):**
+### CLI
 
 ```bash
-cd api
+# Pipeline smoke test, no API (81 cases, exit 0)
+python scripts/run_golden_set.py --mock --category interpretation
 
-# Mock run (no API needed)
-../.venv/bin/python -c "
-from golden_set.runner import run_mock, save_run, print_summary
-from golden_set.loader import load_test_cases
-cases = load_test_cases()
-run = run_mock(cases)
-save_run(run)
-print_summary(run)
-"
+# Against a local or dev API (Turnstile off)
+python scripts/run_golden_set.py --base-url http://localhost:8000 --category interpretation
+make golden-live BASE_URL=http://localhost:8000 CATEGORY=interpretation
 
-# Live run (requires running API)
-../.venv/bin/python -c "
-from golden_set.runner import run_live, save_run, print_summary
-from golden_set.loader import load_test_cases
-cases = load_test_cases()
-run = run_live(cases, base_url='http://localhost:8000')
-save_run(run)
-print_summary(run)
-"
+# Only some cases
+python scripts/run_golden_set.py --base-url http://localhost:8000 --tags pushback-user-right
+python scripts/run_golden_set.py --base-url http://localhost:8000 --ids interp-001,interp-030
 ```
+
+Flags: `--mock` or `--base-url URL` (one is required), `--category`, `--tags
+A,B`, `--ids ID,ID`, `--output PATH`, `--delay SECONDS`, `--timeout SECONDS`
+(default 120), `--fail-under RATE` (0-1, default 0).
+
+Exit codes:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Ran; pass rate is not below `--fail-under`. |
+| `1` | Pass rate is below `--fail-under`. |
+| `2` | No case matches the filters. |
+| `3` | Nothing was scorable: every request was blocked or errored. The run is still saved. |
+
+A result is one of: *passed*, *failed* (the answer failed an automated
+check), *blocked* (HTTP 403, Turnstile or the edge; says nothing about the
+model) or *errored* (other HTTP error or a transport failure). Only the first
+two count as measurements.
+
+### Probe header
+
+Production sits behind Turnstile and rate limits. A server-to-server caller
+can pass them with the shared probe secret (the mechanism `prod-monitor.yml`
+uses, `utils/monitor_probe.py`). Export it as an environment variable; the
+runner sends it as `X-Monitor-Probe-Secret`:
+
+```bash
+export GOLDEN_SET_PROBE_SECRET='...'   # same value as the backend's monitor_probe_secret
+python scripts/run_golden_set.py --base-url https://<backend> --category interpretation
+```
+
+The secret is read from the environment only, never from argv (no
+`--probe-secret` flag exists), and is never printed, logged or written to the
+saved run (`metadata.probe_header_sent` records only that a header was sent).
+
+### Scheduled run
+
+`.github/workflows/golden-set-live.yml` runs the `interpretation` category
+against production every Monday at 03:37 UTC and on `workflow_dispatch`
+(inputs `category`, `tags`, `fail_under`). It uses the existing
+`MONITOR_PROBE_SECRET` secret and `BACKEND_URL` variable (no new secret, no
+backend change), writes the summary to the job summary and uploads the run
+JSON as an artifact. It is a measurement, not a gate: it never runs on pull
+requests, and the job fails only when nothing could be measured (exit 3), when
+no case matches (exit 2), or when a manual run sets `fail_under` above 0 and
+the pass rate is lower. It is skipped with a notice when
+`MONITOR_PROBE_SECRET` is not set. The workflow installs only `httpx`,
+`pyyaml` and `pydantic`, so `check_response_language` skips itself there.
+
+Usage accounting: the runner sends no `session_id`, so the chat route writes
+no `sessions` row for it and the weekly report (which reads `sessions`) does
+not count the run. The 81 requests still reach the LLM and appear in request
+logs and OpenTelemetry request metrics. By contrast the existing monitor
+probes send `session_id = "monitor-probe-<hex>"` and are counted in the weekly
+report (nothing in `reports/weekly_report.py` excludes them).
+
+Run JSON files are plain data; to compare two runs, load both with
+`load_run()` and compare `summarize()` output and the per-case
+`failed_checks`.
 
 ---
 
@@ -814,7 +955,7 @@ Add it to `multilingual.yaml` and set the `response_language` and `preferred_tra
 
 ### Where are test results saved?
 
-Currently, test results are only in pytest output. Once PR #107 is
-merged, results will be saved as JSON files in
-`api/golden_set/results/`. Once PR #108 is merged, markdown reports
-will be in `api/golden_set/reports/`.
+Pytest runs print to the console. Runner runs (`scripts/run_golden_set.py`)
+are saved as JSON in `api/golden_set/results/` (gitignored), or at
+`--output`; the scheduled workflow uploads its run as an artifact. Markdown
+reports (PR #108) are not implemented yet.

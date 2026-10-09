@@ -1,0 +1,160 @@
+name: Golden Set Live
+
+# Weekly live run of the golden set's `interpretation` category against production (BITB-178).
+#
+# What it measures: whether the deployed model names the right person for a verse ("who is the 'he' of
+# Luke 1:79?") and whether it holds its answer, or corrects it for a reason, when the user pushes back.
+# The cases and their string checks are in api/golden_set/test_cases/interpretation.yaml; the runner is
+# scripts/run_golden_set.py. String checks are a floor, not proof of correct exegesis: read the saved
+# answers in the run artifact before drawing conclusions (docs/GOLDEN_SET_GUIDE.md).
+#
+# This is a measurement, not a gate. It never runs on pull_request and never blocks a merge. The job
+# fails only when nothing could be measured (every request blocked or errored, runner exit code 3), when
+# no case matches the filters (exit code 2), or when a manual run sets `fail_under` above 0 and the
+# pass rate is below it (exit code 1). A low pass rate on a scheduled run is recorded, not failed.
+#
+# Production sits behind Turnstile and rate limits. The run passes them with the same server-to-server
+# probe bypass prod-monitor.yml uses: the shared secret goes in the X-Monitor-Probe-Secret header. No new
+# secret and no backend change are needed.
+#
+# Required repo secret (already used by prod-monitor.yml):
+#   MONITOR_PROBE_SECRET - must match settings.monitor_probe_secret in the deployed backend
+#
+# Optional repo variable (vars.*):
+#   BACKEND_URL          - e.g. https://bible-app-backend.<region>.azurecontainerapps.io
+#                          (default: the production fallback below, as in prod-monitor.yml)
+#
+# If MONITOR_PROBE_SECRET is not set the run is skipped with a notice in the job summary, never failed.
+#
+# Only httpx, pyyaml and pydantic are installed, not the full backend requirements, so the response-language
+# check (which lazily imports utils.language) skips itself in this run; the other automated checks all run.
+#
+# The 81 cases go through the real chat pipeline, so they add 81 requests to production usage once a
+# week. The probe header is read by the runner from the GOLDEN_SET_PROBE_SECRET environment variable
+# only; it is never passed on a command line, printed, or written to the run artifact.
+#
+# Manual run:
+#   Actions → Golden Set Live → Run workflow
+#   category:   golden-set category (default: interpretation)
+#   tags:       optional comma-separated tags, keep cases with any of them (e.g. pushback-user-right)
+#   fail_under: pass rate 0-1 below which the job fails (default 0 = never fail on pass rate)
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    # Monday 03:37 UTC — a free slot among the other scheduled workflows.
+    - cron: "37 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      category:
+        description: "Golden set category to run"
+        required: false
+        default: "interpretation"
+      tags:
+        description: "Comma-separated tags; keep cases with any of them (blank = all)"
+        required: false
+        default: ""
+      fail_under:
+        description: "Fail the job below this pass rate, 0-1 (0 = never fail on pass rate)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: golden-set-live
+  cancel-in-progress: false
+
+env:
+  BACKEND_URL:
+    ${{ vars.BACKEND_URL || 'https://bible-app-backend.agreeablesea-6ee07535.northeurope.azurecontainerapps.io' }}
+
+jobs:
+  golden-set-live:
+    name: Interpretation golden set (live)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # Exactly what golden_set.loader / evaluators / runner import (pyyaml, pydantic via the models, httpx).
+      - name: Install runner deps
+        run: pip install httpx pyyaml pydantic
+
+      # The `secrets` context is not usable in a step-level `if:`, so read it into an output here.
+      - name: Check the probe secret
+        id: guard
+        env:
+          HAS_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET != '' }}
+        run: |
+          echo "has_probe_secret=${HAS_PROBE_SECRET}" >> "$GITHUB_OUTPUT"
+
+          if [ "$HAS_PROBE_SECRET" != "true" ]; then
+            {
+              echo "### Golden Set Live"
+              echo ""
+              echo "\`MONITOR_PROBE_SECRET\` is not set, so the live run is skipped."
+              echo ""
+              echo "Without the server-to-server probe header, production answers 403 (Turnstile)"
+              echo "and nothing could be measured. Set the secret to the value of"
+              echo "\`settings.monitor_probe_secret\` in the deployed backend (the same secret"
+              echo "prod-monitor.yml uses)."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::Golden set live run skipped — MONITOR_PROBE_SECRET is not configured."
+          fi
+
+      - name: Run the golden set against production
+        id: run
+        if: steps.guard.outputs.has_probe_secret == 'true' # pragma: allowlist secret
+        env:
+          GOLDEN_SET_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
+          BACKEND_URL: ${{ env.BACKEND_URL }}
+          INPUT_CATEGORY: ${{ github.event.inputs.category }}
+          INPUT_TAGS: ${{ github.event.inputs.tags }}
+          INPUT_FAIL_UNDER: ${{ github.event.inputs.fail_under }}
+        run: |
+          args=(
+            --base-url "$BACKEND_URL"
+            --category "${INPUT_CATEGORY:-interpretation}"
+            --fail-under "${INPUT_FAIL_UNDER:-0}"
+            --delay 2
+            --timeout 60
+            --output "$RUNNER_TEMP/golden-run.json"
+          )
+          if [ -n "$INPUT_TAGS" ]; then
+            args+=(--tags "$INPUT_TAGS")
+          fi
+
+          # Keep going after a non-zero exit so the summary and the artifact are written first.
+          set +e
+          python scripts/run_golden_set.py "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/golden-summary.txt"
+          code=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo "### Golden Set Live — ${INPUT_CATEGORY:-interpretation}"
+            echo ""
+            echo "Runner exit code: \`$code\` (0 ok, 1 below fail_under, 2 no matching cases, 3 nothing scorable)"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/golden-summary.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$code"
+
+      - name: Upload run artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: golden-set-live-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/golden-run.json
+            ${{ runner.temp }}/golden-summary.txt
+          retention-days: 30
+          if-no-files-found: ignore

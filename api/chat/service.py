@@ -9,6 +9,7 @@ import asyncio
 import hashlib
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import AsyncIterator
 
@@ -42,6 +43,7 @@ from utils.metrics import (
 )
 from utils.timing import format_timings, record_stage, timed_stage
 from utils.verse_parser import (
+    VerseReference,
     extract_all_references,
     extract_citation_spans,
     extract_inline_quotes,
@@ -963,6 +965,28 @@ Keep it under 120 words."""
                 op_name="Scripture search",
             )
 
+            # BITB-178: surrounding verses for the referenced verse(s), prompt-only. Its own
+            # fail-open guard: a failure here must never cost the user the answer.
+            passage_context: list[dict] = []
+            passage_carried_over = False
+            if settings.passage_context_enabled:
+                try:
+                    passage_refs = verse_refs
+                    if not passage_refs:
+                        passage_refs = self._history_references(request.conversation_history)
+                        passage_carried_over = bool(passage_refs)
+                    if passage_refs:
+                        passage_context = await self._fetch_passage_context(
+                            passage_refs, translation, carried_over=passage_carried_over
+                        )
+                except Exception as e:
+                    passage_context = []
+                    passage_carried_over = False
+                    scripture_pipeline_errors_counter.add(
+                        1, {"stage": "passage_context", "error_type": type(e).__name__}
+                    )
+                    logger.warning(f"Passage context fetch failed: {type(e).__name__}: {e}")
+
             search_duration = time.time() - search_start
             logger.info(
                 "Scripture search completed",
@@ -970,6 +994,8 @@ Keep it under 120 words."""
                     "duration_seconds": f"{search_duration:.2f}",
                     "verses_found": len(scripture_context.verses) if scripture_context else 0,
                     "passages_found": (len(scripture_context.passages) if scripture_context else 0),
+                    "passage_context_verses": sum(len(e["verses"]) for e in passage_context),
+                    "passage_context_carried_over": passage_carried_over,
                     "is_verse_lookup": is_verse_lookup,
                     "query_expansion_used": extra_embeddings is not None,
                     "hybrid_search_used": settings.hybrid_search_enabled,
@@ -993,18 +1019,110 @@ Keep it under 120 words."""
             logger.error(f"Scripture search failed: {type(e).__name__}: {e}", exc_info=True)
             return None, ""
 
-        # Build context prompt from search results
+        # Build context prompt from search results (plus BITB-178 surrounding passage, which
+        # goes into the prompt only -- scripture_context is returned to clients unchanged).
         if scripture_context and (scripture_context.verses or scripture_context.passages):
             search_context_prompt = build_search_context_prompt(
                 {
                     "verses": [v.model_dump() for v in scripture_context.verses],
                     "passages": [p.model_dump() for p in scripture_context.passages],
-                }
+                },
+                passage_context or None,
+            )
+        elif passage_context:
+            search_context_prompt = build_search_context_prompt(
+                {"verses": [], "passages": []}, passage_context
             )
         else:
             search_context_prompt = ""
 
         return scripture_context, search_context_prompt
+
+    def _history_references(self, history: list[ConversationMessage]) -> list[VerseReference]:
+        """Verse references to re-ground a follow-up that names none itself (BITB-178 FR2).
+
+        Scans the last ``passage_context_history_lookback`` history messages: first the most
+        recent user message containing a reference, then the most recent assistant message
+        containing one. De-duplicated, order preserved. Returns [] when carry-over is disabled
+        (lookback <= 0) or nothing is found.
+        """
+        lookback = settings.passage_context_history_lookback
+        if lookback <= 0 or not history:
+            return []
+        recent = list(reversed(history[-lookback:]))
+
+        def _latest(
+            role: str, extract: Callable[[str], list[VerseReference]]
+        ) -> list[VerseReference]:
+            """References in the most recent ``role`` message that contains any."""
+            for msg in recent:
+                if msg.role == role:
+                    found = extract(msg.content)
+                    if found:
+                        return found
+            return []
+
+        user_refs = _latest("user", lambda text: extract_references(text)[0])
+        assistant_refs = _latest("assistant", extract_all_references)
+
+        refs: list[VerseReference] = []
+        seen: set[str] = set()
+        for ref in [*user_refs, *assistant_refs]:
+            if str(ref) not in seen:
+                seen.add(str(ref))
+                refs.append(ref)
+        return refs
+
+    async def _fetch_passage_context(
+        self,
+        refs: list[VerseReference],
+        translation: str | None,
+        carried_over: bool = False,
+    ) -> list[dict]:
+        """Fetch the verses around each reference for the prompt (BITB-178 FR1).
+
+        For the first ``passage_context_max_references`` references, fetches
+        ``passage_context_verses_before`` verses before and ``passage_context_verses_after``
+        after (same chapter, same translation), clamped at verse 1. Returns the
+        ``passage_context`` structure ``build_search_context_prompt`` renders; references whose
+        range comes back empty are skipped. Errors propagate to the caller's fail-open guard.
+        """
+        before = settings.passage_context_verses_before
+        after = settings.passage_context_verses_after
+        # De-duplicate first, then cap the *attempts*: at most passage_context_max_references
+        # range queries per turn, even when some of them come back empty.
+        unique: dict[str, VerseReference] = {}
+        for ref in refs:
+            unique.setdefault(str(ref), ref)
+        entries: list[dict] = []
+        for ref in list(unique.values())[: max(0, settings.passage_context_max_references)]:
+            end = ref.verse_end if ref.verse_end and ref.verse_end >= ref.verse_start else None
+            focus_end = min(end or ref.verse_start, ref.verse_start + MAX_RANGE_SPAN - 1)
+            verses = await self.search_service.get_verse_range(
+                ref.book,
+                ref.chapter,
+                max(1, ref.verse_start - before),
+                focus_end + after,
+                translation,
+            )
+            if not verses:
+                continue
+            entries.append(
+                {
+                    "focus": str(ref),
+                    "carried_over": carried_over,
+                    "verses": [
+                        {
+                            "reference": v.reference,
+                            "text": v.text,
+                            "is_focus": v.chapter == ref.chapter
+                            and ref.verse_start <= v.verse <= focus_end,
+                        }
+                        for v in verses
+                    ],
+                }
+            )
+        return entries
 
     async def _do_search_scripture(
         self,
