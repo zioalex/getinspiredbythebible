@@ -140,6 +140,11 @@ variables:
     description: Logging level
     default: INFO
 
+  CHAT_FOLLOW_UPS_ENABLED:
+    required_in: both
+    description: Enable suggested follow-up question chips in chat responses (BITB-080)
+    default: "false"
+
   RATE_LIMIT_ENABLED:
     required_in: remote
     description: Enable rate limiting

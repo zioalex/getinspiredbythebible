@@ -401,6 +401,12 @@ variable "content_filter_enabled" {
   default     = true
 }
 
+variable "chat_follow_ups_enabled" {
+  description = "Enable suggested follow-up question chips in chat responses (BITB-080). Off by default; measure with scripts/run_follow_up_eval.py (BITB-178) before enabling."
+  type        = bool
+  default     = false
+}
+
 variable "max_message_length" {
   description = "Maximum length of chat messages"
   type        = number
