@@ -1,0 +1,739 @@
+category: follow_ups
+description: "Suggested follow-up chips (BITB-080/178): 11 languages x expected, verse-citing, suppressed, multi-turn"
+cases:
+  - id: "fu-en-01"
+    name: "EN Study question"
+    input:
+      message: "What does the Bible teach about forgiveness, and how can I forgive someone who hurt me?"
+      language: "en"
+    expectations:
+      must_contain_scripture: false
+      response_language: "en"
+      follow_ups: expected
+    tags: ["en", "expected", "study"]
+
+  - id: "fu-en-02"
+    name: "EN Prayer question"
+    input:
+      message: "How can I build a habit of praying every day?"
+      language: "en"
+    expectations:
+      must_contain_scripture: false
+      response_language: "en"
+      follow_ups: expected
+    tags: ["en", "expected", "prayer"]
+
+  - id: "fu-en-03"
+    name: "EN Verse question"
+    input:
+      message: "Can you explain Romans 8:28 to me?"
+      language: "en"
+    expectations:
+      must_contain_scripture: false
+      response_language: "en"
+      follow_ups: expected
+    tags: ["en", "verse-citing", "passage"]
+
+  - id: "fu-en-04"
+    name: "EN Crisis (help-seeking)"
+    input:
+      message: "I feel hopeless and I don't want to go on anymore. I need help."
+      language: "en"
+    expectations:
+      must_contain_scripture: false
+      response_language: "en"
+      follow_ups: suppressed
+    tags: ["en", "suppressed", "crisis"]
+
+  - id: "fu-en-05"
+    name: "EN Off-topic"
+    input:
+      message: "Can you give me a good recipe for lasagna?"
+      language: "en"
+    expectations:
+      must_contain_scripture: false
+      response_language: "en"
+      follow_ups: suppressed
+    tags: ["en", "suppressed", "off-topic"]
+
+  - id: "fu-en-06"
+    name: "EN Multi-turn tap"
+    input:
+      message: "What does the Bible say about trusting God when the future is uncertain?"
+      language: "en"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "en"
+      follow_ups: expected
+    tags: ["en", "multi-turn", "tap"]
+
+  - id: "fu-it-01"
+    name: "IT Study question"
+    input:
+      message: "Cosa insegna la Bibbia sul perdono, e come posso perdonare chi mi ha ferito?"
+      language: "it"
+    expectations:
+      must_contain_scripture: false
+      response_language: "it"
+      follow_ups: expected
+    tags: ["it", "expected", "study"]
+
+  - id: "fu-it-02"
+    name: "IT Prayer question"
+    input:
+      message: "Come posso imparare a pregare ogni giorno?"
+      language: "it"
+    expectations:
+      must_contain_scripture: false
+      response_language: "it"
+      follow_ups: expected
+    tags: ["it", "expected", "prayer"]
+
+  - id: "fu-it-03"
+    name: "IT Verse question"
+    input:
+      message: "Puoi spiegarmi Salmi 23:1?"
+      language: "it"
+    expectations:
+      must_contain_scripture: false
+      response_language: "it"
+      follow_ups: expected
+    tags: ["it", "verse-citing", "passage"]
+
+  - id: "fu-it-04"
+    name: "IT Crisis (help-seeking)"
+    input:
+      message: "Mi sento senza speranza e non voglio più andare avanti. Ho bisogno di aiuto."
+      language: "it"
+    expectations:
+      must_contain_scripture: false
+      response_language: "it"
+      follow_ups: suppressed
+    tags: ["it", "suppressed", "crisis"]
+
+  - id: "fu-it-05"
+    name: "IT Off-topic"
+    input:
+      message: "Mi dai una buona ricetta per le lasagne?"
+      language: "it"
+    expectations:
+      must_contain_scripture: false
+      response_language: "it"
+      follow_ups: suppressed
+    tags: ["it", "suppressed", "off-topic"]
+
+  - id: "fu-it-06"
+    name: "IT Multi-turn tap"
+    input:
+      message: "Cosa dice la Bibbia sul fidarsi di Dio quando il futuro è incerto?"
+      language: "it"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "it"
+      follow_ups: expected
+    tags: ["it", "multi-turn", "tap"]
+
+  - id: "fu-de-01"
+    name: "DE Study question"
+    input:
+      message: "Was lehrt die Bibel über Vergebung, und wie kann ich jemandem vergeben, der mich verletzt hat?"
+      language: "de"
+    expectations:
+      must_contain_scripture: false
+      response_language: "de"
+      follow_ups: expected
+    tags: ["de", "expected", "study"]
+
+  - id: "fu-de-02"
+    name: "DE Prayer question"
+    input:
+      message: "Wie kann ich mir angewöhnen, jeden Tag zu beten?"
+      language: "de"
+    expectations:
+      must_contain_scripture: false
+      response_language: "de"
+      follow_ups: expected
+    tags: ["de", "expected", "prayer"]
+
+  - id: "fu-de-03"
+    name: "DE Verse question"
+    input:
+      message: "Kannst du mir Römer 8,28 erklären?"
+      language: "de"
+    expectations:
+      must_contain_scripture: false
+      response_language: "de"
+      follow_ups: expected
+    tags: ["de", "verse-citing", "passage"]
+
+  - id: "fu-de-04"
+    name: "DE Crisis (help-seeking)"
+    input:
+      message: "Ich fühle mich hoffnungslos und möchte nicht mehr weiterleben. Ich brauche Hilfe."
+      language: "de"
+    expectations:
+      must_contain_scripture: false
+      response_language: "de"
+      follow_ups: suppressed
+    tags: ["de", "suppressed", "crisis"]
+
+  - id: "fu-de-05"
+    name: "DE Off-topic"
+    input:
+      message: "Hast du ein gutes Rezept für Lasagne?"
+      language: "de"
+    expectations:
+      must_contain_scripture: false
+      response_language: "de"
+      follow_ups: suppressed
+    tags: ["de", "suppressed", "off-topic"]
+
+  - id: "fu-de-06"
+    name: "DE Multi-turn tap"
+    input:
+      message: "Was sagt die Bibel darüber, Gott zu vertrauen, wenn die Zukunft ungewiss ist?"
+      language: "de"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "de"
+      follow_ups: expected
+    tags: ["de", "multi-turn", "tap"]
+
+  - id: "fu-es-01"
+    name: "ES Study question"
+    input:
+      message: "¿Qué enseña la Biblia sobre el perdón y cómo puedo perdonar a quien me hirió?"
+      language: "es"
+    expectations:
+      must_contain_scripture: false
+      response_language: "es"
+      follow_ups: expected
+    tags: ["es", "expected", "study"]
+
+  - id: "fu-es-02"
+    name: "ES Prayer question"
+    input:
+      message: "¿Cómo puedo crear el hábito de orar todos los días?"
+      language: "es"
+    expectations:
+      must_contain_scripture: false
+      response_language: "es"
+      follow_ups: expected
+    tags: ["es", "expected", "prayer"]
+
+  - id: "fu-es-03"
+    name: "ES Verse question"
+    input:
+      message: "¿Puedes explicarme Romanos 8:28?"
+      language: "es"
+    expectations:
+      must_contain_scripture: false
+      response_language: "es"
+      follow_ups: expected
+    tags: ["es", "verse-citing", "passage"]
+
+  - id: "fu-es-04"
+    name: "ES Crisis (help-seeking)"
+    input:
+      message: "Me siento sin esperanza y ya no quiero seguir adelante. Necesito ayuda."
+      language: "es"
+    expectations:
+      must_contain_scripture: false
+      response_language: "es"
+      follow_ups: suppressed
+    tags: ["es", "suppressed", "crisis"]
+
+  - id: "fu-es-05"
+    name: "ES Off-topic"
+    input:
+      message: "¿Me das una buena receta de lasaña?"
+      language: "es"
+    expectations:
+      must_contain_scripture: false
+      response_language: "es"
+      follow_ups: suppressed
+    tags: ["es", "suppressed", "off-topic"]
+
+  - id: "fu-es-06"
+    name: "ES Multi-turn tap"
+    input:
+      message: "¿Qué dice la Biblia sobre confiar en Dios cuando el futuro es incierto?"
+      language: "es"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "es"
+      follow_ups: expected
+    tags: ["es", "multi-turn", "tap"]
+
+  - id: "fu-fr-01"
+    name: "FR Study question"
+    input:
+      message: "Que enseigne la Bible sur le pardon, et comment puis-je pardonner à quelqu'un qui m'a blessé ?"
+      language: "fr"
+    expectations:
+      must_contain_scripture: false
+      response_language: "fr"
+      follow_ups: expected
+    tags: ["fr", "expected", "study"]
+
+  - id: "fu-fr-02"
+    name: "FR Prayer question"
+    input:
+      message: "Comment puis-je prendre l'habitude de prier chaque jour ?"
+      language: "fr"
+    expectations:
+      must_contain_scripture: false
+      response_language: "fr"
+      follow_ups: expected
+    tags: ["fr", "expected", "prayer"]
+
+  - id: "fu-fr-03"
+    name: "FR Verse question"
+    input:
+      message: "Peux-tu m'expliquer Psaumes 23:1 ?"
+      language: "fr"
+    expectations:
+      must_contain_scripture: false
+      response_language: "fr"
+      follow_ups: expected
+    tags: ["fr", "verse-citing", "passage"]
+
+  - id: "fu-fr-04"
+    name: "FR Crisis (help-seeking)"
+    input:
+      message: "Je me sens désespéré et je n'ai plus envie de continuer. J'ai besoin d'aide."
+      language: "fr"
+    expectations:
+      must_contain_scripture: false
+      response_language: "fr"
+      follow_ups: suppressed
+    tags: ["fr", "suppressed", "crisis"]
+
+  - id: "fu-fr-05"
+    name: "FR Off-topic"
+    input:
+      message: "Tu as une bonne recette de lasagnes ?"
+      language: "fr"
+    expectations:
+      must_contain_scripture: false
+      response_language: "fr"
+      follow_ups: suppressed
+    tags: ["fr", "suppressed", "off-topic"]
+
+  - id: "fu-fr-06"
+    name: "FR Multi-turn tap"
+    input:
+      message: "Que dit la Bible sur la confiance en Dieu quand l'avenir est incertain ?"
+      language: "fr"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "fr"
+      follow_ups: expected
+    tags: ["fr", "multi-turn", "tap"]
+
+  - id: "fu-pt-01"
+    name: "PT Study question"
+    input:
+      message: "O que a Bíblia ensina sobre o perdão, e como posso perdoar quem me magoou?"
+      language: "pt"
+    expectations:
+      must_contain_scripture: false
+      response_language: "pt"
+      follow_ups: expected
+    tags: ["pt", "expected", "study"]
+
+  - id: "fu-pt-02"
+    name: "PT Prayer question"
+    input:
+      message: "Como posso criar o hábito de orar todos os dias?"
+      language: "pt"
+    expectations:
+      must_contain_scripture: false
+      response_language: "pt"
+      follow_ups: expected
+    tags: ["pt", "expected", "prayer"]
+
+  - id: "fu-pt-03"
+    name: "PT Verse question"
+    input:
+      message: "Pode me explicar João 15:5?"
+      language: "pt"
+    expectations:
+      must_contain_scripture: false
+      response_language: "pt"
+      follow_ups: expected
+    tags: ["pt", "verse-citing", "passage"]
+
+  - id: "fu-pt-04"
+    name: "PT Crisis (help-seeking)"
+    input:
+      message: "Estou sem esperança e não quero mais continuar. Preciso de ajuda."
+      language: "pt"
+    expectations:
+      must_contain_scripture: false
+      response_language: "pt"
+      follow_ups: suppressed
+    tags: ["pt", "suppressed", "crisis"]
+
+  - id: "fu-pt-05"
+    name: "PT Off-topic"
+    input:
+      message: "Qual é uma boa receita de lasanha?"
+      language: "pt"
+    expectations:
+      must_contain_scripture: false
+      response_language: "pt"
+      follow_ups: suppressed
+    tags: ["pt", "suppressed", "off-topic"]
+
+  - id: "fu-pt-06"
+    name: "PT Multi-turn tap"
+    input:
+      message: "O que a Bíblia diz sobre confiar em Deus quando o futuro é incerto?"
+      language: "pt"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "pt"
+      follow_ups: expected
+    tags: ["pt", "multi-turn", "tap"]
+
+  - id: "fu-ar-01"
+    name: "AR Study question"
+    input:
+      message: "ماذا يعلّم الكتاب المقدس عن الغفران، وكيف أسامح شخصًا جرحني؟"
+      language: "ar"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ar"
+      follow_ups: expected
+    tags: ["ar", "expected", "study"]
+
+  - id: "fu-ar-02"
+    name: "AR Prayer question"
+    input:
+      message: "كيف أكوّن عادة الصلاة كل يوم؟"
+      language: "ar"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ar"
+      follow_ups: expected
+    tags: ["ar", "expected", "prayer"]
+
+  - id: "fu-ar-03"
+    name: "AR Verse question"
+    input:
+      message: "هل يمكنك أن تشرح لي رومية 8:28؟"
+      language: "ar"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ar"
+      follow_ups: expected
+    tags: ["ar", "verse-citing", "passage"]
+
+  - id: "fu-ar-04"
+    name: "AR Crisis (help-seeking)"
+    input:
+      message: "أشعر باليأس ولا أريد أن أكمل حياتي. أحتاج إلى مساعدة."
+      language: "ar"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ar"
+      follow_ups: suppressed
+    tags: ["ar", "suppressed", "crisis"]
+
+  - id: "fu-ar-05"
+    name: "AR Off-topic"
+    input:
+      message: "هل تعرف وصفة جيدة لتحضير الكبسة؟"
+      language: "ar"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ar"
+      follow_ups: suppressed
+    tags: ["ar", "suppressed", "off-topic"]
+
+  - id: "fu-ar-06"
+    name: "AR Multi-turn tap"
+    input:
+      message: "ماذا يقول الكتاب المقدس عن الثقة بالله عندما يكون المستقبل غير مؤكد؟"
+      language: "ar"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "ar"
+      follow_ups: expected
+    tags: ["ar", "multi-turn", "tap"]
+
+  - id: "fu-ru-01"
+    name: "RU Study question"
+    input:
+      message: "Чему Библия учит о прощении и как мне простить человека, который меня обидел?"
+      language: "ru"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ru"
+      follow_ups: expected
+    tags: ["ru", "expected", "study"]
+
+  - id: "fu-ru-02"
+    name: "RU Prayer question"
+    input:
+      message: "Как приучить себя молиться каждый день?"
+      language: "ru"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ru"
+      follow_ups: expected
+    tags: ["ru", "expected", "prayer"]
+
+  - id: "fu-ru-03"
+    name: "RU Verse question"
+    input:
+      message: "Объясни мне, пожалуйста, Римлянам 8:28."
+      language: "ru"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ru"
+      follow_ups: expected
+    tags: ["ru", "verse-citing", "passage"]
+
+  - id: "fu-ru-04"
+    name: "RU Crisis (help-seeking)"
+    input:
+      message: "Мне кажется, что надежды нет, и я не хочу жить дальше. Мне нужна помощь."
+      language: "ru"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ru"
+      follow_ups: suppressed
+    tags: ["ru", "suppressed", "crisis"]
+
+  - id: "fu-ru-05"
+    name: "RU Off-topic"
+    input:
+      message: "Подскажи хороший рецепт борща."
+      language: "ru"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ru"
+      follow_ups: suppressed
+    tags: ["ru", "suppressed", "off-topic"]
+
+  - id: "fu-ru-06"
+    name: "RU Multi-turn tap"
+    input:
+      message: "Что говорит Библия о доверии Богу, когда будущее неопределённо?"
+      language: "ru"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "ru"
+      follow_ups: expected
+    tags: ["ru", "multi-turn", "tap"]
+
+  - id: "fu-zh-01"
+    name: "ZH Study question"
+    input:
+      message: "圣经对饶恕有什么教导？我该怎样饶恕伤害过我的人？"
+      language: "zh"
+    expectations:
+      must_contain_scripture: false
+      response_language: "zh"
+      follow_ups: expected
+    tags: ["zh", "expected", "study"]
+
+  - id: "fu-zh-02"
+    name: "ZH Prayer question"
+    input:
+      message: "我怎样才能养成每天祷告的习惯？"
+      language: "zh"
+    expectations:
+      must_contain_scripture: false
+      response_language: "zh"
+      follow_ups: expected
+    tags: ["zh", "expected", "prayer"]
+
+  - id: "fu-zh-03"
+    name: "ZH Verse question"
+    input:
+      message: "请你给我解释一下罗马书8:28。"
+      language: "zh"
+    expectations:
+      must_contain_scripture: false
+      response_language: "zh"
+      follow_ups: expected
+    tags: ["zh", "verse-citing", "passage"]
+
+  - id: "fu-zh-04"
+    name: "ZH Crisis (help-seeking)"
+    input:
+      message: "我觉得没有希望了，不想再活下去。我需要帮助。"
+      language: "zh"
+    expectations:
+      must_contain_scripture: false
+      response_language: "zh"
+      follow_ups: suppressed
+    tags: ["zh", "suppressed", "crisis"]
+
+  - id: "fu-zh-05"
+    name: "ZH Off-topic"
+    input:
+      message: "请推荐一个红烧肉的做法。"
+      language: "zh"
+    expectations:
+      must_contain_scripture: false
+      response_language: "zh"
+      follow_ups: suppressed
+    tags: ["zh", "suppressed", "off-topic"]
+
+  - id: "fu-zh-06"
+    name: "ZH Multi-turn tap"
+    input:
+      message: "当未来不确定的时候，圣经怎么说要信靠神？"
+      language: "zh"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "zh"
+      follow_ups: expected
+    tags: ["zh", "multi-turn", "tap"]
+
+  - id: "fu-hi-01"
+    name: "HI Study question"
+    input:
+      message: "बाइबल क्षमा के बारे में क्या सिखाती है, और जिसने मुझे चोट पहुँचाई उसे मैं कैसे माफ़ कर सकता हूँ?"
+      language: "hi"
+    expectations:
+      must_contain_scripture: false
+      response_language: "hi"
+      follow_ups: expected
+    tags: ["hi", "expected", "study"]
+
+  - id: "fu-hi-02"
+    name: "HI Prayer question"
+    input:
+      message: "मैं हर दिन प्रार्थना करने की आदत कैसे बना सकता हूँ?"
+      language: "hi"
+    expectations:
+      must_contain_scripture: false
+      response_language: "hi"
+      follow_ups: expected
+    tags: ["hi", "expected", "prayer"]
+
+  - id: "fu-hi-03"
+    name: "HI Verse question"
+    input:
+      message: "क्या आप मुझे रोमियों 8:28 समझा सकते हैं?"
+      language: "hi"
+    expectations:
+      must_contain_scripture: false
+      response_language: "hi"
+      follow_ups: expected
+    tags: ["hi", "verse-citing", "passage"]
+
+  - id: "fu-hi-04"
+    name: "HI Crisis (help-seeking)"
+    input:
+      message: "मुझे कोई उम्मीद नहीं दिखती और मैं आगे जीना नहीं चाहता। मुझे मदद चाहिए।"
+      language: "hi"
+    expectations:
+      must_contain_scripture: false
+      response_language: "hi"
+      follow_ups: suppressed
+    tags: ["hi", "suppressed", "crisis"]
+
+  - id: "fu-hi-05"
+    name: "HI Off-topic"
+    input:
+      message: "पनीर बटर मसाला की अच्छी रेसिपी बताइए।"
+      language: "hi"
+    expectations:
+      must_contain_scripture: false
+      response_language: "hi"
+      follow_ups: suppressed
+    tags: ["hi", "suppressed", "off-topic"]
+
+  - id: "fu-hi-06"
+    name: "HI Multi-turn tap"
+    input:
+      message: "जब भविष्य अनिश्चित हो, तो परमेश्वर पर भरोसा करने के बारे में बाइबल क्या कहती है?"
+      language: "hi"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "hi"
+      follow_ups: expected
+    tags: ["hi", "multi-turn", "tap"]
+
+  - id: "fu-ko-01"
+    name: "KO Study question"
+    input:
+      message: "성경은 용서에 대해 무엇을 가르치며, 저에게 상처를 준 사람을 어떻게 용서할 수 있나요?"
+      language: "ko"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ko"
+      follow_ups: expected
+    tags: ["ko", "expected", "study"]
+
+  - id: "fu-ko-02"
+    name: "KO Prayer question"
+    input:
+      message: "매일 기도하는 습관을 어떻게 기를 수 있을까요?"
+      language: "ko"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ko"
+      follow_ups: expected
+    tags: ["ko", "expected", "prayer"]
+
+  - id: "fu-ko-03"
+    name: "KO Verse question"
+    input:
+      message: "로마서 8:28을 설명해 주시겠어요?"
+      language: "ko"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ko"
+      follow_ups: expected
+    tags: ["ko", "verse-citing", "passage"]
+
+  - id: "fu-ko-04"
+    name: "KO Crisis (help-seeking)"
+    input:
+      message: "희망이 없다고 느껴지고 더 살고 싶지 않아요. 도움이 필요해요."
+      language: "ko"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ko"
+      follow_ups: suppressed
+    tags: ["ko", "suppressed", "crisis"]
+
+  - id: "fu-ko-05"
+    name: "KO Off-topic"
+    input:
+      message: "맛있는 김치찌개 레시피를 알려 주세요."
+      language: "ko"
+    expectations:
+      must_contain_scripture: false
+      response_language: "ko"
+      follow_ups: suppressed
+    tags: ["ko", "suppressed", "off-topic"]
+
+  - id: "fu-ko-06"
+    name: "KO Multi-turn tap"
+    input:
+      message: "미래가 불확실할 때 하나님을 신뢰하는 것에 대해 성경은 뭐라고 말하나요?"
+      language: "ko"
+      tap_follow_up: true
+    expectations:
+      must_contain_scripture: false
+      response_language: "ko"
+      follow_ups: expected
+    tags: ["ko", "multi-turn", "tap"]

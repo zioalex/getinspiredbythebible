@@ -31,6 +31,9 @@ from golden_set.models import (
 
 # ==================== Data Validation Tests ====================
 
+FOLLOW_UP_LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
+FOLLOW_UP_SCENARIOS = ["expected", "verse-citing", "suppressed", "multi-turn"]
+
 
 @pytest.mark.golden_set
 class TestYamlDataIntegrity:
@@ -480,3 +483,51 @@ class TestModels:
         )
         assert score.passed
         assert score.failed_checks == []
+
+
+# ==================== Follow-up Chip Cases (BITB-178) ====================
+
+
+@pytest.mark.golden_set
+class TestFollowUpCases:
+    """Data-integrity checks for follow_ups.yaml."""
+
+    @pytest.fixture
+    def cases(self):
+        return filter_by_category(load_test_cases(), "follow_ups")
+
+    def test_file_loads(self, cases):
+        assert len(cases) == 66
+
+    @pytest.mark.parametrize("lang", FOLLOW_UP_LANGUAGES)
+    @pytest.mark.parametrize("scenario", FOLLOW_UP_SCENARIOS)
+    def test_every_language_covers_every_scenario(self, cases, lang, scenario):
+        matching = [c for c in cases if lang in c.tags and scenario in c.tags]
+        assert matching, f"no {scenario} case for {lang}"
+
+    def test_every_case_is_explicit_and_language_consistent(self, cases):
+        for case in cases:
+            assert case.expectations.follow_ups != "any", case.id
+            assert case.input.language == case.expectations.response_language, case.id
+            assert case.input.language in case.tags, case.id
+            scenarios = [t for t in case.tags if t in FOLLOW_UP_SCENARIOS]
+            assert len(scenarios) == 1, case.id
+            assert case.expectations.must_contain_scripture is False, case.id
+
+    def test_suppressed_cases_never_tap(self, cases):
+        for case in cases:
+            if case.expectations.follow_ups == "suppressed":
+                assert not case.input.tap_follow_up, case.id
+                assert "suppressed" in case.tags, case.id
+
+    def test_multi_turn_cases_tap_and_expect_chips(self, cases):
+        for case in cases:
+            if "multi-turn" in case.tags:
+                assert case.input.tap_follow_up, case.id
+                assert case.expectations.follow_ups == "expected", case.id
+
+    def test_existing_categories_unaffected_by_new_fields(self):
+        for case in load_test_cases():
+            if case.category != "follow_ups":
+                assert case.expectations.follow_ups == "any"
+                assert case.input.tap_follow_up is False
