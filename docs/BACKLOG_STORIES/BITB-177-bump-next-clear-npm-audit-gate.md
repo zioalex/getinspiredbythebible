@@ -16,7 +16,9 @@ sharp <0.35.5 GHSA-wq5f-xc86-pv6w, source-map-js <=1.2.1 GHSA-68fv-2mgg-jv7q) ma
 ## Fix
 
 Bump `next` to `^16.4.0` and refresh the lockfile (sharp 0.35.5, source-map-js 1.2.2 follow).
-No allowlist entries added.
+The `sharp` overrides are raised to `>=0.35.5` so the floor itself excludes the
+versions flagged by GHSA-wq5f-xc86-pv6w (librsvg CVE-2026-96889, published after the
+first push). No allowlist entries added.
 
 ## Acceptance criteria
 
