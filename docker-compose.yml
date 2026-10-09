@@ -135,6 +135,8 @@ services:
     environment:
       # In production with reverse proxy, API is on same domain
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      # Optional Support-Us donate URL (BITB-157); empty => Ko-fi fallback
+      - NEXT_PUBLIC_DONATE_URL=${NEXT_PUBLIC_DONATE_URL:-}
     volumes:
       - ./frontend:/app
       - /app/node_modules
