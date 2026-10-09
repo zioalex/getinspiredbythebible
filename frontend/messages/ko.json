@@ -144,7 +144,10 @@
     "mainMenuLabel": "메뉴",
     "changeLanguage": "언어 변경",
     "changeBibleVersion": "성경 버전 변경",
-    "searchCommunity": "커뮤니티 찾기"
+    "searchCommunity": "커뮤니티 찾기",
+    "listenAnswer": "답변 듣기",
+    "stopListening": "듣기 중지",
+    "showListenButton": "듣기 버튼 표시"
   },
   "Verses": {
     "scriptureReferences": "성경 참조",
@@ -345,6 +348,9 @@
     "contactTitle": "연락하기",
     "contactBody": "무엇이 효과가 있었나요? 무엇을 더 개선할 수 있을까요? 무엇이 더 도움이 될까요? 여러분의 의견을 듣고 싶습니다.",
     "contactLinkLabel": "피드백 보내기",
+    "supportTitle": "Vox Quieta를 계속 무료로",
+    "supportBody": "Vox Quieta는 광고도 계정도 없이 무료입니다. 도움이 되었고 원하신다면, 후원은 호스팅과 AI 비용을 충당하는 데 쓰입니다. 후원은 전적으로 선택 사항이며 특별한 혜택은 없습니다 — 모든 기능은 모두에게 계속 무료입니다.",
+    "supportLinkLabel": "Vox Quieta 후원하기",
     "introTitle": "Vox Quieta를 만든 이유",
     "introBody": "우울증과 정신 건강 문제는 정말 많은 사람들에게 영향을 미칩니다. Vox Quieta는 단순하고 접근하기 쉬우며 성경에 뿌리를 둔 — 치료나 목회 상담을 대신하지 않는, 힘든 순간을 위한 다정한 동반자로 만들어졌습니다.",
     "introPrimaryCta": "더 알아보기",

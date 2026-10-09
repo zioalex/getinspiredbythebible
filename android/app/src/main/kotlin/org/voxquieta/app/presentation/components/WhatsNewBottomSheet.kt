@@ -34,6 +34,12 @@ import org.voxquieta.app.presentation.screens.ChangelogEntry
 internal fun shouldShowWhatsNew(storedVersionCode: Int, currentVersionCode: Int): Boolean =
     storedVersionCode != -1 && storedVersionCode < currentVersionCode
 
+/**
+ * One-time support mention (BITB-168): shown only while the latest changelog entry carries the
+ * BITB-168 marker, so it disappears automatically once a later release becomes the latest.
+ */
+internal fun shouldShowSupportNote(latestBody: String): Boolean = "BITB-168" in latestBody
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WhatsNewBottomSheet(onDismiss: () -> Unit, onSeeAll: () -> Unit) {
@@ -83,6 +89,12 @@ fun WhatsNewBottomSheet(onDismiss: () -> Unit, onSeeAll: () -> Unit) {
                     linkColor = MaterialTheme.colorScheme.primary,
                     onLinkClicked = { url -> uriHandler.openUri(url) },
                 )
+                if (shouldShowSupportNote(currentEntry.body)) {
+                    Text(
+                        text = stringResource(R.string.whats_new_support_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
             } else if (loaded) {
                 Text(
                     text = stringResource(R.string.changelog_empty),

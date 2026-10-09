@@ -15,11 +15,14 @@ import { MAX_MESSAGE_LENGTH, MAX_SESSION_REQUESTS } from "@/lib/api";
 interface ServerConfigValue {
   maxMessageLength: number;
   sessionMaxRequests: number;
+  // BITB-119: read-aloud flag. Fails open — only an explicit `false` hides the control.
+  ttsEnabled: boolean;
 }
 
 const ServerConfigContext = createContext<ServerConfigValue>({
   maxMessageLength: MAX_MESSAGE_LENGTH,
   sessionMaxRequests: MAX_SESSION_REQUESTS,
+  ttsEnabled: true,
 });
 
 export function useServerConfig(): ServerConfigValue {
@@ -39,6 +42,7 @@ export function ServerConfigProvider({
     useState<number>(MAX_MESSAGE_LENGTH);
   const [sessionMaxRequests, setSessionMaxRequests] =
     useState<number>(MAX_SESSION_REQUESTS);
+  const [ttsEnabled, setTtsEnabled] = useState<boolean>(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +60,9 @@ export function ServerConfigProvider({
         if (!cancelled && Number.isInteger(sessionLimit) && sessionLimit > 0) {
           setSessionMaxRequests(sessionLimit);
         }
+        if (!cancelled && config?.features?.tts_enabled === false) {
+          setTtsEnabled(false);
+        }
       } catch {
         // Fail open: keep the compiled-in fallback.
       }
@@ -70,7 +77,7 @@ export function ServerConfigProvider({
 
   return (
     <ServerConfigContext.Provider
-      value={{ maxMessageLength, sessionMaxRequests }}
+      value={{ maxMessageLength, sessionMaxRequests, ttsEnabled }}
     >
       {children}
     </ServerConfigContext.Provider>

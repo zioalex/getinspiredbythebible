@@ -182,10 +182,12 @@
     <string name="settings_changelog_title">Novidades</string>
     <string name="settings_changelog_link">Novidades</string>
     <string name="settings_support_us">Apoie o Vox Quieta</string>
+    <string name="drawer_support_us">Apoie o Vox Quieta</string>
     <string name="changelog_empty">Ainda não há notas de versão disponíveis.</string>
     <string name="whats_new_title">Novidades</string>
     <string name="whats_new_dismiss">Entendi</string>
     <string name="whats_new_see_all">Ver tudo</string>
+    <string name="whats_new_support_note">Agora você pode apoiar o Vox Quieta pelo menu, se quiser. É totalmente opcional — o app continua gratuito para todos.</string>
 
     <!-- About intro bottom sheet (BITB-082) -->
     <string name="about_intro_title">Por que o Vox Quieta</string>
@@ -298,4 +300,13 @@
 
     <!-- Share -->
     <string name="share_prefix">Encontrei esta reflexão bíblica inspiradora:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">Ouvir a resposta</string>
+    <string name="action_stop_listening">Parar de ouvir</string>
+    <string name="state_listening">Lendo em voz alta</string>
+    <string name="state_not_listening">Leitura parada</string>
+    <string name="settings_tts_title">Leitura em voz alta</string>
+    <string name="settings_tts_show_listen">Mostrar o botão Ouvir</string>
+    <string name="settings_tts_show_listen_desc">Adiciona um botão Ouvir às respostas. As respostas são lidas pela voz do seu dispositivo; o texto nunca sai do seu dispositivo.</string>
 </resources>

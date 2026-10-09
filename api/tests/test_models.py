@@ -107,3 +107,8 @@ def test_translation_model_german():
     assert translation.code == "schlachter"
     assert translation.language == "German"
     assert translation.language_code == "de"
+
+
+def test_translation_created_at_is_timezone_aware():
+    """BITB-127: translations.created_at must be timestamptz like its siblings."""
+    assert Translation.__table__.c.created_at.type.timezone is True

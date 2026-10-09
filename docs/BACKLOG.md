@@ -2,7 +2,8 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-04 (BITB-167 in progress — `parseVerseLink` splits on
+**Last Updated:** 2026-10-09 (BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5) — previously 2026-10-06 (BITB-127 in progress — translations.created_at → timestamptz via r0007, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
 Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
@@ -3077,9 +3078,11 @@ Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](DONE/BITB-129-rig
 
 ---
 
-### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+### 🚧 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Review — PR #1132 (spec + plan agreed 2026-10-04: on-device voices only, localized verse
+speech, Listen ↔ Stop, enabled by default, user "Show Listen button" option, web telemetry via
+`POST /api/v1/client-events`)
 **Priority:** P2
 **Size:** L (M per platform + a shared text-normalization layer)
 **Created:** 2026-09-04
@@ -3110,6 +3113,46 @@ BITB-059/108/113/114 family for what the alternative looks like).
 - [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, tests, changelog
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-119-read-aloud-assistant-responses.md`
+
+---
+
+### 🎯 BITB-175: Localized What's New / Changelog Entries (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
+
+What's New on both platforms is derived from the English, release-please-generated `CHANGELOG.md`,
+so non-English users read English release notes (surfaced by BITB-119). Add a per-locale
+release-notes source with English fallback.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Localized notes for all 11 locales keyed by version; English fallback
+- [ ] Web + Android pick the UI locale's entry; tests for selection and fallback
+- [ ] Release process documented without breaking release-please
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-175-localized-whats-new.md`
+
+---
+
+### 🎯 BITB-176: Read Aloud — Keep Playing with the Screen Off (Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
+
+BITB-119 v1 stops playback when the app is backgrounded or the screen turns off. Add a
+foreground media-playback service with a Stop notification, gated on listen-rate telemetry.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Continues with screen off; notification Stop action; focus loss / new answer stop it
+- [ ] Foreground-service Play declaration reviewed; Robolectric + device tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-176-read-aloud-background-playback.md`
 
 ---
 
@@ -4231,9 +4274,9 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 
 ---
 
-### 🎯 BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
+### 🚧 BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-30
@@ -4514,9 +4557,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
+### ✅ BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1127, 2026-10-01)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30
@@ -4528,10 +4571,10 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
-- [ ] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
+- [x] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
+- [x] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-166-versescited-startswith-prefix-match.md`
+**Full Story:** `docs/DONE/BITB-166-versescited-startswith-prefix-match.md`
 
 ---
 
@@ -4555,9 +4598,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-127: Make `translations.created_at` Timezone-Aware
+### 🚧 BITB-127: Make `translations.created_at` Timezone-Aware
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR pending)
 **Size:** S
 **Created:** 2026-09-10
 **Surfaced by:** BITB-094 (column-type audit)
@@ -5078,6 +5121,13 @@ bookkeeping table.
 ---
 
 ## Done (Recent Completions)
+
+### BITB-177: Bump Next.js to clear npm-audit CI gate
+
+**Status:** In review (2026-10-09)
+**Size:** XS
+Bump `next` to ^16.4.0 (plus sharp/source-map-js via lockfile) to clear new high advisories failing the
+`Security & Dependency Check` job. [Full story](BACKLOG_STORIES/BITB-177-bump-next-clear-npm-audit-gate.md)
 
 ### ✅ BITB-132: Verify and Fix Verse Linking in Android Chat
 

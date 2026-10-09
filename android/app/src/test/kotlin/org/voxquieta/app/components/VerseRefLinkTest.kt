@@ -1214,6 +1214,28 @@ class VerseRefLinkTest {
     }
 
     @Test
+    fun `citedVerses John 3 16 does not match John 3 1 or 3 160 (BITB-166)`() {
+        val verses = listOf(
+            Verse(book = "John", chapter = 3, verse = 1, text = "a"),
+            Verse(book = "John", chapter = 3, verse = 16, text = "b"),
+            Verse(book = "John", chapter = 3, verse = 160, text = "c"),
+        )
+        val result = citedVerses(assistant("…", verses, cited = listOf("John 3:16")))
+        assertEquals(listOf(16), result.map { it.verse })
+    }
+
+    @Test
+    fun `citedVerses range matches inside verses only (BITB-166)`() {
+        val verses = listOf(
+            Verse(book = "Romans", chapter = 8, verse = 2, text = "a"),
+            Verse(book = "Romans", chapter = 8, verse = 29, text = "b"),
+            Verse(book = "Romans", chapter = 8, verse = 31, text = "c"),
+        )
+        val result = citedVerses(assistant("…", verses, cited = listOf("Romans 8:28-30")))
+        assertEquals(listOf(29), result.map { it.verse })
+    }
+
+    @Test
     fun `citedVerses falls back to all verses when versesCited is empty`() {
         val verses = listOf(Verse(book = "Proverbs", chapter = 17, verse = 17, text = "…"))
         val result = citedVerses(assistant("…", verses, cited = emptyList()))
