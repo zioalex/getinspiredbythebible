@@ -57,4 +57,5 @@ services:
         - linux/amd64
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_DONATE_URL: ${NEXT_PUBLIC_DONATE_URL:-}
     platform: linux/amd64
