@@ -148,38 +148,47 @@ One shared guidance block, appended to the default, verse-lookup and prayer-look
 
 ## Acceptance Criteria
 
-- [ ] AC1 — `chat()` and `chat_stream()` for "who is spoken of in Luke 1:79" (11 languages) request
+- [x] AC1 — `chat()` and `chat_stream()` for "who is spoken of in Luke 1:79" (11 languages) request
       Luke 1:75–81 in the resolved translation and the system message contains the "Surrounding
       Passage" block with the text of 1:78.
-- [ ] AC2 — Returned `scripture_context.verses` is identical with the flag on and off.
-- [ ] AC3 — A follow-up with no reference re-fetches the passage of the reference in history; a
+- [x] AC2 — Returned `scripture_context.verses` is identical with the flag on and off.
+- [x] AC3 — A follow-up with no reference re-fetches the passage of the reference in history; a
       follow-up with its own reference ignores history; lookback 0 and flag off fetch nothing.
-- [ ] AC4 — With the flag off the system message equals today's, apart from the FR3 guidance block.
-- [ ] AC5 — A raised error in the passage fetch still yields an answer with the normal context.
-- [ ] AC6 — The FR3 guidance is present in all three system prompts for all 11 language codes.
-- [ ] AC7 — `interpretation.yaml` loads with **81 cases** and unique ids; the core case exists in 11
+- [x] AC4 — With the flag off the system message equals today's, apart from the FR3 guidance block.
+- [x] AC5 — A raised error in the passage fetch still yields an answer with the normal context.
+- [x] AC6 — The FR3 guidance is present in all three system prompts for all 11 language codes.
+- [x] AC7 — `interpretation.yaml` loads with **81 cases** and unique ids; the core case exists in 11
       languages; every single-turn case message parses to a verse reference with the backend
       parser; every pushback case has history whose first user turn parses to a reference; both
       stances (`pushback-user-right`, `pushback-user-wrong`) for Luke 1:79 are present in **all 11
       languages**; each of the six rev. 2 verses is present in en, de and it; the "no vacuous
       groups" rule of FR4.2 holds for every case.
-- [ ] AC8 — `must_contain_any` evaluator is unit-tested and registered in `run_all_checks`.
-- [ ] AC9 — `scripts/run_golden_set.py --mock` runs every case and writes a result file; live mode is
+- [x] AC8 — `must_contain_any` evaluator is unit-tested and registered in `run_all_checks`.
+- [x] AC9 — `scripts/run_golden_set.py --mock` runs every case and writes a result file; live mode is
       tested with a mocked HTTP transport (payload carries history, language and translation; a 403
       is reported as blocked, not as a model failure; the probe header is sent only when
       `GOLDEN_SET_PROBE_SECRET` is set and its value appears in neither the saved run nor the
       printed summary; exit code 3 when nothing was scorable). `test_no_sync_httpx_client_in_api_source`
       passes.
-- [ ] AC13 — `golden-set-live.yml` is covered by a workflow test in the style of
+- [x] AC13 — `golden-set-live.yml` is covered by a workflow test in the style of
       `test_search_eval_workflow_credentials.py`: triggers are exactly `schedule` and
       `workflow_dispatch`; `permissions` is `contents: read`; the probe secret reaches the script
       through `env` only (never interpolated into a `run:` line); the run step is skipped when the
       secret is empty; the run JSON is uploaded as an artifact. `yamllint` / `actionlint` (whichever
       the pre-commit config runs) pass on the file.
-- [ ] AC10 — Backend suite, golden-set suite, ruff, black and mypy pass.
-- [ ] AC11 — `docs/GOLDEN_SET_GUIDE.md` documents the new field, category and runner.
+- [x] AC10 — Backend suite, golden-set suite, ruff, black and mypy pass.
+- [x] AC11 — `docs/GOLDEN_SET_GUIDE.md` documents the new field, category and runner.
 - [ ] AC12 — **Live result (owner-run, not provable in CI):** `interpretation` category run against
       the production model before and after; pass rate recorded in this story.
+
+**Verification (2026-10-09, after merging main at 849d108):** backend suite 4592 passed /
+8 failed / 120 skipped / 2 xfailed — the same 8 failures as `main` in the sandbox (no Postgres,
+no outbound access to translation URLs), so +356 passing tests and no new failures. The 2 xfails
+are the fullwidth-colon variant (`路加福音1：79`) pinned under AC1. Ruff (CI rule set), Black
+26.1.0, MyPy, yamllint (pre-commit config), `scripts/check_backlog_story_ids.py` and
+`scripts/run_golden_set.py --mock --category interpretation` (81 cases, exit 0) all clean.
+DB-backed tests are skipped here; the PR's `backend-tests` / `integration-tests` jobs are the
+gate for those. Story renumbered from BITB-177 (taken on `main` by #1142).
 
 ## Out of Scope
 
