@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-09 (BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-09 (BITB-178 opened — follow-up chips golden set, live runner and flag plumbing; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -2868,6 +2868,28 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🚧 BITB-178: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-09
+
+The follow-up chips (BITB-080/149) ship dark and nothing could switch `CHAT_FOLLOW_UPS_ENABLED` on
+locally or measure the chips. Add a curated 11-language golden set, a live runner that checks a
+running backend, and pass the flag through every compose file and Terraform (default off).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `follow_ups.yaml` covers 11 languages x expected / verse-citing / suppressed / multi-turn
+- [ ] Evaluator and runner unit-tested (mocked HTTP); `make follow-up-eval` works
+- [ ] `CHAT_FOLLOW_UPS_ENABLED` reaches the API container in every compose stack; Terraform default `false`
+- [ ] `docs/FOLLOW_UPS_TESTING.md` explains the Android debug-build flow
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-178-follow-up-chips-golden-set.md`
+
+---
 
 ### 🚧 BITB-165: Auto-Update Opted-In PR Branches When main Moves
 

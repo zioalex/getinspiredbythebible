@@ -1,4 +1,4 @@
-.PHONY: help venv install-hooks setup-dev lint test format check-all clean \
+.PHONY: follow-up-eval follow-up-checklist help venv install-hooks setup-dev lint test format check-all clean \
 	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
 	validate-env validate-env-strict export-blocked-samples \
 	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
@@ -279,6 +279,12 @@ test-e2e-local: install-deps ## Run e2e tests against local frontend (localhost:
 	@echo "$(GREEN)✓ Local e2e tests complete$(NC)"
 
 # ==================== Golden Set Testing ====================
+
+follow-up-eval: install-deps ## Run the follow-up chip golden set against a live backend (BITB-178). Usage: make follow-up-eval ARGS="--language it --base-url http://localhost:8000"
+	@$(PYTHON) scripts/run_follow_up_eval.py $(ARGS)
+
+follow-up-checklist: install-deps ## Print the manual on-device follow-up chip checklist (BITB-178, offline)
+	@$(PYTHON) scripts/run_follow_up_eval.py --checklist $(ARGS)
 
 golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)
 	@echo "$(BLUE)Running golden set tests (mock mode)...$(NC)"

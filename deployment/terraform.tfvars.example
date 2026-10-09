@@ -189,3 +189,11 @@ monthly_budget = 50
 
 # Email addresses for alerts (when reaching 80% or forecasted 100%)
 budget_alert_emails = ["your-email@example.com"]
+
+# -----------------------------------------------------------------------------
+# Suggested follow-up chips (BITB-080 / BITB-178)
+# -----------------------------------------------------------------------------
+
+# Off by default; run scripts/run_follow_up_eval.py against a backend and review
+# the report before enabling in production.
+# chat_follow_ups_enabled = true

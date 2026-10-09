@@ -7,6 +7,8 @@ services:
     ports:
       - "0.0.0.0:8000:8000"
     environment:
+      # BITB-080/178: suggested follow-up chips; off by default, set true in .env to test them.
+      - CHAT_FOLLOW_UPS_ENABLED=${CHAT_FOLLOW_UPS_ENABLED:-false}
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - LLM_MODEL=${LLM_MODEL:-mistral:7b}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
