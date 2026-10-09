@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { User, BookOpen, Copy, Check } from "lucide-react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import { Message } from "@/lib/api";
 import ShareMenu from "./ShareMenu";
 import FeedbackControls from "./FeedbackControls";
+import ListenButton from "./ListenButton";
 import {
   createVersePattern,
   createVersePatternGlobal,
@@ -39,6 +40,8 @@ interface ChatMessageProps {
   ) => void;
   feedbackGiven?: "positive" | "negative" | null;
   feedbackDisabled?: boolean;
+  /** True while this (last) assistant answer is still streaming in (BITB-119). */
+  isStreaming?: boolean;
 }
 
 export default function ChatMessage({
@@ -49,8 +52,12 @@ export default function ChatMessage({
   onSubmitFeedback,
   feedbackGiven,
   feedbackDisabled = false,
+  isStreaming = false,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
+  // Stable id for the one-voice-at-a-time controller; restored history has no messageId.
+  const fallbackSpeakId = useId();
+  const showListen = !isStreaming && message.content.trim().length > 0;
 
   const [copied, setCopied] = useState(false);
 
@@ -389,7 +396,7 @@ export default function ChatMessage({
               </ReactMarkdown>
             </div>
 
-            {/* Feedback and share controls for assistant messages */}
+            {/* Feedback, listen and share controls for assistant messages */}
             {messageId && onSubmitFeedback && (
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <FeedbackControls
@@ -397,11 +404,27 @@ export default function ChatMessage({
                   disabled={feedbackDisabled}
                   onSubmit={onSubmitFeedback}
                   trailing={
-                    <ShareMenu
-                      question={userMessage || ""}
-                      answer={message.content}
-                    />
+                    <div className="flex items-center gap-1">
+                      {showListen && (
+                        <ListenButton
+                          messageId={messageId}
+                          content={message.content}
+                        />
+                      )}
+                      <ShareMenu
+                        question={userMessage || ""}
+                        answer={message.content}
+                      />
+                    </div>
                   }
+                />
+              </div>
+            )}
+            {!(messageId && onSubmitFeedback) && showListen && (
+              <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
+                <ListenButton
+                  messageId={messageId ?? fallbackSpeakId}
+                  content={message.content}
                 />
               </div>
             )}

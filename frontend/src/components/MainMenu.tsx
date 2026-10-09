@@ -1,12 +1,21 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, History as HistoryIcon, MapPin, Info } from "lucide-react";
+import {
+  Menu,
+  History as HistoryIcon,
+  MapPin,
+  Info,
+  Heart,
+  Volume2,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import TranslationSwitcher from "@/components/TranslationSwitcher";
 import { Link } from "@/i18n/navigation";
+import { donateUrl } from "@/lib/donateUrl";
 import type { TranslationInfo } from "@/lib/api";
+import { setShowListen, useShowListenPreference } from "@/lib/ttsPreference";
 
 interface MainMenuProps {
   onOpenHistory: () => void;
@@ -27,6 +36,7 @@ export default function MainMenu({
   const tFooter = useTranslations("Footer");
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const showListen = useShowListenPreference();
 
   // Close menu on outside click
   useEffect(() => {
@@ -86,6 +96,32 @@ export default function MainMenu({
 
           <div className="border-t border-gray-100 my-1" />
 
+          {/* BITB-119: show/hide the Listen (read aloud) button on answers */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showListen}
+            onClick={() => setShowListen(!showListen)}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Volume2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <span className="flex-1 text-left">{t("showListenButton")}</span>
+            <span
+              aria-hidden="true"
+              className={`inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
+                showListen ? "bg-primary-600" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                  showListen ? "translate-x-4" : "translate-x-0.5"
+                }`}
+              />
+            </span>
+          </button>
+
+          <div className="border-t border-gray-100 my-1" />
+
           <button
             onClick={() => {
               onOpenChurchFinder();
@@ -107,6 +143,17 @@ export default function MainMenu({
             <Info className="w-4 h-4 flex-shrink-0" />
             {tFooter("about")}
           </Link>
+
+          <a
+            href={donateUrl("web-menu")}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Heart className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            {tFooter("supportUs")}
+          </a>
         </div>
       )}
     </div>

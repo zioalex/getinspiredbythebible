@@ -96,6 +96,18 @@ def test_config_endpoint():
     assert "embedding" in data
     assert "provider" in data["llm"]
     assert "model" in data["llm"]
+    # BITB-119: read-aloud flag defaults to enabled
+    assert data["features"]["tts_enabled"] is True
+
+
+def test_config_endpoint_tts_disabled(monkeypatch):
+    """TTS_ENABLED=false is published as features.tts_enabled=false (BITB-119)."""
+    from config import settings
+
+    monkeypatch.setattr(settings, "tts_enabled", False)
+    response = client.get("/config")
+    assert response.status_code == 200
+    assert response.json()["features"]["tts_enabled"] is False
 
 
 def test_chat_endpoint_requires_message():

@@ -282,6 +282,8 @@ class Settings(BaseSettings):
     # (e.g. a browser-only outage) alerts. Cap the free-text detail to bound
     # log/metric size and abuse.
     client_error_reporting_enabled: bool = True
+    # BITB-119: Read-aloud (on-device TTS) feature flag, published via GET /config.
+    tts_enabled: bool = True
     client_error_max_detail_chars: int = 500
 
     # Azure Content Safety Settings

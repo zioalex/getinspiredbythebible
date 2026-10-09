@@ -175,10 +175,12 @@
     <string name="settings_changelog_title">What\'s New</string>
     <string name="settings_changelog_link">What\'s New</string>
     <string name="settings_support_us">Support Vox Quieta</string>
+    <string name="drawer_support_us">Support Vox Quieta</string>
     <string name="changelog_empty">No release notes are available yet.</string>
     <string name="whats_new_title">What\'s New</string>
     <string name="whats_new_dismiss">Got it</string>
     <string name="whats_new_see_all">See all</string>
+    <string name="whats_new_support_note">You can now support Vox Quieta from the menu, if you\'d like. It\'s entirely optional — the app stays free for everyone.</string>
 
     <!-- About intro bottom sheet (BITB-082) — condensed from the web About.intro* copy -->
     <string name="about_intro_title">Why Vox Quieta</string>
@@ -306,4 +308,13 @@
 
     <!-- Share -->
     <string name="share_prefix">I found this inspiring biblical insight:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">Listen to this answer</string>
+    <string name="action_stop_listening">Stop listening</string>
+    <string name="state_listening">Reading aloud</string>
+    <string name="state_not_listening">Not reading aloud</string>
+    <string name="settings_tts_title">Read aloud</string>
+    <string name="settings_tts_show_listen">Show Listen button</string>
+    <string name="settings_tts_show_listen_desc">Adds a Listen button to answers. Answers are read by your device\'s voice; the text never leaves your device.</string>
 </resources>

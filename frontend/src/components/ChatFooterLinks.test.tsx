@@ -10,9 +10,9 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
-// Same fallback the component falls back to when NEXT_PUBLIC_DONATE_URL is
-// unset, which is the case in the test environment (see Footer.tsx).
-const DONATE_URL = "https://ko-fi.com/voxquieta";
+// Default base (NEXT_PUBLIC_DONATE_URL unset in tests) plus the chat-footer ref
+// (see donateUrl.ts, BITB-168).
+const DONATE_URL = "https://ko-fi.com/voxquieta?ref=web-chat-footer";
 
 describe("ChatFooterLinks", () => {
   it("renders the same six links as the page-level Footer", () => {
@@ -59,5 +59,24 @@ describe("ChatFooterLinks", () => {
     expect(supportLink).toHaveAttribute("href", DONATE_URL);
     expect(supportLink).toHaveAttribute("target", "_blank");
     expect(supportLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("adds a decorative heart to the support link without raising its visual weight", () => {
+    renderWithIntl(<ChatFooterLinks />);
+
+    const supportLink = screen.getByText(enMessages.Footer.supportUs);
+    expect(supportLink.querySelector("svg[aria-hidden='true']")).not.toBeNull();
+    expect(supportLink.className).not.toMatch(
+      /font-semibold|font-bold|text-base/,
+    );
+    const parent = supportLink.parentElement as HTMLElement;
+    expect(parent.className).toContain("text-[11px]");
+    expect(parent.className).toContain("text-gray-400");
+  });
+
+  it("renders no icon on internal links", () => {
+    renderWithIntl(<ChatFooterLinks />);
+    const internal = screen.getByText(enMessages.Footer.getApp).closest("a");
+    expect(internal?.querySelector("svg")).toBeNull();
   });
 });

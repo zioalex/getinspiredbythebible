@@ -134,3 +134,54 @@ describe("About page", () => {
     },
   );
 });
+
+describe("About page support section", () => {
+  it.each(["en", "de", "ar"])(
+    "renders the localized support heading and body for /%s",
+    async (locale) => {
+      const jsx = await AboutPage({ params: Promise.resolve({ locale }) });
+      render(jsx);
+
+      expect(
+        screen.getByRole("heading", {
+          name: catalogs[locale].About.supportTitle,
+          level: 2,
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(catalogs[locale].About.supportBody),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it("links out to the donate page with the web-about ref", async () => {
+    const jsx = await AboutPage({ params: Promise.resolve({ locale: "en" }) });
+    render(jsx);
+
+    const link = screen
+      .getByText(enMessages.About.supportLinkLabel)
+      .closest("a");
+    expect(link).toHaveAttribute(
+      "href",
+      "https://ko-fi.com/voxquieta?ref=web-about",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("places the support section before the Contact section", async () => {
+    const jsx = await AboutPage({ params: Promise.resolve({ locale: "en" }) });
+    render(jsx);
+
+    const support = screen.getByRole("heading", {
+      name: enMessages.About.supportTitle,
+    });
+    const contact = screen.getByRole("heading", {
+      name: enMessages.About.contactTitle,
+    });
+    expect(
+      support.compareDocumentPosition(contact) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+});

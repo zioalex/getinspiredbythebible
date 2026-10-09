@@ -1,6 +1,6 @@
 # BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-30
@@ -79,7 +79,7 @@ This story is bound by the following anti-nag rules (acceptance criteria enforce
 ### Measurement (no in-app analytics)
 
 7. Append per-surface `ref` query params to the donate URL — `?ref=web-menu`,
-   `?ref=web-footer`, `?ref=web-about`, `?ref=android-drawer`, `?ref=android-settings` — so the
+   `?ref=web-footer`, `?ref=web-chat-footer`, `?ref=web-about`, `?ref=android-drawer`, `?ref=android-settings` — so the
    destination page's own analytics show which entry point works. Add a tiny helper per platform
    to compose base URL + `ref`; do **not** inline string concatenation at each call site.
    Ordering with BITB-157 (env wiring): either story may land first, but keep a single shared
@@ -97,27 +97,41 @@ This story is bound by the following anti-nag rules (acceptance criteria enforce
 
 ## Acceptance Criteria
 
-- [ ] Web hamburger menu shows "Support us" with a heart icon; opens the donate URL in a new tab
+- [x] Web hamburger menu shows "Support us" with a heart icon; opens the donate URL in a new tab
       (`noopener noreferrer`); menu closes on click
-- [ ] Footer + ChatFooterLinks Support link renders the heart glyph with **no** increase in font
+- [x] Footer + ChatFooterLinks Support link renders the heart glyph with **no** increase in font
       size, font weight, or color intensity
-- [ ] About page renders the "Keep Vox Quieta free" section with a working link-out
-- [ ] Android chat drawer shows "Support Vox Quieta" with a heart icon (bottom group), opening
+- [x] About page renders the "Keep Vox Quieta free" section with a working link-out
+- [x] Android chat drawer shows "Support Vox Quieta" with a heart icon (bottom group), opening
       `BuildConfig.DONATE_URL`
-- [ ] Android What's New dialog mentions the support option once in the next release's list
-- [ ] (optional) Settings Support row repositioned out of the About tail
-- [ ] Every donate URL carries its per-surface `ref` param, composed via a single helper per
+- [x] Android What's New dialog mentions the support option once in the next release's list
+- [x] (optional) Settings Support row repositioned out of the About tail
+- [x] Every donate URL carries its per-surface `ref` param, composed via a single helper per
       platform
-- [ ] All new copy present in 11/11 frontend locales and 11/11 Android locales — no
+- [x] All new copy present in 11/11 frontend locales and 11/11 Android locales — no
       fallback-to-English anywhere
-- [ ] **No modal, banner, interstitial, timed prompt, urgency language, or gated perk anywhere
+- [x] **No modal, banner, interstitial, timed prompt, urgency language, or gated perk anywhere
       in scope** (the anti-nag rules above are acceptance-testable)
-- [ ] Frontend tests: MainMenu (item renders, href/target/rel, closes menu), Footer/ChatFooterLinks
+- [x] Frontend tests: MainMenu (item renders, href/target/rel, closes menu), Footer/ChatFooterLinks
       (glyph present, link semantics unchanged), About page section
-- [ ] Android: Compose UI test for the drawer item (per the `*ComposeTest.kt` tier) + What's New
+- [x] Android: Compose UI test for the drawer item (per the `*ComposeTest.kt` tier) + What's New
       content test; translation-validation CI green
 - [ ] Manual QA on both platforms: entry discoverable within ≤2 taps from the chat surface;
       link opens in browser/Custom Tab in at least 2 locales
+
+## Implementation Decisions
+
+- **Chat-footer ref split:** `useFooterLinks({ supportRef })` defaults to `web-footer`;
+  `ChatFooterLinks` passes `web-chat-footer` so the two surfaces are distinguishable. Added
+  `web-chat-footer` to the ref list above.
+- **What's New marker mechanism:** no prefs/state. `shouldShowSupportNote(latestBody)` is true
+  while the latest changelog entry contains `BITB-168`, so the note appears once per release
+  (the sheet is already shown once per update) and vanishes when a later release is latest.
+  The release commit/changelog must therefore carry the `(BITB-168)` reference.
+- **Settings row moved** directly after the "Get in Touch" button; still a plain `TextButton`.
+- **About page uses a quiet inline link** (like the GitHub/Contact links), not a solid pill.
+- **Menu label reuses `Footer.supportUs`** — no new menu key.
+- Web helper: `frontend/src/lib/donateUrl.ts`; Android helper: `utils/DonateUrl.kt`.
 
 ## Out of Scope
 
