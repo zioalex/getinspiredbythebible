@@ -56,7 +56,10 @@ class TestIsExpectedEmbeddingDiff:
 
     def test_translations_created_at_is_not_expected(self, audit_module):
         """The known BITB-094 candidate: a real (non-embedding) type diff
-        must never be swallowed into the expected-difference bucket."""
+        must never be swallowed into the expected-difference bucket.
+
+        (The underlying column drift is resolved by BITB-127 / r0007; this
+        synthetic diff just keeps the classifier honest.)"""
         diff = _modify_type(
             "translations", "created_at", old="TIMESTAMP", new="TIMESTAMP(timezone=True)"
         )
