@@ -123,7 +123,8 @@ def test_run_step_is_skipped_when_the_secret_is_empty():
     assert "has_probe_secret=${HAS_PROBE_SECRET}" in guard["run"]
     assert "::notice::" in guard["run"], "the skip must be visible, not silent"
     assert "exit 1" not in guard["run"], "a missing secret skips the run; it does not fail it"
-    assert _step("run")["if"] == "steps.guard.outputs.has_probe_secret == 'true'"
+    expected_if = "steps.guard.outputs.has_probe_secret == 'true'"  # pragma: allowlist secret
+    assert _step("run")["if"] == expected_if
 
 
 def test_target_is_the_production_backend_url_used_by_prod_monitor():

@@ -33,7 +33,7 @@ CHAT_PATH = "/api/v1/chat"
 # Same header name as utils.monitor_probe.PROBE_HEADER. Repeated here (not imported) because
 # importing utils.monitor_probe pulls config.settings, which a CLI run should not need.
 PROBE_HEADER = "X-Monitor-Probe-Secret"  # noqa: S105 - header name, not a secret
-PROBE_SECRET_ENV = "GOLDEN_SET_PROBE_SECRET"  # noqa: S105 - env var name, not a secret
+PROBE_SECRET_ENV = "GOLDEN_SET_PROBE_SECRET"  # noqa: S105  # pragma: allowlist secret
 MOCK_RESPONSE = "[mock response] No API was called; this only exercises the runner pipeline."
 
 # failed_checks markers for results that never reached the automated checks.

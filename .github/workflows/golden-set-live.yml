@@ -110,7 +110,7 @@ jobs:
 
       - name: Run the golden set against production
         id: run
-        if: steps.guard.outputs.has_probe_secret == 'true'
+        if: steps.guard.outputs.has_probe_secret == 'true' # pragma: allowlist secret
         env:
           GOLDEN_SET_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
           BACKEND_URL: ${{ env.BACKEND_URL }}
