@@ -710,7 +710,7 @@ class TestInterpretationCases:
                 assert agreement not in forbidden, case.id
 
 
-# ==================== Follow-up Chip Cases (BITB-179) ====================
+# ==================== Follow-up Chip Cases (BITB-182) ====================
 
 
 @pytest.mark.golden_set

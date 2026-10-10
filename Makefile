@@ -280,10 +280,10 @@ test-e2e-local: install-deps ## Run e2e tests against local frontend (localhost:
 
 # ==================== Golden Set Testing ====================
 
-follow-up-eval: install-deps ## Run the follow-up chip golden set against a live backend (BITB-179). Usage: make follow-up-eval ARGS="--language it --base-url http://localhost:8000"
+follow-up-eval: install-deps ## Run the follow-up chip golden set against a live backend (BITB-182). Usage: make follow-up-eval ARGS="--language it --base-url http://localhost:8000"
 	@$(PYTHON) scripts/run_follow_up_eval.py $(ARGS)
 
-follow-up-checklist: install-deps ## Print the manual on-device follow-up chip checklist (BITB-179, offline)
+follow-up-checklist: install-deps ## Print the manual on-device follow-up chip checklist (BITB-182, offline)
 	@$(PYTHON) scripts/run_follow_up_eval.py --checklist $(ARGS)
 
 golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)

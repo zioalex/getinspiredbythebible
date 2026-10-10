@@ -1,4 +1,4 @@
-# BITB-179: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
+# BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
 
 **Status:** 🚧 In Progress
 **Priority:** P2
@@ -205,7 +205,7 @@ Makefile: `follow-up-eval` (`ARGS=` passthrough) and `follow-up-checklist` targe
   report, the Android debug flow (emulator `make android-build`; USB `adb reverse tcp:8000
   tcp:8000` + `-PbaseUrl=http://localhost:8000/`; LAN IP), what "suppressed" means, the
   content-safety caveat, and that a small local Ollama model may not emit the trailer reliably.
-- `docs/BACKLOG.md`: BITB-179 entry (P2), bump `Last Updated`.
+- `docs/BACKLOG.md`: BITB-182 entry (P2), bump `Last Updated`.
 
 ### Verification
 

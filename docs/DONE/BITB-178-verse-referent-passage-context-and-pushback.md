@@ -1,6 +1,6 @@
 # BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1145 merged 2026-10-10; AC12 live run pending, owner)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-10-09
@@ -189,6 +189,15 @@ are the fullwidth-colon variant (`路加福音1：79`) pinned under AC1. Ruff (C
 `scripts/run_golden_set.py --mock --category interpretation` (81 cases, exit 0) all clean.
 DB-backed tests are skipped here; the PR's `backend-tests` / `integration-tests` jobs are the
 gate for those. Story renumbered from BITB-177 (taken on `main` by #1142).
+
+## Follow-ups (filed 2026-10-10, after merge)
+
+- BITB-179 — fullwidth colon (`路加福音1：79`) as a chapter:verse separator in all three parsers;
+  removes the strict xfail in `test_passage_context.py`.
+- BITB-180 — topic-aware carry-over: do not carry the earlier passage into an unrelated follow-up.
+- BITB-181 — keep probe sessions out of the weekly report (the golden-set run is already excluded;
+  the hourly browser smoke is not).
+- AC12 (live pass rate against production) stays open on this story for the owner.
 
 ## Out of Scope
 
