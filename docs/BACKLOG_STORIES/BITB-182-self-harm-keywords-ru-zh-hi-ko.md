@@ -1,4 +1,4 @@
-# BITB-179: Keyword Self-Harm Fallback Missing ru, zh, hi, ko
+# BITB-182: Keyword Self-Harm Fallback Missing ru, zh, hi, ko
 
 **Status:** In review
 **Size:** S
@@ -31,7 +31,7 @@ Patterns are phrase-level (`自杀`, `想死`, `不想活`, `자살`, `죽고 �
 - `normalize_text` verified not to mangle these scripts; zero-width evasion still detected
 - Tests: `api/tests/test_self_harm_keyword_fallback_languages.py`
 
-## Out of scope / follow-up (BITB-180)
+## Out of scope / follow-up (BITB-183)
 
 - The fallback only checks `[language, "en"]`, so short or mismatched-script messages
   detected as `en` skip the ru/zh/hi/ko/ar patterns; it should run all scripts' self-harm regexes.

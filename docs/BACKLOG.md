@@ -2,10 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-10 (BITB-179 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-178 in progress — wrong referent for Luke 1:79 then a flip on
-"are you sure?": passage context for referenced verses, follow-up re-grounding, interpretation and
-pushback prompt rules, 81-case `interpretation` golden-set category, async live runner and a weekly
-scheduled live run against production, PR #1145; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-10 (BITB-182 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-183 opened as its follow-up; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -239,14 +236,14 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-180: Self-Harm Fallback — Script-Agnostic Matching and Precedence
+### 🎯 BITB-183: Self-Harm Fallback — Script-Agnostic Matching and Precedence
 
 **Status:** 🎯 Todo
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-10
 
-Follow-up to BITB-179: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
+Follow-up to BITB-182: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
 mismatched-script messages detected as `en` skip ru/zh/hi/ko/ar patterns; and violence is
 checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked instead of
 getting the compassionate path.
@@ -257,11 +254,11 @@ getting the compassionate path.
 - [ ] Self-harm first-person phrases take precedence over violence matches
 - [ ] Cross-language parametrized tests (11 languages)
 
-Full story: [`BITB-180-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-180-self-harm-fallback-script-agnostic.md)
+Full story: [`BITB-183-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-183-self-harm-fallback-script-agnostic.md)
 
 ---
 
-### 🚧 BITB-179: Keyword Self-Harm Fallback — Add ru, zh, hi, ko Patterns
+### 🚧 BITB-182: Keyword Self-Harm Fallback — Add ru, zh, hi, ko Patterns
 
 **Status:** 🚧 In review
 **Priority:** P1
@@ -279,11 +276,12 @@ Chinese, Hindi and Korean and the compassionate-response path never triggered.
 - [ ] Fullwidth punctuation, wrapped and embedded-in-sentence variants covered
 - [ ] Class docstring reflects 11 languages
 
-Full story: [`BITB-179-self-harm-keywords-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-179-self-harm-keywords-ru-zh-hi-ko.md)
+Full story: [`BITB-182-self-harm-keywords-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-182-self-harm-keywords-ru-zh-hi-ko.md)
 
-### 🚧 BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
+### ✅ BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
 
-**Status:** 🚧 In Progress (PR #1145)
+**Status:** ✅ Done (PR #1145 merged 2026-10-10) — AC12 live run pending (owner)
+**Completed:** 2026-10-10
 **Priority:** P1
 **Size:** M
 **Created:** 2026-10-09
@@ -296,18 +294,21 @@ carry-over from recent history, a shared interpretation-and-pushback guidance bl
 `interpretation` golden-set category with a live runner (manual CLI plus a weekly scheduled run
 against production through the existing server-to-server probe bypass; a measurement, not a gate).
 
+Follow-ups: BITB-179 (fullwidth colon), BITB-180 (topic-aware carry-over), BITB-181 (probe
+sessions in the weekly report).
+
 **Acceptance Criteria (summary):**
 
-- [ ] Referenced verses carry their surrounding passage into the prompt (11 languages, both chat paths)
-- [ ] Follow-ups without a reference re-fetch the passage from history; verse panel unchanged
-- [ ] Guidance block in default, verse-lookup and prayer-lookup prompts
-- [ ] 81 `interpretation` cases (core and the Luke 1:79 pushback pair in 11 languages, wider set in
+- [x] Referenced verses carry their surrounding passage into the prompt (11 languages, both chat paths)
+- [x] Follow-ups without a reference re-fetch the passage from history; verse panel unchanged
+- [x] Guidance block in default, verse-lookup and prayer-lookup prompts
+- [x] 81 `interpretation` cases (core and the Luke 1:79 pushback pair in 11 languages, wider set in
       en/de/it), no vacuous groups
-- [ ] `must_contain_any` evaluator, async live runner + CLI (probe header, exit codes 0-3), weekly
+- [x] `must_contain_any` evaluator, async live runner + CLI (probe header, exit codes 0-3), weekly
       `golden-set-live.yml` workflow, docs updated
 - [ ] Live pass rate against the production model recorded (owner-run)
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-178-verse-referent-passage-context-and-pushback.md`
+Full story: [`BITB-178-verse-referent-passage-context-and-pushback.md`](DONE/BITB-178-verse-referent-passage-context-and-pushback.md)
 
 ---
 
@@ -2944,6 +2945,49 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-179: Accept the Fullwidth Colon as a Chapter:Verse Separator (All Three Parsers)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-10
+
+Chinese IME text writes `路加福音1：79`; the shared grammar (`tests/fixtures/verse_grammar.json`) and
+the backend `CV_PATTERN` accept only `[:,]`, so the reference is missed: no lookup, no passage
+context, no grounding, no link. BITB-178 follow-up (strict xfail in `test_passage_context.py`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `：` parses in backend, frontend and Android (generated grammar), with parity tests
+- [ ] BITB-178 xfail removed; grounding integration test through `chat()`
+- [ ] No regression in the 11-language corpus; no false positives on prose
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-179-fullwidth-colon-verse-separator.md`
+
+---
+
+### 🎯 BITB-180: Topic-Aware Passage Carry-Over for Follow-Up Turns
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-10
+
+BITB-178 carries the passage from the last 4 history messages into any follow-up without a
+reference, even an unrelated topical question. Carry it only when the follow-up is plausibly about
+that passage, keeping the pushback case ("are you sure?") working. May be cancelled if live runs show
+no harm.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Unrelated topical follow-up gets no carried-over passage (11 languages, both chat paths)
+- [ ] BITB-178 pushback cases unchanged; `interpretation` live pass rate does not regress
+- [ ] New "topic switch" golden-set cases (en/de/it); behind a setting
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-180-topic-aware-passage-carry-over.md`
+
+---
+
 ### 🚧 BITB-165: Auto-Update Opted-In PR Branches When main Moves
 
 **Status:** 🚧 In Progress
@@ -4607,6 +4651,27 @@ fallback columns).
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-181: Keep Probe Sessions (Hourly Browser Smoke) Out of the Weekly Report
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-10
+
+`track_session` records authorized probe requests that carry a `session_id`. The hourly
+`prod-browser-smoke.yml` run does (about 168 English/desktop sessions a week), so it inflates the weekly
+digest. The BITB-178 golden-set run sends no `session_id` and is already excluded. Skip session
+tracking for probe requests and pin the golden-set runner as sessionless.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Probe request with a `session_id` writes no `sessions` row (`/chat` and `/chat/stream`)
+- [ ] Normal requests still tracked; golden-set runner payload has no `session_id` (test)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-181-probe-traffic-in-weekly-report.md`
+
+---
 
 ### ✅ BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
 

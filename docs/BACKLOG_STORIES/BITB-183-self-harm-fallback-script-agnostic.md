@@ -1,4 +1,4 @@
-# BITB-180: Self-Harm Fallback — Script-Agnostic Matching and Precedence
+# BITB-183: Self-Harm Fallback — Script-Agnostic Matching and Precedence
 
 **Status:** Todo
 **Size:** S
@@ -9,7 +9,7 @@ of detected language or phrasing, **so that** I get the compassionate response.
 
 ## Problem
 
-Found while verifying BITB-179 (`ContentSafetyService._full_keyword_fallback`):
+Found while verifying BITB-182 (`ContentSafetyService._full_keyword_fallback`):
 
 1. It only checks `[language, "en"]`. Short or mismatched-script messages whose language is
    detected as `en` skip the ru/zh/hi/ko/ar self-harm patterns.

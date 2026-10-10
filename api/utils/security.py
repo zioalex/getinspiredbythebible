@@ -520,7 +520,7 @@ class MultiLanguageContentFilter:
             r"إيذاء النفس",
             r"أريد أن أموت",
         ],
-        # BITB-179: ru uses \b (Cyrillic is word-char safe); zh/hi/ko use plain
+        # BITB-182: ru uses \b (Cyrillic is word-char safe); zh/hi/ko use plain
         # substrings because there are no spaces (CJK) or \b is unreliable with
         # Devanagari combining marks (matras). Patterns stay specific: never a
         # bare 死 / 죽 / मर, which occur in ordinary Bible-study questions.
