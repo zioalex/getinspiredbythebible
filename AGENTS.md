@@ -423,6 +423,13 @@ avoid stale entries accumulating in `.git/worktrees/`.
 - `docs/BACKLOG.md` is the canonical prioritized list. `docs/BACKLOG_STORIES/` holds the detailed story files.
 - **When creating a new story:** create the full story file in `docs/BACKLOG_STORIES/BITB-<NNN>-<slug>.md` *and* add a summary entry (status, size, date, one-liner, acceptance criteria, link to full story) in `docs/BACKLOG.md` under the correct priority section.
 - **When completing a story:** update its status to `✅ Done` in `docs/BACKLOG.md`, add the PR number and completion date, and move the full story file to `docs/DONE/` if the folder exists.
+- **When a story's PR merges, file follow-up stories for every point it did not fix.** Go through the
+  story and the PR description — known gaps (xfails, pinned limitations), open questions, deferred
+  decisions, "watch this" notes — and give each one its own `BITB-NNN` story (full file + backlog
+  entry), checked against the code so the problem statement is accurate. List the new IDs in a
+  *Follow-ups* section of the completed story and in its backlog entry. Owner-only steps (e.g. a live
+  run against production) stay as unticked acceptance criteria on the original story instead of
+  becoming stories. Example: BITB-178 → BITB-179/180/181.
 - **When cancelling a story:** mark it `❌ Cancelled` in `docs/BACKLOG.md` with a short reason.
 - **Always update `Last Updated`** at the top of `docs/BACKLOG.md` whenever you touch the file.
 - **Story IDs are sequential.** Before creating a new story, check the highest existing `BITB-NNN` number in `docs/BACKLOG_STORIES/` and increment by one.
