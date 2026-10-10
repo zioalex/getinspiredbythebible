@@ -16,7 +16,9 @@ cluster-side wiring (the `configRef` pointer and credentials).
 - Secret `openrouter-api-key` with key `openrouter-api-key` in
   `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required:
   `android-gemini` uses paid-tier primary `openrouter/qwen/qwen3-coder`;
-  without it the agent falls back to `opencode/muse-spark-1.3-contributor-free`)
+  without it the agent's whole chain — primary and both fallbacks — is on
+  OpenRouter, so it has no working model; see
+  [Cross-provider Resilience](#cross-provider-resilience))
 - Secret `github-copilot-auth` in `kubeopencode-system` → Copilot credential
   for the `github-copilot/*` models (orchestrator, verifier, risk-auditor).
   Working mechanism today is key `token` (a `gho_…` OAuth user token) →
@@ -216,8 +218,8 @@ kubectl -n kubeopencode-system describe agent default-wf2
 
 ## Cross-provider Resilience
 
-Every agent uses a **2-hop fallback chain across 2 providers** (OpenCode Zen,
-OpenRouter). The `opencode-runtime-fallback@0.2.4` plugin retries on
+Every agent uses a **2-hop fallback chain** (free first, paid last, BITB-173)
+that ends on OpenRouter. The `opencode-runtime-fallback@0.2.4` plugin retries on
 `[400, 401, 402, 403, 429, 500, 502, 503, 504]` (auth/quota 4xx included, so a
 provider returning "subscription exhausted" still fails over) with
 `max_fallback_attempts: 2`:
@@ -226,15 +228,19 @@ provider returning "subscription exhausted" still fails over) with
 Primary model ──429/5xx──▶ Tier 1 fallback ──429/5xx──▶ Tier 2 fallback
 ```
 
-| Agent group | Tier 1 | Tier 2 | Covers |
-|---|---|---|---|
-| All agents (nemotron/mimo prim) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenCode Zen outage |
-| android-gemini (OpenRouter prim) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenRouter outage → OpenCode → back to OpenRouter |
+All 12 agents share the same two fallbacks:
 
-In the worst case (both providers degrade), agents survive on the last
-responding model rather than hard-failing. `OPENROUTER_API_KEY` is therefore
+| Agent group | Tier 1 (free) | Tier 2 (paid) | Covers |
+|---|---|---|---|
+| 11 Zen-primary agents (`opencode/*`) | `openrouter/nvidia/nemotron-3-super-120b-a12b:free` | `openrouter/openai/gpt-oss-120b` | OpenCode Zen outage |
+| android-gemini (primary `openrouter/qwen/qwen3-coder`) | `openrouter/nvidia/nemotron-3-super-120b-a12b:free` | `openrouter/openai/gpt-oss-120b` | Model-level failures only; its whole chain is on OpenRouter, so an OpenRouter outage takes it down (accepted trade-off) |
+
+An OpenRouter outage leaves the Zen-primary agents unaffected; if both
+providers are down, every agent is down. `OPENROUTER_API_KEY` is therefore
 required for **runtime resilience**, not just for `android-gemini`'s paid
-primary.
+primary. The per-agent table and rationale live in
+[`agents.md`](agents.md), the source of truth; the `.opencode/agents/*.md`
+frontmatter compiled into `opencode.json` is what actually ships.
 
 > **Note (2026-09-14):** `github-copilot/claude-opus-5` was the primary for
 > orchestrator, verifier, and risk-auditor until Copilot subscription credits

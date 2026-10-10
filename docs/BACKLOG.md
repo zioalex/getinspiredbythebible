@@ -2,7 +2,10 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-10 (BITB-179 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down; 2026-10-09: BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-10 (BITB-179 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-178 in progress — wrong referent for Luke 1:79 then a flip on
+"are you sure?": passage context for referenced verses, follow-up re-grounding, interpretation and
+pushback prompt rules, 81-case `interpretation` golden-set category, async live runner and a weekly
+scheduled live run against production, PR #1145; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -277,6 +280,34 @@ Chinese, Hindi and Korean and the compassionate-response path never triggered.
 - [ ] Class docstring reflects 11 languages
 
 Full story: [`BITB-179-self-harm-keywords-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-179-self-harm-keywords-ru-zh-hi-ko.md)
+
+### 🚧 BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
+
+**Status:** 🚧 In Progress (PR #1145)
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-09
+
+Bug: asked who Luke 1:79 speaks of, the app named John the Baptist, then reversed without evidence
+when the user doubted it. Causes: a direct lookup fetches only the named verse (the antecedent is in
+1:78), follow-up turns are not re-grounded, no prompt rule covers interpretation or pushback, and the
+golden set has no live runner. Fix: prompt-only passage context (4 before / 2 after), reference
+carry-over from recent history, a shared interpretation-and-pushback guidance block, and an 81-case
+`interpretation` golden-set category with a live runner (manual CLI plus a weekly scheduled run
+against production through the existing server-to-server probe bypass; a measurement, not a gate).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Referenced verses carry their surrounding passage into the prompt (11 languages, both chat paths)
+- [ ] Follow-ups without a reference re-fetch the passage from history; verse panel unchanged
+- [ ] Guidance block in default, verse-lookup and prayer-lookup prompts
+- [ ] 81 `interpretation` cases (core and the Luke 1:79 pushback pair in 11 languages, wider set in
+      en/de/it), no vacuous groups
+- [ ] `must_contain_any` evaluator, async live runner + CLI (probe header, exit codes 0-3), weekly
+      `golden-set-live.yml` workflow, docs updated
+- [ ] Live pass rate against the production model recorded (owner-run)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-178-verse-referent-passage-context-and-pushback.md`
 
 ---
 
@@ -2447,9 +2478,9 @@ not yet proven to help is low value.
 
 ---
 
-### 🎯 BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
+### ✅ BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR pending, 2026-10-07; PR #1079 merged 2026-09-29)
 **Priority:** P3 — doc-only drift, no functional impact
 **Size:** XS
 **Created:** 2026-09-25
@@ -2462,11 +2493,11 @@ still untouched by that PR's own edits — see `git diff main -- deployment/kube
 
 **Acceptance Criteria:**
 
-- [ ] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
+- [x] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
       model names) to match the merged `agents.md` / generated `opencode.json`
-- [ ] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
+- [x] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
 
-**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](BACKLOG_STORIES/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
+**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](DONE/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
 
 ---
 
