@@ -280,16 +280,21 @@ test-e2e-local: install-deps ## Run e2e tests against local frontend (localhost:
 
 # ==================== Golden Set Testing ====================
 
-follow-up-eval: install-deps ## Run the follow-up chip golden set against a live backend (BITB-178). Usage: make follow-up-eval ARGS="--language it --base-url http://localhost:8000"
+follow-up-eval: install-deps ## Run the follow-up chip golden set against a live backend (BITB-179). Usage: make follow-up-eval ARGS="--language it --base-url http://localhost:8000"
 	@$(PYTHON) scripts/run_follow_up_eval.py $(ARGS)
 
-follow-up-checklist: install-deps ## Print the manual on-device follow-up chip checklist (BITB-178, offline)
+follow-up-checklist: install-deps ## Print the manual on-device follow-up chip checklist (BITB-179, offline)
 	@$(PYTHON) scripts/run_follow_up_eval.py --checklist $(ARGS)
 
 golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)
 	@echo "$(BLUE)Running golden set tests (mock mode)...$(NC)"
 	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/test_golden_set.py -v -m golden_set
 	@echo "$(GREEN)✓ Golden set tests complete$(NC)"
+
+golden-live: install-deps ## Run the interpretation golden cases against a running API (manual; BASE_URL=http://localhost:8000 CATEGORY=interpretation)
+	@echo "$(BLUE)Running golden set against $(or $(BASE_URL),http://localhost:8000) (live)...$(NC)"
+	@$(PYTHON) scripts/run_golden_set.py --base-url $(or $(BASE_URL),http://localhost:8000) --category $(or $(CATEGORY),interpretation) $(ARGS)
+	@echo "$(GREEN)✓ Live golden set run complete$(NC)"
 
 check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"

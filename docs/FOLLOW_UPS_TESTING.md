@@ -1,4 +1,4 @@
-# Testing Suggested Follow-Up Chips (BITB-178)
+# Testing Suggested Follow-Up Chips (BITB-179)
 
 The follow-up chips (BITB-080 backend + web, BITB-149 Android) ship **dark**:
 `CHAT_FOLLOW_UPS_ENABLED` defaults to `false`. This guide shows how to switch them on

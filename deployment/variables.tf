@@ -402,7 +402,7 @@ variable "content_filter_enabled" {
 }
 
 variable "chat_follow_ups_enabled" {
-  description = "Enable suggested follow-up question chips in chat responses (BITB-080). Off by default; measure with scripts/run_follow_up_eval.py (BITB-178) before enabling."
+  description = "Enable suggested follow-up question chips in chat responses (BITB-080). Off by default; measure with scripts/run_follow_up_eval.py (BITB-179) before enabling."
   type        = bool
   default     = false
 }

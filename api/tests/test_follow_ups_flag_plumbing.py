@@ -1,4 +1,4 @@
-"""Pin the CHAT_FOLLOW_UPS_ENABLED flag plumbing (BITB-178)."""
+"""Pin the CHAT_FOLLOW_UPS_ENABLED flag plumbing (BITB-179)."""
 
 import re
 from pathlib import Path

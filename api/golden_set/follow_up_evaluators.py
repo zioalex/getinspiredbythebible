@@ -1,4 +1,4 @@
-"""Automated evaluators for suggested follow-up chips (BITB-178).
+"""Automated evaluators for suggested follow-up chips (BITB-179).
 
 Pure functions -- no network or DB. Each check returns ``(name, passed, detail)``.
 ``run_all_checks`` in ``evaluators.py`` is intentionally untouched: follow-up

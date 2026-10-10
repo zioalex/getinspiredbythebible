@@ -13,8 +13,8 @@ class GoldenSetInput(BaseModel):
     conversation_history: list[dict] = []
     include_search: bool = True
     preferred_translation: str | None = None
-    language: str | None = None  # UI language code sent as ChatRequest.language (BITB-178)
-    tap_follow_up: bool = False  # multi-turn: runner sends turn 1's first chip as turn 2
+    language: str | None = None  # UI language code sent to the API (overrides detection)
+    tap_follow_up: bool = False  # multi-turn: runner sends turn 1's first chip as turn 2 (BITB-179)
 
 
 class Expectations(BaseModel):
@@ -25,12 +25,14 @@ class Expectations(BaseModel):
     expected_books: list[str] = []
     must_not_contain: list[str] = []
     must_contain: list[str] = []
+    # Groups of alternatives: at least one alternative from EVERY group must appear.
+    must_contain_any: list[list[str]] = []
     response_language: str = "en"
     source_statement_required: bool = False
     source_is_biblical: bool | None = None
     must_acknowledge_situation: bool = False
     max_response_length: int | None = None
-    # BITB-178: suggested follow-up chips. "any" keeps pre-existing cases unchanged.
+    # BITB-179: suggested follow-up chips. "any" keeps pre-existing cases unchanged.
     follow_ups: Literal["expected", "suppressed", "any"] = "any"
 
 
