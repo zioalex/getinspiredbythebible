@@ -31,7 +31,9 @@ Patterns are phrase-level (`自杀`, `想死`, `不想活`, `자살`, `죽고 �
 - `normalize_text` verified not to mangle these scripts; zero-width evasion still detected
 - Tests: `api/tests/test_self_harm_keyword_fallback_languages.py`
 
-## Out of scope / known
+## Out of scope / follow-up (BITB-180)
 
-- For fr/pt, violence patterns run first in the fallback, so e.g. "je veux me tuer" /
-  "me matar" is blocked as violence rather than treated as help-seeking (pre-existing).
+- The fallback only checks `[language, "en"]`, so short or mismatched-script messages
+  detected as `en` skip the ru/zh/hi/ko/ar patterns; it should run all scripts' self-harm regexes.
+- Violence is checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked
+  instead of getting the compassionate path.

@@ -236,9 +236,31 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### 🎯 BITB-180: Self-Harm Fallback — Script-Agnostic Matching and Self-Harm-Before-Violence Order
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-10
+
+Follow-up to BITB-179: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
+mismatched-script messages detected as `en` skip ru/zh/hi/ko/ar patterns; and violence is
+checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked instead of
+getting the compassionate path.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Fallback runs every language's self-harm regex (script-agnostic)
+- [ ] Self-harm first-person phrases take precedence over violence matches
+- [ ] Cross-language parametrized tests (11 languages)
+
+Full story: [`BITB-180-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-180-self-harm-fallback-script-agnostic.md)
+
+---
+
 ### 🚧 BITB-179: Keyword Self-Harm Fallback — Add ru, zh, hi, ko Patterns
 
-**Status:** 🚧 In Progress
+**Status:** 🚧 In review
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-10

@@ -74,6 +74,23 @@ CRISIS = [
     ("hi", "मैं खुद को नुकसान पहुँचाना चाहता हूँ"),
     ("hi", "जीने का कोई मतलब नहीं है"),
     ("ko", "자살하고 싶어요"),
+    ("ko", "살기 싫어요"),
+    ("ko", "죽어버릴래"),
+    ("ko", "살 이유가 없어요"),
+    ("zh", "我想去死"),
+    ("zh", "我想要死"),
+    ("zh", "我想轻生"),
+    ("zh", "我想寻死"),
+    ("zh", "我想自尽"),
+    ("ru", "Не хочу больше жить"),
+    ("ru", "Жить не хочу"),
+    ("ru", "Мне хочется умереть"),
+    ("ru", "Я убью себя"),
+    ("ru", "Режу себя"),
+    ("hi", "खुदकुशी के विचार आते हैं"),
+    ("hi", "\u0959ुद को नुकसान पहुँचाना है"),
+    ("hi", "\u0959ुदकुशी"),
+    ("hi", "मैं मर जाना चाहता हूँ"),
     ("ko", "죽고 싶어요"),
     ("ko", "목숨을 끊고 싶다"),
     ("ko", "자해를 했어요"),
@@ -118,6 +135,14 @@ BENIGN = [
     ("ko", "성경은 죽음과 부활에 대해 무엇이라고 말합니까?"),
     ("ko", "예수님은 왜 우리를 위해 죽으셨나요?"),
     ("ru", "Почему Иисус умер за нас?"),
+    ("zh", "我想死后会去哪里？"),
+    ("zh", "我想死後的世界"),
+    ("zh", "我不想死后下地狱"),
+    ("zh", "想死你了"),
+    ("ko", "성경을 문자해석해야 하나요?"),
+    ("ko", "저자해설"),
+    ("ko", "혼자살고 있는데"),
+    ("hi", "वे अपनी जान लेकर भागे"),
 ]
 
 
@@ -162,7 +187,7 @@ def test_normalize_text_preserves_script(language, text):
 def test_zero_width_evasion_still_detected(service, language, text):
     """Zero-width chars inserted mid-phrase are stripped before matching."""
     mid = len(text) // 2
-    evaded = text[:mid] + "​" + text[mid:]
+    evaded = text[:mid] + "\u200b" + text[mid:]
     result = _fallback(service, evaded, language)
     assert result.compassionate_response_needed is True
 
