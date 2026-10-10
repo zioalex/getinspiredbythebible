@@ -191,7 +191,7 @@ monthly_budget = 50
 budget_alert_emails = ["your-email@example.com"]
 
 # -----------------------------------------------------------------------------
-# Suggested follow-up chips (BITB-080 / BITB-179)
+# Suggested follow-up chips (BITB-080 / BITB-182)
 # -----------------------------------------------------------------------------
 
 # Off by default; run scripts/run_follow_up_eval.py against a backend and review

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI for the follow-up chip golden set (BITB-179).
+"""CLI for the follow-up chip golden set (BITB-182).
 
 Sends every curated case in api/golden_set/test_cases/follow_ups.yaml to a
 running backend, checks the suggested follow-up chips and prints a report.
@@ -70,7 +70,7 @@ def select_cases(
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Follow-up chip golden-set runner (BITB-179).")
+    parser = argparse.ArgumentParser(description="Follow-up chip golden-set runner (BITB-182).")
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--mode", choices=["stream", "json"], default="stream")
     parser.add_argument("--language", action="append", help="Language code(s); repeat or comma.")

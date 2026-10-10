@@ -77,5 +77,7 @@ main session must treat the PR's CI run as the gate it watches to green.
 - After the PR is open, a red CI run counts as a FAIL and re-enters the loop.
 - Mark the story status and update `docs/BACKLOG.md`.
 - Summarize for the user: what changed, test results, and any follow-ups.
+- Once the PR merges, file a follow-up `BITB-NNN` story for every point it left
+  unfixed (see *Backlog Hygiene* in `AGENTS.md`), on a fresh branch from `main`.
 - Commit/push only when the user has asked; never push to a closed/merged PR
   branch.

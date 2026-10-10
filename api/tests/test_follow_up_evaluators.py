@@ -1,4 +1,4 @@
-"""Unit tests for the follow-up chip evaluators (BITB-179)."""
+"""Unit tests for the follow-up chip evaluators (BITB-182)."""
 
 import pytest
 

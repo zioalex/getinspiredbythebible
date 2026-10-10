@@ -1,4 +1,4 @@
-# BITB-179: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
+# BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
 
 **Status:** 🚧 In Progress
 **Priority:** P2
@@ -205,10 +205,16 @@ Makefile: `follow-up-eval` (`ARGS=` passthrough) and `follow-up-checklist` targe
   report, the Android debug flow (emulator `make android-build`; USB `adb reverse tcp:8000
   tcp:8000` + `-PbaseUrl=http://localhost:8000/`; LAN IP), what "suppressed" means, the
   content-safety caveat, and that a small local Ollama model may not emit the trailer reliably.
-- `docs/BACKLOG.md`: BITB-179 entry (P2), bump `Last Updated`.
+- `docs/BACKLOG.md`: BITB-182 entry (P2), bump `Last Updated`.
 
 ### Verification
 
 `cd api && python -m pytest tests/ -x -q`; `ruff check`, `black --check`, `mypy` on new modules;
 `python scripts/validate-env.py --strict`; `terraform fmt -check deployment/` if terraform is
 installed; `python scripts/run_follow_up_eval.py --checklist` runs offline.
+
+## Follow-ups
+
+- BITB-183 — self-harm keyword fallback has no patterns for ru, zh, hi, ko.
+- BITB-184 — `Romans (8:28)` / `罗马书（8:28）` (bracketed chapter:verse after the book) is not detected.
+- The fullwidth colon (`罗马书8：28`) is already covered by BITB-179.

@@ -1,4 +1,4 @@
-"""Tests for the follow-up chip runner and CLI against a mocked backend (BITB-179)."""
+"""Tests for the follow-up chip runner and CLI against a mocked backend (BITB-182)."""
 
 import importlib.util
 import json

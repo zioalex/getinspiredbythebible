@@ -1,4 +1,4 @@
-"""Live runner for the follow-up chip golden set (BITB-179).
+"""Live runner for the follow-up chip golden set (BITB-182).
 
 Sends curated cases to a running backend (streaming endpoint by default, the
 same one the apps use), evaluates the chips with ``follow_up_evaluators`` and
@@ -454,7 +454,7 @@ def render_checklist(cases: list[GoldenSetCase]) -> str:
     by_lang: dict[str, list[GoldenSetCase]] = defaultdict(list)
     for case in cases:
         by_lang[language_of(case)].append(case)
-    lines = ["# Follow-up chips manual checklist (BITB-179)", ""]
+    lines = ["# Follow-up chips manual checklist (BITB-182)", ""]
     for lang, lang_cases in by_lang.items():
         lines += [f"## {lang}", ""]
         for case in lang_cases:
