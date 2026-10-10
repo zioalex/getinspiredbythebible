@@ -13,6 +13,7 @@ class GoldenSetInput(BaseModel):
     conversation_history: list[dict] = []
     include_search: bool = True
     preferred_translation: str | None = None
+    language: str | None = None  # UI language code sent to the API (overrides detection)
 
 
 class Expectations(BaseModel):
@@ -23,6 +24,8 @@ class Expectations(BaseModel):
     expected_books: list[str] = []
     must_not_contain: list[str] = []
     must_contain: list[str] = []
+    # Groups of alternatives: at least one alternative from EVERY group must appear.
+    must_contain_any: list[list[str]] = []
     response_language: str = "en"
     source_statement_required: bool = False
     source_is_biblical: bool | None = None
