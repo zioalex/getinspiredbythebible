@@ -61,8 +61,11 @@ class Translation(Base):
     is_default: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=sql_text("false")
     )
+    # timezone-aware like every other created_at column (BITB-127, migration r0007)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, server_default=sql_text("CURRENT_TIMESTAMP")
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=sql_text("CURRENT_TIMESTAMP"),
     )
 
     # Relationships

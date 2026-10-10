@@ -91,6 +91,28 @@ def check_required_content(response: str, expectations: Expectations) -> tuple[b
     return True, "all required content found"
 
 
+def check_required_alternatives(response: str, expectations: Expectations) -> tuple[bool, str]:
+    """Check that, for every group in must_contain_any, one alternative appears.
+
+    Lets a case accept equivalent spellings (``1:78`` / ``1,78`` / native digits) or
+    equivalent names. Case-insensitive; reports the groups with no match.
+    """
+    if not expectations.must_contain_any:
+        return True, "no required alternatives specified"
+
+    response_lower = response.lower()
+    missing = [
+        group
+        for group in expectations.must_contain_any
+        if not any(alt.lower() in response_lower for alt in group)
+    ]
+
+    if missing:
+        return False, f"no alternative found for groups: {missing}"
+
+    return True, "an alternative from every group found"
+
+
 def check_source_statement(response: str, expectations: Expectations) -> tuple[bool, str]:
     """Check that source is stated in the first 500 characters of the response."""
     if not expectations.source_statement_required:
@@ -199,6 +221,7 @@ def run_all_checks(
         "expected_books": check_expected_books(response, expectations),
         "forbidden_content": check_forbidden_content(response, expectations),
         "required_content": check_required_content(response, expectations),
+        "required_alternatives": check_required_alternatives(response, expectations),
         "source_statement": check_source_statement(response, expectations),
         "response_language": check_response_language(response, expectations),
         "response_length": check_response_length(response, expectations),

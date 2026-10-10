@@ -31,6 +31,10 @@
 #   TF_VAR_DB_NAME           - e.g., bibleapp
 #   AZURE_OPENAI_ENDPOINT    - e.g., https://your-resource.openai.azure.com/
 #   AZURE_OPENAI_API_KEY     - Azure OpenAI API key
+#
+# Optional repository variables (Settings > Secrets and variables > Actions):
+#   NEXT_PUBLIC_DONATE_URL   - Support-Us donate URL base baked into the
+#                              frontend build (BITB-157); unset => Ko-fi fallback
 # =============================================================================
 
 name: Build and Deploy to Azure
@@ -457,6 +461,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}
             NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
+            NEXT_PUBLIC_DONATE_URL=${{ vars.NEXT_PUBLIC_DONATE_URL }}
             NEXT_PUBLIC_BUILD_ID=${{ env.DEPLOY_SHA }}
 
       - name: Verify API URL in image

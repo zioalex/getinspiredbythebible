@@ -1,9 +1,10 @@
 # BITB-127: Make `translations.created_at` Timezone-Aware
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR pending)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-10
+**Last Updated:** 2026-10-06
 **Surfaced by:** BITB-094 (column-type audit) — see
 `docs/audits/BITB-094-column-type-audit.md`
 
@@ -70,14 +71,10 @@ data itself is fine — only the column's declared type fails to say so.
      request-path code. Confirm this against production (`SELECT count(*)
      FROM translations`) rather than assuming the local number holds; even
      if it's grown, three digits at most is still trivially fast.
-   - **Rewrite avoidance.** PostgreSQL (12+) can convert `timestamp` →
-     `timestamptz` *without* a full table rewrite when the conversion is
-     driven by `AT TIME ZONE` and the session's time zone is `UTC` — the
-     on-disk representation doesn't actually change, only its interpretation
-     does. Confirm the production connection's `TimeZone` GUC is `UTC` (or
-     set it explicitly for the migration session) before relying on this;
-     if it can't be confirmed, treat the ALTER as a full rewrite for planning
-     purposes — it is still trivial at this table's size either way.
+   - **Rewrite.** Because the conversion uses an `AT TIME ZONE` `USING`
+     clause, treat the ALTER as a full table rewrite for planning purposes
+     (PostgreSQL does not skip the rewrite for a `USING` expression). It is
+     sub-second at this table's size, and there are no indexes on the column.
    - Given the table's size, `ACCESS EXCLUSIVE` for the duration of the
      `ALTER` (rewrite or not) is very unlikely to be user-visible, but state
      the conclusion explicitly in the revision's docstring rather than
@@ -93,22 +90,22 @@ data itself is fine — only the column's declared type fails to say so.
 
 ## Acceptance Criteria
 
-- [ ] `Translation.created_at` is `DateTime(timezone=True)` in
+- [x] `Translation.created_at` is `DateTime(timezone=True)` in
       `api/scripture/models.py`
-- [ ] `scripts/init.sql`'s `translations.created_at` is `TIMESTAMPTZ`
-- [ ] New Alembic revision with `postgresql_using`, `lock_timeout` /
+- [x] `scripts/init.sql`'s `translations.created_at` is `TIMESTAMPTZ`
+- [x] New Alembic revision with `postgresql_using`, `lock_timeout` /
       `statement_timeout`, and a docstring stating the row-count/rewrite
       finding from the Approach section above
-- [ ] Row count and rewrite-avoidance both confirmed against production (or
-      the ALTER planned as a full rewrite if either can't be confirmed) and
-      recorded in the revision's docstring
+- [ ] Production row count confirmed (the ALTER is planned as a full rewrite and
+      recorded as such in the revision's docstring) — needs maintainer prod access
 - [ ] `alembic upgrade head` rehearsed against a local/CI database; existing
       `translations` rows read back with the same instant they had before
       (no silent zone shift from an incorrect `AT TIME ZONE` direction)
 - [ ] `scripts/audit_column_types.py` run against the upgraded database shows
-      `translations.created_at` no longer flagged
+      `translations.created_at` no longer flagged — needs maintainer prod access / a
+      migrated DB
 - [ ] Applied to production following the same rehearse-then-run discipline
-      as BITB-096/BITB-093
+      as BITB-096/BITB-093 — needs maintainer prod access
 
 ## Out of Scope
 
