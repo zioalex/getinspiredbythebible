@@ -371,7 +371,7 @@ class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
 
-    Supports 7 languages: EN, IT, DE, ES, FR, PT, AR
+    Supports 11 languages: EN, IT, DE, ES, FR, PT, AR, RU, ZH, HI, KO
 
     Critical distinction:
     - Help-seeking (low confidence) → allow, flag for compassionate response
@@ -520,6 +520,62 @@ class MultiLanguageContentFilter:
             r"إيذاء النفس",
             r"أريد أن أموت",
         ],
+        # BITB-179: ru uses \b (Cyrillic is word-char safe); zh/hi/ko use plain
+        # substrings because there are no spaces (CJK) or \b is unreliable with
+        # Devanagari combining marks (matras). Patterns stay specific: never a
+        # bare 死 / 죽 / मर, which occur in ordinary Bible-study questions.
+        "ru": [
+            r"\bсамоубийств",
+            r"\bсуицид",
+            r"\bпокончить с собой\b",
+            r"\bпокончу с собой\b",
+            r"\bубить себя\b",
+            r"\bхочу умереть\b",
+            r"\bзакончить свою жизнь\b",
+            r"\bпорезать себя\b",
+            r"\bсамоповреждени",
+            r"\bнет смысла жить\b",
+            r"\bне хочу жить\b",
+        ],
+        "zh": [
+            r"自杀",
+            r"自殺",
+            r"想死(?!亡)",
+            r"不想活",
+            r"活不下去",
+            r"结束(?:自己的)?生命",
+            r"結束(?:自己的)?生命",
+            r"结束我的生命",
+            r"結束我的生命",
+            r"自残",
+            r"自殘",
+            r"割腕",
+            r"伤害自己",
+            r"傷害自己",
+        ],
+        "hi": [
+            r"आत्महत्या",
+            r"आत्म-हत्या",
+            r"मरना चाहता",
+            r"मरना चाहती",
+            r"खुद को नुकसान",
+            r"खुद को चोट",
+            r"खुद को मार",
+            r"अपनी जान ले",
+            r"जीना नहीं चाहता",
+            r"जीना नहीं चाहती",
+            r"जीने का कोई मतलब नहीं",
+        ],
+        "ko": [
+            r"자살",
+            r"죽고 ?싶",
+            r"목숨을 ?끊",
+            r"스스로 ?목숨",
+            r"자해",
+            r"살고 ?싶지 ?않",
+            r"죽어 ?버리고 ?싶",
+            r"삶을 ?끝내",
+        ],
     }
 
     # Hate speech patterns (language-agnostic)
@@ -612,7 +668,7 @@ class MultiLanguageContentFilter:
 
         Args:
             text: The message to check
-            language: ISO 639-1 language code (en, it, de, es, fr, pt, ar)
+            language: ISO 639-1 language code (en, it, de, es, fr, pt, ar, ru, zh, hi, ko)
 
         Returns:
             Tuple of (blocked, confidence, violation_type, pattern_matched)
