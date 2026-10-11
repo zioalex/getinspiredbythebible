@@ -614,7 +614,6 @@ cases:
       follow_ups: expected
     tags: ["ru", "multi-turn", "tap"]
 
-
   - id: "fu-ru-07"
     name: "RU Crisis (keyword fallback)"
     input:
@@ -692,7 +691,6 @@ cases:
       follow_ups: expected
     tags: ["zh", "multi-turn", "tap"]
 
-
   - id: "fu-zh-07"
     name: "ZH Crisis (keyword fallback)"
     input:
@@ -769,7 +767,6 @@ cases:
       response_language: "hi"
       follow_ups: expected
     tags: ["hi", "multi-turn", "tap"]
-
 
   - id: "fu-hi-07"
     name: "HI Crisis (keyword fallback)"
