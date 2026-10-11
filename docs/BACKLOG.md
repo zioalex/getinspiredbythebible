@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-10 (BITB-182 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-183 opened as its follow-up; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-11 (BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -236,14 +236,14 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-183: Self-Harm Fallback — Script-Agnostic Matching and Precedence
+### 🎯 BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
 
 **Status:** 🎯 Todo
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-10
 
-Follow-up to BITB-182: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
+Follow-up to BITB-183: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
 mismatched-script messages detected as `en` skip ru/zh/hi/ko/ar patterns; and violence is
 checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked instead of
 getting the compassionate path.
@@ -254,29 +254,9 @@ getting the compassionate path.
 - [ ] Self-harm first-person phrases take precedence over violence matches
 - [ ] Cross-language parametrized tests (11 languages)
 
-Full story: [`BITB-183-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-183-self-harm-fallback-script-agnostic.md)
+Full story: [`BITB-185-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-185-self-harm-fallback-script-agnostic.md)
 
 ---
-
-### 🚧 BITB-182: Keyword Self-Harm Fallback — Add ru, zh, hi, ko Patterns
-
-**Status:** 🚧 In review
-**Priority:** P1
-**Size:** S
-**Created:** 2026-10-10
-
-`MultiLanguageContentFilter.SELF_HARM_PATTERNS` only covered en/it/de/es/fr/pt/ar, so when
-ML moderation is unavailable `_full_keyword_fallback` missed crisis messages in Russian,
-Chinese, Hindi and Korean and the compassionate-response path never triggered.
-
-**Acceptance Criteria (summary):**
-
-- [ ] ru/zh/hi/ko self-harm patterns added (specific; no bare 死 / 죽)
-- [ ] Parametrized test across all 11 languages: crisis phrase -> compassionate; benign Bible question -> no trigger
-- [ ] Fullwidth punctuation, wrapped and embedded-in-sentence variants covered
-- [ ] Class docstring reflects 11 languages
-
-Full story: [`BITB-182-self-harm-keywords-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-182-self-harm-keywords-ru-zh-hi-ko.md)
 
 ### ✅ BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
 
@@ -2988,6 +2968,53 @@ no harm.
 
 ---
 
+### 🚧 BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
+
+**Status:** 🚧 In Progress (PR #1147)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-09
+
+The follow-up chips (BITB-080/149) ship dark and nothing could switch `CHAT_FOLLOW_UPS_ENABLED` on
+locally or measure the chips. Add a curated 11-language golden set, a live runner that checks a
+running backend, and pass the flag through every compose file and Terraform (default off).
+
+**Acceptance Criteria (summary):**
+
+- [ ] `follow_ups.yaml` covers 11 languages x expected / verse-citing / suppressed / multi-turn
+- [ ] Evaluator and runner unit-tested (mocked HTTP); `make follow-up-eval` works
+- [ ] `CHAT_FOLLOW_UPS_ENABLED` reaches the API container in every compose stack; Terraform default `false`
+- [ ] `docs/FOLLOW_UPS_TESTING.md` explains the Android debug-build flow
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-182-follow-up-chips-golden-set.md`
+
+---
+
+### 🚧 BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
+
+**Status:** 🚧 In review — PR #1148
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-10
+
+When the ML safety classifier is unavailable, `ContentSafetyService._full_keyword_fallback` is the
+only crisis detector, and `MultiLanguageContentFilter.SELF_HARM_PATTERNS` covers only en/it/de/es/fr/pt/ar.
+A crisis message in ru, zh, hi or ko then gets no compassionate response (and chips are not
+suppressed). Found by BITB-182, which pins the gap in `test_golden_set.py`.
+
+**Acceptance Criteria (summary):**
+
+- [x] Self-harm patterns for ru, zh, hi, ko; the fallback flags a direct crisis message in each
+- [x] No false positives on ordinary Bible questions in those languages (e.g. about Judas's death)
+- [x] BITB-182 pin test flipped; `crisis-keyword` golden-set cases added for the four languages
+- [ ] Patterns reviewed by a native speaker or against a reference list per language
+
+**Follow-ups:** BITB-185 (script-agnostic matching and self-harm-over-violence precedence)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-183-self-harm-keyword-fallback-ru-zh-hi-ko.md`
+
+---
+
 ### 🚧 BITB-165: Auto-Update Opted-In PR Branches When main Moves
 
 **Status:** 🚧 In Progress
@@ -4670,6 +4697,25 @@ tracking for probe requests and pin the golden-set runner as sessionless.
 - [ ] Normal requests still tracked; golden-set runner payload has no `session_id` (test)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-181-probe-traffic-in-weekly-report.md`
+
+---
+
+### 🎯 BITB-184: Detect a Bracketed Chapter:Verse After the Book Name
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-10
+
+The backend parser misses `Romans (8:28)`, `Römer (8,28)` and `罗马书（8:28）` (only the chapter:verse in
+brackets), though it finds a fully wrapped `（罗马书8:28）`. Found by BITB-182.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Book-then-bracketed chapter:verse parses in backend, frontend and Android, with parity tests
+- [ ] 11-language parametrized test; no false positives without a book name
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-184-bracketed-chapter-verse-after-book.md`
 
 ---
 

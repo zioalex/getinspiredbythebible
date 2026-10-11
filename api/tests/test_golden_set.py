@@ -34,6 +34,10 @@ from utils.verse_parser import extract_references
 
 # ==================== Data Validation Tests ====================
 
+FOLLOW_UP_LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
+FALLBACK_LANGUAGES = set(FOLLOW_UP_LANGUAGES)
+FOLLOW_UP_SCENARIOS = ["expected", "verse-citing", "suppressed", "multi-turn"]
+
 
 @pytest.mark.golden_set
 class TestYamlDataIntegrity:
@@ -704,3 +708,79 @@ class TestInterpretationCases:
             forbidden = " ".join(case.expectations.must_not_contain).lower()
             for agreement in ("you are right", "you're right", "tienes razón", "hai ragione"):
                 assert agreement not in forbidden, case.id
+
+
+# ==================== Follow-up Chip Cases (BITB-182) ====================
+
+
+@pytest.mark.golden_set
+class TestFollowUpCases:
+    """Data-integrity checks for follow_ups.yaml."""
+
+    @pytest.fixture
+    def cases(self):
+        return filter_by_category(load_test_cases(), "follow_ups")
+
+    def test_file_loads(self, cases):
+        assert len(cases) == 77
+
+    @pytest.mark.parametrize("lang", FOLLOW_UP_LANGUAGES)
+    @pytest.mark.parametrize("scenario", FOLLOW_UP_SCENARIOS)
+    def test_every_language_covers_every_scenario(self, cases, lang, scenario):
+        matching = [c for c in cases if lang in c.tags and scenario in c.tags]
+        assert matching, f"no {scenario} case for {lang}"
+
+    def test_every_case_is_explicit_and_language_consistent(self, cases):
+        for case in cases:
+            assert case.expectations.follow_ups != "any", case.id
+            assert case.input.language == case.expectations.response_language, case.id
+            assert case.input.language in case.tags, case.id
+            scenarios = [t for t in case.tags if t in FOLLOW_UP_SCENARIOS]
+            assert len(scenarios) == 1, case.id
+            assert case.expectations.must_contain_scripture is False, case.id
+
+    def test_suppressed_cases_never_tap(self, cases):
+        for case in cases:
+            if case.expectations.follow_ups == "suppressed":
+                assert not case.input.tap_follow_up, case.id
+                assert "suppressed" in case.tags, case.id
+
+    def test_multi_turn_cases_tap_and_expect_chips(self, cases):
+        for case in cases:
+            if "multi-turn" in case.tags:
+                assert case.input.tap_follow_up, case.id
+                assert case.expectations.follow_ups == "expected", case.id
+
+    def test_existing_categories_unaffected_by_new_fields(self):
+        for case in load_test_cases():
+            if case.category != "follow_ups":
+                assert case.expectations.follow_ups == "any"
+                assert case.input.tap_follow_up is False
+
+    def test_crisis_keyword_cases_match_the_real_fallback_detector(self, cases):
+        """Each crisis-keyword message must trip the production self-harm keyword fallback."""
+        import time
+
+        from utils.content_safety import ContentSafetyService
+
+        service = ContentSafetyService()
+        keyword = [c for c in cases if "crisis-keyword" in c.tags]
+        assert {c.input.language for c in keyword} == FALLBACK_LANGUAGES
+        for case in keyword:
+            result = service._full_keyword_fallback(
+                case.input.message, case.input.language, time.monotonic()
+            )
+            assert result.compassionate_response_needed, case.id
+            assert case.expectations.follow_ups == "suppressed", case.id
+
+    @pytest.mark.parametrize("lang", FOLLOW_UP_LANGUAGES)
+    def test_every_language_has_an_indirect_crisis_case(self, cases, lang):
+        assert [c for c in cases if lang in c.tags and "crisis-ml" in c.tags]
+
+    def test_every_language_has_keyword_self_harm_patterns(self):
+        """All 11 languages have a self-harm keyword fallback and a crisis-keyword case (BITB-183)."""
+        from utils.security import MultiLanguageContentFilter
+
+        patterns = MultiLanguageContentFilter.SELF_HARM_PATTERNS
+        assert set(FOLLOW_UP_LANGUAGES) == set(patterns)
+        assert FALLBACK_LANGUAGES == set(patterns)

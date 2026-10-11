@@ -1,5 +1,5 @@
 """
-BITB-182: keyword self-harm fallback must cover all 11 UI languages.
+BITB-183: keyword self-harm fallback must cover all 11 UI languages.
 
 When ML moderation is unavailable, ``ContentSafetyService._full_keyword_fallback``
 is the only thing that triggers the compassionate-response path. These tests

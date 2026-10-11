@@ -14,6 +14,7 @@ class GoldenSetInput(BaseModel):
     include_search: bool = True
     preferred_translation: str | None = None
     language: str | None = None  # UI language code sent to the API (overrides detection)
+    tap_follow_up: bool = False  # multi-turn: runner sends turn 1's first chip as turn 2 (BITB-182)
 
 
 class Expectations(BaseModel):
@@ -31,6 +32,8 @@ class Expectations(BaseModel):
     source_is_biblical: bool | None = None
     must_acknowledge_situation: bool = False
     max_response_length: int | None = None
+    # BITB-182: suggested follow-up chips. "any" keeps pre-existing cases unchanged.
+    follow_ups: Literal["expected", "suppressed", "any"] = "any"
 
 
 class GoldenSetCase(BaseModel):
