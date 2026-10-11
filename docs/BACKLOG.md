@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-11 (BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-11 (BITB-179 in progress — spec confirmed: fullwidth colon, ～/〜 ranges and fullwidth digits in all three parsers; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -2925,22 +2925,23 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
-### 🎯 BITB-179: Accept the Fullwidth Colon as a Chapter:Verse Separator (All Three Parsers)
+### 🚧 BITB-179: Fullwidth Verse References — Colon, Range Tildes and Digits (All Three Parsers)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
-**Size:** S
+**Size:** M
 **Created:** 2026-10-10
 
-Chinese IME text writes `路加福音1：79`; the shared grammar (`tests/fixtures/verse_grammar.json`) and
-the backend `CV_PATTERN` accept only `[:,]`, so the reference is missed: no lookup, no passage
-context, no grounding, no link. BITB-178 follow-up (strict xfail in `test_passage_context.py`).
+Chinese IME text writes `路加福音1：79`, `马太福音5：3～12` and `约翰福音３：１６`; the shared grammar
+(`tests/fixtures/verse_grammar.json`) and the backend `CV_PATTERN` miss them (the backend accepts
+fullwidth digits only by accident). Add `：`, `～`/`〜` and fullwidth digits to all three parsers,
+normalised to ASCII. BITB-178 follow-up (strict xfail in `test_passage_context.py`).
 
 **Acceptance Criteria (summary):**
 
-- [ ] `：` parses in backend, frontend and Android (generated grammar), with parity tests
-- [ ] BITB-178 xfail removed; grounding integration test through `chat()`
-- [ ] No regression in the 11-language corpus; no false positives on prose
+- [ ] All forms parse in backend, web and Android (generated grammar), with parity tests
+- [ ] BITB-178 xfail removed; grounding integration test through `chat()`; 11-language test
+- [ ] No false positives on prose (`时间：3点`, `比例3：1`); corpus does not regress; ASCII-normalised output
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-179-fullwidth-colon-verse-separator.md`
 
