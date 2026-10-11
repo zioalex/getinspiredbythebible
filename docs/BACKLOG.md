@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-11 (BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-11 (BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -235,6 +235,25 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🎯 BITB-186: Self-Harm Keyword Fallback — Cover Missed Crisis Phrasings and Negations
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-11
+
+Follow-up to BITB-183: the ru/zh/hi/ko patterns miss several common crisis phrasings (zh 我想跳楼,
+活着没意思; ko 사라지고 싶어; ru Хочу сдохнуть, Мне незачем жить; hi मुझे मरना है) and still fire on
+negated first-person sentences (ru "Я не хочу умереть без покаяния").
+
+**Acceptance Criteria (summary):**
+
+- [ ] Each missed phrasing triggers the compassionate path (parametrized, all four languages)
+- [ ] Negated / Bible-study variants stay clean
+- [ ] Native-speaker or reference-list review recorded
+
+Full story: [`BITB-186-self-harm-keyword-phrasing-gaps.md`](BACKLOG_STORIES/BITB-186-self-harm-keyword-phrasing-gaps.md)
 
 ### 🎯 BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
 
@@ -2990,9 +3009,9 @@ running backend, and pass the flag through every compose file and Terraform (def
 
 ---
 
-### 🚧 BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
+### ✅ BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
 
-**Status:** 🚧 In review — PR #1148
+**Status:** ✅ Done — PR #1148, 2026-10-11 (native-speaker review AC left open)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-10
@@ -3009,9 +3028,9 @@ suppressed). Found by BITB-182, which pins the gap in `test_golden_set.py`.
 - [x] BITB-182 pin test flipped; `crisis-keyword` golden-set cases added for the four languages
 - [ ] Patterns reviewed by a native speaker or against a reference list per language
 
-**Follow-ups:** BITB-185 (script-agnostic matching and self-harm-over-violence precedence)
+**Follow-ups:** BITB-185 (script-agnostic matching and self-harm-over-violence precedence), BITB-186 (uncovered crisis phrasings and negated false positives)
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-183-self-harm-keyword-fallback-ru-zh-hi-ko.md`
+**Full Story:** `docs/DONE/BITB-183-self-harm-keyword-fallback-ru-zh-hi-ko.md`
 
 ---
 
