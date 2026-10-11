@@ -76,14 +76,14 @@ export default function FeedbackModal({
                 ? t("positivePlaceholder")
                 : t("negativePlaceholder")
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
             rows={4}
             disabled={isSubmitting}
           />
 
           {/* Privacy Notice */}
           <div className="flex items-start gap-2 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-800">{t("privacyNotice")}</p>
           </div>
 

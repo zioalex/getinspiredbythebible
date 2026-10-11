@@ -34,7 +34,7 @@ export default function LanguageSwitcher() {
       <select
         value={locale}
         onChange={(e) => handleChange(e.target.value)}
-        className="text-sm border border-gray-200 rounded-lg px-1.5 py-1.5 bg-white text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        className="text-sm border border-gray-200 rounded-lg px-1.5 py-1.5 bg-white text-gray-600 focus:outline-hidden focus:ring-2 focus:ring-primary-500"
       >
         {routing.locales.map((loc) => (
           <option key={loc} value={loc}>

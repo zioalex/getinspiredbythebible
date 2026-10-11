@@ -41,7 +41,7 @@ function ErrorFallback({ error }: { error?: Error }) {
   const t = useTranslations("ErrorBoundary");
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-b from-primary-50 to-white p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
         {/* Error Icon */}
         <div className="mb-4">
@@ -69,7 +69,7 @@ function ErrorFallback({ error }: { error?: Error }) {
 
         {/* Technical Details (Development Only) */}
         {process.env.NODE_ENV === "development" && error && (
-          <div className="mb-6 p-4 bg-gray-100 rounded text-left">
+          <div className="mb-6 p-4 bg-gray-100 rounded-sm text-left">
             <p className="text-sm font-mono text-red-600 break-all">
               {error.toString()}
             </p>

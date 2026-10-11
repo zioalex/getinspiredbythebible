@@ -48,7 +48,7 @@ export default function AppInstallCta({
         alt={iconAlt}
         width={64}
         height={64}
-        className="w-16 h-16 rounded-2xl flex-shrink-0"
+        className="w-16 h-16 rounded-2xl shrink-0"
       />
       {isIOS ? (
         <div className="flex-1">
@@ -67,7 +67,7 @@ export default function AppInstallCta({
             href={playStoreUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-sm hover:shadow transition-all whitespace-nowrap"
+            className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-xs hover:shadow-sm transition-all whitespace-nowrap"
           >
             <Smartphone className="w-4 h-4" />
             {ctaButton}
