@@ -1,12 +1,12 @@
 # Web Framework
-fastapi==0.141.1
+fastapi==0.142.2
 uvicorn[standard]==0.54.0
 pydantic==2.13.5
 pydantic-settings==2.15.0
 email-validator==2.3.0
 
 # Database
-sqlalchemy[asyncio]==2.1.0
+sqlalchemy[asyncio]==2.1.2
 alembic==1.20.0
 asyncpg==0.31.0
 psycopg2-binary==2.9.13
@@ -36,7 +36,7 @@ azure-monitor-opentelemetry==1.8.10
 azure-ai-contentsafety==1.0.0
 
 # Utilities
-python-dotenv==1.2.3
+python-dotenv==1.2.4
 numpy==1.26.4
 lingua-language-detector==2.2.0
 pyyaml>=6.0.3

@@ -180,7 +180,7 @@ export default function ConversationSidebar({
           </h2>
           <button
             onClick={onClose}
-            className="rounded p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="rounded-sm p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
             aria-label={t("close")}
           >
             <X className="h-5 w-5" />
@@ -230,11 +230,11 @@ export default function ConversationSidebar({
                         if (e.key === "Enter") void commitEdit();
                         if (e.key === "Escape") setEditingId(null);
                       }}
-                      className="min-w-0 flex-1 rounded border border-gray-300 bg-white px-1 py-0.5 text-sm dark:border-gray-600 dark:bg-gray-800"
+                      className="min-w-0 flex-1 rounded-sm border border-gray-300 bg-white px-1 py-0.5 text-sm dark:border-gray-600 dark:bg-gray-800"
                     />
                     <button
                       onClick={() => void commitEdit()}
-                      className="rounded p-1 text-gray-500 hover:text-indigo-600"
+                      className="rounded-sm p-1 text-gray-500 hover:text-indigo-600"
                       aria-label={t("saveTitle")}
                     >
                       <Check className="h-4 w-4" />
@@ -249,21 +249,21 @@ export default function ConversationSidebar({
                       }}
                       className="flex min-w-0 flex-1 items-center gap-2 text-left"
                     >
-                      <MessageSquare className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                      <MessageSquare className="h-4 w-4 shrink-0 text-gray-400" />
                       <span className="truncate text-gray-800 dark:text-gray-100">
                         {conv.title || t("untitled")}
                       </span>
                     </button>
                     <button
                       onClick={() => startEdit(conv.id, conv.title)}
-                      className="rounded p-1 text-gray-400 opacity-0 hover:text-indigo-600 group-hover:opacity-100"
+                      className="rounded-sm p-1 text-gray-400 opacity-0 hover:text-indigo-600 group-hover:opacity-100"
                       aria-label={t("rename")}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => void handleDelete(conv.id)}
-                      className="rounded p-1 text-gray-400 opacity-0 hover:text-red-600 group-hover:opacity-100"
+                      className="rounded-sm p-1 text-gray-400 opacity-0 hover:text-red-600 group-hover:opacity-100"
                       aria-label={t("delete")}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -278,7 +278,7 @@ export default function ConversationSidebar({
         {/* Footer: privacy note + data controls */}
         <div className="border-t border-gray-200 px-3 py-3 dark:border-gray-700">
           <p className="mb-2 flex items-start gap-1.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400">
-            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-600" />
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-600" />
             {t("privacyNote")}
           </p>
 
@@ -329,7 +329,7 @@ export default function ConversationSidebar({
                     type="file"
                     accept=".json,application/json"
                     onChange={handleFilePicked}
-                    className="block w-full text-xs text-gray-600 file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs dark:text-gray-300 dark:file:bg-gray-800"
+                    className="block w-full text-xs text-gray-600 file:mr-2 file:rounded-sm file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs dark:text-gray-300 dark:file:bg-gray-800"
                   />
                 </>
               )}
@@ -338,7 +338,7 @@ export default function ConversationSidebar({
                 value={passphrase}
                 onChange={(e) => setPassphrase(e.target.value)}
                 placeholder={t("passphrasePlaceholder")}
-                className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"
+                className="w-full rounded-sm border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 placeholder:text-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500"
               />
               {error && <p className="text-xs text-red-600">{error}</p>}
               <div className="flex gap-2">

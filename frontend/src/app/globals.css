@@ -1,6 +1,57 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  /* Warm, spiritual color palette */
+  --color-primary-50: #faf5f0;
+  --color-primary-100: #f3e8db;
+  --color-primary-200: #e6d0b8;
+  --color-primary-300: #d5b08d;
+  --color-primary-400: #c48d62;
+  --color-primary-500: #b87444;
+  --color-primary-600: #a35f38;
+  --color-primary-700: #874a30;
+  --color-primary-800: #6e3d2c;
+  --color-primary-900: #5b3427;
+
+  --color-accent-50: #f0f7f4;
+  --color-accent-100: #dbebe3;
+  --color-accent-200: #bad7ca;
+  --color-accent-300: #8fbbaa;
+  --color-accent-400: #639a86;
+  --color-accent-500: #467d6a;
+  --color-accent-600: #356454;
+  --color-accent-700: #2c5145;
+  --color-accent-800: #264239;
+  --color-accent-900: #213730;
+
+  --font-serif: Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: system-ui, sans-serif;
+}
+
+/*
+  Tailwind v4 changed some preflight defaults. Keep the v3 look:
+  borders default to gray-200 (v4: currentColor), placeholders use gray-400,
+  and buttons show a pointer cursor.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
 
 :root {
   --foreground-rgb: 55, 55, 55;

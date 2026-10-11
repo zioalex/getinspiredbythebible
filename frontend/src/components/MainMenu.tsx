@@ -70,7 +70,7 @@ export default function MainMenu({
             }}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            <HistoryIcon className="w-4 h-4 flex-shrink-0" />
+            <HistoryIcon className="w-4 h-4 shrink-0" />
             {t("historyTitle")}
           </button>
 
@@ -104,16 +104,16 @@ export default function MainMenu({
             onClick={() => setShowListen(!showListen)}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            <Volume2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <Volume2 className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span className="flex-1 text-left">{t("showListenButton")}</span>
             <span
               aria-hidden="true"
-              className={`inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
+              className={`inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
                 showListen ? "bg-primary-600" : "bg-gray-300"
               }`}
             >
               <span
-                className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
                   showListen ? "translate-x-4" : "translate-x-0.5"
                 }`}
               />
@@ -129,7 +129,7 @@ export default function MainMenu({
             }}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            <MapPin className="w-4 h-4 flex-shrink-0" />
+            <MapPin className="w-4 h-4 shrink-0" />
             {t("searchCommunity")}
           </button>
 
@@ -140,7 +140,7 @@ export default function MainMenu({
             onClick={() => setOpen(false)}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            <Info className="w-4 h-4 flex-shrink-0" />
+            <Info className="w-4 h-4 shrink-0" />
             {tFooter("about")}
           </Link>
 
@@ -151,7 +151,7 @@ export default function MainMenu({
             onClick={() => setOpen(false)}
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
-            <Heart className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <Heart className="w-4 h-4 shrink-0" aria-hidden="true" />
             {tFooter("supportUs")}
           </a>
         </div>
