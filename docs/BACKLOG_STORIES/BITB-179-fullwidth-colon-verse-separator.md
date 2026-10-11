@@ -69,24 +69,36 @@ context, grounding and tappable links as someone typing `Luke 1:79`.
 
 ## Acceptance Criteria
 
-- [ ] AC1 `路加福音1：79`, `「约翰福音3：16」`, `（诗篇23：1）`, `马太福音5：3-12`, `马太福音5：3～12`,
+- [x] AC1 `路加福音1：79`, `「约翰福音3：16」`, `（诗篇23：1）`, `马太福音5：3-12`, `马太福音5：3～12`,
       `马太福音5：3〜12` and `约翰福音３：１６` parse to the same reference as their ASCII forms in the
       backend, the web and Android, each with a test per parser
-- [ ] AC2 Parity: `test_verse_grammar_parity.py` (backend vs JSON, now including digit ranges),
+- [x] AC2 Parity: `test_verse_grammar_parity.py` (backend vs JSON, now including digit ranges),
       Android `VerseGrammarTest` / `VersesPanelGrammarParityTest`, and the web grammar test all pass
       against the regenerated grammar; the generator's own test passes
-- [ ] AC3 The strict `xfail` in `test_passage_context.py` is removed; the case passes in `chat()` and
+- [x] AC3 The strict `xfail` in `test_passage_context.py` is removed; the case passes in `chat()` and
       `chat_stream()`, and the window uses the selected translation
-- [ ] AC4 Grounding integration test through `chat()` for a fullwidth-colon citation in the model's
+- [x] AC4 Grounding integration test through `chat()` for a fullwidth-colon citation in the model's
       answer: resolved and corrected (per the AGENTS.md grounding rule)
-- [ ] AC5 Cross-language test: each of the 11 languages' book name + `１：７９` / `1：79` parses
-- [ ] AC6 No false positives: `时间：3点`, `比例3：1`, `第3～5章` without a book name, and
+- [x] AC5 Cross-language test: each of the 11 languages' book name + `１：７９` / `1：79` parses
+- [x] AC6 No false positives: `时间：3点`, `比例3：1`, `第3～5章` without a book name, and
       `约翰福音3：` (no verse) produce no reference in any parser; the 11-language corpus
       (`test_verse_parser_corpus.py`) does not regress
-- [ ] AC7 Normalisation: link URLs, `VerseReference.__str__`, web `references` set keys and Android
+- [x] AC7 Normalisation: link URLs, `VerseReference.__str__`, web `references` set keys and Android
       `parseVerseLink` output contain only ASCII digits, `:` and `-`
 - [ ] AC8 Backend, web (vitest, lint, tsc, build) and Android unit suites pass; Android verified by CI
       if Gradle cannot run in the sandbox
+
+  *AC6 exception (deliberate):* on Android, `约翰福音3：` (no verse) still yields a chapter-only
+  link, exactly like the ASCII `约翰福音3:` today — Android links bare chapter references
+  (`Psalm 23`) by design. The shared corpus case is skipped for Android with a `skipReason`.
+
+**Verification (2026-10-11, commit 197ca15):** independent verifier PASS after one FAIL→fix loop
+(Android link tests asserted a capitalised book; bundled map is lowercase). Backend 5201 passed /
+8 failed (the 8 sandbox-only failures also on `main`) / 120 skipped; ruff, black, mypy clean;
+reverting `CV_PATTERN` makes 118 of the new tests fail (not vacuous). Web vitest 1299 passed, lint
+0 errors, tsc and build clean. Android Gradle cannot fetch AGP in the sandbox: the regexes were
+re-run on a JVM with the bundled book map and every new assertion traced; AC8 stays open until the
+PR's Android CI is green.
 
 ## Out of Scope
 
