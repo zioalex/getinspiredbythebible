@@ -40,7 +40,7 @@
     "eslint-config-next": "^16.4.0",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^25.0.1",
-    "postcss": "^8.5.28",
+    "postcss": "^8.5.29",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
     "vitest": "^4.1.11"
