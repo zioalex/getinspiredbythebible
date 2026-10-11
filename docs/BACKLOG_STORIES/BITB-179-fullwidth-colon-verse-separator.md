@@ -1,6 +1,6 @@
 # BITB-179: Fullwidth Verse References — Colon, Range Tildes and Digits (All Three Parsers)
 
-**Status:** 🚧 In Progress
+**Status:** 🚧 In Review (PR #1163)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-10
