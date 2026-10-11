@@ -1270,4 +1270,60 @@ class VerseRefLinkTest {
         val result = injectVerseLinks("Coraggio (Giovanni 3:16).")
         assertTrue(result, result.contains("[Giovanni 3:16]"))
     }
+
+    // ── BITB-179: fullwidth colon, tilde ranges, fullwidth digits ─────────────
+
+    private val urlRegex = Regex("""verse://[^)\]\s]+""")
+
+    private fun linkUrl(input: String): String? = urlRegex.find(injectVerseLinks(input))?.value
+
+    @Test
+    fun `fullwidth colon reference links with an ASCII url and keeps the colon in the label`() {
+        val result = injectVerseLinks("约翰福音 3：16是著名的经文")
+        assertTrue(result, result.contains("[约翰福音 3：16]"))
+        val link = parseVerseLink(linkUrl("约翰福音 3：16是著名的经文")!!, null)!!
+        assertEquals("John", link.book)
+        assertEquals(3, link.chapter)
+        assertEquals(16, link.verseNumber)
+    }
+
+    @Test
+    fun `fullwidth digits are written as ASCII in the url but kept in the label`() {
+        val input = "约翰福音 ３：１６是著名的经文"
+        val result = injectVerseLinks(input)
+        assertTrue(result, result.contains("[约翰福音 ３：１６]"))
+        val url = linkUrl(input)!!
+        assertTrue(url, url.startsWith("verse://John/3/16"))
+    }
+
+    @Test
+    fun `tilde and wave dash ranges keep the label and use a hyphen in the url`() {
+        for (rng in listOf("～", "〜", "-")) {
+            val input = "马太福音 5：3${rng}12是重要的"
+            val result = injectVerseLinks(input)
+            assertTrue(result, result.contains("[马太福音 5：3${rng}12]"))
+            val url = linkUrl(input)!!
+            assertTrue(url, url.startsWith("verse://Matthew/5/3-12"))
+            assertEquals(3, parseVerseLink(url, null)!!.verseNumber)
+        }
+    }
+
+    @Test
+    fun `ASCII colon and German comma separators are still preserved in the label`() {
+        assertTrue(injectVerseLinks("John 3:16").contains("[John 3:16]"))
+        assertTrue(injectVerseLinks("Johannes 3,16").contains("[Johannes 3,16]"))
+    }
+
+    @Test
+    fun `Devanagari digits produce an ASCII url`() {
+        val url = linkUrl("यूहन्ना ३：१६")!!
+        assertTrue(url, url.startsWith("verse://John/3/16"))
+    }
+
+    @Test
+    fun `unrelated fullwidth colon text produces no link`() {
+        assertEquals(null, linkUrl("时间：3点"))
+        assertEquals(null, linkUrl("比例3：1"))
+        assertEquals(null, linkUrl("第3～5章"))
+    }
 }

@@ -2,6 +2,7 @@
 
 import pytest
 
+from utils import translation_registry as _registry
 from utils.verse_parser import (
     VerseReference,
     extract_all_references,
@@ -1641,3 +1642,82 @@ class TestWrappedReferencesAllLanguages:
     def test_multiple_parenthesized_references(self):
         refs = [str(r) for r in extract_all_references("vedi (Giovanni 3:16) e (Salmo 23:1)")]
         assert refs == ["John 3:16", "Psalms 23:1"]
+
+
+# ---------------------------------------------------------------------------
+# BITB-179: fullwidth colon, tilde ranges and fullwidth digits, all 11 languages
+# ---------------------------------------------------------------------------
+
+_LANG_BOOK_TABLES = {
+    "en": None,
+    "it": _registry.ENGLISH_TO_ITALIAN,
+    "de": _registry.ENGLISH_TO_GERMAN,
+    "es": _registry.ENGLISH_TO_SPANISH,
+    "fr": _registry.ENGLISH_TO_FRENCH,
+    "pt": _registry.ENGLISH_TO_PORTUGUESE,
+    "ar": _registry.ENGLISH_TO_ARABIC,
+    "ru": _registry.ENGLISH_TO_RUSSIAN,
+    "zh": _registry.ENGLISH_TO_CHINESE,
+    "hi": _registry.ENGLISH_TO_HINDI,
+    "ko": _registry.ENGLISH_TO_KOREAN,
+}
+_NO_SPACE_LANGS = {"zh", "ko"}
+
+
+def _luke(lang: str) -> str:
+    table = _LANG_BOOK_TABLES[lang]
+    return "Luke" if table is None else table["Luke"]
+
+
+def _join(lang: str, book: str, cv: str) -> str:
+    return f"{book}{cv}" if lang in _NO_SPACE_LANGS else f"{book} {cv}"
+
+
+class TestFullwidthSeparatorsAndDigits:
+    @pytest.mark.parametrize("lang", list(_LANG_BOOK_TABLES))
+    @pytest.mark.parametrize(
+        "cv",
+        ["1：79", "１：７９", "1:79", "１:７９"],
+        ids=["fw-colon", "fw-colon-fw-digits", "ascii", "ascii-colon-fw-digits"],
+    )
+    def test_same_reference_as_ascii_form(self, lang, cv):
+        ref = parse_verse_reference(_join(lang, _luke(lang), cv))
+        assert ref is not None, f"[{lang}] {cv!r} not parsed"
+        assert (ref.book, ref.chapter, ref.verse_start, ref.verse_end) == ("Luke", 1, 79, None)
+        assert str(ref) == "Luke 1:79"
+
+    @pytest.mark.parametrize("lang", list(_LANG_BOOK_TABLES))
+    @pytest.mark.parametrize("wrap", ["({})", "[{}]", "（{}）", "「{}」", "《{}》"])
+    def test_wrapped_fullwidth_colon_reference(self, lang, wrap):
+        text = "x " + wrap.format(_join(lang, _luke(lang), "1：79")) + " y"
+        refs = [str(r) for r in extract_all_references(text)]
+        assert refs == ["Luke 1:79"], f"[{lang}] {text!r} -> {refs}"
+
+    @pytest.mark.parametrize("rng", ["-", "–", "～", "〜"])
+    @pytest.mark.parametrize("sep", [":", "：", ","])
+    def test_range_separators(self, rng, sep):
+        ref = parse_verse_reference(f"马太福音5{sep}3{rng}12")
+        assert ref is not None
+        assert (ref.book, ref.chapter, ref.verse_start, ref.verse_end) == ("Matthew", 5, 3, 12)
+        assert str(ref) == "Matthew 5:3-12"
+
+    def test_fullwidth_digits_in_a_range(self):
+        ref = parse_verse_reference("马太福音５：３～１２")
+        assert ref is not None and str(ref) == "Matthew 5:3-12"
+
+    def test_str_is_ascii_for_every_fullwidth_form(self):
+        for text in ("约翰福音３：１６", "约翰福音3：16", "「约翰福音３：１６」"):
+            ref = parse_verse_reference(text)
+            assert ref is not None and str(ref).isascii() and str(ref) == "John 3:16"
+
+    @pytest.mark.parametrize(
+        "text",
+        ["时间：3点", "比例3：1", "第3～5章", "约翰福音3：", "约翰福音：3"],
+    )
+    def test_no_false_positives(self, text):
+        assert extract_all_references(text) == []
+        assert parse_verse_reference(text) is None
+
+    def test_other_colon_lookalikes_and_fullwidth_comma_stay_rejected(self):
+        for text in ("约翰福音3﹕16", "约翰福音3∶16", "约翰福音3，16"):
+            assert parse_verse_reference(text) is None, text

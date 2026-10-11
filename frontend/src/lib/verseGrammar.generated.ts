@@ -45,9 +45,9 @@ export const CONNECTOR_WORDS: string[] = [
 
 export const CONNECTOR_REPEAT_MAX = 3;
 
-export const CHAPTER_VERSE_SEPARATORS: string[] = [":", ","];
+export const CHAPTER_VERSE_SEPARATORS: string[] = [":", ",", "："];
 
-export const RANGE_SEPARATORS: string[] = ["-", "–"];
+export const RANGE_SEPARATORS: string[] = ["-", "–", "～", "〜"];
 
 export interface NonAsciiDigitRange {
   label: string;
@@ -58,6 +58,7 @@ export interface NonAsciiDigitRange {
 export const NON_ASCII_DIGIT_RANGES: NonAsciiDigitRange[] = [
   { label: "Devanagari (Hindi)", start: "०", end: "९" },
   { label: "Eastern Arabic-Indic", start: "٠", end: "٩" },
+  { label: "Fullwidth", start: "０", end: "９" },
 ];
 
 export interface CjkBracketPair {

@@ -277,16 +277,7 @@ class TestPassageContextRequest:
             ("ko", "누가복음 1:79 은 누구를 말하나요?"),
             ("ar", "عن من يتحدث لوقا ١:٧٩؟"),
             ("hi", "लूका १:७९ में किसके बारे में कहा गया है?"),
-            pytest.param(
-                "zh",
-                "「路加福音1：79」说的是谁？",
-                marks=pytest.mark.xfail(
-                    strict=True,
-                    reason="known gap: the backend verse parser does not accept the fullwidth "
-                    "colon (U+FF1A) between chapter and verse; no reference means no passage "
-                    "context. Fix in all three parsers, then drop this xfail.",
-                ),
-            ),
+            ("zh", "「路加福音1：79」说的是谁？"),
         ],
     )
     async def test_reference_format_variants_get_the_same_window(

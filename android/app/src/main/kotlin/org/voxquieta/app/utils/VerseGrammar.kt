@@ -51,10 +51,10 @@ internal object VerseGrammar {
     const val CONNECTOR_REPEAT_MAX: Int = 3
 
     /** Chapter/verse separator characters (colon, comma). */
-    val CHAPTER_VERSE_SEPARATORS: List<Char> = listOf(':', ',')
+    val CHAPTER_VERSE_SEPARATORS: List<Char> = listOf(':', ',', '：')
 
     /** Verse-range separator characters (hyphen, en dash). */
-    val RANGE_SEPARATORS: List<Char> = listOf('-', '–')
+    val RANGE_SEPARATORS: List<Char> = listOf('-', '–', '～', '〜')
 
     /** Non-ASCII digit range: [start, end] Unicode codepoints, with a language label. */
     data class DigitRange(val label: String, val start: Char, val end: Char)
@@ -63,6 +63,7 @@ internal object VerseGrammar {
     val NON_ASCII_DIGIT_RANGES: List<DigitRange> = listOf(
         DigitRange("Devanagari (Hindi)", '०', '९'),
         DigitRange("Eastern Arabic-Indic", '٠', '٩'),
+        DigitRange("Fullwidth", '０', '９'),
     )
 
     /** CJK/Korean bracket pair that may wrap a book name in a citation, with a label. */

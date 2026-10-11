@@ -4,6 +4,7 @@ import {
   isKnownBook,
   isVerseReferenced,
   LOCALIZED_BOOK_TO_ENGLISH,
+  normalizeDigits,
   updateBookNames,
 } from "./verseExtraction";
 
@@ -2431,5 +2432,40 @@ describe("isVerseReferenced — non-Latin verse.book vs. English references Set"
       reference: "यशायाह 26:3",
     };
     expect(isVerseReferenced(verse, new Set(["Romans 8:28"]))).toBe(false);
+  });
+});
+
+describe("BITB-179 — fullwidth colon, tilde ranges and fullwidth digits", () => {
+  // [label, language, text, expected key]
+  const cases: Array<[string, string]> = [
+    ["路加福音1：79", "luke 1:79"],
+    ["「约翰福音3：16」", "john 3:16"],
+    ["（诗篇23：1）", "psalms 23:1"],
+    ["马太福音5：3-12", "matthew 5:3-12"],
+    ["马太福音5：3～12", "matthew 5:3-12"],
+    ["马太福音5：3〜12", "matthew 5:3-12"],
+    ["约翰福音３：１６", "john 3:16"],
+    ["马太福音５：３～１２", "matthew 5:3-12"],
+    ["요한복음 3：16", "john 3:16"],
+    ["Lukas 1：79", "luke 1:79"],
+    ["यूहन्ना ३：१६", "john 3:16"],
+  ];
+  it.each(cases)("extracts %s as ASCII key %s", (text, expected) => {
+    expect(Array.from(extractVerseReferences(text))).toEqual([expected]);
+  });
+
+  it.each(["时间：3点", "比例3：1", "第3～5章", "约翰福音3："])(
+    "does not extract a reference from %s",
+    (text) => {
+      expect(extractVerseReferences(text).size).toBe(0);
+    },
+  );
+
+  it("normalizeDigits maps Devanagari, Eastern Arabic and fullwidth digits to ASCII", () => {
+    expect(normalizeDigits("３：１６")).toBe("3：16");
+    expect(normalizeDigits("०१२३४५६७८९")).toBe("0123456789");
+    expect(normalizeDigits("٠١٢٣٤٥٦٧٨٩")).toBe("0123456789");
+    expect(normalizeDigits("０１２３４５６７８９")).toBe("0123456789");
+    expect(normalizeDigits("John 3:16")).toBe("John 3:16");
   });
 });

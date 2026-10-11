@@ -233,3 +233,45 @@ describe("linkifyVerses — Traditional Chinese (BITB-025)", () => {
     expect(hrefs).toEqual(["约翰福音", "罗马书"]);
   });
 });
+
+describe("linkifyVerses — fullwidth forms (BITB-179)", () => {
+  it.each([
+    [
+      "路加福音1：79",
+      "[路加福音1：79](verse://%E8%B7%AF%E5%8A%A0%E7%A6%8F%E9%9F%B3/1/79)",
+    ],
+    [
+      "约翰福音３：１６",
+      "[约翰福音３：１６](verse://%E7%BA%A6%E7%BF%B0%E7%A6%8F%E9%9F%B3/3/16)",
+    ],
+    [
+      "马太福音5：3～12",
+      "[马太福音5：3～12](verse://%E9%A9%AC%E5%A4%AA%E7%A6%8F%E9%9F%B3/5/3)",
+    ],
+    [
+      "马太福音5：3〜12",
+      "[马太福音5：3〜12](verse://%E9%A9%AC%E5%A4%AA%E7%A6%8F%E9%9F%B3/5/3)",
+    ],
+  ])(
+    "links %s with an ASCII href and unchanged display text",
+    (text, expected) => {
+      expect(linkifyVerses(`请读 ${text}。`)).toContain(expected);
+    },
+  );
+
+  it("does not link a ratio, a time or a tilde chapter range", () => {
+    for (const text of ["比例3：1", "时间：3点", "第3～5章"]) {
+      expect(linkifyVerses(text)).toBe(text);
+    }
+  });
+
+  it("round-trips an ASCII href back through parseVerseHref", () => {
+    const out = linkifyVerses("约翰福音３：１６");
+    const href = /\]\((verse:\/\/[^)]+)\)/.exec(out)?.[1];
+    expect(parseVerseHref(href)).toEqual({
+      book: "约翰福音",
+      chapter: 3,
+      verse: 16,
+    });
+  });
+});
