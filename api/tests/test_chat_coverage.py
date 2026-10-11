@@ -1531,6 +1531,61 @@ class TestChatServiceChatStream:
         assert completion["corrections"] == [{"reference": "Isaiah 41:10", "reason": "fabricated"}]
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "citation",
+        ["约翰福音3：16", "约翰福音３：１６", "（约翰福音3：16）", "「约翰福音3：16」"],
+    )
+    @patch("chat.service.detect_language", return_value="zh")
+    @patch("chat.service.resolve_translation", return_value="cuv")
+    @patch("chat.service.is_verse_lookup_request", return_value=False)
+    @patch("chat.service.extract_references", return_value=([], None))
+    async def test_chat_stream_grounds_fullwidth_colon_citation(
+        self, mock_extract, mock_is_verse, mock_resolve, mock_detect, citation
+    ):
+        """BITB-179 (streaming path): a fullwidth-colon / fullwidth-digit citation is resolved
+        from the DB for the selected translation and the reworded quote is corrected."""
+        service, llm, _ = _make_chat_service()
+        service.search_service = AsyncMock()
+        service.search_service.search = AsyncMock(
+            return_value=SearchResults(query="test", verses=[], passages=[])
+        )
+        canonical = "神爱世人，甚至将他的独生子赐给他们。"
+        service.search_service.get_verse = AsyncMock(
+            return_value=VerseResult(
+                reference="John 3:16",
+                text=canonical,
+                book="John",
+                chapter=3,
+                verse=16,
+                translation="cuv",
+            )
+        )
+        service.search_service.get_verse_range = AsyncMock(return_value=[])
+
+        async def mock_stream(*args, **kwargs):
+            yield f"「神非常喜欢这个世界，所以派了他唯一的孩子来」 {citation}。愿你得安慰。"
+
+        llm.chat_stream = mock_stream
+
+        chunks = [c async for c in service.chat_stream(ChatRequest(message="安慰我"))]
+        completion = next(c for c in chunks if c["type"] == "completion")
+
+        assert any(
+            v["book"] == "John" and v["chapter"] == 3 and v["verse"] == 16
+            for v in completion["resolved_verses"]
+        )
+        calls = []
+        for c in service.search_service.get_verse.await_args_list:
+            names = ("book", "chapter", "verse", "translation")
+            bound = dict(zip(names, c.args))
+            bound.update(c.kwargs)
+            calls.append((bound["book"], bound["chapter"], bound["verse"], bound["translation"]))
+        assert set(calls) == {("John", 3, 16, "cuv")}
+        assert canonical in completion["corrected_message"]
+        assert "神非常喜欢这个世界" not in completion["corrected_message"]
+        assert completion["corrections"] == [{"reference": "John 3:16", "reason": "fabricated"}]
+
+    @pytest.mark.asyncio
     @patch("chat.service.detect_language", return_value="en")
     @patch("chat.service.resolve_translation", return_value="kjv")
     @patch("chat.service.is_verse_lookup_request", return_value=False)

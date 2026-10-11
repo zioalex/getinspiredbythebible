@@ -50,10 +50,10 @@ internal object VerseGrammar {
     /** Upper bound for repeated connector-word groups (ReDoS-safety bound, BITB-108/114/117). */
     const val CONNECTOR_REPEAT_MAX: Int = 3
 
-    /** Chapter/verse separator characters (colon, comma). */
+    /** Chapter/verse separator characters (colon, comma, fullwidth colon). */
     val CHAPTER_VERSE_SEPARATORS: List<Char> = listOf(':', ',', '：')
 
-    /** Verse-range separator characters (hyphen, en dash). */
+    /** Verse-range separator characters (hyphen, en dash, fullwidth tilde, wave dash). */
     val RANGE_SEPARATORS: List<Char> = listOf('-', '–', '～', '〜')
 
     /** Non-ASCII digit range: [start, end] Unicode codepoints, with a language label. */

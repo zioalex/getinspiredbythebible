@@ -2468,4 +2468,36 @@ describe("BITB-179 — fullwidth colon, tilde ranges and fullwidth digits", () =
     expect(normalizeDigits("０１２３４５６７８９")).toBe("0123456789");
     expect(normalizeDigits("John 3:16")).toBe("John 3:16");
   });
+
+  // One John name per UI language; each must be a real entry of the generated book map so the
+  // test stays tied to the shared data (English is a canonical value, not a key).
+  const JOHN_NAMES: Record<string, string> = {
+    en: "John",
+    it: "Giovanni",
+    de: "Johannes",
+    es: "Juan",
+    fr: "Jean",
+    pt: "João",
+    ar: "يوحنا",
+    ru: "Иоанна",
+    zh: "约翰福音",
+    hi: "यूहन्ना",
+    ko: "요한복음",
+  };
+
+  it.each(Object.entries(JOHN_NAMES))(
+    "fullwidth colon and digits parse after the %s book name",
+    (lang, name) => {
+      if (lang !== "en") {
+        expect(LOCALIZED_BOOK_TO_ENGLISH[name.toLowerCase()]).toBe("john");
+      }
+      for (const cv of ["3：16", "３：１６", "3：16～18", "３：１６〜１８"]) {
+        const range = cv.length > 5;
+        const expected = range ? "john 3:16-18" : "john 3:16";
+        expect(Array.from(extractVerseReferences(`${name} ${cv}`))).toEqual([
+          expected,
+        ]);
+      }
+    },
+  );
 });

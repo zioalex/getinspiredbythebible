@@ -9,6 +9,7 @@ import org.voxquieta.app.presentation.components.injectVerseQuoteHighlights
 import org.voxquieta.app.presentation.components.parseVerseLink
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
+import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
@@ -1282,7 +1283,7 @@ class VerseRefLinkTest {
         val result = injectVerseLinks("约翰福音 3：16是著名的经文")
         assertTrue(result, result.contains("[约翰福音 3：16]"))
         val link = parseVerseLink(linkUrl("约翰福音 3：16是著名的经文")!!, null)!!
-        assertEquals("John", link.book)
+        assertEquals("john", link.book.lowercase())
         assertEquals(3, link.chapter)
         assertEquals(16, link.verseNumber)
     }
@@ -1293,7 +1294,7 @@ class VerseRefLinkTest {
         val result = injectVerseLinks(input)
         assertTrue(result, result.contains("[约翰福音 ３：１６]"))
         val url = linkUrl(input)!!
-        assertTrue(url, url.startsWith("verse://John/3/16"))
+        assertTrue(url, url.lowercase().startsWith("verse://john/3/16"))
     }
 
     @Test
@@ -1303,7 +1304,7 @@ class VerseRefLinkTest {
             val result = injectVerseLinks(input)
             assertTrue(result, result.contains("[马太福音 5：3${rng}12]"))
             val url = linkUrl(input)!!
-            assertTrue(url, url.startsWith("verse://Matthew/5/3-12"))
+            assertTrue(url, url.lowercase().startsWith("verse://matthew/5/3-12"))
             assertEquals(3, parseVerseLink(url, null)!!.verseNumber)
         }
     }
@@ -1317,7 +1318,7 @@ class VerseRefLinkTest {
     @Test
     fun `Devanagari digits produce an ASCII url`() {
         val url = linkUrl("यूहन्ना ३：१६")!!
-        assertTrue(url, url.startsWith("verse://John/3/16"))
+        assertTrue(url, url.lowercase().startsWith("verse://john/3/16"))
     }
 
     @Test
@@ -1325,5 +1326,31 @@ class VerseRefLinkTest {
         assertEquals(null, linkUrl("时间：3点"))
         assertEquals(null, linkUrl("比例3：1"))
         assertEquals(null, linkUrl("第3～5章"))
+    }
+
+    @Test
+    fun `fullwidth colon after the John book name of every supported language links to John 3 16`() {
+        // One John name per UI language (en, it, de, es, fr, pt, ar, ru, zh, hi, ko); each must
+        // be a real entry of the generated book map so this stays tied to the shared data.
+        val johnNames = mapOf(
+            "en" to "John", "it" to "Giovanni", "de" to "Johannes", "es" to "Juan",
+            "fr" to "Jean", "pt" to "João", "ar" to "يوحنا", "ru" to "Иоанна",
+            "zh" to "约翰福音", "hi" to "यूहन्ना", "ko" to "요한복음",
+        )
+        for ((lang, name) in johnNames) {
+            if (lang != "en") {
+                assertEquals(lang, "john", LOCALIZED_BOOK_TO_ENGLISH[name.lowercase()])
+            }
+            for (cv in listOf("3：16", "３：１６")) {
+                val input = "$name $cv 参见"
+                val url = linkUrl(input)
+                assertTrue("[$lang] no link for '$input'", url != null)
+                val link = parseVerseLink(url!!, null)!!
+                assertEquals("[$lang] $input", "john", link.book.lowercase())
+                assertEquals("[$lang] $input", 3, link.chapter)
+                assertEquals("[$lang] $input", 16, link.verseNumber)
+                assertTrue("[$lang] $url", url.lowercase().startsWith("verse://john/3/16"))
+            }
+        }
     }
 }
