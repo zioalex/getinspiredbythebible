@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-10 (BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-11 (BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -235,6 +235,28 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🎯 BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-10
+
+Follow-up to BITB-183: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
+mismatched-script messages detected as `en` skip ru/zh/hi/ko/ar patterns; and violence is
+checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked instead of
+getting the compassionate path.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Fallback runs every language's self-harm regex (script-agnostic)
+- [ ] Self-harm first-person phrases take precedence over violence matches
+- [ ] Cross-language parametrized tests (11 languages)
+
+Full story: [`BITB-185-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-185-self-harm-fallback-script-agnostic.md)
+
+---
 
 ### ✅ BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
 
@@ -2968,9 +2990,9 @@ running backend, and pass the flag through every compose file and Terraform (def
 
 ---
 
-### 🎯 BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
+### 🚧 BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In review — PR #1148
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-10
@@ -2982,9 +3004,12 @@ suppressed). Found by BITB-182, which pins the gap in `test_golden_set.py`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Self-harm patterns for ru, zh, hi, ko; the fallback flags a direct crisis message in each
-- [ ] No false positives on ordinary Bible questions in those languages (e.g. about Judas's death)
-- [ ] BITB-182 pin test flipped; `crisis-keyword` golden-set cases added for the four languages
+- [x] Self-harm patterns for ru, zh, hi, ko; the fallback flags a direct crisis message in each
+- [x] No false positives on ordinary Bible questions in those languages (e.g. about Judas's death)
+- [x] BITB-182 pin test flipped; `crisis-keyword` golden-set cases added for the four languages
+- [ ] Patterns reviewed by a native speaker or against a reference list per language
+
+**Follow-ups:** BITB-185 (script-agnostic matching and self-harm-over-violence precedence)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-183-self-harm-keyword-fallback-ru-zh-hi-ko.md`
 

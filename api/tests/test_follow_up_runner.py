@@ -469,7 +469,7 @@ class TestCrisisKinds:
         cases = filter_by_category(load_test_cases(), "follow_ups")
         text = render_checklist(cases)
         assert text.count("crisis-ml: needs ML safety classifier") == 11
-        assert text.count("(suppressed · crisis-keyword)") == 7
+        assert text.count("(suppressed · crisis-keyword)") == 11
         assert "(suppressed · off-topic)" in text
 
 
@@ -579,7 +579,7 @@ class TestCli:
     def test_filters(self):
         cases = filter_by_category(load_test_cases(), "follow_ups")
         picked = cli.select_cases(cases, {"zh"}, "suppressed", set())
-        assert len(picked) == 2 and all("zh" in c.tags for c in picked)
+        assert len(picked) == 3 and all("zh" in c.tags for c in picked)
         assert [c.id for c in cli.select_cases(cases, set(), None, {"fu-ko-03"})] == ["fu-ko-03"]
 
     def test_no_matching_cases(self, capsys):

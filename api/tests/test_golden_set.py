@@ -35,7 +35,7 @@ from utils.verse_parser import extract_references
 # ==================== Data Validation Tests ====================
 
 FOLLOW_UP_LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
-FALLBACK_LANGUAGES = {"en", "it", "de", "es", "fr", "pt", "ar"}
+FALLBACK_LANGUAGES = set(FOLLOW_UP_LANGUAGES)
 FOLLOW_UP_SCENARIOS = ["expected", "verse-citing", "suppressed", "multi-turn"]
 
 
@@ -722,7 +722,7 @@ class TestFollowUpCases:
         return filter_by_category(load_test_cases(), "follow_ups")
 
     def test_file_loads(self, cases):
-        assert len(cases) == 73
+        assert len(cases) == 77
 
     @pytest.mark.parametrize("lang", FOLLOW_UP_LANGUAGES)
     @pytest.mark.parametrize("scenario", FOLLOW_UP_SCENARIOS)
@@ -777,10 +777,10 @@ class TestFollowUpCases:
     def test_every_language_has_an_indirect_crisis_case(self, cases, lang):
         assert [c for c in cases if lang in c.tags and "crisis-ml" in c.tags]
 
-    def test_languages_without_keyword_patterns_are_documented(self):
-        """ru/zh/hi/ko have no self-harm keyword fallback, so no crisis-keyword case exists."""
+    def test_every_language_has_keyword_self_harm_patterns(self):
+        """All 11 languages have a self-harm keyword fallback and a crisis-keyword case (BITB-183)."""
         from utils.security import MultiLanguageContentFilter
 
         patterns = MultiLanguageContentFilter.SELF_HARM_PATTERNS
-        assert set(FOLLOW_UP_LANGUAGES) - set(patterns) == {"ru", "zh", "hi", "ko"}
+        assert set(FOLLOW_UP_LANGUAGES) == set(patterns)
         assert FALLBACK_LANGUAGES == set(patterns)
