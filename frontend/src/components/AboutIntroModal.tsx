@@ -68,7 +68,7 @@ export default function AboutIntroModal({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 focus:outline-none"
+        className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 focus:outline-hidden"
       >
         <button
           onClick={onDismiss}

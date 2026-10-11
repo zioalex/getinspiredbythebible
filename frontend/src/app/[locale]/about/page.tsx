@@ -109,7 +109,7 @@ export default async function AboutPage({
           alt={t("originScreenshotAlt")}
           width={1517}
           height={970}
-          className="w-full h-auto rounded-2xl shadow-sm border border-gray-100"
+          className="w-full h-auto rounded-2xl shadow-xs border border-gray-100"
         />
         <figcaption className="mt-2 text-xs text-gray-400 text-center">
           {t("originScreenshotCaption")}
@@ -117,7 +117,7 @@ export default async function AboutPage({
       </figure>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white border border-primary-100 rounded-xl mb-10">
-        <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-primary-50 text-primary-600">
+        <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-primary-50 text-primary-600">
           <BookOpen className="w-5 h-5" />
         </div>
         <div className="flex-1">
@@ -130,7 +130,7 @@ export default async function AboutPage({
           href={ORIGIN_STORY_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-sm hover:shadow transition-all whitespace-nowrap"
+          className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-xs hover:shadow-sm transition-all whitespace-nowrap"
         >
           {t("fullStoryLinkLabel")}
         </a>
@@ -144,7 +144,7 @@ export default async function AboutPage({
       </p>
 
       <section className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white border border-primary-100 rounded-xl mb-10">
-        <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-primary-50 text-primary-600">
+        <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-primary-50 text-primary-600">
           <Heart className="w-5 h-5" aria-hidden="true" />
         </div>
         <div className="flex-1">

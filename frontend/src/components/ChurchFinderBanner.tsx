@@ -17,7 +17,7 @@ export default function ChurchFinderBanner({
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 px-4 py-3 bg-teal-50 border border-teal-200 rounded-xl mt-3">
       <div className="flex items-center gap-3">
-        <MapPin className="w-5 h-5 text-teal-600 flex-shrink-0" />
+        <MapPin className="w-5 h-5 text-teal-600 shrink-0" />
         <p className="text-sm text-teal-800">{t("bannerText")}</p>
       </div>
       <div className="flex items-center gap-2 self-end sm:self-auto">

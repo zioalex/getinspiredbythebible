@@ -169,7 +169,7 @@ export default function ContactForm() {
                   id="contact-subject"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value as Subject)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
                   disabled={isSubmitting}
                 >
                   {subjectOptions.map((option) => (
@@ -196,7 +196,7 @@ export default function ContactForm() {
                       onChange={(e) => setBugSteps(e.target.value)}
                       placeholder={t("bugStepsPlaceholder")}
                       rows={3}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                       disabled={isSubmitting}
                       required
                     />
@@ -214,7 +214,7 @@ export default function ContactForm() {
                       onChange={(e) => setBugBehavior(e.target.value)}
                       placeholder={t("bugExpectedPlaceholder")}
                       rows={3}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                       disabled={isSubmitting}
                       required
                     />
@@ -234,7 +234,7 @@ export default function ContactForm() {
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder={t("messagePlaceholder")}
                     rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                     disabled={isSubmitting}
                     required
                   />
@@ -255,7 +255,7 @@ export default function ContactForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t("emailPlaceholder")}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   disabled={isSubmitting}
                   required
                 />

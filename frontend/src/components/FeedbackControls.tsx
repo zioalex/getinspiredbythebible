@@ -200,7 +200,7 @@ export default function FeedbackControls({
               before a comment is written. */}
           {pending === "negative" && (
             <p className="flex items-start gap-1.5 text-xs text-amber-800 mb-2">
-              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-600" />
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
               <span>{t("maintainerNotice")}</span>
             </p>
           )}
@@ -253,7 +253,7 @@ export default function FeedbackControls({
                 : t("negativePlaceholder")
             }
             rows={3}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
           />
           <p className="text-[11px] text-gray-400 mt-1">{t("privacyNotice")}</p>
 
@@ -262,7 +262,7 @@ export default function FeedbackControls({
                 i.e. before the user focuses the comment to pause it. */}
             {!commentOpen ? (
               <div
-                className="flex-1 h-1 rounded bg-gray-200 overflow-hidden"
+                className="flex-1 h-1 rounded-sm bg-gray-200 overflow-hidden"
                 role="progressbar"
                 aria-hidden="true"
               >

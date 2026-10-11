@@ -21,7 +21,7 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
 
   return (
     <div
-      className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition-all ${
+      className={`bg-white border border-gray-200 rounded-lg p-4 shadow-xs transition-all ${
         onClick
           ? "cursor-pointer hover:shadow-md hover:border-primary-300 hover:bg-primary-50/30"
           : ""
@@ -40,7 +40,7 @@ export default function VerseCard({ verse, onClick }: VerseCardProps) {
                 `${verse.book} ${verse.chapter}:${verse.verse}`}
           </span>
           {verse.translation && (
-            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-sm">
               {verse.translation.toUpperCase()}
             </span>
           )}
