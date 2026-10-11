@@ -67,7 +67,7 @@ export default async function AppStoryPage({
         alt={t("heroAlt")}
         width={1024}
         height={500}
-        className="w-full h-auto rounded-2xl shadow-sm mb-8"
+        className="w-full h-auto rounded-2xl shadow-xs mb-8"
       />
 
       <h1 className="text-3xl font-bold text-primary-900 mb-4">{t("title")}</h1>
@@ -105,7 +105,7 @@ export default async function AppStoryPage({
               key={index}
               className="flex items-start gap-4 p-5 bg-white border border-primary-100 rounded-xl"
             >
-              <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 text-primary-600">
+              <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 text-primary-600">
                 <Icon className="w-5 h-5" />
               </div>
               <div>

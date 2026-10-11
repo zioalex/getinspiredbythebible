@@ -201,7 +201,7 @@ export default function ChatMessage({
       parts.push(
         <span
           key={`${key}-quote-${partKey++}`}
-          className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded italic font-serif border-l-2 border-amber-400"
+          className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded-sm italic font-serif border-l-2 border-amber-400"
         >
           &ldquo;{match[1]}&rdquo;
         </span>,
@@ -227,7 +227,7 @@ export default function ChatMessage({
       className={`flex gap-2 sm:gap-4 message-enter ${isUser ? "justify-end" : "justify-start"}`}
     >
       {!isUser && (
-        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary-100 flex items-center justify-center">
+        <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary-100 flex items-center justify-center">
           <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" />
         </div>
       )}
@@ -236,7 +236,7 @@ export default function ChatMessage({
         className={`max-w-[90%] sm:max-w-[80%] rounded-2xl px-4 py-3 sm:px-5 sm:py-4 ${
           isUser
             ? "bg-primary-600 text-white rounded-br-md"
-            : "bg-white border border-gray-200 text-gray-800 rounded-bl-md shadow-sm"
+            : "bg-white border border-gray-200 text-gray-800 rounded-bl-md shadow-xs"
         }`}
       >
         {isUser ? (
@@ -246,7 +246,7 @@ export default function ChatMessage({
               <button
                 onClick={handleCopyPrompt}
                 aria-label={copied ? "Copied" : "Copy message"}
-                className="p-1 rounded text-white/60 hover:text-white transition-colors"
+                className="p-1 rounded-sm text-white/60 hover:text-white transition-colors"
               >
                 {copied ? (
                   <Check className="w-3.5 h-3.5" />
@@ -319,7 +319,7 @@ export default function ChatMessage({
                   // Style inline code as verse references - make them clickable
                   code: ({ children }) => (
                     <code
-                      className="px-2 py-1 bg-amber-100 text-amber-900 rounded font-semibold not-italic cursor-pointer hover:bg-amber-200 transition-colors"
+                      className="px-2 py-1 bg-amber-100 text-amber-900 rounded-sm font-semibold not-italic cursor-pointer hover:bg-amber-200 transition-colors"
                       onClick={handleTextClick}
                     >
                       {children}
@@ -433,7 +433,7 @@ export default function ChatMessage({
       </div>
 
       {isUser && (
-        <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary-600 flex items-center justify-center">
+        <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary-600 flex items-center justify-center">
           <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
         </div>
       )}

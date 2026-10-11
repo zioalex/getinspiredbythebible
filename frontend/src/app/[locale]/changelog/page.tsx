@@ -46,7 +46,7 @@ export default async function ChangelogPage({
     : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
+    <div className="min-h-screen bg-linear-to-b from-primary-50 to-white">
       <div className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">{t("title")}</h1>
         {content ? (

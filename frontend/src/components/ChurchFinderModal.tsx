@@ -118,7 +118,7 @@ export default function ChurchFinderModal({
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder={t("searchPlaceholder")}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               disabled={isLoading}
               autoFocus
             />
@@ -220,7 +220,7 @@ function ChurchCard({ church }: { church: Church }) {
 
       {address && (
         <div className="flex items-start gap-2 text-sm text-gray-600 mb-2">
-          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
           <span>{address}</span>
         </div>
       )}
