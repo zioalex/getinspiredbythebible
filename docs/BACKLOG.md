@@ -3027,6 +3027,7 @@ Owner task: run the set in all 11 languages, triage failures, and record a go/no
 
 - [ ] Live-run report with per-language and per-scenario results saved
 - [ ] Every failing scenario has a filed story or a fix
+- [ ] BITB-080's open check of the 10-message session limit (BITB-024) done before rollout
 - [ ] Go/no-go recorded; if go, production flag enabled and chips checked on a device
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-187-follow-up-chips-live-run-and-enablement.md`
@@ -4775,7 +4776,8 @@ BITB-181's fix skips only authorized probe requests, so it does not cover this r
 
 **Acceptance Criteria (summary):**
 
-- [ ] A runner run creates no `sessions` rows counted by the weekly report
+- [ ] A runner run creates no `sessions` rows counted by the weekly report and does not
+      increment the OTel `chat_sessions_counter`
 - [ ] Multi-turn cases still work; a test pins the runner's request headers and payload
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-188-follow-up-runner-sessions-out-of-weekly-report.md`

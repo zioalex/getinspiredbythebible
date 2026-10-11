@@ -122,7 +122,8 @@ Do **not** change `run_all_checks` in `evaluators.py` (existing tests pin its `t
   ×1 off-topic (e.g. a recipe or football question) — so 6 per language, 66 total. **Amended during QA:** a second crisis case
   `fu-<lang>-07` (tag `crisis-keyword`) is added for the 7 languages whose keyword self-harm
   fallback has patterns (en, it, de, es, fr, pt, ar); the original indirect crisis cases are tagged
-  `crisis-ml`. ru/zh/hi/ko have no fallback patterns, so 73 cases total. The trailer-leak check
+  `crisis-ml`. ru/zh/hi/ko have no fallback patterns, so 73 cases total. (Since BITB-183, PR #1148, those four
+  languages have patterns and a `crisis-keyword` case each: 77 cases.) The trailer-leak check
   flags only a `FOLLOWUPS` trailer (the `<!-- VERSES: ... -->` comment is legitimate)
 - `multi-turn` ×1 with `tap_follow_up: true`, `follow_ups: expected`
 

@@ -17,9 +17,11 @@ Findings (2026-10-11, from code):
 - Both chat routes call `track_session(db, request.session_id, ...)` (`api/routes/chat.py:85`
   and `:151`), which returns early only when there is no `session_id`. Turn 2 of a multi-turn
   case reuses turn 1's `session_id` (`follow_up_runner.py:288`), so it adds a message to the same
-  `sessions` row. Against production a run therefore records one session per case (77) and 88
-  messages (77 + 11 second turns, the 11 `multi-turn` cases in `follow_ups.yaml`), all counted by
-  `api/reports/weekly_report.py`.
+  `sessions` row. Against production a run therefore records up to one session per case (77) and
+  up to 88 messages (77 + 11 second turns, the 11 `multi-turn` cases in `follow_ups.yaml`), all
+  counted by `api/reports/weekly_report.py`. These are upper bounds: turn 2 is sent only when
+  turn 1 returned a chip (`follow_up_runner.py:279-280`), and a case that errors before the
+  stream completes never reaches `track_session`.
 - BITB-181's planned fix skips tracking only for authorized probe requests, so it does not cover
   this runner. The interpretation runner (`api/golden_set/runner.py`) sends no `session_id` and is
   unaffected.
