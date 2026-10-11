@@ -25,9 +25,9 @@ Production is unaffected: Terraform's `chat_follow_ups_enabled` also defaults to
 
 ## 2. Run the golden set against a live backend
 
-The set lives in `api/golden_set/test_cases/follow_ups.yaml` (73 cases: 11 languages x
-expected x2, verse-citing, suppressed x2, multi-turn, plus a keyword-crisis case for the 7
-languages that have one).
+The set lives in `api/golden_set/test_cases/follow_ups.yaml` (77 cases: 11 languages x
+expected x2, verse-citing, suppressed x2, multi-turn, plus a keyword-crisis case for the 11
+languages).
 
 ```bash
 make follow-up-eval                                   # everything, http://localhost:8000

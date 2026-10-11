@@ -3019,7 +3019,7 @@ Follow-ups: BITB-183 (done, PR #1148), BITB-184, BITB-187 (live run and enableme
 **Size:** S
 **Created:** 2026-10-11
 
-BITB-182 shipped the 73-case golden set and the live runner (`make follow-up-eval`) but only
+BITB-182 shipped the 77-case golden set and the live runner (`make follow-up-eval`) but only
 smoke-tested them with a faked model. `chat_follow_ups_enabled` is still `false` in production.
 Owner task: run the set in all 11 languages, triage failures, and record a go/no-go.
 
