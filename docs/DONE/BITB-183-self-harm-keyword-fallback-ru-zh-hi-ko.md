@@ -1,6 +1,6 @@
 # BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
 
-**Status:** 🚧 In review — PR #1148
+**Status:** ✅ Done — PR #1148, 2026-10-11 (native-speaker review AC left open)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-10
@@ -60,6 +60,8 @@ Tests: `api/tests/test_self_harm_keyword_fallback_languages.py`, `api/tests/test
 
 ## Follow-ups
 
+- BITB-186 — crisis phrasings the first patterns miss (zh 我想跳楼, 活着没意思; ko 사라지고 싶어; ru Хочу сдохнуть, Мне незачем жить; hi मुझे मरना है) and
+  first-person-negated false positives (ru 'Я не хочу умереть без покаяния').
 - BITB-185 — the fallback only checks `[language, "en"]`, so short or mismatched-script messages
   detected as `en` skip the ru/zh/hi/ko/ar patterns; and violence is checked before self-harm, so
   fr "je veux me tuer" / pt "me matar" are blocked instead of getting the compassionate path.
