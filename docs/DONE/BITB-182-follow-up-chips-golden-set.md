@@ -1,6 +1,7 @@
 # BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1147, 2026-10-11)
+**Completed:** 2026-10-11
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-09
@@ -215,6 +216,8 @@ installed; `python scripts/run_follow_up_eval.py --checklist` runs offline.
 
 ## Follow-ups
 
-- BITB-183 — self-harm keyword fallback has no patterns for ru, zh, hi, ko.
+- BITB-183 — self-harm keyword fallback for ru, zh, hi, ko (done, PR #1148).
 - BITB-184 — `Romans (8:28)` / `罗马书（8:28）` (bracketed chapter:verse after the book) is not detected.
+- BITB-187 — live run of this set against a real LLM, then the decision to enable chips in production.
+- BITB-188 — the follow-up runner's sessions would be counted in the weekly report when run against production.
 - The fullwidth colon (`罗马书8：28`) is already covered by BITB-179.
