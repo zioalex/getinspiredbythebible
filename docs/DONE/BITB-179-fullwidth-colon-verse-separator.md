@@ -1,6 +1,6 @@
 # BITB-179: Fullwidth Verse References — Colon, Range Tildes and Digits (All Three Parsers)
 
-**Status:** 🚧 In Review (PR #1163)
+**Status:** ✅ Done (PR #1163 merged 2026-10-12)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-10
@@ -85,7 +85,7 @@ context, grounding and tappable links as someone typing `Luke 1:79`.
       (`test_verse_parser_corpus.py`) does not regress
 - [x] AC7 Normalisation: link URLs, `VerseReference.__str__`, web `references` set keys and Android
       `parseVerseLink` output contain only ASCII digits, `:` and `-`
-- [ ] AC8 Backend, web (vitest, lint, tsc, build) and Android unit suites pass; Android verified by CI
+- [x] AC8 Backend, web (vitest, lint, tsc, build) and Android unit suites pass; Android verified by CI
       if Gradle cannot run in the sandbox
 
   *AC6 exception (deliberate):* on Android, `约翰福音3：` (no verse) still yields a chapter-only
@@ -99,6 +99,21 @@ reverting `CV_PATTERN` makes 118 of the new tests fail (not vacuous). Web vitest
 0 errors, tsc and build clean. Android Gradle cannot fetch AGP in the sandbox: the regexes were
 re-run on a JVM with the bundled book map and every new assertion traced; AC8 stays open until the
 PR's Android CI is green.
+
+**CI (PR #1163):** green on `b971bd2c` and again on `45a3bd66` after merging `main` — Android Unit
+Tests, Compose UI, Kotlin compile, lint, instrumented UI and API 24/25 compatibility all passed (the
+first API 24 run died installing the APK on the emulator, 0 tests run; its re-run passed).
+
+## Follow-ups (filed 2026-10-12, after merge)
+
+- BITB-189 — backend misses a citation directly after a closing bracket (`「…」约翰福音3:16`); web/Android
+  match it.
+- BITB-190 — verse ranges written with spaces (`John 3:16 - 18`) parse as a range on the backend but
+  as one verse on web/Android.
+- BITB-191 — Android range links skip the cited-verse book fallback in `resolveLinkBook`.
+- BITB-192 — Android link labels insert a space between a CJK book name and the chapter.
+- Not filed: the Android chapter-only link for `约翰福音3：` (AC6 exception) is existing, intended
+  Android behaviour (`Psalm 23`), not a gap.
 
 ## Out of Scope
 
