@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-11 (BITB-179 in review — fullwidth colon, ～/〜 ranges and fullwidth digits in all three parsers, PR #1163; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-11 (BITB-179 in review — fullwidth colon, ～/〜 ranges and fullwidth digits in all three parsers, PR #1163; BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -2988,9 +2988,10 @@ no harm.
 
 ---
 
-### 🚧 BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
+### ✅ BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
 
-**Status:** 🚧 In Progress (PR #1147)
+**Status:** ✅ Done (PR #1147 merged 2026-10-11)
+**Completed:** 2026-10-11
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-09
@@ -2999,14 +3000,38 @@ The follow-up chips (BITB-080/149) ship dark and nothing could switch `CHAT_FOLL
 locally or measure the chips. Add a curated 11-language golden set, a live runner that checks a
 running backend, and pass the flag through every compose file and Terraform (default off).
 
+Follow-ups: BITB-183 (done, PR #1148), BITB-184, BITB-187 (live run and enablement decision), BITB-188 (runner sessions in the weekly report).
+
 **Acceptance Criteria (summary):**
 
-- [ ] `follow_ups.yaml` covers 11 languages x expected / verse-citing / suppressed / multi-turn
-- [ ] Evaluator and runner unit-tested (mocked HTTP); `make follow-up-eval` works
-- [ ] `CHAT_FOLLOW_UPS_ENABLED` reaches the API container in every compose stack; Terraform default `false`
-- [ ] `docs/FOLLOW_UPS_TESTING.md` explains the Android debug-build flow
+- [x] `follow_ups.yaml` covers 11 languages x expected / verse-citing / suppressed / multi-turn
+- [x] Evaluator and runner unit-tested (mocked HTTP); `make follow-up-eval` works
+- [x] `CHAT_FOLLOW_UPS_ENABLED` reaches the API container in every compose stack; Terraform default `false`
+- [x] `docs/FOLLOW_UPS_TESTING.md` explains the Android debug-build flow
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-182-follow-up-chips-golden-set.md`
+**Full Story:** `docs/DONE/BITB-182-follow-up-chips-golden-set.md`
+
+---
+
+### 🎯 BITB-187: Live-Run the Follow-Up Chip Set Against a Real LLM, Then Decide on Enabling Chips
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-11
+
+BITB-182 shipped the 77-case golden set and the live runner (`make follow-up-eval`) but only
+smoke-tested them with a faked model. `chat_follow_ups_enabled` is still `false` in production.
+Owner task: run the set in all 11 languages, triage failures, and record a go/no-go.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Live-run report with per-language and per-scenario results saved
+- [ ] Every failing scenario has a filed story or a fix
+- [ ] BITB-080's open check of the 10-message session limit (BITB-024) done before rollout
+- [ ] Go/no-go recorded; if go, production flag enabled and chips checked on a device
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-187-follow-up-chips-live-run-and-enablement.md`
 
 ---
 
@@ -4736,6 +4761,27 @@ brackets), though it finds a fully wrapped `（罗马书8:28）`. Found by BITB-
 - [ ] 11-language parametrized test; no false positives without a book name
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-184-bracketed-chapter-verse-after-book.md`
+
+---
+
+### 🎯 BITB-188: Keep Follow-Up Runner Sessions Out of the Weekly Report
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-11
+
+The follow-up runner sends a fresh `fu-eval-<hex>` `session_id` with every case and no probe header,
+so against production each case is recorded by `track_session` and counted by the weekly report.
+BITB-181's fix skips only authorized probe requests, so it does not cover this runner.
+
+**Acceptance Criteria (summary):**
+
+- [ ] A runner run creates no `sessions` rows counted by the weekly report and does not
+      increment the OTel `chat_sessions_counter`
+- [ ] Multi-turn cases still work; a test pins the runner's request headers and payload
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-188-follow-up-runner-sessions-out-of-weekly-report.md`
 
 ---
 
