@@ -25,9 +25,9 @@ Production is unaffected: Terraform's `chat_follow_ups_enabled` also defaults to
 
 ## 2. Run the golden set against a live backend
 
-The set lives in `api/golden_set/test_cases/follow_ups.yaml` (73 cases: 11 languages x
-expected x2, verse-citing, suppressed x2, multi-turn, plus a keyword-crisis case for the 7
-languages that have one).
+The set lives in `api/golden_set/test_cases/follow_ups.yaml` (77 cases: 11 languages x
+expected x2, verse-citing, suppressed x2, multi-turn, plus a keyword-crisis case for the 11
+languages).
 
 ```bash
 make follow-up-eval                                   # everything, http://localhost:8000
@@ -54,9 +54,8 @@ Each case uses a fresh `session_id`; HTTP 429/503 are retried (honouring `Retry-
   Crisis cases come in two kinds. `crisis-ml` cases (`fu-<lang>-04`) are indirect wording that
   needs a content-safety ML classifier to be recognised. `crisis-keyword` cases (`fu-<lang>-07`)
   use wording that the built-in keyword self-harm fallback matches, so they work on a local
-  stack with no classifier. The fallback only has patterns for en, it, de, es, fr, pt and ar;
-  **ru, zh, hi and ko have none**, so those languages only get the `crisis-ml` case and rely on
-  the configured classifier.
+  stack with no classifier. The fallback has patterns for all 11 languages (ru, zh, hi and ko
+  were added by BITB-183, PR #1148), so every language has one case of each kind.
 - **multi-turn**: the runner taps the first chip and sends it as turn 2 with history; turn 2
   must also yield valid chips, must not repeat the tapped question, and must not repeat turn 1's
   chip set.
