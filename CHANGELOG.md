@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.57.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.56.0...v1.57.0) (2026-10-12)
 
-
 ### Features
 
 * **deploy:** wire NEXT_PUBLIC_DONATE_URL into compose, Dockerfile and Azure deploy (BITB-157) ([#1141](https://github.com/zioalex/getinspiredbythebible/issues/1141)) ([4c02866](https://github.com/zioalex/getinspiredbythebible/commit/4c02866e5732edd3521c8317b5fee0a41780505a))
@@ -12,7 +11,6 @@ All notable changes to this project will be documented in this file.
 * **parser:** recognise fullwidth colon, tilde ranges and fullwidth digits in verse references (BITB-179) ([#1163](https://github.com/zioalex/getinspiredbythebible/issues/1163)) ([cb63e88](https://github.com/zioalex/getinspiredbythebible/commit/cb63e88c7f34ba17e25b91cfab90bc9c36c14a18))
 * read answers aloud with on-device speech (BITB-119) ([#1132](https://github.com/zioalex/getinspiredbythebible/issues/1132)) ([0df8a15](https://github.com/zioalex/getinspiredbythebible/commit/0df8a15628414b4e512799a640056c61670a5843))
 * **web,android:** surface Support-Us entry points without nagging (BITB-168) ([#1133](https://github.com/zioalex/getinspiredbythebible/issues/1133)) ([47ceb5a](https://github.com/zioalex/getinspiredbythebible/commit/47ceb5af16c106d1c2368bc6c2a220f1f1e41a88))
-
 
 ### Bug Fixes
 
@@ -27,7 +25,6 @@ All notable changes to this project will be documented in this file.
 * **k8s:** commit custom agent image wiring, make mobile auth opt-in (BITB-172) ([#1126](https://github.com/zioalex/getinspiredbythebible/issues/1126)) ([07bc3c4](https://github.com/zioalex/getinspiredbythebible/commit/07bc3c484342aa46059de0417ff28ae1871d7958))
 * **k8s:** make agent-default-wf2 self-contained (BITB-171) ([#1125](https://github.com/zioalex/getinspiredbythebible/issues/1125)) ([c71cc71](https://github.com/zioalex/getinspiredbythebible/commit/c71cc71f25a258e6567da83dfa106ded1c525350))
 * **opencode:** correct runtime fallback model IDs (BITB-173) ([#1128](https://github.com/zioalex/getinspiredbythebible/issues/1128)) ([11ac2fd](https://github.com/zioalex/getinspiredbythebible/commit/11ac2fd6c2e10ae84486fda084d1e7136626ece8))
-
 
 ### Documentation
 
