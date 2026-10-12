@@ -1,6 +1,7 @@
 # BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1147, 2026-10-11)
+**Completed:** 2026-10-11
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-09
@@ -121,7 +122,8 @@ Do **not** change `run_all_checks` in `evaluators.py` (existing tests pin its `t
   ×1 off-topic (e.g. a recipe or football question) — so 6 per language, 66 total. **Amended during QA:** a second crisis case
   `fu-<lang>-07` (tag `crisis-keyword`) is added for the 7 languages whose keyword self-harm
   fallback has patterns (en, it, de, es, fr, pt, ar); the original indirect crisis cases are tagged
-  `crisis-ml`. ru/zh/hi/ko have no fallback patterns, so 73 cases total. The trailer-leak check
+  `crisis-ml`. ru/zh/hi/ko have no fallback patterns, so 73 cases total. (Since BITB-183, PR #1148, those four
+  languages have patterns and a `crisis-keyword` case each: 77 cases.) The trailer-leak check
   flags only a `FOLLOWUPS` trailer (the `<!-- VERSES: ... -->` comment is legitimate)
 - `multi-turn` ×1 with `tap_follow_up: true`, `follow_ups: expected`
 
@@ -215,6 +217,8 @@ installed; `python scripts/run_follow_up_eval.py --checklist` runs offline.
 
 ## Follow-ups
 
-- BITB-183 — self-harm keyword fallback has no patterns for ru, zh, hi, ko.
+- BITB-183 — self-harm keyword fallback for ru, zh, hi, ko (done, PR #1148).
 - BITB-184 — `Romans (8:28)` / `罗马书（8:28）` (bracketed chapter:verse after the book) is not detected.
+- BITB-187 — live run of this set against a real LLM, then the decision to enable chips in production.
+- BITB-188 — the follow-up runner's sessions would be counted in the weekly report when run against production.
 - The fullwidth colon (`罗马书8：28`) is already covered by BITB-179.
