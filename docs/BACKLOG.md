@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-11 (BITB-179 in review — fullwidth colon, ～/〜 ranges and fullwidth digits in all three parsers, PR #1163; BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -2944,9 +2944,30 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
-### 🚧 BITB-179: Fullwidth Verse References — Colon, Range Tildes and Digits (All Three Parsers)
+### 🎯 BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
 
-**Status:** 🚧 In Review (PR #1163)
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-12
+
+The backend's whitelist lookbehind rejects a book name right after `」`/`)`/`"`, so
+`「神爱世人」约翰福音3:16` gets no lookup, passage context or grounding; web and Android detect it.
+BITB-179 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Closing-bracket citations parse in all three parsers (shared corpus); grounding test with no space
+- [ ] No corpus regression; boundary parity documented
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-189-citation-after-closing-bracket.md`
+
+---
+
+### ✅ BITB-179: Fullwidth Verse References — Colon, Range Tildes and Digits (All Three Parsers)
+
+**Status:** ✅ Done (PR #1163 merged 2026-10-12)
+**Completed:** 2026-10-12
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-10
@@ -2956,13 +2977,16 @@ Chinese IME text writes `路加福音1：79`, `马太福音5：3～12` and `约�
 fullwidth digits only by accident). Add `：`, `～`/`〜` and fullwidth digits to all three parsers,
 normalised to ASCII. BITB-178 follow-up (strict xfail in `test_passage_context.py`).
 
+Follow-ups: BITB-189 (citation after a closing bracket), BITB-190 (spaced ranges), BITB-191
+(Android range book fallback), BITB-192 (Android CJK link label space).
+
 **Acceptance Criteria (summary):**
 
-- [ ] All forms parse in backend, web and Android (generated grammar), with parity tests
-- [ ] BITB-178 xfail removed; grounding integration test through `chat()`; 11-language test
-- [ ] No false positives on prose (`时间：3点`, `比例3：1`); corpus does not regress; ASCII-normalised output
+- [x] All forms parse in backend, web and Android (generated grammar), with parity tests
+- [x] BITB-178 xfail removed; grounding integration test through `chat()`; 11-language test
+- [x] No false positives on prose (`时间：3点`, `比例3：1`); corpus does not regress; ASCII-normalised output
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-179-fullwidth-colon-verse-separator.md`
+Full story: [`BITB-179-fullwidth-colon-verse-separator.md`](DONE/BITB-179-fullwidth-colon-verse-separator.md)
 
 ---
 
@@ -4723,6 +4747,60 @@ fallback columns).
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-190: Verse Ranges Written With Spaces Parse Differently on Backend vs Web/Android
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-12
+
+`John 3:16 - 18` (and `～`) is a range on the backend but one verse on web/Android, whose patterns do
+not allow spaces around the range separator. Align all three. BITB-179 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Same reference in all three parsers (shared corpus); ReDoS tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-190-spaced-verse-range-parity.md`
+
+---
+
+### 🎯 BITB-191: Android Range Links Skip the Cited-Verse Book Fallback
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-10-12
+
+`resolveLinkBook` gets `16-18`/`3～12`, so `toIntOrNull()` is null and the cited-verse fallback never
+runs for ranges. Use the range start. BITB-179 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Unmapped book + range resolves via cited verses for all four range separators (unit test)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-191-android-range-link-book-resolution.md`
+
+---
+
+### 🎯 BITB-192: Android Link Labels Insert a Space Between a CJK Book Name and the Chapter
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-10-12
+
+Android rebuilds the label as `"$book $chapter$sep$verse"`, showing `路加福音 1：79` for `路加福音1：79`.
+Use the original matched text, as web does. BITB-179 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Labels keep the exact original text (CJK no-space, fullwidth digits, ASCII)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-192-android-cjk-link-label-space.md`
+
+---
 
 ### 🎯 BITB-181: Keep Probe Sessions (Hourly Browser Smoke) Out of the Weekly Report
 
