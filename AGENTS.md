@@ -189,9 +189,11 @@ Critical variables:
 >   frontend, Android — see *Verse Detection / Parsing*). Mirror the change and
 >   add a parity test in each. They diverge subtly — don't assume parity, assert
 >   it. (This note used to say the backend supported German comma separators but
->   the frontend didn't; all three parsers now accept `[:,]` — verified directly against
+>   the frontend didn't; all three parsers now accept `[:,：]` (colon, comma, fullwidth colon),
+>   the range separators `[-–～〜]` and fullwidth digits `０-９` (BITB-179) — the
+>   separators/digits live in `tests/fixtures/verse_grammar.json`, verified directly against
 >   `frontend/src/lib/versePatterns.ts` and the Android `ChatMessageItem.kt`
->   regex on 2026-09-27. This note is deliberately kept as a worked example of a
+>   regex on 2026-09-27, extended 2026-10-11. This note is deliberately kept as a worked example of a
 >   real historical divergence, not a live one — re-verify before citing it.)
 
 ### Backend Tests

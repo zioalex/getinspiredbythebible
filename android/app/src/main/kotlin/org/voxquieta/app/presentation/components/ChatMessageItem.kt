@@ -70,7 +70,9 @@ import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.utils.VerseGrammar
 import org.voxquieta.app.utils.knownBooks
 import org.voxquieta.app.utils.normalizeBookName
+import org.voxquieta.app.utils.normalizeRangeSeparators
 import org.voxquieta.app.utils.normalizeTraditionalToSimplified
+import org.voxquieta.app.utils.normalizeVerseDigits
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import java.net.URLDecoder
@@ -331,8 +333,8 @@ private fun resolveLinkBook(
     val normalized = normalizeBookName(rawBook, localizedToEnglish)
     if (normalized != rawBook) return normalized
 
-    val chapterNum = chapter.toIntOrNull()
-    val verseNum = verse.toIntOrNull()
+    val chapterNum = normalizeVerseDigits(chapter).toIntOrNull()
+    val verseNum = normalizeVerseDigits(verse).toIntOrNull()
     if (chapterNum != null && verseNum != null) {
         val candidates = verses
             .filter { it.chapter == chapterNum && it.verse == verseNum }
@@ -437,14 +439,22 @@ internal fun injectVerseLinks(
             val book = markdown.substring(bookRange.first, bookRange.last + 1)
             val linkBook = resolveLinkBook(shadowBook, chapter, verse, verses, localizedToEnglish)
             val encodedBook = URLEncoder.encode(linkBook, "UTF-8")
-            // Preserve the chapter/verse separator the source used (":" or ",") so a German /
-            // French / Italian citation like "Römer 13,1" is not rewritten to "13:1". The
-            // verse:// target below uses numeric path segments only, so it is unaffected.
-            // Digits are ASCII in both `search` and `markdown` (T2S only touches Han characters),
-            // so checking either copy is equivalent.
-            val sep = if (Regex("\\d,\\d").containsMatchIn(result.value)) "," else ":"
+            // Preserve the chapter/verse separator the source used (":", "," or the fullwidth
+            // "：") so a German / French / Italian citation like "Römer 13,1" is not rewritten
+            // to "13:1". The separator is the character right after the chapter digits (the
+            // regex allows nothing in between); chapter-only matches have none, and the verse
+            // is empty then. The display text keeps the digits and range separator as written.
+            val chapterGroup = result.groups[if (g[1].isNotEmpty()) 2 else 5]!!.range
+            val sep = if (verse.isNotEmpty()) search[chapterGroup.last + 1].toString() else ":"
             val display = if (verse.isNotEmpty()) "$book $chapter$sep$verse" else "$book $chapter"
-            val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
+            // The verse:// target carries ASCII digits and "-" only (BITB-179), whatever the
+            // source used (Devanagari / fullwidth digits, "～" / "〜" ranges).
+            val urlChapter = normalizeVerseDigits(chapter)
+            val urlVerse = if (verse.isNotEmpty()) {
+                "/" + normalizeRangeSeparators(normalizeVerseDigits(verse))
+            } else {
+                ""
+            }
             // Carry the localized book token in the URL so parseVerseLink can set it on
             // PendingVerseLink without discarding the name the LLM used -- in its original script.
             val localizedParam = if (shadowBook != linkBook) {
@@ -452,7 +462,7 @@ internal fun injectVerseLinks(
             } else {
                 ""
             }
-            val link = "[$display]($VERSE_SCHEME$encodedBook/$chapter$urlVerse$localizedParam)"
+            val link = "[$display]($VERSE_SCHEME$encodedBook/$urlChapter$urlVerse$localizedParam)"
             // Wrap in bold so verse references are visually prominent (matching the web's
             // font-semibold styling) regardless of whether the LLM already used bold markdown.
             // If the LLM already wrapped the ref in ** (before == '*'), the surrounding **
@@ -506,9 +516,9 @@ private val CITED_REF_REGEX = Regex(
 internal fun parseCitedRef(raw: String): CitedRef? {
     val m = CITED_REF_REGEX.matchEntire(raw) ?: return null
     val book = m.groupValues[1].trim()
-    val chapter = m.groupValues[2].toIntOrNull() ?: return null
-    val start = m.groupValues[3].toIntOrNull() ?: return null
-    val endRaw = m.groupValues[4]
+    val chapter = normalizeVerseDigits(m.groupValues[2]).toIntOrNull() ?: return null
+    val start = normalizeVerseDigits(m.groupValues[3]).toIntOrNull() ?: return null
+    val endRaw = normalizeVerseDigits(m.groupValues[4])
     val end = if (endRaw.isEmpty()) start else endRaw.toIntOrNull() ?: start
     return CitedRef(book, chapter, start, if (end < start) start else end)
 }
@@ -589,9 +599,10 @@ internal fun parseVerseLink(url: String, preferredTranslation: String?): Pending
     val parts = pathPart.split("/")
     if (parts.size < 2) return null
     val book = runCatching { URLDecoder.decode(parts[0], "UTF-8") }.getOrNull() ?: return null
-    val chapter = parts[1].toIntOrNull() ?: return null
-    // Verse number may be a range like "16-18" or "16–18" — take the first number.
+    val chapter = normalizeVerseDigits(parts[1]).toIntOrNull() ?: return null
+    // Verse number may be a range like "16-18", "16–18" or "16～18" — take the first number.
     val verseNumber = parts.getOrNull(2)
+        ?.let { normalizeVerseDigits(it) }
         ?.split(*VerseGrammar.RANGE_SEPARATORS.toCharArray())?.firstOrNull()?.toIntOrNull() ?: 1
     return PendingVerseLink(
         book = book,

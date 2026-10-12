@@ -35,6 +35,7 @@ import org.voxquieta.app.utils.VerseGrammar
 import org.voxquieta.app.utils.knownBooks
 import org.voxquieta.app.utils.normalizeBookName
 import org.voxquieta.app.utils.normalizeTraditionalToSimplified
+import org.voxquieta.app.utils.normalizeVerseDigits
 
 /**
  * Returns the subset of [allVerses] whose human-readable reference (e.g. "John 3:16")
@@ -97,11 +98,12 @@ internal fun referencedVerses(
         val origBook = combinedText.substring(bookRange.first, bookRange.last + 1)
 
         // A citation needs book + chapter + verse (chapter-only matches are not citations).
-        val chapterNum = chapter.toIntOrNull()
+        val chapterNum = normalizeVerseDigits(chapter).toIntOrNull()
         val verseNum = if (verseGroup.isEmpty()) {
             null
         } else {
-            verseGroup.split(*VerseGrammar.RANGE_SEPARATORS.toCharArray()).first().toIntOrNull()
+            normalizeVerseDigits(verseGroup)
+                .split(*VerseGrammar.RANGE_SEPARATORS.toCharArray()).first().toIntOrNull()
         }
         val hits = if (chapterNum == null || verseNum == null) {
             emptyList()

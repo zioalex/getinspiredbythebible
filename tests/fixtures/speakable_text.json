@@ -445,6 +445,42 @@
       "skipReason": ""
     },
     {
+      "id": "fullwidth_colon_zh",
+      "language": "zh",
+      "input": "神爱世人（约翰福音3：16）。",
+      "origin": "BITB-179 fullwidth colon spoken with ASCII numbers",
+      "expected": "神爱世人（约翰福音第3章第16节）。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_digits_zh",
+      "language": "zh",
+      "input": "神爱世人（约翰福音３：１６）。",
+      "origin": "BITB-179 fullwidth digits normalized to ASCII",
+      "expected": "神爱世人（约翰福音第3章第16节）。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_tilde_range_zh",
+      "language": "zh",
+      "input": "正如我们在马太福音 5：3～12中所读，说的是福。",
+      "origin": "BITB-179 fullwidth tilde range spoken as a range",
+      "expected": "正如我们在马太福音第5章第3至12节中所读，说的是福。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "wave_dash_range_fullwidth_digits_zh",
+      "language": "zh",
+      "input": "正如我们在罗马书 ８：２８〜３０中所读，说的是爱。",
+      "origin": "BITB-179 wave dash range with fullwidth digits",
+      "expected": "正如我们在罗马书第8章第28至30节中所读，说的是爱。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
       "id": "traditional_chinese_zh",
       "language": "zh",
       "input": "請讀約翰福音3:16。",

@@ -299,6 +299,136 @@
       "origin": "BITB-025 — mixed-script input (Traditional 傳 + already-Simplified 道书) must resolve; this is the concrete 'mixed-script' acceptance criterion.",
       "skip": [],
       "skipReason": ""
+    },
+    {
+      "id": "fullwidth_colon_luke_zh",
+      "input": "路加福音1：79",
+      "language": "zh",
+      "expected": { "book": "luke", "chapter": 1, "verseStart": 79, "verseEnd": null },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_colon_bracketed_corner_john",
+      "input": "「约翰福音3：16」",
+      "language": "zh",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_colon_fullwidth_parens_psalms",
+      "input": "（诗篇23：1）",
+      "language": "zh",
+      "expected": { "book": "psalms", "chapter": 23, "verseStart": 1, "verseEnd": null },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_colon_ascii_hyphen_range_matthew",
+      "input": "马太福音5：3-12",
+      "language": "zh",
+      "expected": { "book": "matthew", "chapter": 5, "verseStart": 3, "verseEnd": 12 },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_tilde_range_matthew",
+      "input": "马太福音5：3～12",
+      "language": "zh",
+      "expected": { "book": "matthew", "chapter": 5, "verseStart": 3, "verseEnd": 12 },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "wave_dash_range_matthew",
+      "input": "马太福音5：3〜12",
+      "language": "zh",
+      "expected": { "book": "matthew", "chapter": 5, "verseStart": 3, "verseEnd": 12 },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_digits_john",
+      "input": "约翰福音３：１６",
+      "language": "zh",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_colon_korean_john",
+      "input": "요한복음 3：16",
+      "language": "ko",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_colon_german_luke",
+      "input": "Lukas 1：79",
+      "language": "de",
+      "expected": { "book": "luke", "chapter": 1, "verseStart": 79, "verseEnd": null },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "fullwidth_colon_devanagari_digits_john",
+      "input": "यूहन्ना ३：१६",
+      "language": "hi",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-179 — fullwidth colon / tilde range / fullwidth digit variant must parse to the same reference as its ASCII form on all three parsers.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "negative_fullwidth_colon_time_zh",
+      "input": "时间：3点",
+      "language": "zh",
+      "expected": null,
+      "expectNone": true,
+      "origin": "BITB-179 negative control — '时间：3点' has no book name; the fullwidth colon alone must not create a reference.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "negative_fullwidth_colon_ratio_zh",
+      "input": "比例3：1",
+      "language": "zh",
+      "expected": null,
+      "expectNone": true,
+      "origin": "BITB-179 negative control — '比例3：1' (a ratio) has no book name.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "negative_fullwidth_tilde_chapters_zh",
+      "input": "第3～5章",
+      "language": "zh",
+      "expected": null,
+      "expectNone": true,
+      "origin": "BITB-179 negative control — '第3～5章' has no book name; a tilde range alone is not a reference.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "negative_fullwidth_colon_no_verse_zh",
+      "input": "约翰福音3：",
+      "language": "zh",
+      "expected": null,
+      "expectNone": true,
+      "origin": "BITB-179 negative control — a book and chapter with a dangling fullwidth colon and no verse is not a verse reference.",
+      "skip": ["android"],
+      "skipReason": "BITB-179 known divergence — Android deliberately links chapter-only references ('Psalm 23' -> verse://Psalm/23), so '约翰福音3：' (book + chapter + dangling colon) yields a chapter link; Python and web require a verse. Same as the ASCII '约翰福音3:'."
     }
   ]
 }

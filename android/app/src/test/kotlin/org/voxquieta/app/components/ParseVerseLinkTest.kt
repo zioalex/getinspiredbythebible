@@ -237,4 +237,23 @@ class ParseVerseLinkTest {
             assertEquals("KJV", result.translation)
         }
     }
+
+    // ── BITB-179: tolerate non-ASCII digits / tilde ranges in a verse:// path ──
+
+    @Test
+    fun `parseVerseLink normalises fullwidth digits in chapter and verse`() {
+        val result = parseVerseLink("verse://John/３/１６", preferredTranslation = null)
+        assertNotNull(result)
+        assertEquals(3, result!!.chapter)
+        assertEquals(16, result.verseNumber)
+    }
+
+    @Test
+    fun `parseVerseLink takes the first verse of a tilde or wave dash range`() {
+        for (rng in listOf("～", "〜", "-", "–")) {
+            val result = parseVerseLink("verse://Matthew/5/3${rng}12", preferredTranslation = null)
+            assertNotNull(rng, result)
+            assertEquals(rng, 3, result!!.verseNumber)
+        }
+    }
 }

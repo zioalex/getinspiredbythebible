@@ -133,6 +133,10 @@ class CitedVerseMatchingEdgeCasesTest {
         assertEquals(CitedRef("Johannes", 3, 16, 16), parseCitedRef("Johannes 3,16"))
         assertEquals(CitedRef("约翰福音", 3, 16, 16), parseCitedRef("约翰福音3:16"))
         assertEquals(CitedRef("يوحنا", 3, 16, 16), parseCitedRef("يوحنا ٣:١٦"))
+        // BITB-179: fullwidth colon / digits / tilde and wave dash ranges.
+        assertEquals(CitedRef("约翰福音", 3, 16, 16), parseCitedRef("约翰福音3：16"))
+        assertEquals(CitedRef("约翰福音", 3, 16, 18), parseCitedRef("约翰福音３：１６～１８"))
+        assertEquals(CitedRef("约翰福音", 3, 16, 18), parseCitedRef("约翰福音3：16〜18"))
         // Reversed range degrades to the start verse only.
         assertEquals(CitedRef("John", 3, 17, 17), parseCitedRef("John 3:17-16"))
         assertNull(parseCitedRef("John 3"))
