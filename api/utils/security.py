@@ -673,6 +673,41 @@ class MultiLanguageContentFilter:
                 "|".join(patterns), re.IGNORECASE | re.UNICODE
             )
 
+    def find_self_harm(
+        self, normalized: str, preferred: str | None = None
+    ) -> tuple[str, str] | None:
+        """Search the self-harm patterns of every language (script-agnostic, BITB-185).
+
+        The ``preferred`` language is tried first, then every other language.
+        ``normalized`` must already be passed through :func:`normalize_text`.
+
+        Returns:
+            ``(language, matched_text)`` for the first match, or ``None``.
+        """
+        langs = list(self._self_harm_regex)
+        if preferred in self._self_harm_regex:
+            langs.remove(preferred)
+            langs.insert(0, preferred)
+        for lang in langs:
+            match = self._self_harm_regex[lang].search(normalized)
+            if match:
+                return lang, match.group(0)
+        return None
+
+    def find_directed_harm(self, normalized: str) -> str | None:
+        """Search directed-harm patterns (every language) and hate speech (BITB-185).
+
+        ``normalized`` must already be passed through :func:`normalize_text`.
+
+        Returns:
+            The matched text, or ``None``.
+        """
+        for regex in (*self._directed_harm_regex.values(), self._hate_speech_regex):
+            match = regex.search(normalized)
+            if match:
+                return match.group(0)
+        return None
+
     def check_multilingual(
         self, text: str, language: str = "en"
     ) -> tuple[bool, str, str | None, str | None]:

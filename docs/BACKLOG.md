@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -236,6 +236,64 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### 🎯 BITB-193: Stage-1 Directed-Harm Check Is Limited to the Detected Language
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: `check_multilingual` uses `_directed_harm_regex.get(language) or .get("en")`,
+so directed harm in another language (e.g. "Je vais te tuer" detected as `en`, or any ru/zh/hi/ko/ar
+text, which has no directed-harm table) skips Stage 1. The fallback now checks every language;
+Stage 1 should too. Note: the fallback's all-language `find_directed_harm` already yields
+single-word cross-language false positives (it "Gioco della morra", pt `\bmorra\b`, it `\bmuori\b`,
+fr `\bcrève\b`, es `\bmuérete\b`); tighten these here.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Stage 1 checks directed harm in every language, independent of detected language
+- [ ] Cross-language parametrized tests (11 languages, mismatched codes)
+
+Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
+
+### 🎯 BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: when ML moderation is down, the fallback violence patterns (`\bkill\b`,
+`\battack\b`, `\bweapon\b`...) block ordinary Bible questions such as "How did David kill Goliath?".
+
+**Acceptance Criteria (summary):**
+
+- [ ] Bible-narrative questions about killing/battle are allowed in the fallback (all 11 languages)
+- [ ] Genuine violent-intent phrasings still block
+
+Full story: [`BITB-194-fallback-violence-bible-narrative-false-positives.md`](BACKLOG_STORIES/BITB-194-fallback-violence-bible-narrative-false-positives.md)
+
+### 🎯 BITB-195: Decision — Mixed Self-Harm and Third-Party Violence Messages
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: self-harm now wins over plain violence in the fallback, so "I will kill him and
+then myself" (no directed-harm phrase) takes the compassionate path instead of a block. Decide the
+intended behaviour (block, compassionate, or compassionate plus flag for review) and test it.
+Examples: "I will kill him and then kill myself", pt "Vou matar meu vizinho e depois me matar", and
+the victim misclassification pt "Eles querem me matar" (matches `me matar`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Product decision recorded
+- [ ] Behaviour implemented and tested across all 11 languages
+
+Full story: [`BITB-195-mixed-self-harm-and-third-party-violence.md`](BACKLOG_STORIES/BITB-195-mixed-self-harm-and-third-party-violence.md)
+
 ### 🎯 BITB-186: Self-Harm Keyword Fallback — Cover Missed Crisis Phrasings and Negations
 
 **Status:** 🎯 Todo
@@ -255,9 +313,9 @@ negated first-person sentences (ru "Я не хочу умереть без по�
 
 Full story: [`BITB-186-self-harm-keyword-phrasing-gaps.md`](BACKLOG_STORIES/BITB-186-self-harm-keyword-phrasing-gaps.md)
 
-### 🎯 BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
+### 🔍 BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (PR pending)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-10
@@ -269,9 +327,11 @@ getting the compassionate path.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Fallback runs every language's self-harm regex (script-agnostic)
-- [ ] Self-harm first-person phrases take precedence over violence matches
-- [ ] Cross-language parametrized tests (11 languages)
+- [x] Fallback runs every language's self-harm regex (script-agnostic)
+- [x] Self-harm first-person phrases take precedence over violence matches
+- [x] Cross-language parametrized tests (11 languages)
+
+Follow-ups: BITB-193, BITB-194, BITB-195.
 
 Full story: [`BITB-185-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-185-self-harm-fallback-script-agnostic.md)
 

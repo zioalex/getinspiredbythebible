@@ -24,6 +24,7 @@ Harmful intent examples (BLOCK):
 """
 
 import hashlib
+import re
 import time
 from dataclasses import dataclass, field
 
@@ -37,6 +38,10 @@ from utils.metrics import content_safety_fallback_counter, llama_guard_fallback_
 from utils.security import MultiLanguageContentFilter
 
 logger = get_logger(__name__)
+
+# Bare self-harm nouns that are also common terrorism modifiers ("suicide bomb"). When one of
+# these is the ONLY self-harm match and a violence keyword matches, violence wins (BITB-185).
+_BARE_SELF_HARM_TERM = re.compile(r"suicide|suicidio|suicídio|selbstmord|suizid", re.IGNORECASE)
 
 
 def _classify_llama_guard_failure(e: Exception) -> str:
@@ -195,57 +200,107 @@ class ContentSafetyService:
         Only called in ml_only and hybrid modes. In keyword_only mode,
         Llama Guard is never invoked so this fallback is never reached.
 
-        Re-checks violence and self-harm patterns that were skipped in Stage 1.
+        Re-checks the patterns that were skipped in Stage 1. Order (BITB-185):
+
+        1. Directed harm / hate speech in ANY language -> block.
+        2. Self-harm in ANY language (detected language tried first) -> allow with
+           the compassionate flag. Matching is script-agnostic because short or
+           mixed-script messages are often mis-detected (e.g. ``en`` for Chinese).
+        3. Violence, scoped to ``[language, "en"]`` -> block.
+        4. Otherwise clean.
+
+        Self-harm therefore wins over plain violence keywords: "I want to kill
+        myself with a gun" and fr "je veux me tuer" get the compassionate path.
+        Trade-off: a mixed message such as "I will kill him and then myself" with
+        no directed-harm phrasing is treated as help-seeking (tracked as a
+        follow-up story). Clearly directed harm ("I will kill you") still blocks.
+
+        Exception: when the only self-harm match is a bare noun (suicide, suicidio,
+        suicídio, Selbstmord, Suizid) AND a violence keyword matches, violence wins
+        ("how do I make a suicide bomb" blocks; "I am thinking about suicide" and
+        first-person phrases stay compassionate).
         """
         from utils.security import normalize_text
 
         normalized = normalize_text(text)
+        text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+        flt = self.keyword_filter
 
-        # Check violence patterns (high confidence → block)
-        for check_lang in [language, "en"]:
-            regex = self.keyword_filter._violence_regex.get(check_lang)
-            if regex and regex.search(normalized):
-                match = regex.search(normalized)
-                pattern = match.group(0) if match else "violence"
-                logger.warning(
-                    "Content safety: violence detected (fallback)",
-                    extra={
-                        "text_hash": hashlib.sha256(text.encode()).hexdigest()[:16],
-                        "language": language,
-                        "pattern": pattern,
-                    },
-                )
-                return ContentSafetyCheckResult(
-                    allowed=False,
-                    reason="keyword_violation:violence (fallback)",
-                    pattern_matched=pattern,
-                    check_duration_ms=(time.monotonic() - start) * 1000,
-                )
+        # (a) Directed harm / hate speech in any language -> block
+        directed = flt.find_directed_harm(normalized)
+        if directed:
+            is_directed = any(r.search(normalized) for r in flt._directed_harm_regex.values())
+            violation = "directed_harm" if is_directed else "hate_speech"
+            logger.warning(
+                "Content safety: %s detected (fallback)",
+                violation,
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "pattern": directed,
+                    "violation_type": violation,
+                },
+            )
+            return ContentSafetyCheckResult(
+                allowed=False,
+                reason=f"keyword_violation:{violation} (fallback)",
+                pattern_matched=directed,
+                check_duration_ms=(time.monotonic() - start) * 1000,
+            )
 
-        # Check self-harm patterns (low confidence → allow with compassionate flag)
-        for check_lang in [language, "en"]:
-            regex = self.keyword_filter._self_harm_regex.get(check_lang)
-            if regex and regex.search(normalized):
-                match = regex.search(normalized)
-                pattern = match.group(0) if match else "self_harm"
-                logger.info(
-                    "Content safety: possible help-seeking detected (fallback)",
-                    extra={
-                        "text_hash": hashlib.sha256(text.encode()).hexdigest()[:16],
-                        "language": language,
-                        "pattern": pattern,
-                    },
-                )
-                return ContentSafetyCheckResult(
-                    allowed=True,
-                    reason="possible_help_seeking (fallback)",
-                    is_help_seeking=True,
-                    compassionate_response_needed=True,
-                    pattern_matched=pattern,
-                    check_duration_ms=(time.monotonic() - start) * 1000,
-                )
+        # Violence match (scoped to detected language + English), used by (b) and (c)
+        violence_match = None
+        for check_lang in dict.fromkeys([language, "en"]):
+            regex = flt._violence_regex.get(check_lang)
+            violence_match = regex.search(normalized) if regex else None
+            if violence_match:
+                break
 
-        # No violations in fallback check
+        # (b) Self-harm in any language (low confidence -> allow with compassionate flag).
+        # A bare noun ("suicide bomb", "suicidio con explosivos") plus a violence match is
+        # terrorism phrasing, not help-seeking: violence wins and falls through to (c).
+        self_harm = flt.find_self_harm(normalized, preferred=language)
+        if self_harm and violence_match and _BARE_SELF_HARM_TERM.fullmatch(self_harm[1]):
+            self_harm = None
+        if self_harm:
+            matched_language, pattern = self_harm
+            logger.info(
+                "Content safety: possible help-seeking detected (fallback)",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "matched_language": matched_language,
+                    "pattern": pattern,
+                },
+            )
+            return ContentSafetyCheckResult(
+                allowed=True,
+                reason="possible_help_seeking (fallback)",
+                is_help_seeking=True,
+                compassionate_response_needed=True,
+                pattern_matched=pattern,
+                check_duration_ms=(time.monotonic() - start) * 1000,
+            )
+
+        # (c) Violence (high confidence -> block)
+        if violence_match:
+            pattern = violence_match.group(0)
+            logger.warning(
+                "Content safety: violence detected (fallback)",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "pattern": pattern,
+                },
+            )
+            return ContentSafetyCheckResult(
+                allowed=False,
+                reason="keyword_violation:violence (fallback)",
+                pattern_matched=pattern,
+                check_duration_ms=(time.monotonic() - start) * 1000,
+            )
+
+        # (d) No violations in fallback check
         return ContentSafetyCheckResult(
             allowed=True,
             reason="clean (fallback)",

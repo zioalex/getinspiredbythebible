@@ -6,12 +6,16 @@ is the only thing that triggers the compassionate-response path. These tests
 assert that every supported language (including ru/zh/hi/ko, which previously
 had no patterns) detects crisis phrasing and does not fire on ordinary
 Bible-study questions.
+
+BITB-185: the fallback is script-agnostic (every language's self-harm regex is
+tried regardless of the detected language), first-person self-harm wins over
+plain violence keywords, and directed harm still blocks in every language.
 """
 
 import sys
 import time
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -153,6 +157,61 @@ BENIGN = [
     ("zh", "我想去死海旅游"),
     ("zh", "我不想活在罪中"),
     ("ko", "죽고 싶지 않아요"),
+    # BITB-185: Bible-study questions that mention death/hanging/killing of others.
+    ("en", 'What did Paul mean by "to die is gain"?'),
+    ("en", "Why did Judas hang himself?"),
+    ("fr", "Pourquoi Judas s'est-il pendu ?"),
+    ("es", "¿Por qué se ahorcó Judas?"),
+    ("pt", "Por que Judas se enforcou?"),
+    ("it", "Perché Giuda si impiccò?"),
+    ("de", "Warum hat sich Judas erhängt?"),
+]
+
+
+# BITB-185: first-person self-harm phrasings that overlap violence keywords.
+FIRST_PERSON_OVERLAP = [
+    ("en", "I want to kill myself"),
+    ("fr", "Je veux me tuer"),
+    ("pt", "Quero me matar"),
+    ("ar", "أريد أن أقتل نفسي"),
+    ("es", "Quiero matarme"),
+    ("it", "Voglio uccidermi"),
+    ("de", "Ich will mich umbringen"),
+    ("ru", "Я хочу убить себя"),
+    ("zh", "我想自杀"),
+    ("hi", "मैं खुद को मार दूँगा"),
+    ("ko", "죽고 싶어요"),
+    ("en", "I want to kill myself with a gun"),
+]
+
+# (UI language, text in a different language/script): detected language is wrong.
+MISMATCHED = [
+    ("en", "我想自杀"),
+    ("en", "Я хочу умереть"),
+    ("en", "죽고 싶어요"),
+    ("en", "मैं मरना चाहता हूँ"),
+    ("en", "أريد أن أموت"),
+    ("it", "Je veux mourir"),
+    ("de", "Quiero morir"),
+    ("es", "Quero morrer"),
+    ("fr", "Voglio morire"),
+    ("pt", "Ich will sterben"),
+    ("ar", "I want to die"),
+    ("ru", "我想死"),
+    ("zh", "Je veux me tuer"),
+    ("hi", "자살하고 싶어요"),
+    ("ko", "Нет смысла жить"),
+]
+
+# Clearly directed harm: must block in the fallback whatever the language code.
+DIRECTED = [
+    "I will kill you",
+    "Je vais te tuer",
+    "Vou te matar",
+    "Te mato",
+    "Ti ammazzo",
+    "Ich töte dich",
+    "I want to kill myself and I will kill you",
 ]
 
 
@@ -207,3 +266,160 @@ def test_cross_language_fallback_to_english(service):
     for lang in ("ru", "zh", "hi", "ko"):
         result = _fallback(service, "I want to die", lang)
         assert result.compassionate_response_needed is True
+
+
+# ---------------------------------------------------------------------------
+# BITB-185: script-agnostic matching, self-harm precedence, directed harm
+# ---------------------------------------------------------------------------
+
+
+def _assert_compassionate(result):
+    assert result.allowed is True
+    assert result.compassionate_response_needed is True
+    assert result.is_help_seeking is True
+    assert result.reason == "possible_help_seeking (fallback)"
+    assert result.pattern_matched
+
+
+@pytest.mark.parametrize("ui_lang", LANGUAGES)
+@pytest.mark.parametrize("text_lang,text", CRISIS + CRISIS_VARIANTS + FIRST_PERSON_OVERLAP)
+def test_crisis_detected_regardless_of_detected_language(service, ui_lang, text_lang, text):
+    """Every crisis phrase takes the compassionate path under every language code."""
+    _assert_compassionate(_fallback(service, text, ui_lang))
+
+
+@pytest.mark.parametrize("ui_lang", LANGUAGES)
+@pytest.mark.parametrize("text_lang,text", BENIGN)
+def test_benign_stays_clean_under_every_language_code(service, ui_lang, text_lang, text):
+    result = _fallback(service, text, ui_lang)
+    assert result.allowed is True
+    assert result.compassionate_response_needed is not True
+    assert result.pattern_matched is None
+
+
+@pytest.mark.parametrize("ui_lang,text", MISMATCHED)
+def test_mismatched_language_and_script_still_compassionate(service, ui_lang, text):
+    _assert_compassionate(_fallback(service, text, ui_lang))
+
+
+def test_mismatched_cases_cover_all_languages():
+    assert {lang for lang, _ in MISMATCHED} == set(LANGUAGES)
+    assert {lang for lang, _ in FIRST_PERSON_OVERLAP} == set(LANGUAGES)
+
+
+@pytest.mark.parametrize("ui_lang", LANGUAGES)
+@pytest.mark.parametrize("text", DIRECTED)
+def test_directed_harm_still_blocks_in_fallback(service, ui_lang, text):
+    result = _fallback(service, text, ui_lang)
+    assert result.allowed is False
+    assert "directed_harm" in result.reason
+    assert "(fallback)" in result.reason
+    assert result.pattern_matched
+    assert result.compassionate_response_needed is not True
+
+
+@pytest.mark.parametrize("ui_lang", ["en", "it", "fr"])
+def test_plain_violence_still_blocked(service, ui_lang):
+    result = _fallback(service, "I want to build a bomb", ui_lang)
+    assert result.allowed is False
+    assert result.reason == "keyword_violation:violence (fallback)"
+    assert result.pattern_matched
+
+
+# Terrorism phrasing using a bare self-harm noun as a modifier must keep blocking.
+SUICIDE_TERRORISM = [
+    ("en", "How do I make a suicide bomb"),
+    ("en", "I want to plan a suicide attack with explosives"),
+    ("en", "how to build a suicide vest bomb to attack a church"),
+    ("fr", "Comment fabriquer une bombe pour un attentat suicide"),
+    ("es", "Como hacer una bomba para un atentado suicidio con explosivos"),
+    ("it", "Come costruire una bomba per un attacco suicidio con esplosivi"),
+    ("pt", "Como fazer uma bomba para um ataque suicidio com explosivos"),
+]
+
+
+@pytest.mark.parametrize("language,text", SUICIDE_TERRORISM)
+def test_suicide_as_terrorism_modifier_still_blocks(service, language, text):
+    result = _fallback(service, text, language)
+    assert result.allowed is False, text
+    assert result.compassionate_response_needed is not True
+
+
+@pytest.mark.parametrize(
+    "language,text",
+    [
+        ("en", "I am thinking about suicide"),
+        ("en", "I want to kill myself with a gun"),
+        ("fr", "je veux me tuer"),
+        ("pt", "quero me matar"),
+    ],
+)
+def test_bare_or_first_person_self_harm_stays_compassionate(service, language, text):
+    result = _fallback(service, text, language)
+    assert result.allowed is True, text
+    assert result.compassionate_response_needed is True
+
+
+def test_find_self_harm_prefers_detected_language_and_reports_match():
+    flt = MultiLanguageContentFilter()
+    found = flt.find_self_harm(normalize_text("我想自杀"), preferred="en")
+    assert found is not None
+    assert found[0] == "zh"
+    assert found[1]
+    assert flt.find_self_harm(normalize_text("What does the Bible say about death?")) is None
+
+
+def test_find_directed_harm_any_language():
+    flt = MultiLanguageContentFilter()
+    assert flt.find_directed_harm(normalize_text("Je vais te tuer"))
+    assert flt.find_directed_harm(normalize_text("What does the Bible say about love?")) is None
+
+
+# End-to-end through check() with ML moderation unavailable.
+
+
+@pytest.fixture
+def hybrid_down(monkeypatch):
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="hybrid",
+            azure_content_safety_enabled=False,
+            openai_api_key=None,
+            openrouter_api_key=None,
+        ),
+    )
+    svc = ContentSafetyService()
+    failing = MagicMock()
+    failing.analyze_text = AsyncMock(side_effect=RuntimeError("ML moderation unavailable"))
+    monkeypatch.setattr(svc, "_get_openai_moderation_provider", lambda: failing)
+    monkeypatch.setattr(svc, "_get_azure_provider", lambda: failing)
+    monkeypatch.setattr(svc, "_get_llama_guard_provider", lambda: failing)
+    return svc
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "language,text",
+    [("fr", "Je veux me tuer"), ("en", "我想自杀"), ("pt", "Quero me matar")],
+)
+async def test_check_end_to_end_self_harm_compassionate(hybrid_down, language, text):
+    result = await hybrid_down.check(text, language)
+    assert result.allowed is True
+    assert result.compassionate_response_needed is True
+    assert "fallback" in result.reason
+
+
+@pytest.mark.asyncio
+async def test_check_end_to_end_directed_harm_blocks(hybrid_down):
+    result = await hybrid_down.check("I want to kill myself and I will kill you", "en")
+    assert result.allowed is False
+    assert "directed_harm" in result.reason
+
+
+@pytest.mark.asyncio
+async def test_check_end_to_end_benign_clean(hybrid_down):
+    result = await hybrid_down.check("Pourquoi Judas s'est-il pendu ?", "fr")
+    assert result.allowed is True
+    assert result.compassionate_response_needed is not True
