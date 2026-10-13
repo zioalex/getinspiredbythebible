@@ -3174,7 +3174,6 @@ resources block. The crisis message now exists in all 11 languages.
 
 **Full Story:** `docs/DONE/BITB-185-self-harm-fallback-script-agnostic.md`
 
-
 ---
 
 ### ✅ BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
