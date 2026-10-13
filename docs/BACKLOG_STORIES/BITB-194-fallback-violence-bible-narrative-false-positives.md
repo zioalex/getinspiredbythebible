@@ -1,6 +1,6 @@
 # BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
 
-**Status:** Todo
+**Status:** 🎯 Todo
 **Size:** S
 **Created:** 2026-10-13
 

@@ -353,6 +353,15 @@ rate_limiter_db_error_counter = meter.create_counter(
     unit="1",
 )  # attributes: reason (<exc_name>)
 
+content_safety_second_opinion_counter = meter.create_counter(
+    name="content_safety.second_opinion_total",
+    description=(
+        "Count of second-opinion LLM classifications for ambiguous self-harm + violence "
+        "messages in the keyword fallback (BITB-185 v2)"
+    ),
+    unit="1",
+)  # attributes: verdict (SELF_HARM|HARM_TO_OTHERS|BOTH|NEITHER|hard_violence|timeout|error|unparseable|disabled)
+
 rate_limiter_fallback_counter = meter.create_counter(
     name="rate_limiter.fallback_total",
     description="Rate-limit checks served by the in-memory fallback store because Postgres was unavailable (BITB-061)",

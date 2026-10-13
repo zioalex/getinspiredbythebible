@@ -181,7 +181,8 @@ FIRST_PERSON_OVERLAP = [
     ("zh", "我想自杀"),
     ("hi", "मैं खुद को मार दूँगा"),
     ("ko", "죽고 싶어요"),
-    ("en", "I want to kill myself with a gun"),
+    ("en", "I want to kill myself"),
+    ("ar", "أريد أن أقتل نفسي"),
 ]
 
 # (UI language, text in a different language/script): detected language is wrong.
@@ -349,7 +350,8 @@ def test_suicide_as_terrorism_modifier_still_blocks(service, language, text):
     "language,text",
     [
         ("en", "I am thinking about suicide"),
-        ("en", "I want to kill myself with a gun"),
+        ("en", "I want to kill myself"),
+        ("ar", "أريد أن أقتل نفسي"),
         ("fr", "je veux me tuer"),
         ("pt", "quero me matar"),
     ],
@@ -358,6 +360,15 @@ def test_bare_or_first_person_self_harm_stays_compassionate(service, language, t
     result = _fallback(service, text, language)
     assert result.allowed is True, text
     assert result.compassionate_response_needed is True
+
+
+def test_self_harm_with_method_is_ambiguous_crisis_block(service):
+    """v2: a method keyword outside the self-harm span is ambiguous -> crisis block (sync)."""
+    result = _fallback(service, "I want to kill myself with a gun", "en")
+    assert result.allowed is False
+    assert result.reason == "self_harm_with_violence (fallback)"
+    assert result.is_help_seeking is True
+    assert result.compassionate_response_needed is False
 
 
 def test_find_self_harm_prefers_detected_language_and_reports_match():

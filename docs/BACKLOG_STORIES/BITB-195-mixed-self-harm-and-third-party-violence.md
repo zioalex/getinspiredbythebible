@@ -1,6 +1,6 @@
 # BITB-195: Decision — Mixed Self-Harm and Third-Party Violence Messages
 
-**Status:** Todo
+**Status:** ❌ Cancelled — decided and implemented in BITB-185 v2 (second-opinion classifier)
 **Size:** S
 **Created:** 2026-10-13
 
