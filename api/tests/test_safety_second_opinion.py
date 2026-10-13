@@ -157,11 +157,11 @@ async def test_classify_nonce_tag_blocks_delimiter_breakout(settings_mock):
 
 @pytest.mark.asyncio
 async def test_classify_error_logs_exception_class_not_text(settings_mock, caplog):
-    secret = "very-unique-raw-message-text"
+    raw_text = "very-unique-raw-message-text"
     with caplog.at_level("DEBUG"):
-        await classify_self_harm_vs_violence(secret, "en", llm=_llm(exc=ValueError("x")))
+        await classify_self_harm_vs_violence(raw_text, "en", llm=_llm(exc=ValueError("x")))
     assert "ValueError" in caplog.text
-    assert secret not in caplog.text
+    assert raw_text not in caplog.text
 
 
 @pytest.mark.asyncio
@@ -200,10 +200,10 @@ async def test_classify_uses_factory_provider_by_default(settings_mock, monkeypa
 
 @pytest.mark.asyncio
 async def test_classify_does_not_log_raw_text(settings_mock, caplog):
-    secret = "very-unique-raw-message-text"
+    raw_text = "very-unique-raw-message-text"
     with caplog.at_level("DEBUG"):
-        await classify_self_harm_vs_violence(secret, "en", llm=_llm("BOTH"))
-    assert secret not in caplog.text
+        await classify_self_harm_vs_violence(raw_text, "en", llm=_llm("BOTH"))
+    assert raw_text not in caplog.text
 
 
 def test_module_exposes_label_set():

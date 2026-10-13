@@ -894,7 +894,7 @@ class MultiLanguageContentFilter:
         Script-agnostic: all languages are searched at once. ``normalized`` must already
         be passed through :func:`normalize_text`.
         """
-        matches = []
+        matches: list[tuple[int, int, str]] = []
         for m in self._hard_violence_regex.finditer(normalized):
             before = normalized[max(0, m.start() - 20) : m.start()]
             term = m.group(0)
