@@ -1,6 +1,6 @@
 # BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
 
-**Status:** In Review (PR pending)
+**Status:** 🔍 In Review — PR #1166
 **Size:** M (re-scoped 2026-10-13: second-opinion classifier)
 **Created:** 2026-10-10
 
