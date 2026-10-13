@@ -33,10 +33,16 @@ from config import settings
 from providers.llama_guard import LlamaGuardResponseError
 from utils.circuit_breaker import CircuitOpenError
 from utils.logging_config import get_logger
-from utils.metrics import content_safety_fallback_counter, llama_guard_fallback_counter
+from utils.metrics import (
+    content_safety_fallback_counter,
+    content_safety_second_opinion_counter,
+    llama_guard_fallback_counter,
+)
 from utils.security import MultiLanguageContentFilter
 
 logger = get_logger(__name__)
+
+AMBIGUOUS_REASON = "self_harm_with_violence (fallback)"
 
 
 def _classify_llama_guard_failure(e: Exception) -> str:
@@ -195,62 +201,178 @@ class ContentSafetyService:
         Only called in ml_only and hybrid modes. In keyword_only mode,
         Llama Guard is never invoked so this fallback is never reached.
 
-        Re-checks violence and self-harm patterns that were skipped in Stage 1.
+        Re-checks the patterns that were skipped in Stage 1. Order (BITB-185 v2):
+
+        1. Directed harm / hate speech in ANY language -> block.
+        2. Self-harm spans in ANY language and violence matches in ALL languages
+           (script-agnostic). Violence matches lying inside a self-harm span ("kill" in
+           "kill myself") are dropped.
+        3. Self-harm and no remaining violence -> compassionate result (no LLM).
+        4. Self-harm AND remaining violence -> AMBIGUOUS: the safe default is a block that
+           maps to the crisis-resources template (``self_harm_with_violence (fallback)``).
+           The async ``_keyword_fallback`` may refine it with a second LLM opinion.
+        5. No self-harm: violence scoped to ``[language, "en"]`` -> block; else clean.
+
+        Self-harm only ("I want to kill myself", fr "je veux me tuer") stays
+        compassionate; "I want to die, how do I build a bomb" never passes unblocked.
         """
         from utils.security import normalize_text
 
         normalized = normalize_text(text)
+        text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+        flt = self.keyword_filter
 
-        # Check violence patterns (high confidence → block)
-        for check_lang in [language, "en"]:
-            regex = self.keyword_filter._violence_regex.get(check_lang)
-            if regex and regex.search(normalized):
-                match = regex.search(normalized)
-                pattern = match.group(0) if match else "violence"
+        # (a) Directed harm / hate speech in any language -> block
+        directed = flt.find_directed_harm(normalized)
+        if directed:
+            is_directed = any(r.search(normalized) for r in flt._directed_harm_regex.values())
+            violation = "directed_harm" if is_directed else "hate_speech"
+            logger.warning(
+                "Content safety: %s detected (fallback)",
+                violation,
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "pattern": directed,
+                    "violation_type": violation,
+                },
+            )
+            return ContentSafetyCheckResult(
+                allowed=False,
+                reason=f"keyword_violation:{violation} (fallback)",
+                pattern_matched=directed,
+                check_duration_ms=(time.monotonic() - start) * 1000,
+            )
+
+        # (b) Self-harm spans (any language) and violence outside those spans (all languages)
+        sh_spans = flt.find_all_self_harm_spans(normalized)
+        if sh_spans:
+            outside = [
+                m
+                for m in flt.find_violence_matches(normalized)
+                + self._hard_violence_outside(normalized)
+                if not any(a <= m[0] and m[1] <= b for a, b in sh_spans)
+            ]
+            self_harm = flt.find_self_harm(normalized, preferred=language)
+            pattern = self_harm[1] if self_harm else normalized[sh_spans[0][0] : sh_spans[0][1]]
+            if outside:
+                # (d) Ambiguous: self-harm AND violence -> safe default is the crisis block
                 logger.warning(
-                    "Content safety: violence detected (fallback)",
+                    "Content safety: ambiguous self-harm + violence (fallback)",
                     extra={
-                        "text_hash": hashlib.sha256(text.encode()).hexdigest()[:16],
+                        "text_hash": text_hash,
                         "language": language,
                         "pattern": pattern,
+                        "violence_pattern": outside[0][2],
                     },
                 )
                 return ContentSafetyCheckResult(
                     allowed=False,
-                    reason="keyword_violation:violence (fallback)",
-                    pattern_matched=pattern,
-                    check_duration_ms=(time.monotonic() - start) * 1000,
-                )
-
-        # Check self-harm patterns (low confidence → allow with compassionate flag)
-        for check_lang in [language, "en"]:
-            regex = self.keyword_filter._self_harm_regex.get(check_lang)
-            if regex and regex.search(normalized):
-                match = regex.search(normalized)
-                pattern = match.group(0) if match else "self_harm"
-                logger.info(
-                    "Content safety: possible help-seeking detected (fallback)",
-                    extra={
-                        "text_hash": hashlib.sha256(text.encode()).hexdigest()[:16],
-                        "language": language,
-                        "pattern": pattern,
-                    },
-                )
-                return ContentSafetyCheckResult(
-                    allowed=True,
-                    reason="possible_help_seeking (fallback)",
+                    reason=AMBIGUOUS_REASON,
                     is_help_seeking=True,
-                    compassionate_response_needed=True,
+                    compassionate_response_needed=False,
                     pattern_matched=pattern,
                     check_duration_ms=(time.monotonic() - start) * 1000,
                 )
+            # (c) Self-harm only -> compassionate
+            logger.info(
+                "Content safety: possible help-seeking detected (fallback)",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "matched_language": self_harm[0] if self_harm else None,
+                    "pattern": pattern,
+                },
+            )
+            return ContentSafetyCheckResult(
+                allowed=True,
+                reason="possible_help_seeking (fallback)",
+                is_help_seeking=True,
+                compassionate_response_needed=True,
+                pattern_matched=pattern,
+                check_duration_ms=(time.monotonic() - start) * 1000,
+            )
 
-        # No violations in fallback check
+        # (e) Violence scoped to detected language + English (high confidence -> block)
+        violence = flt.find_violence_matches(normalized, [language, "en"])
+        if violence:
+            pattern = violence[0][2]
+            logger.warning(
+                "Content safety: violence detected (fallback)",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "pattern": pattern,
+                },
+            )
+            return ContentSafetyCheckResult(
+                allowed=False,
+                reason="keyword_violation:violence (fallback)",
+                pattern_matched=pattern,
+                check_duration_ms=(time.monotonic() - start) * 1000,
+            )
+
+        # (f) No violations in fallback check
         return ContentSafetyCheckResult(
             allowed=True,
             reason="clean (fallback)",
             check_duration_ms=(time.monotonic() - start) * 1000,
         )
+
+    def _hard_violence_outside(self, normalized: str) -> list[tuple[int, int, str]]:
+        """Hard-violence matches (bombs, terror, massacre ...) lying outside self-harm spans."""
+        flt = self.keyword_filter
+        spans = flt.find_all_self_harm_spans(normalized)
+        return [
+            m
+            for m in flt.find_hard_violence_matches(normalized)
+            if not any(a <= m[0] and m[1] <= b for a, b in spans)
+        ]
+
+    async def _keyword_fallback(
+        self, text: str, language: str, start: float
+    ) -> ContentSafetyCheckResult:
+        """Keyword fallback plus an optional second LLM opinion for ambiguous cases.
+
+        Only the ambiguous self-harm + violence result consults the main chat LLM.
+        Hard-violence terms (bomb, explosive, terror, attack, massacre ...) outside the
+        self-harm phrase keep the crisis block WITHOUT calling the classifier. Otherwise
+        SELF_HARM -> compassionate; HARM_TO_OTHERS -> still refused, with the crisis block (the
+        message matched self-harm, so the person gets helpline info); BOTH, NEITHER,
+        timeout, error, unparseable or feature disabled -> keep the crisis block.
+        """
+        result = self._full_keyword_fallback(text, language, start)
+        if result.reason != AMBIGUOUS_REASON:
+            return result
+        if not settings.content_safety_second_opinion_enabled:
+            content_safety_second_opinion_counter.add(1, {"verdict": "disabled"})
+            return result
+
+        from utils.security import normalize_text
+
+        if self._hard_violence_outside(normalize_text(text)):
+            # Explosives / terror / massacre next to self-harm: never overridable (H1)
+            content_safety_second_opinion_counter.add(1, {"verdict": "hard_violence"})
+            return result
+
+        from utils.safety_second_opinion import classify_self_harm_vs_violence
+
+        verdict = await classify_self_harm_vs_violence(text, language)
+        duration = (time.monotonic() - start) * 1000
+        if verdict == "SELF_HARM":
+            return ContentSafetyCheckResult(
+                allowed=True,
+                reason="possible_help_seeking (fallback, second_opinion)",
+                is_help_seeking=True,
+                compassionate_response_needed=True,
+                pattern_matched=result.pattern_matched,
+                check_duration_ms=duration,
+            )
+        # HARM_TO_OTHERS on a message that ALSO matched self-harm: still refused, but with the
+        # crisis-resources block (the person may be in distress) -- owner principle,
+        # refined 2026-10-13. Counter verdict label stays HARM_TO_OTHERS.
+        result.check_duration_ms = duration
+        return result
 
     def _check_stage1_keywords(
         self, text: str, language: str, start: float
@@ -303,7 +425,7 @@ class ContentSafetyService:
             logger.warning(
                 "Llama Guard not configured (no API key); falling back to keyword filter"
             )
-            return self._full_keyword_fallback(text, language, start)
+            return await self._keyword_fallback(text, language, start)
 
         try:
             llama_guard_result = await llama_guard_provider.analyze_text(text, language)
@@ -373,7 +495,7 @@ class ContentSafetyService:
                 reason,
                 e,
             )
-            return self._full_keyword_fallback(text, language, start)
+            return await self._keyword_fallback(text, language, start)
 
     async def _check_stage2_openai_moderation(
         self, text: str, language: str, start: float
@@ -389,7 +511,7 @@ class ContentSafetyService:
             content_safety_fallback_counter.add(
                 1, {"stage": "openai_moderation", "reason": "provider_unavailable"}
             )
-            return self._full_keyword_fallback(text, language, start)
+            return await self._keyword_fallback(text, language, start)
 
         try:
             result = await provider.analyze_text(text, language)
@@ -445,7 +567,7 @@ class ContentSafetyService:
             reason = type(e).__name__.lower()
             content_safety_fallback_counter.add(1, {"stage": "openai_moderation", "reason": reason})
             logger.warning("OpenAI Moderation API unavailable, falling back: %s", e)
-            return self._full_keyword_fallback(text, language, start)
+            return await self._keyword_fallback(text, language, start)
 
     async def check(
         self, text: str, language: str = "en"
@@ -506,7 +628,7 @@ class ContentSafetyService:
                         "Azure Content Safety API unavailable, falling back to keyword filter: %s",
                         e,
                     )
-                    return self._full_keyword_fallback(text, language, start)
+                    return await self._keyword_fallback(text, language, start)
 
         # Default: allow (Stage 1 didn't block, Stage 2 allowed or unavailable)
         total_ms = (time.monotonic() - start) * 1000

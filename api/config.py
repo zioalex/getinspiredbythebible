@@ -314,6 +314,13 @@ class Settings(BaseSettings):
     content_safety_enabled: bool = True  # Master switch (matches Terraform prod default)
     content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "ml_only"
 
+    # Second LLM opinion for ambiguous fallback cases (BITB-185 v2). When ML moderation is
+    # down and the keyword fallback sees BOTH self-harm and violence keywords (outside the
+    # self-harm phrase), the main chat LLM_PROVIDER classifies SELF_HARM / HARM_TO_OTHERS /
+    # BOTH / NEITHER. Disabled, timeout, error or BOTH -> crisis-resources block.
+    content_safety_second_opinion_enabled: bool = True
+    content_safety_second_opinion_timeout: float = 3.0  # Seconds
+
     # Llama Guard Settings
     # Note: These settings only apply when content_safety_mode is ml_only.
     llama_guard_threshold: float = 0.5  # Unused (binary safe/unsafe output), kept for consistency

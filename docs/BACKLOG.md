@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -236,6 +236,98 @@ positives on Bible queries. This unblocks it.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
+### 🎯 BITB-193: Stage-1 Directed-Harm Check Is Limited to the Detected Language
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: `check_multilingual` uses `_directed_harm_regex.get(language) or .get("en")`,
+so directed harm in another language (e.g. "Je vais te tuer" detected as `en`, or any ru/zh/hi/ko/ar
+text, which has no directed-harm table) skips Stage 1. The fallback now checks every language;
+Stage 1 should too. Note: the fallback's all-language `find_directed_harm` already yields
+single-word cross-language false positives (it "Gioco della morra", pt `\bmorra\b`, it `\bmuori\b`,
+fr `\bcrève\b`, es `\bmuérete\b`); tighten these here.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Stage 1 checks directed harm in every language, independent of detected language
+- [ ] Cross-language parametrized tests (11 languages, mismatched codes)
+
+Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
+
+### 🎯 BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: when ML moderation is down, the fallback violence patterns (`\bkill\b`,
+`\battack\b`, `\bweapon\b`...) block ordinary Bible questions such as "How did David kill Goliath?".
+
+**Acceptance Criteria (summary):**
+
+- [ ] Bible-narrative questions about killing/battle are allowed in the fallback (all 11 languages)
+- [ ] Genuine violent-intent phrasings still block
+
+Full story: [`BITB-194-fallback-violence-bible-narrative-false-positives.md`](BACKLOG_STORIES/BITB-194-fallback-violence-bible-narrative-false-positives.md)
+
+### ❌ BITB-195: Decision — Mixed Self-Harm and Third-Party Violence Messages
+
+**Status:** ❌ Cancelled — decided and implemented in BITB-185 v2 (second-opinion classifier)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: self-harm now wins over plain violence in the fallback, so "I will kill him and
+then myself" (no directed-harm phrase) takes the compassionate path instead of a block. Decide the
+intended behaviour (block, compassionate, or compassionate plus flag for review) and test it.
+Examples: "I will kill him and then kill myself", pt "Vou matar meu vizinho e depois me matar", and
+the victim misclassification pt "Eles querem me matar" (matches `me matar`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Product decision recorded
+- [ ] Behaviour implemented and tested across all 11 languages
+
+Full story: [`BITB-195-mixed-self-harm-and-third-party-violence.md`](BACKLOG_STORIES/BITB-195-mixed-self-harm-and-third-party-violence.md)
+
+### 🎯 BITB-196: Murder-Suicide Elliptical Phrasing Takes the Compassionate Path
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-13
+
+Follow-up to BITB-185 v2: "I want to kill myself and my family", "...and take everyone with me" and the fr/pt/ar equivalents match a self-harm span, and the remaining words ("my family", "everyone") are not violence keywords, so the fallback takes the compassionate path without consulting the classifier. Decide whether to route these to the ambiguity branch (classifier plus crisis default) and implement it.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Decision recorded: route murder-suicide phrasing to the ambiguous branch (or document why not)
+- [ ] Elliptical phrasings blocked or classified in all 11 languages (parametrized)
+- [ ] Plain self-harm ("I want to kill myself") stays compassionate without an LLM call
+
+Full story: [`BITB-196-murder-suicide-elliptical-phrasing.md`](BACKLOG_STORIES/BITB-196-murder-suicide-elliptical-phrasing.md)
+
+### 🎯 BITB-198: Keyword Fallback Has No Native Violence Patterns for ru/zh/hi/ko
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-13
+
+Follow-up to BITB-185 v2 (pre-existing at main): `VIOLENCE_PATTERNS` has no ru, zh, hi or ko entries, so plain violence (no self-harm) in those languages is clean in the fallback when ML moderation is down. BITB-185 v2 added a separate `HARD_VIOLENCE_PATTERNS` table (bombs, terror, massacre) used only next to self-harm; the general violence table was deliberately not edited.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Native violence patterns for ru, zh, hi, ko with Bible-narrative false-positive review (see BITB-194)
+- [ ] Parametrized tests across all 11 languages incl. CJK/fullwidth and Devanagari
+- [ ] Hard-violence table reconciled with the violence table
+
+Full story: [`BITB-198-fallback-native-violence-patterns-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-198-fallback-native-violence-patterns-ru-zh-hi-ko.md)
+
 ### 🎯 BITB-186: Self-Harm Keyword Fallback — Cover Missed Crisis Phrasings and Negations
 
 **Status:** 🎯 Todo
@@ -255,23 +347,31 @@ negated first-person sentences (ru "Я не хочу умереть без по�
 
 Full story: [`BITB-186-self-harm-keyword-phrasing-gaps.md`](BACKLOG_STORIES/BITB-186-self-harm-keyword-phrasing-gaps.md)
 
-### 🎯 BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
+### 🔍 BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review — PR #1166
 **Priority:** P1
-**Size:** S
+**Size:** M
 **Created:** 2026-10-10
 
 Follow-up to BITB-183: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
 mismatched-script messages detected as `en` skip ru/zh/hi/ko/ar patterns; and violence is
 checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked instead of
-getting the compassionate path.
+getting the compassionate path. v2: when self-harm AND a violence keyword (outside the self-harm
+phrase, any language) both match, the main chat LLM is asked as a second-opinion classifier
+(SELF_HARM / HARM_TO_OTHERS / BOTH / NEITHER); BOTH, junk, timeout, error or disabled -> crisis
+resources block. The crisis message now exists in all 11 languages.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Fallback runs every language's self-harm regex (script-agnostic)
-- [ ] Self-harm first-person phrases take precedence over violence matches
-- [ ] Cross-language parametrized tests (11 languages)
+- [x] Fallback runs every language's self-harm regex (script-agnostic)
+- [x] Self-harm-only phrases stay compassionate without an LLM call
+- [x] Ambiguous self-harm + violence -> second-opinion classifier, safe default crisis block
+- [x] Crisis block message localized in all 11 languages
+- [x] Cross-language parametrized tests (11 languages)
+- [x] Hard-violence terms (bomb, explosive, terror, attack, massacre ...) next to self-harm always block, no classifier call
+
+Follow-ups: BITB-193, BITB-194, BITB-196, BITB-197, BITB-198, BITB-199. (BITB-195 cancelled — decided here.)
 
 Full story: [`BITB-185-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-185-self-harm-fallback-script-agnostic.md)
 
@@ -2944,6 +3044,23 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-197: Blocked-Response Templates Missing ru/zh/hi/ko
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185 v2: only `self_harm_blocked` was localized for ru, zh, hi, ko. The `violence_or_threat`, hate, directed-harm, sexual and generic blocked templates in `api/chat/prompts.py` still lack those four languages and fall back to English.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Each blocked template exists in all 11 languages
+- [ ] Parametrized test asserts every template x language is non-English
+- [ ] Native-speaker or reference review recorded
+
+Full story: [`BITB-197-blocked-templates-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-197-blocked-templates-ru-zh-hi-ko.md)
+
 ### 🎯 BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
 
 **Status:** 🎯 Todo
@@ -4747,6 +4864,23 @@ fallback columns).
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-199: Second-Opinion Classifier Uses the Primary Model Only
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185 v2: the classifier calls the primary `LLM_PROVIDER` model with `max_tokens=16`. A reasoning model may spend the budget on thinking and return no parseable label, which always degrades to the crisis block. Consider a dedicated small model setting, a fallback chain, and observability (unparseable rate alert).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Choice of classifier model documented/configurable
+- [ ] Unparseable/timeout/error rate visible on a dashboard or alert
+- [ ] Test with a reasoning-style empty response keeps the crisis block
+
+Full story: [`BITB-199-second-opinion-classifier-model-observability.md`](BACKLOG_STORIES/BITB-199-second-opinion-classifier-model-observability.md)
 
 ### 🎯 BITB-190: Verse Ranges Written With Spaces Parse Differently on Backend vs Web/Android
 

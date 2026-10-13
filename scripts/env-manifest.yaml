@@ -160,6 +160,18 @@ variables:
     description: Enable content filtering
     default: "true"
 
+  CONTENT_SAFETY_SECOND_OPINION_ENABLED:
+    required_in: none
+    description:
+      Ask the main chat LLM to classify ambiguous self-harm + violence messages when ML moderation is down (BITB-185)
+    default: "true"
+
+  CONTENT_SAFETY_SECOND_OPINION_TIMEOUT:
+    required_in: none
+    description:
+      Timeout in seconds for the second-opinion classifier; on timeout the crisis-resources block applies (BITB-185)
+    default: "3.0"
+
   TTS_ENABLED:
     required_in: none
     description: Show the on-device "Listen" (read aloud) button in clients (BITB-119)
