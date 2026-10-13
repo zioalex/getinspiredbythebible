@@ -6,11 +6,11 @@ pydantic-settings==2.15.0
 email-validator==2.3.0
 
 # Database
-sqlalchemy[asyncio]==2.1.2
+sqlalchemy[asyncio]==2.1.4
 alembic==1.20.0
-asyncpg==0.31.0
+asyncpg==0.32.0
 psycopg2-binary==2.9.13
-pgvector==0.5.0
+pgvector==0.5.1
 
 # HTTP Client (for LLM providers)
 httpx==0.28.1
