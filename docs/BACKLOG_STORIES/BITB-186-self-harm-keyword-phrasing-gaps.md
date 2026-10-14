@@ -35,3 +35,5 @@ positive:
 - Patterns added in `api/utils/security.py` (ru/zh/hi/ko); zh `想死`/`想去死`/`想要死` now allow `后`/`後` when followed by `一了百了`; ru `хочу умереть` / `хочется умереть` carry a `(?<!\bне )` guard.
 - Tests: `api/tests/test_self_harm_keyword_fallback_languages.py` (CRISIS + BENIGN additions).
 - The native-speaker review AC stays unticked (owner step).
+- Accepted limitation: the ru `не` guard is a fixed-width lookbehind, so a double space (`не  хочу умереть`) or an intervening word (`не очень хочу умереть`) still matches; this errs toward the compassionate path.
+- Review round 2: ko `사라지고 싶지 않` negation, zh `想跳楼` / `活着没意思` third-person and question guards, ru `незачем жить во/в...` guard, hi `क्या`/`अगर`/`तो`/`?` guards.
