@@ -328,6 +328,22 @@ Follow-up to BITB-185 v2 (pre-existing at main): `VIOLENCE_PATTERNS` has no ru, 
 
 Full story: [`BITB-198-fallback-native-violence-patterns-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-198-fallback-native-violence-patterns-ru-zh-hi-ko.md)
 
+### 🎯 BITB-200: Self-Harm Fallback — Question-Form and Edge Recall Gaps (hi/zh)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-14
+
+Follow-up to BITB-186: its Bible-study guards suppress a few real crisis phrasings (hi `मुझे मरना है तो …`,
+trailing-`?` forms; zh `我一个人想跳楼`, question-form `活着没意思吗`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Missed phrasings trigger the compassionate path; BITB-186 benign cases stay clean
+
+Full story: [`BITB-200-self-harm-fallback-question-form-recall.md`](BACKLOG_STORIES/BITB-200-self-harm-fallback-question-form-recall.md)
+
 ### 🔍 BITB-186: Self-Harm Keyword Fallback — Cover Missed Crisis Phrasings and Negations
 
 **Status:** 🔍 In Review
