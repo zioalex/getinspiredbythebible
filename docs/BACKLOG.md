@@ -363,36 +363,6 @@ negated first-person sentences (ru "Я не хочу умереть без по�
 
 Full story: [`BITB-186-self-harm-keyword-phrasing-gaps.md`](BACKLOG_STORIES/BITB-186-self-harm-keyword-phrasing-gaps.md)
 
-### 🔍 BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
-
-**Status:** 🔍 In Review — PR #1166
-**Priority:** P1
-**Size:** M
-**Created:** 2026-10-10
-
-Follow-up to BITB-183: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
-mismatched-script messages detected as `en` skip ru/zh/hi/ko/ar patterns; and violence is
-checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked instead of
-getting the compassionate path. v2: when self-harm AND a violence keyword (outside the self-harm
-phrase, any language) both match, the main chat LLM is asked as a second-opinion classifier
-(SELF_HARM / HARM_TO_OTHERS / BOTH / NEITHER); BOTH, junk, timeout, error or disabled -> crisis
-resources block. The crisis message now exists in all 11 languages.
-
-**Acceptance Criteria (summary):**
-
-- [x] Fallback runs every language's self-harm regex (script-agnostic)
-- [x] Self-harm-only phrases stay compassionate without an LLM call
-- [x] Ambiguous self-harm + violence -> second-opinion classifier, safe default crisis block
-- [x] Crisis block message localized in all 11 languages
-- [x] Cross-language parametrized tests (11 languages)
-- [x] Hard-violence terms (bomb, explosive, terror, attack, massacre ...) next to self-harm always block, no classifier call
-
-Follow-ups: BITB-193, BITB-194, BITB-196, BITB-197, BITB-198, BITB-199. (BITB-195 cancelled — decided here.)
-
-Full story: [`BITB-185-self-harm-fallback-script-agnostic.md`](BACKLOG_STORIES/BITB-185-self-harm-fallback-script-agnostic.md)
-
----
-
 ### ✅ BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
 
 **Status:** ✅ Done (PR #1145 merged 2026-10-10) — AC12 live run pending (owner)
@@ -3192,6 +3162,36 @@ Owner task: run the set in all 11 languages, triage failures, and record a go/no
 
 ---
 
+### ✅ BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
+
+**Status:** ✅ Done — PR #1166, 2026-10-13
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-10
+
+Follow-up to BITB-183: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
+mismatched-script messages detected as `en` skip ru/zh/hi/ko/ar patterns; and violence is
+checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked instead of
+getting the compassionate path. v2: when self-harm AND a violence keyword (outside the self-harm
+phrase, any language) both match, the main chat LLM is asked as a second-opinion classifier
+(SELF_HARM / HARM_TO_OTHERS / BOTH / NEITHER); BOTH, junk, timeout, error or disabled -> crisis
+resources block. The crisis message now exists in all 11 languages.
+
+**Acceptance Criteria (summary):**
+
+- [x] Fallback runs every language's self-harm regex (script-agnostic)
+- [x] Self-harm-only phrases stay compassionate without an LLM call
+- [x] Ambiguous self-harm + violence -> second-opinion classifier, safe default crisis block
+- [x] Crisis block message localized in all 11 languages
+- [x] Cross-language parametrized tests (11 languages)
+- [x] Hard-violence terms (bomb, explosive, terror, attack, massacre ...) next to self-harm always block, no classifier call
+
+**Follow-ups:** BITB-193, BITB-194, BITB-196, BITB-197, BITB-198, BITB-199. (BITB-195 cancelled — decided here.)
+
+**Full Story:** `docs/DONE/BITB-185-self-harm-fallback-script-agnostic.md`
+
+---
+
 ### ✅ BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
 
 **Status:** ✅ Done — PR #1148, 2026-10-11 (native-speaker review AC left open)
@@ -3211,7 +3211,7 @@ suppressed). Found by BITB-182, which pins the gap in `test_golden_set.py`.
 - [x] BITB-182 pin test flipped; `crisis-keyword` golden-set cases added for the four languages
 - [ ] Patterns reviewed by a native speaker or against a reference list per language
 
-**Follow-ups:** BITB-185 (script-agnostic matching and self-harm-over-violence precedence), BITB-186 (uncovered crisis phrasings and negated false positives)
+**Follow-ups:** BITB-185 (done, PR #1166 — script-agnostic matching, second-opinion classifier), BITB-186 (uncovered crisis phrasings and negated false positives)
 
 **Full Story:** `docs/DONE/BITB-183-self-harm-keyword-fallback-ru-zh-hi-ko.md`
 
