@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.57.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.56.0...v1.57.0) (2026-10-12)
+
+### Features
+
+* **deploy:** wire NEXT_PUBLIC_DONATE_URL into compose, Dockerfile and Azure deploy (BITB-157) ([#1141](https://github.com/zioalex/getinspiredbythebible/issues/1141)) ([4c02866](https://github.com/zioalex/getinspiredbythebible/commit/4c02866e5732edd3521c8317b5fee0a41780505a))
+* **opencode:** add task-reliability plugin and registry-first runbook ([#1123](https://github.com/zioalex/getinspiredbythebible/issues/1123)) ([2f7711c](https://github.com/zioalex/getinspiredbythebible/commit/2f7711c8603e59c47ac2344c827dc3fd16b55bfa))
+* **parser:** recognise fullwidth colon, tilde ranges and fullwidth digits in verse references (BITB-179) ([#1163](https://github.com/zioalex/getinspiredbythebible/issues/1163)) ([cb63e88](https://github.com/zioalex/getinspiredbythebible/commit/cb63e88c7f34ba17e25b91cfab90bc9c36c14a18))
+* read answers aloud with on-device speech (BITB-119) ([#1132](https://github.com/zioalex/getinspiredbythebible/issues/1132)) ([0df8a15](https://github.com/zioalex/getinspiredbythebible/commit/0df8a15628414b4e512799a640056c61670a5843))
+* **web,android:** surface Support-Us entry points without nagging (BITB-168) ([#1133](https://github.com/zioalex/getinspiredbythebible/issues/1133)) ([47ceb5a](https://github.com/zioalex/getinspiredbythebible/commit/47ceb5af16c106d1c2368bc6c2a220f1f1e41a88))
+
+### Bug Fixes
+
+* **android:** exact-match server versesCited citations (BITB-166) ([#1127](https://github.com/zioalex/getinspiredbythebible/issues/1127)) ([4e8520a](https://github.com/zioalex/getinspiredbythebible/commit/4e8520a2d98514304daf59fea5a64e894a26392d))
+* **android:** let chat bubbles use tablet width (BITB-174) ([#1129](https://github.com/zioalex/getinspiredbythebible/issues/1129)) ([a64162b](https://github.com/zioalex/getinspiredbythebible/commit/a64162b9f589ce46c261c726f367de5eec9e2946))
+* **android:** share verse-reference grammar with Cited tab (BITB-164) ([#1117](https://github.com/zioalex/getinspiredbythebible/issues/1117)) ([c20e5ed](https://github.com/zioalex/getinspiredbythebible/commit/c20e5ed608a4a9f60f8e48375698b44acdcf3fe0))
+* **android:** split tapped verse-link ranges on every range separator (BITB-167) ([#1130](https://github.com/zioalex/getinspiredbythebible/issues/1130)) ([d55ba5e](https://github.com/zioalex/getinspiredbythebible/commit/d55ba5ef6ead8ad8da8d59b84b43ef09cbddca40))
+* **api:** add ru/zh/hi/ko self-harm keyword patterns to safety fallback (BITB-183) ([#1148](https://github.com/zioalex/getinspiredbythebible/issues/1148)) ([953802a](https://github.com/zioalex/getinspiredbythebible/commit/953802acb6922026a8795a4f30381986eeee4d4e))
+* **api:** ground verse referents in surrounding passage and hold answers under pushback (BITB-178) ([#1145](https://github.com/zioalex/getinspiredbythebible/issues/1145)) ([7e3a698](https://github.com/zioalex/getinspiredbythebible/commit/7e3a698bf9e502dadf7669ac309a8f062e4afbbe))
+* **api:** make translations.created_at timezone-aware via r0007 (BITB-127) ([#1139](https://github.com/zioalex/getinspiredbythebible/issues/1139)) ([4e6ce4e](https://github.com/zioalex/getinspiredbythebible/commit/4e6ce4eb2963d9fa2577fe0a0b9287d7c4d3a75c))
+* **deps:** bump next to 16.4.0 to clear npm audit gate (BITB-177) ([#1142](https://github.com/zioalex/getinspiredbythebible/issues/1142)) ([849d108](https://github.com/zioalex/getinspiredbythebible/commit/849d10814400fb278eb3c6570d5b3e294ee151bf))
+* **k8s:** commit custom agent image wiring, make mobile auth opt-in (BITB-172) ([#1126](https://github.com/zioalex/getinspiredbythebible/issues/1126)) ([07bc3c4](https://github.com/zioalex/getinspiredbythebible/commit/07bc3c484342aa46059de0417ff28ae1871d7958))
+* **k8s:** make agent-default-wf2 self-contained (BITB-171) ([#1125](https://github.com/zioalex/getinspiredbythebible/issues/1125)) ([c71cc71](https://github.com/zioalex/getinspiredbythebible/commit/c71cc71f25a258e6567da83dfa106ded1c525350))
+* **opencode:** correct runtime fallback model IDs (BITB-173) ([#1128](https://github.com/zioalex/getinspiredbythebible/issues/1128)) ([11ac2fd](https://github.com/zioalex/getinspiredbythebible/commit/11ac2fd6c2e10ae84486fda084d1e7136626ece8))
+
+### Documentation
+
+* add BITB-168 support-us discoverability story ([#1120](https://github.com/zioalex/getinspiredbythebible/issues/1120)) ([c15d6e8](https://github.com/zioalex/getinspiredbythebible/commit/c15d6e83f7e9a37f78770e45b2aa5bb2d9d5f6f1))
+* add BITB-169 task-reliability story ([#1122](https://github.com/zioalex/getinspiredbythebible/issues/1122)) ([625017d](https://github.com/zioalex/getinspiredbythebible/commit/625017d19933d213d8269a81c5d189cc5a4e1703))
+* **backlog:** record BITB-167 creation and cross-reference from BITB-164 done story ([#1119](https://github.com/zioalex/getinspiredbythebible/issues/1119)) ([f89d49a](https://github.com/zioalex/getinspiredbythebible/commit/f89d49aa8f677d0d2a5b60b1ea64f8b1f39fff93))
+* close BITB-178 and file follow-ups BITB-179/180/181 ([#1150](https://github.com/zioalex/getinspiredbythebible/issues/1150)) ([6e9b417](https://github.com/zioalex/getinspiredbythebible/commit/6e9b417447f798bc7d6f804155e74e331a8d20c3))
+* close BITB-179 and file follow-ups BITB-189/190/191/192 ([#1164](https://github.com/zioalex/getinspiredbythebible/issues/1164)) ([ad0d0ec](https://github.com/zioalex/getinspiredbythebible/commit/ad0d0ec9b40197d13e4bcb19b49252d735546f2e))
+* close BITB-182 and file follow-ups BITB-187/188 ([#1162](https://github.com/zioalex/getinspiredbythebible/issues/1162)) ([48c4532](https://github.com/zioalex/getinspiredbythebible/commit/48c4532632f817819ee7fa6533ba62fdfdb8fe2d))
+* close BITB-183 and file follow-up BITB-186 ([#1151](https://github.com/zioalex/getinspiredbythebible/issues/1151)) ([350c7f6](https://github.com/zioalex/getinspiredbythebible/commit/350c7f6e507c8dfccedec0adf3c4f69c7f674a25))
+* **k8s:** document egress, RBAC, and config-sync in kubeopencode README (BITB-170) ([#1124](https://github.com/zioalex/getinspiredbythebible/issues/1124)) ([e0020bb](https://github.com/zioalex/getinspiredbythebible/commit/e0020bb5e2943e5b69ba12836b0bc68360ecda34))
+* **kubeopencode:** sync fallback table to merged agents.md (BITB-163) ([#1140](https://github.com/zioalex/getinspiredbythebible/issues/1140)) ([7f34065](https://github.com/zioalex/getinspiredbythebible/commit/7f340652da9ea76c76bc08de1a2bb777d4d0249f))
+* mark BITB-174 done (PR [#1129](https://github.com/zioalex/getinspiredbythebible/issues/1129)) ([#1131](https://github.com/zioalex/getinspiredbythebible/issues/1131)) ([f661dd3](https://github.com/zioalex/getinspiredbythebible/commit/f661dd32f1dbd220817af52eee02aa9a1517d5b7))
+
 ## [1.56.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.55.0...v1.56.0) (2026-09-29)
 
 ### Features

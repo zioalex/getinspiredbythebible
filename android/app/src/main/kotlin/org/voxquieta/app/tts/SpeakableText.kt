@@ -4,6 +4,7 @@ import org.voxquieta.app.presentation.components.DEFAULT_VERSE_REF_REGEX
 import org.voxquieta.app.utils.VerseGrammar
 import org.voxquieta.app.utils.knownBooks
 import org.voxquieta.app.utils.normalizeTraditionalToSimplified
+import org.voxquieta.app.utils.normalizeVerseDigits
 
 /**
  * BITB-119: turn an assistant answer (markdown) into text a speech synthesizer can read.
@@ -85,19 +86,6 @@ private fun fill(template: String, book: String, c: String, v: String, e: String
         .replace("{v}", v)
         .replace("{e}", e)
 
-/** Devanagari (U+0966-096F) and Eastern Arabic (U+0660-0669) digits -> ASCII digits. */
-private fun normalizeDigits(s: String): String = buildString(s.length) {
-    for (ch in s) {
-        append(
-            when (ch) {
-                in '०'..'९' -> '0' + (ch - '०')
-                in '٠'..'٩' -> '0' + (ch - '٠')
-                else -> ch
-            },
-        )
-    }
-}
-
 private val RANGE_SEPARATORS: String =
     VerseGrammar.RANGE_SEPARATORS.joinToString("") { it.toString() }
 
@@ -148,15 +136,15 @@ private fun speakVerseReferences(
 
         val book = text.substring(bookRange.first, bookRange.last + 1).trim()
         val rangeAt = verseAndRange.indexOfFirst { it in RANGE_SEPARATORS }
-        val verse = normalizeDigits(if (rangeAt >= 0) verseAndRange.substring(0, rangeAt) else verseAndRange)
-        val end = if (rangeAt >= 0) normalizeDigits(verseAndRange.substring(rangeAt + 1)) else ""
+        val verse = normalizeVerseDigits(if (rangeAt >= 0) verseAndRange.substring(0, rangeAt) else verseAndRange)
+        val end = if (rangeAt >= 0) normalizeVerseDigits(verseAndRange.substring(rangeAt + 1)) else ""
 
         out.append(text, copiedUpTo, result.range.first)
         out.append(
             fill(
                 if (end.isNotEmpty()) template.range else template.verse,
                 book,
-                normalizeDigits(chapter),
+                normalizeVerseDigits(chapter),
                 verse,
                 end,
             ),

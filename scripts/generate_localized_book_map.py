@@ -334,7 +334,7 @@ def render_grammar_kotlin(grammar: dict) -> str:
     lines.append(f"    const val CONNECTOR_REPEAT_MAX: Int = {grammar['connector_repeat_max']}\n\n")
 
     cv_seps = grammar["chapter_verse_separators"]
-    lines.append("    /** Chapter/verse separator characters (colon, comma). */\n")
+    lines.append("    /** Chapter/verse separator characters (colon, comma, fullwidth colon). */\n")
     lines.append(
         "    val CHAPTER_VERSE_SEPARATORS: List<Char> = listOf("
         + ", ".join(_kt_char_literal(s) for s in cv_seps)
@@ -342,7 +342,9 @@ def render_grammar_kotlin(grammar: dict) -> str:
     )
 
     range_seps = grammar["range_separators"]
-    lines.append("    /** Verse-range separator characters (hyphen, en dash). */\n")
+    lines.append(
+        "    /** Verse-range separator characters (hyphen, en dash, fullwidth tilde, wave dash). */\n"
+    )
     lines.append(
         "    val RANGE_SEPARATORS: List<Char> = listOf("
         + ", ".join(_kt_char_literal(s) for s in range_seps)

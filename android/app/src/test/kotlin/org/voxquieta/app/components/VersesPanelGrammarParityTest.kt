@@ -26,10 +26,10 @@ class VersesPanelGrammarParityTest {
     private fun cited(text: String, verses: List<Verse>, map: Map<String, String> = emptyMap()) =
         referencedVerses(verses, listOf(assistant(text)), map)
 
-    // Compare the parsed link, not the raw URL: injectVerseLinks keeps the source digits
-    // (e.g. "verse://John/३/१६") and may emit the bundled map's lowercase canonical
-    // ("verse://john/3/16"); toIntOrNull handles the non-ASCII digits. The verse segment is
-    // read here (split on every range separator) as an independent check on parseVerseLink.verseNumber.
+    // Compare the parsed link, not the raw URL: injectVerseLinks writes ASCII digits and "-"
+    // into the URL (BITB-179, e.g. "verse://john/3/16") and may emit the bundled map's lowercase
+    // canonical book; the verse segment is read here (split on every range separator, non-ASCII
+    // digits tolerated) as an independent check on parseVerseLink.verseNumber.
     private fun linked(text: String, map: Map<String, String> = emptyMap()): Boolean {
         val url = Regex("""verse://[^)\]\s]+""").find(injectVerseLinks(text, localizedToEnglish = map))?.value
             ?: return false

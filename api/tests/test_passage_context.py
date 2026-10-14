@@ -277,16 +277,7 @@ class TestPassageContextRequest:
             ("ko", "누가복음 1:79 은 누구를 말하나요?"),
             ("ar", "عن من يتحدث لوقا ١:٧٩؟"),
             ("hi", "लूका १:७९ में किसके बारे में कहा गया है?"),
-            pytest.param(
-                "zh",
-                "「路加福音1：79」说的是谁？",
-                marks=pytest.mark.xfail(
-                    strict=True,
-                    reason="known gap: the backend verse parser does not accept the fullwidth "
-                    "colon (U+FF1A) between chapter and verse; no reference means no passage "
-                    "context. Fix in all three parsers, then drop this xfail.",
-                ),
-            ),
+            ("zh", "「路加福音1：79」说的是谁？"),
         ],
     )
     async def test_reference_format_variants_get_the_same_window(
@@ -360,6 +351,21 @@ class TestTranslationFaithfulness:
         block = _surrounding(out.system)
         assert expected in block
         assert other not in out.system
+
+    @pytest.mark.parametrize("translation", ["cuv", "kjv", "web"])
+    @pytest.mark.parametrize(
+        "message",
+        ["「路加福音1：79」说的是谁？", "路加福音１：７９说的是谁？", "路加福音1：79说的是谁？"],
+    )
+    async def test_fullwidth_reference_window_uses_the_selected_translation(
+        self, harness, mode, translation, message
+    ):
+        """BITB-179: a fullwidth-colon / fullwidth-digit reference gets the same window, in the
+        user's selected translation (CUV / KJV / WEB), as its ASCII form."""
+        out = await harness.run(mode, message, language="zh", preferred_translation=translation)
+        assert harness.bible.range_calls == [("Luke", 1, 75, 81, translation)]
+        block = _surrounding(out.system)
+        assert f'**Luke 1:78**: "{verse_text(translation, "Luke", 1, 78)}"' in block
 
     async def test_translation_follows_the_language_default_without_a_preference(
         self, harness, mode

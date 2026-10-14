@@ -3,6 +3,7 @@ package org.voxquieta.app.utils
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -96,5 +97,13 @@ class VerseGrammarTest {
         // A permanent guard against silently widening the shared upper bound back toward
         // unbounded (`*` / `+`) — see docs/BACKLOG_STORIES/BITB-108-verse-parser-phase-3-regex-grammar.md.
         assertEquals(3, VerseGrammar.CONNECTOR_REPEAT_MAX)
+    }
+
+    @Test
+    fun `fullwidth colon, tilde ranges and fullwidth digits are part of the grammar (BITB-179)`() {
+        assertTrue('：' in VerseGrammar.CHAPTER_VERSE_SEPARATORS)
+        assertTrue('～' in VerseGrammar.RANGE_SEPARATORS)
+        assertTrue('〜' in VerseGrammar.RANGE_SEPARATORS)
+        assertTrue(VerseGrammar.NON_ASCII_DIGIT_RANGES.any { it.start == '０' && it.end == '９' })
     }
 }
