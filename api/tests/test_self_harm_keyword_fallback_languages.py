@@ -102,6 +102,19 @@ CRISIS = [
     ("ko", "죽고 싶어요"),
     ("ko", "목숨을 끊고 싶다"),
     ("ko", "자해를 했어요"),
+    # BITB-186: previously missed phrasings.
+    ("zh", "我想跳楼"),
+    ("zh", "我真的想跳楼自杀"),
+    ("zh", "活着没意思"),
+    ("zh", "活著沒意思"),
+    ("zh", "我想死后一了百了"),
+    ("zh", "我想死後一了百了"),
+    ("zh", "我想去死后一了百了"),
+    ("ko", "사라지고 싶어"),
+    ("ko", "사라지고싶어요"),
+    ("ru", "Хочу сдохнуть"),
+    ("ru", "Мне незачем жить"),
+    ("hi", "मुझे मरना है"),
 ]
 
 # Fullwidth punctuation / wrapped / embedded-in-sentence variants.
@@ -157,6 +170,15 @@ BENIGN = [
     ("zh", "我想去死海旅游"),
     ("zh", "我不想活在罪中"),
     ("ko", "죽고 싶지 않아요"),
+    # BITB-186: negated first-person and Bible-study variants.
+    ("ru", "Я не хочу умереть без покаяния"),
+    ("ru", "Мне не хочется умереть без покаяния"),
+    ("ru", "Что Библия говорит о том, почему незачем жить во грехе?"),
+    ("zh", "我想死后会去哪里"),
+    ("zh", "圣经里有跳楼的故事吗？"),
+    ("zh", "传道书说活着没有意义吗？"),
+    ("ko", "성경에서 사라지는 것에 대해 뭐라고 하나요?"),
+    ("hi", "बाइबल में मरना है या जीना है, इस बारे में क्या लिखा है?"),
     # BITB-185: Bible-study questions that mention death/hanging/killing of others.
     ("en", 'What did Paul mean by "to die is gain"?'),
     ("en", "Why did Judas hang himself?"),
