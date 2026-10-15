@@ -211,7 +211,8 @@ class ContentSafetyService:
         4. Self-harm AND remaining violence -> AMBIGUOUS: the safe default is a block that
            maps to the crisis-resources template (``self_harm_with_violence (fallback)``).
            The async ``_keyword_fallback`` may refine it with a second LLM opinion.
-        5. No self-harm: violence scoped to ``[language, "en"]`` -> block; else clean.
+        5. No self-harm: violence scoped to ``[language, "en"]`` plus the script-disjoint
+           languages (ar, ru, zh, hi, ko; BITB-198) -> block; else clean.
 
         Self-harm only ("I want to kill myself", fr "je veux me tuer") stays
         compassionate; "I want to die, how do I build a bomb" never passes unblocked.
@@ -293,8 +294,13 @@ class ContentSafetyService:
                 check_duration_ms=(time.monotonic() - start) * 1000,
             )
 
-        # (e) Violence scoped to detected language + English (high confidence -> block)
-        violence = flt.find_violence_matches(normalized, [language, "en"])
+        # (e) Violence scoped to detected language + English (high confidence -> block), plus
+        # the script-disjoint languages (ar, ru, zh, hi, ko, BITB-198): their patterns cannot
+        # fire on Latin-script text, so a native-script threat blocks even when the language
+        # detector returned "en".
+        violence = flt.find_violence_matches(
+            normalized, [language, "en", *flt.SCRIPT_DISJOINT_VIOLENCE_LANGS]
+        )
         if violence:
             pattern = violence[0][2]
             logger.warning(

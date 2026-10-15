@@ -16,3 +16,8 @@ kill Goliath?" is blocked with `keyword_violation:violence (fallback)` when ML m
 
 - [ ] Bible-narrative questions (David/Goliath, Cain/Abel, Judas...) are allowed in the fallback, all 11 languages
 - [ ] Genuine intent phrasings ("I want to build a bomb", "how do I kill someone") still block
+
+## Note (BITB-198)
+
+ru, zh, hi and ko are covered by BITB-198: their native violence patterns were written to keep
+Bible-narrative questions clean. This story remains for en/it/de/es/fr/pt/ar.

@@ -1,6 +1,6 @@
 # BITB-186: Self-Harm Keyword Fallback — Cover Missed Crisis Phrasings and Negations
 
-**Status:** 🔍 In Review
+**Status:** ✅ Done (PR #1169, 2026-10-14)
 **Size:** S
 **Created:** 2026-10-11
 
@@ -38,3 +38,7 @@ positive:
 - Accepted limitation: the ru `не` guard is a fixed-width lookbehind, so a double space (`не  хочу умереть`) or an intervening word (`не очень хочу умереть`) still matches; this errs toward the compassionate path.
 - Review round 2: ko `사라지고 싶지 않` negation, zh `想跳楼` / `活着没意思` third-person and question guards, ru `незачем жить во/в...` guard, hi `क्या`/`अगर`/`तो`/`?` guards.
 - Accepted limitations (round 3): hi/zh question-form suppression (`क्या मुझे मरना है?`, `...活着没意思吗`) can miss a rhetorical crisis question; `一个人想跳楼` is missed by the 人 guard; quoted Bible speech that matches a crisis phrase fires, which is the safe direction. The ru `незачем жить` exclusion is deliberately narrow (`во грехе/страхе`, `ради денег`, `для себя`); other continuations (`без тебя`, `в одиночестве`) stay crisis.
+
+## Follow-ups
+
+- BITB-200: question-form and edge recall gaps (hi/zh) suppressed by this story's guards.

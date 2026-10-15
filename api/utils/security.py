@@ -367,6 +367,17 @@ def normalize_text(text: str) -> str:
     return text.lower()
 
 
+# Hindi "self object" guard: a kill pattern must never swallow "खुद को मार ..." (self-harm).
+# Python lookbehinds are fixed width, hence one per alternative. NFKC splits ख़ into ख + U+093C.
+_HI_SELF = r"(?<!खुद को )(?<!खुद को भी )(?<!अपने को )(?<!ख़ुद को )(?<!ख़ुद को भी )(?<!खु\u093cद को )(?<!अपने आप को )(?<!स्वयं को )"
+
+# Korean "self object" guard (fixed-width lookbehinds): never swallow "나를 죽이고 싶어" etc.
+_KO_SELF = (
+    r"(?<!자신을 )(?<!자신 )(?<!자기를 )(?<!자기 )(?<!나를 )(?<!저를 )(?<!날 )"
+    r"(?<!스스로 )(?<!스스로를 )"
+)
+
+
 class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
@@ -381,8 +392,18 @@ class MultiLanguageContentFilter:
     # Violence patterns by language
     VIOLENCE_PATTERNS = {
         "en": [
-            r"\bbomb\b",
-            r"\bexplosive\b",
+            r"\bbomb(?:s|ing|ings|er|ers)?\b",
+            r"\bexplosives?\b",
+            r"\bdetonat",
+            r"\bmass[ -]?shoot",
+            r"\bschool[ -]?shoot",
+            r"\bgrenades?\b",
+            r"\bmolotovs?\b",
+            r"\bieds?\b",
+            r"\bnapalm\b",
+            r"\bricin\b",
+            r"\banthrax\b",
+            r"\bsarin\b",
             r"\bweapon\b",
             r"\bgun\b",
             r"\bkill\b",
@@ -394,8 +415,12 @@ class MultiLanguageContentFilter:
             r"\bslaughter\b",
         ],
         "it": [
-            r"\bbomba\b",
+            r"\bbomb[ae]\b",
             r"\besplosi",
+            r"\besplod",
+            r"\battentat",
+            r"\bgranat[ae]\b",
+            r"\bmolotov\b",
             r"\barma\b",
             r"\barmi\b",
             r"\buccidere\b",
@@ -406,8 +431,16 @@ class MultiLanguageContentFilter:
             r"\baccoltellare\b",
         ],
         "de": [
-            r"\bbombe\b",
+            r"\bbomben?\b",
             r"\bsprengstoff\b",
+            r"\bsprengsatz",
+            r"\banschlag",
+            r"\bamok",
+            r"\battentat",
+            r"\bhandgranate",
+            r"\bgranaten?\b",
+            r"\bmolotow",
+            r"\bmolotov",
             r"\bwaffe\b",
             r"\bwaffen\b",
             r"\btöten\b",
@@ -418,8 +451,12 @@ class MultiLanguageContentFilter:
             r"\bstechen\b",
         ],
         "es": [
-            r"\bbomba\b",
-            r"\bexplosivo\b",
+            r"\bbombas?\b",
+            r"\bexplosiv",
+            r"\batentado",
+            r"\btiroteo",
+            r"\bgranadas? de mano\b",
+            r"\bmolotov\b",
             r"\barma\b",
             r"\barmas\b",
             r"\bmatar\b",
@@ -430,8 +467,12 @@ class MultiLanguageContentFilter:
             r"\bapuñalar\b",
         ],
         "fr": [
-            r"\bbombe\b",
-            r"\bexplosif\b",
+            r"\bbombes?\b",
+            r"\bexplosifs?\b",
+            r"\battentat",
+            r"\bfusillade",
+            r"\bgrenades? (?:\u00e0|a) main\b",
+            r"\bmolotov\b",
             r"\barme\b",
             r"\barmes\b",
             r"\btuer\b",
@@ -442,8 +483,12 @@ class MultiLanguageContentFilter:
             r"\bpoignarder\b",
         ],
         "pt": [
-            r"\bbomba\b",
-            r"\bexplosivo\b",
+            r"\bbombas?\b",
+            r"\bexplosiv",
+            r"\batentado",
+            r"\btiroteio",
+            r"\bgranadas? de m[a\u00e3]o\b",
+            r"\bmolotov\b",
             r"\barma\b",
             r"\barmas\b",
             r"\bmatar\b",
@@ -462,8 +507,96 @@ class MultiLanguageContentFilter:
             r"جريمة قتل",
             r"هجوم",
             r"إرهاب",
+            r"قنبل",
+            r"تفجير",
+            r"ناسف",
+            r"ارهاب",
+        ],
+        # BITB-198 / BITB-194: native ru/zh/hi/ko. These describe intent (first-person
+        # future/desire, or "how to" questions) rather than bare verbs, because Bible
+        # narrative uses third person / past tense ("David killed Goliath"). Bare nouns are
+        # used only where they never occur in scripture (bomb, explosives, terror, grenade,
+        # molotov, pistol, rifle). Massacre words stay in HARD_VIOLENCE_PATTERNS only. Kill and
+        # attack intent patterns never swallow a self-harm phrase (self-object guard).
+        "ru": [
+            r"\bбомб(?:а|у|ы|ой|е|ами|ах)?\b",
+            r"\bвзрывчатк",
+            r"\bвзрывн\w* устройств",
+            r"\bвзорв(?:ать|у|ём|ем)\b",
+            r"\bтеракт",
+            r"\bтеррор",
+            r"\bрасстрел",
+            r"\bручн\w* гранат",
+            r"\bкоктейл\w* молотова\b",
+            r"\bпистолет",
+            r"\bогнестрельн",
+            r"\b(?:хочу|хотим|собираюсь|собираемся|буду|планирую|как)\s+(?:(?!себя\b)\w+\s+)?"
+            r"(?:убить|зарезать|застрелить|отравить|взорвать|напасть)\b"
+            r"(?!\s+(?:и\s+|же\s+)?(?:себя|самого\s+себя|самой\s+себя))",
+            r"\b(?:убью|зарежу|застрелю|отравлю|взорву|нападу)\b(?!\s+(?:и\s+|же\s+)?себя)",
+        ],
+        "zh": [
+            r"炸[弹彈药藥]",
+            r"爆炸(?:物|装置|裝置)",
+            r"恐怖(?:分子|份子|袭击|襲擊|主义|主義|活动|活動)",
+            r"恐攻",
+            r"恐袭",
+            r"手榴[弹彈]",
+            r"燃[烧燒]瓶",
+            r"[枪槍]击",
+            r"炸(?:掉|毁|毀|死)",
+            r"手[枪槍]",
+            r"步[枪槍]",
+            r"[枪槍]支",
+            r"(?:我|我们|我們)(?:要|想|想要|会|會|准备|準備|打算|计划|計劃|一定要)(?:去)?"
+            r"(?:杀|殺|砍死|捅死|毒死|弄死|干掉|幹掉|袭击|襲擊|攻击|攻擊)"
+            r"(?![死了掉]?(?:我|我们|我們)?自己)(?!人(?:是|就是|不|有|的|会|會|吗|嗎))",
+            r"(?:怎么|怎麼|怎样|怎樣|如何)(?:才能|能|可以)?(?:杀|殺)(?:死|掉)?"
+            r"(?:人|一个人|一個人|别人|別人)",
+        ],
+        "hi": [
+            r"(?<![ऀ-ॿ])बम(?:ों|ो)?(?![ऀ-ॿ])",
+            r"बमबारी",
+            r"विस्फोटक",
+            r"आतंकवाद",
+            r"आतंकी",
+            r"हथगोल[ाे]",
+            r"बंदूक",
+            r"पिस्तौल",
+            r"तमंचा",
+            _HI_SELF + r"मार (?:डालूँगा|डालूंगा|डालूँगी|डालूंगी|दूँगा|दूंगा|दूँगी|दूंगी)",
+            _HI_SELF + r"मार(?: डाल)?ना चाहत[ाी] ह(?:ूँ|ूं)",
+            r"हमला (?:करूँगा|करूंगा|करूँगी|करूंगी)",
+            r"हमला करना चाहत[ाी] ह(?:ूँ|ूं)",
+            r"किसी को (?:जान से )?कैसे मार",
+        ],
+        "ko": [
+            r"폭탄",
+            r"폭발물",
+            r"폭발시[키킬켜킨킵켰]",
+            r"폭파",
+            r"테러",
+            r"총기 ?난사",
+            r"수류탄",
+            r"화염병",
+            r"권총",
+            r"소총",
+            _KO_SELF + r"죽이고 ?싶(?!어 ?하|어 ?했|어하|었)",
+            _KO_SELF + r"죽일 ?(?:거야|거예요|거에요|겁니다|거다|테다|꺼야)",
+            _KO_SELF + r"죽여 ?버리겠",
+            _KO_SELF + r"죽여 ?버릴 ?(?:거|게|꺼)",
+            r"(?:사람|누군가)(?:을|를)? ?죽이는 ?(?:방법|법)",
+            r"(?:공격|습격|폭파)할 ?(?:거야|거예요|겁니다|계획)",
         ],
     }
+
+    # Reconciliation rule (BITB-198): every HARD_VIOLENCE_PATTERNS[L] term is also in
+    # VIOLENCE_PATTERNS[L], except the massacre family (massacre, strage, Massaker, masacre,
+    # مجزرة, 屠杀, 학살, नरसंहार ...) and terms that need the hard filter's context exclusions
+    # (en ``attack`` prefix, ``terror*`` variants, ``shoot up``, ``blow up``, it ``attacc*``).
+    # Languages whose scripts do not overlap with the detected language's can be matched
+    # regardless of the detector's verdict: see SCRIPT_DISJOINT_VIOLENCE_LANGS.
+    SCRIPT_DISJOINT_VIOLENCE_LANGS = ("ar", "ru", "zh", "hi", "ko")
 
     # Hard-violence terms (BITB-185 v2 / H1): explosives, bombings, terror, massacre,
     # mass shooting. Matched script-agnostically (all languages at once) on normalized
@@ -573,6 +706,9 @@ class MultiLanguageContentFilter:
             r"террор",
             r"расстрел",
             r"нападен",
+            r"\bнапа(?:сть|ду|дём|дем)\b",
+            r"\bручн\w* гранат",
+            r"\bкоктейл\w* молотова",
         ],
         "zh": [
             r"炸弹",
@@ -589,6 +725,8 @@ class MultiLanguageContentFilter:
             r"屠殺",
             r"枪击",
             r"槍擊",
+            r"手榴[弹彈]",
+            r"燃[烧燒]瓶",
         ],
         "hi": [
             r"(?<![\u0900-\u097f])बम(?:ों|ो)?(?![\u0900-\u097f])",
@@ -597,6 +735,7 @@ class MultiLanguageContentFilter:
             r"आतंक",
             r"नरसंहार",
             r"हमला",
+            r"हथगोल[ाे]",
         ],
         "ko": [
             r"폭탄",
@@ -606,6 +745,8 @@ class MultiLanguageContentFilter:
             r"테러",
             r"학살",
             r"총기\s?난사",
+            r"수류탄",
+            r"화염병",
         ],
     }
 
