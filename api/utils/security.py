@@ -367,6 +367,138 @@ def normalize_text(text: str) -> str:
     return text.lower()
 
 
+# ---------------------------------------------------------------------------
+# BITB-196: murder-suicide / elliptical third-party phrasing
+# ---------------------------------------------------------------------------
+# "I want to kill myself and my family" carries a self-harm span, and the remaining words
+# ("my family", "everyone") are not violence keywords. These tables match ONLY the
+# third-party part so the fallback can route the message to the ambiguous branch.
+# A clause-end guard keeps "I want to die and my family doesn't understand" out.
+_MS_PUNCT = "[.,;:!?)\\]}\"'…。、」』）،؛؟।\n]"
+
+
+def _ms_end(extra: str = "") -> str:
+    """Clause-end guard: optional filler words, then punctuation or end of text."""
+    words = "too|also|as well|first" if not extra else extra
+    return r"(?:\s+(?:" + words + r"))*\s*(?:" + _MS_PUNCT + r"|$)"
+
+
+_MS_EN_N = (
+    r"(?:(?:my|our)\s+(?:whole\s+|entire\s+)?(?:family|wife|husband|kids|children|son|sons|"
+    r"daughter|daughters|parents|mom|mother|dad|father|coworkers|co-workers|classmates|"
+    r"friends|girlfriend|boyfriend|baby|babies)|everyone(?:\s+else)?|everybody|them\s+all|"
+    r"all\s+of\s+(?:them|you|us)|the\s+whole\s+family|anyone\s+else)"
+)
+_MS_IT_N = (
+    r"(?:la\s+mia\s+(?:intera\s+)?famiglia|mia\s+moglie|mio\s+marito|(?:i\s+miei|le\s+mie)\s+"
+    r"(?:figli|figlie|genitori|colleghi|compagni|amici|amiche)|mio\s+figlio|mia\s+figlia|"
+    r"tutti|tutta\s+la\s+famiglia|chiunque)"
+)
+_MS_DE_N = (
+    r"(?:meine[rn]?\s+(?:ganze\s+)?(?:familie|frau|kinder|eltern|kollegen|mitschüler|"
+    r"freunde|tochter|töchter|söhne)|mein(?:en)?\s+(?:mann|sohn)|alle(?:\s+anderen)?|jeden)"
+)
+_MS_ES_N = (
+    r"(?:a\s+)?(?:mi\s+(?:familia|esposa|esposo|marido|mujer|hij[oa]|compañeros|amigos|"
+    r"colegas)|mis\s+(?:hijos|hijas|padres|compañeros|amigos|colegas)|toda\s+mi\s+familia|"
+    r"todos|todo\s+el\s+mundo)"
+)
+_MS_FR_N = (
+    r"(?:(?:aussi\s+)?(?:ma\s+(?:famille|femme|fille|mère)|mon\s+(?:mari|fils|père)|"
+    r"mes\s+(?:enfants|parents|collègues|camarades|amis|fils|filles)|toute\s+ma\s+famille|"
+    r"tout\s+le\s+monde|tous))"
+)
+_MS_PT_N = (
+    r"(?:minha\s+(?:família|familia|esposa|mulher|filha)|meu\s+(?:marido|filho)|"
+    r"meus\s+(?:filhos|pais|colegas|amigos)|minhas\s+filhas|toda\s+a\s+minha\s+(?:família|familia)|"
+    r"todos|todo\s+mundo)"
+)
+_MS_AR_N = (
+    r"(?:كل\s+)?(?:عائلتي|عايلتي|أسرتي|اسرتي|زوجتي|زوجي|أولادي|اولادي|أطفالي|اطفالي|ابني|"
+    r"ابنتي|بناتي|والدي|والديّ|أهلي|اهلي|زملائي|أصدقائي|الجميع|الناس|الكل|من\s+حولي)"
+)
+_MS_RU_N = (
+    r"(?:(?:свою\s+|мою\s+|всю\s+)?(?:семью|жену|мужа|детей|родителей|сына|дочь|коллег|"
+    r"одноклассников|друзей)|всех(?:\s+вокруг)?)"
+)
+_MS_ZH_N = r"(?:全家人?|一家人|家人|孩子们?|老婆|妻子|丈夫|所有人|大家)"
+_MS_KO_N = (
+    r"(?:온\s*가족|가족|아내|남편|아이들|애들|자식들?|부모님?|동료들?|친구들|모두|사람들|다들)"
+)
+_MS_HI_N = r"(?:परिवार|पत्नी|पति|बच्चों|बच्चे|बेटे|बेटी|माता-पिता|माँ-बाप|सबको|सभी|सब)"
+
+_MURDER_SUICIDE_PATTERNS: dict[str, list[str]] = {
+    "en": [
+        r"(?<!\bme )(?<!\bme, )\b(?:and|plus)\s+"
+        + _MS_EN_N
+        + _ms_end(r"too|also|as well|first|and\s+(?:my\s+)?\w+(?:\s+too)?"),
+        r"\b(?:take|bring|drag|carry)\s+" + _MS_EN_N + r"\s+(?:down\s+)?with\s+me\b",
+        r"\bmurder[\s-]*suicide\b",
+        r"\bfamilicide\b",
+    ],
+    "it": [
+        r"(?<!\bme )\b(?:e|ed|con|più)\s+" + _MS_IT_N + _ms_end("anche|pure|insieme|prima"),
+        r"\b(?:port\w+|trasc\w+)\s+(?:via\s+)?" + _MS_IT_N + r"\s+con\s+me\b",
+        r"\bomicidio[\s-]+suicidio\b",
+    ],
+    "de": [
+        r"(?<!für mich )(?<!für mir )(?<!\bmir )\b(?:und|sowie)\s+"
+        + _MS_DE_N
+        + _ms_end("auch|mit|gleich|zuerst|umbringen|töten|mitnehmen|mit\\s+in\\s+den\\s+tod"),
+        r"\balle(?:\s+anderen)?\s+mit\s+in\s+den\s+tod\b",
+        r"\b(?:mit\s+in\s+den\s+tod\s+nehmen|erweiterter\s+suizid)\b",
+    ],
+    "es": [
+        r"(?<!\bmí )(?<!\bmi )\b(?:y|e|con)\s+"
+        + _MS_ES_N
+        + _ms_end("también|tambien|igual|primero"),
+        r"\b(?:llev\w+|arrastr\w+)\s+(?:a\s+)?" + _MS_ES_N + r"\s+conmigo\b",
+        r"\b(?:homicidio|asesinato)[\s-]+suicidio\b",
+    ],
+    "fr": [
+        r"(?<!\bmoi )\b(?:et|avec|ainsi\s+que)\s+" + _MS_FR_N + _ms_end("aussi|également|d'abord"),
+        r"\b(?:emmen\w+|entra[îi]n\w+|emport\w+|prendre)\s+" + _MS_FR_N + r"\s+avec\s+moi\b",
+        r"\bmeurtre[\s-]+suicide\b",
+    ],
+    "pt": [
+        r"(?<!\bmim )\b(?:e|com)\s+" + _MS_PT_N + _ms_end("também|tambem|junto|primeiro"),
+        r"\b(?:lev\w+|arrast\w+)\s+" + _MS_PT_N + r"\s+comigo\b",
+        r"\bhomic[ií]dio[\s-]+suic[ií]dio\b",
+    ],
+    "ar": [
+        r"(?<![؀-ۿ])و" + _MS_AR_N + _ms_end("أيضا|أيضاً|معي|كذلك|معا|أولا"),
+        r"(?:آخذ|اخذ|أخذ|أصطحب|اصطحب|أسحب)\s+" + _MS_AR_N + r"\s+معي",
+        r"قتل\s+ثم\s+انتحار",
+    ],
+    "ru": [
+        r"(?<!\bменя )\bи\s+" + _MS_RU_N + _ms_end("тоже|также|с собой|заодно|вместе с собой"),
+        r"\b(?:забра\w+|взя\w+|утащ\w+|увест\w+)\s+" + _MS_RU_N + r"\s+с\s+собой\b",
+        r"\bубийств\w*[\s-]+(?:и\s+)?самоубийств",
+    ],
+    "zh": [
+        r"[带帶]着?" + _MS_ZH_N + r"(?:一起|一同)(?:去)?(?:死|走|上路)",
+        r"和?" + _MS_ZH_N + r"一起(?:去)?(?:死|自[杀殺]|上路)",
+        r"(?:拉着|拖着|带上|帶上)" + _MS_ZH_N + r"(?:一起|陪葬|垫背|墊背)",
+        r"(?:想|要|打算|准备|準備)[^，。,.？?\n]{0,6}同归于尽",
+        r"(?:想|要|打算|准备|準備)[^，。,.？?\n]{0,6}同歸於盡",
+        r"[杀殺]了?" + _MS_ZH_N,
+        r"一家人?(?:一起)?(?:去死|自[杀殺]|上路)",
+    ],
+    "hi": [
+        r"(?<!आत्म)हत्या[-\s]*आत्महत्या",
+        r"आत्महत्या\s+और\s+हत्या",
+        _MS_HI_N + r"(?:\s+को)?\s+(?:भी\s+)?(?:मार|साथ\s+(?:में\s+)?ले|ख़?त्म)",
+        _MS_HI_N + r"\s+को\s+भी" + _ms_end("साथ|ले जाना"),
+    ],
+    "ko": [
+        _MS_KO_N + r"(?:을|를|도|과|와|이랑|랑|까지)?\s*(?:모두\s*)?(?:죽이|죽일|죽여|죽였)",
+        _MS_KO_N
+        + r"(?:을|를|도|과|와|이랑|랑)?\s*(?:같이|함께|데리고|끌고)\s*(?:\S{0,4}\s*)?(?:죽|가|떠나|갈|데려|끌)",
+        r"동반\s*자살|일가족\s*(?:동반|자살|살해)|가족\s*동반",
+    ],
+}
+
+
 class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
@@ -652,6 +784,8 @@ class MultiLanguageContentFilter:
             r"\bmich umbringen\b",
             r"\bselbstverletzung\b",
             r"\bich will sterben\b",
+            # BITB-196: split verb, "mich und meine Familie umbringen"
+            r"\bmich\s+und\s+(?:meine[rn]?|mein|alle|die)\b[^.!?\n]{0,40}?\b(?:umbringen|töten)\b",
         ],
         "es": [
             r"\bsuicidio\b",
@@ -736,6 +870,8 @@ class MultiLanguageContentFilter:
             r"割腕",
             r"伤害自己",
             r"傷害自己",
+            # BITB-196: "带着全家一起死" (taking the family along)
+            r"[带帶]着?(?:全家人?|一家人|家人|孩子们?|老婆|妻子|丈夫|所有人|大家)一起(?:去)?死",
         ],
         "hi": [
             r"आत्महत्या",
@@ -766,6 +902,9 @@ class MultiLanguageContentFilter:
             r"사라지고 ?싶(?!지 ?않)",
         ],
     }
+
+    # BITB-196: third-party part of murder-suicide / elliptical phrasing (see module table)
+    MURDER_SUICIDE_PATTERNS = _MURDER_SUICIDE_PATTERNS
 
     # Hate speech patterns (language-agnostic)
     HATE_SPEECH_PATTERNS = {
@@ -834,6 +973,12 @@ class MultiLanguageContentFilter:
         # Compile hard-violence patterns into ONE script-agnostic regex (BITB-185 v2)
         self._hard_violence_regex = re.compile(
             "|".join(p for pats in self.HARD_VIOLENCE_PATTERNS.values() for p in pats),
+            re.IGNORECASE | re.UNICODE,
+        )
+
+        # Compile murder-suicide patterns into ONE script-agnostic regex (BITB-196)
+        self._murder_suicide_regex = re.compile(
+            "|".join(p for pats in self.MURDER_SUICIDE_PATTERNS.values() for p in pats),
             re.IGNORECASE | re.UNICODE,
         )
 
@@ -920,6 +1065,17 @@ class MultiLanguageContentFilter:
                 continue  # "night terrors" is a sleep disorder, not terrorism
             matches.append((m.start(), m.end(), m.group(0)))
         return matches
+
+    def find_murder_suicide_matches(self, normalized: str) -> list[tuple[int, int, str]]:
+        """Return ``(start, end, text)`` for third-party targets of murder-suicide phrasing.
+
+        BITB-196: "kill myself AND MY FAMILY", "take everyone with me". Script-agnostic;
+        ``normalized`` must already be passed through :func:`normalize_text`.
+        """
+        return [
+            (m.start(), m.end(), m.group(0))
+            for m in self._murder_suicide_regex.finditer(normalized)
+        ]
 
     def find_directed_harm(self, normalized: str) -> str | None:
         """Search directed-harm patterns (every language) and hate speech (BITB-185).
