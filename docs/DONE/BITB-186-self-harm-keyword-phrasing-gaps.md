@@ -1,6 +1,6 @@
 # BITB-186: Self-Harm Keyword Fallback — Cover Missed Crisis Phrasings and Negations
 
-**Status:** 🔍 In Review
+**Status:** ✅ Done — PR #1169 merged 2026-10-14 (native-speaker review AC left open)
 **Size:** S
 **Created:** 2026-10-11
 
