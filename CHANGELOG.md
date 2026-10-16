@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.57.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.57.0...v1.57.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **api:** cover missed zh/ko/ru/hi crisis phrasings in self-harm fallback (BITB-186) ([#1169](https://github.com/zioalex/getinspiredbythebible/issues/1169)) LP ([c8ca4b8](https://github.com/zioalex/getinspiredbythebible/commit/c8ca4b8501157fa06e7c3d14715a3b8ee98dfb4a))
+* **api:** second-opinion classifier for ambiguous self-harm vs violence fallback (BITB-185) ([#1166](https://github.com/zioalex/getinspiredbythebible/issues/1166)) ([b7b5160](https://github.com/zioalex/getinspiredbythebible/commit/b7b5160821271ca6daa9d800aa747bf89d2178e7))
+
+
+### Documentation
+
+* close BITB-185 (PR [#1166](https://github.com/zioalex/getinspiredbythebible/issues/1166) merged) ([#1168](https://github.com/zioalex/getinspiredbythebible/issues/1168)) ([04a339d](https://github.com/zioalex/getinspiredbythebible/commit/04a339d33a6e3a4880c1559b57706936b329d624))
+
 ## [1.57.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.56.0...v1.57.0) (2026-10-12)
 
 ### Features
