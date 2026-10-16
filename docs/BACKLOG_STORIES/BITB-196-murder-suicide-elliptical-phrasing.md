@@ -44,3 +44,8 @@ benign. Plain self-harm ("I want to kill myself") is unchanged: compassionate, n
 Optionally also refuse a SELF_HARM override when a third-party target follows a method word
 (`kill|murder|shoot` + `my|his|her|them|everyone|people`). Verifier examples: "kill myself and
 kill my wife", "get a gun to shoot my coworkers".
+
+## Follow-ups
+
+- BITB-201 — trailing words / missed targets; BITB-202 — proximity to the self-harm clause (false positives);
+  BITB-203 — missing suicide verbs (pre-existing recall gap).
