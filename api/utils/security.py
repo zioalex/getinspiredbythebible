@@ -463,8 +463,117 @@ class MultiLanguageContentFilter:
             r"هجوم",
             r"إرهاب",
         ],
+        # BITB-198: ru/zh/hi/ko are deliberately NARRATIVE-SAFE (BITB-194 design principle).
+        # Bible questions are full of killing, murder, attacks, massacre and weapons (David
+        # and Goliath, Cain and Abel, Saul wanting to kill David, Herod's massacre, the
+        # Philistines attacking, "weapons of our warfare", "thou shalt not murder"). So bare
+        # kill/murder/attack/massacre/weapon words are NOT listed for these languages.
+        # Only explosives/terror terms, firearm nouns and first-person / how-to intent
+        # phrasings are matched. (en/it/de/... still carry bare verbs; see BITB-194.)
+        "ru": [
+            # Excluded on purpose: убить/убийство/нападение/оружие/меч/бойня (narrative).
+            r"\bбомб(?:а|у|ы|ой|е|ам|ами|ах)?\b",
+            r"\bвзрывчат",
+            r"\bвзорв(?:ать|у|ём|ем|ут)\b",
+            r"\bвзрывн\w* устройств",
+            r"\bтеррор",
+            r"\bтеракт",
+            r"\bрасстрел",
+            r"\bпистолет",
+            r"\bогнестрел",
+            r"\bвинтовк",
+            r"\bзастрел(?:ить|ю|им|ят|и)\b(?!\s+себя)",
+            r"\bхочу (?:убить|зарезать|застрелить|отравить) "
+            r"(?:его|[её]е|их|тебя|вас|человека|людей|кого-нибудь|кого-то|всех|мужа|жену|соседа)\b",
+            r"\bкак (?:убить|зарезать|застрелить|отравить) "
+            r"(?:человека|людей|кого-нибудь|кого-то)\b",
+            r"\bя (?:убью|зарежу|застрелю|пристрелю|прикончу)\b(?!\s+себя)",
+            r"\b(?:хочу|собираюсь|планирую) напасть на\b",
+            r"\bнападу на\b",
+        ],
+        # Excluded on purpose: bare 杀/殺/谋杀/攻击/屠杀/兵器/武器/刀/剑 (narrative).
+        "zh": [
+            r"炸弹",
+            r"炸彈",
+            r"炸药",
+            r"炸藥",
+            r"爆炸物",
+            r"引爆",
+            r"爆破",
+            r"恐怖(?:分子|份子|袭击|襲擊|主义|主義|活动|活動)",
+            r"恐攻",
+            r"恐袭",
+            r"恐襲",
+            r"枪支",
+            r"槍支",
+            r"槍枝",
+            r"手枪",
+            r"手槍",
+            r"步枪",
+            r"步槍",
+            r"机枪",
+            r"機槍",
+            r"枪击",
+            r"槍擊",
+            r"开枪",
+            r"開槍",
+            r"我(?:真的?|好|很)?(?:想|要|会|會)(?:要|去)?(?:杀|殺)(?:了|死|掉)?"
+            r"(?:他|她|你|人|他们|他們|她们|她們|全家|所有人|大家)",
+            r"(?:怎么|怎麼|如何|怎样|怎樣)(?:才能|可以)?(?:杀|殺)(?:死|掉)?"
+            r"(?:人|一个人|一個人|别人|別人)",
+            r"(?:杀人|殺人|谋杀|謀殺)(?:方法|计划|計劃|计画)",
+        ],
+        # Devanagari: \b is unreliable (matras are \W in some engines), so explicit
+        # Devanagari look-arounds are used. Excluded on purpose: bare मारना/हत्या/हमला/
+        # नरसंहार/हथियार/तलवार (narrative: दाऊद ने गोलियत को कैसे मारा, हेरोदेस का नरसंहार).
+        "hi": [
+            r"(?<![\u0900-\u097f])बम(?:ों|ो)?(?![\u0900-\u097f])",
+            r"बमबारी",
+            r"विस्फोट",
+            r"आतंक(?:वाद|वादी|वादियों|ी)",
+            r"ब(?:[ंँ]|न्)दूक",
+            r"पिस्तौल",
+            r"पिस्टल",
+            r"राइफल",
+            r"गोली मार",
+            r"(?:उसे|उसको|उन्हें|उनको|तुम्हें|तुझे|आपको|किसी को|सबको|सब को|लोगों को) "
+            r"(?:जान से )?मार (?:डालूँगा|डालूंगा|डालूँगी|डालूंगी|दूँगा|दूंगा|दूँगी|दूंगी)",
+            # Target required: self-targets (खुद को / अपने ... को, "kill my pride") never match.
+            r"(?:उसे|उसको|उन्हें|उनको|तुम्हें|तुझे|आपको|किसी को|सबको|सब को|लोगों को) "
+            r"मारना चाहत[ाी] (?:हूँ|हूं)",
+            # Trailing Devanagari boundary (मारूँगा नहीं) and a "नहीं" guard (मारें नहीं = "don't").
+            r"किसी (?:इंसान )?को (?:कैसे )?(?:जान से )?"
+            r"मार(?:ें|ूँ|ूं| डालें| डालूँ| डालूं)(?![\u0900-\u097f])(?!\s+नहीं)",
+            r"हत्या (?:कैसे करें|करने का तरीका)",
+        ],
+        # Excluded on purpose: bare 죽이/죽였/살인/학살/무기/칼 (narrative: 다윗은 어떻게
+        # 골리앗을 죽였나요, 살인하지 말라). "죽이고 싶어 했" (third person) is excluded.
+        "ko": [
+            r"폭탄",
+            r"폭발물",
+            r"폭발시[키킬켜킨킵켰]",
+            r"폭파",
+            r"테러",
+            r"총기",
+            r"권총",
+            r"소총",
+            r"총[으을]로? ?쏘",
+            r"(?:사람|누군가|그 ?사람|그 ?놈|그 ?녀석|걔|남편|아내)(?:들)?(?:을|를)? ?"
+            r"죽이(?:고 ?싶(?!어 ?(?:하|했|한)|었|지 ?않)|겠|는 ?방법|는 ?법)",
+            r"죽여 ?버리(?:겠|고 ?싶)",
+            r"죽여 ?버릴 ?(?:거|게|꺼)",
+            r"살인 ?(?:방법|계획|하고 ?싶|할 ?거)",
+        ],
     }
 
+    # Reconciliation rule (BITB-198): this table is a SUPERSET-BY-INTENT of the explosives /
+    # terror / massacre terms in VIOLENCE_PATTERNS, but it is NOT a subset relation by text:
+    # it is only consulted next to self-harm, where over-matching is cheap, so it keeps
+    # broad stems (attack, massacre, взрыв, 袭击). VIOLENCE_PATTERNS runs on ordinary
+    # questions, where over-matching blocks Bible study, so ru/zh/hi/ko there are narrative-
+    # safe. Rule: every explosives/terror/firearm-noun term in VIOLENCE_PATTERNS must also be
+    # caught here (or be a method word), and nothing is added here that is not also a hard
+    # threat. Tests in test_violence_keyword_fallback_languages.py enforce this.
     # Hard-violence terms (BITB-185 v2 / H1): explosives, bombings, terror, massacre,
     # mass shooting. Matched script-agnostically (all languages at once) on normalized
     # text. In a self-harm message these are NEVER a "method" of self-harm, so they
@@ -568,21 +677,29 @@ class MultiLanguageContentFilter:
             r"бомб",
             r"взрывчат",
             r"взрыв",
+            r"взорв",
             r"взорва",
             r"теракт",
             r"террор",
             r"расстрел",
             r"нападен",
+            # BITB-198: only "attack ON <target>" forms. Bare напал(а|и)/нападает are NOT matched:
+            # idiomatic "на меня напала тоска/паника/хандра" is a crisis message, not a threat.
+            r"\bнапасть на\b",
+            r"\bнападу на\b",
         ],
         "zh": [
             r"炸弹",
+            r"炸彈",
             r"炸藥",
             r"炸药",
             r"爆炸",
+            r"引爆",
             r"爆破",
             r"恐怖(?:分子|份子|袭击|襲擊|主义|主義|活动|活動)",
             r"恐攻",
             r"恐袭",
+            r"恐襲",
             r"袭击",
             r"襲擊",
             r"屠杀",
@@ -706,6 +823,9 @@ class MultiLanguageContentFilter:
             r"\bжить не хочу\b",
             r"(?<!\bне )\bхочется умереть\b",
             r"\bубью себя\b",
+            r"\bзастрелю себя\b",
+            r"\bзастрелить себя\b",
+            r"\bзастрел(?:иться|юсь)\b(?: из (?:пистолет|винтовк|ружь)\w*)?",
             r"\bрежу себя\b",
         ],
         "zh": [
@@ -736,6 +856,10 @@ class MultiLanguageContentFilter:
             r"割腕",
             r"伤害自己",
             r"傷害自己",
+            # BITB-198: self-targeted shooting. The span must cover the gun verb so the
+            # violence pattern 开枪/開槍 lies INSIDE it and does not route to the ambiguous branch.
+            r"[对對向朝]自己[开開][枪槍]",
+            r"[开開][枪槍]自[杀殺]",
         ],
         "hi": [
             r"आत्महत्या",
@@ -750,6 +874,9 @@ class MultiLanguageContentFilter:
             r"जीना नहीं चाहती",
             r"जीने का कोई मतलब नहीं",
             r"(?<!क्या )(?<!अगर )मुझे मरना है(?! तो)(?!\s*\?)",
+            # BITB-198: self-targeted shooting (span covers "गोली मार" so the violence pattern
+            # lies inside it). Others-targeted "उसे गोली मार दूँगा" stays a violence block.
+            r"(?:ख\u093c?ुद|अपने आप) ?(?:को )?गोली (?:मार|चला)[\u0900-\u097f]*",
         ],
         "ko": [
             r"(?<!혼)자살",
