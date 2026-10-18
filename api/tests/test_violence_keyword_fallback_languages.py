@@ -255,8 +255,20 @@ def test_hard_only_terms_stay_clean_without_self_harm(service, language, text):
 # --- self-harm interaction ----------------------------------------------------------------
 
 
+# Method questions: "आत्महत्या कैसे करें" contains the substring "हत्या कैसे करें".
+CRISIS_HOW_TO = [
+    ("hi", "आत्महत्या कैसे करें"),
+    ("hi", "मैं आत्महत्या कैसे करूँ?"),
+    ("hi", "मुझे बताओ आत्महत्या कैसे करें"),
+    ("hi", "आत्म-हत्या कैसे करूँ"),
+    ("hi", "आत्म हत्या कैसे करें"),
+]
+
+
 @pytest.mark.parametrize("ui_lang", LANGUAGES)
-@pytest.mark.parametrize("text_lang,text", CRISIS + CRISIS_VARIANTS + FIRST_PERSON_OVERLAP)
+@pytest.mark.parametrize(
+    "text_lang,text", CRISIS + CRISIS_VARIANTS + FIRST_PERSON_OVERLAP + CRISIS_HOW_TO
+)
 def test_pure_crisis_stays_compassionate(service, ui_lang, text_lang, text):
     result = _fallback(service, text, ui_lang)
     assert result.allowed is True, text
@@ -336,3 +348,72 @@ def test_directed_harm_unchanged(service):
     result = _fallback(service, "I will kill you", "en")
     assert result.allowed is False
     assert "directed_harm" in result.reason
+
+
+# --- first-person self-harm must never match the native violence intent patterns -----------
+
+SELF_OBJECT = [
+    ("hi", "मैं खुद को कैसे मारूँ?"),
+    ("hi", "मैं खुदको मारना चाहता हूँ"),
+    ("hi", "मैं खुद को ही मारना चाहता हूँ"),
+    ("hi", "मैं अपने आपको मारना चाहता हूँ"),
+    ("hi", "मैं स्वयं को मारना चाहता हूँ"),
+    ("hi", "मैं खुदको मार डालूँगा"),
+    ("hi", "मैं खुद को गोली मारना चाहता हूँ"),
+    ("hi", "मैं खुद की हत्या करना चाहता हूँ"),
+    ("hi", "अपनी हत्या कैसे करूँ"),
+    ("ko", "자신을 죽이는 방법"),
+    ("ko", "나를 죽이는 방법을 알려줘"),
+    ("ko", "날 죽이고 싶어"),
+    ("ko", "저를 죽이고 싶어요"),
+    ("ko", "나 자신을 죽일 거야"),
+    ("ko", "나를 죽여버리고 싶어"),
+    ("ko", "제 자신을 죽이고 싶어요"),
+    ("ru", "я себя убью"),
+    ("ru", "я сам себя убью"),
+    ("zh", "我想杀了我自己"),
+    ("zh", "我要杀死我"),
+]
+
+
+@pytest.mark.parametrize("language,text", SELF_OBJECT)
+def test_self_object_forms_are_not_violence(service, language, text):
+    result = _fallback(service, text, language)
+    assert result.reason not in (VIOLENCE_REASON, AMBIGUOUS_REASON), (text, result.reason)
+    assert result.allowed is True, text
+
+
+@pytest.mark.parametrize(
+    "language,text",
+    [
+        ("ko", "죽고 싶어요. 나를 죽여버리고 싶어"),
+        ("ko", "자살하고 싶어요. 나 자신을 죽일 거예요"),
+        ("ru", "Я хочу умереть, я себя убью"),
+        ("zh", "我想死，我要杀死我"),
+        ("zh", "我想杀了我自己，我想死"),
+        ("hi", "मैं मरना चाहता हूँ, खुद को मार डालूँगा"),
+    ],
+)
+def test_crisis_plus_self_object_stays_compassionate(service, language, text):
+    result = _fallback(service, text, language)
+    assert result.reason == "possible_help_seeking (fallback)", (text, result.reason)
+    assert result.compassionate_response_needed is True
+
+
+# --- Bible / slang false positives found in verification -------------------------------------
+
+BIBLE_AND_SLANG_CLEAN = [
+    ("zh", "扫罗为什么用枪杀大卫？"),  # 枪 = spear in the Chinese Union Version
+    ("zh", "我想杀价"),
+    ("zh", "我要杀毒"),
+    ("ru", "Почему Бог сказал, что надо убить всех амаликитян?"),
+    ("ru", "Как убить ветхого человека в себе?"),
+    ("ru", "как убить свою гордыню"),
+    ("ko", "사울은 왜 다윗을 죽이고 싶었나요"),
+    ("ko", "사울은 다윗을 죽이고 싶었다"),
+]
+
+
+@pytest.mark.parametrize("language,text", BIBLE_AND_SLANG_CLEAN)
+def test_bible_and_slang_false_positives_clean(service, language, text):
+    _assert_clean(_fallback(service, text, language), text)
