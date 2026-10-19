@@ -398,7 +398,7 @@ class MultiLanguageContentFilter:
             r"\bshoot\b",
             r"\bstab\b",
             r"\bslaughter\b",
-            r"\bgrenades?\b",
+            r"\bhand ?grenades?\b",
             r"\bmolotovs?\b",
             r"\bieds?\b",
             r"\bnapalm\b",
@@ -421,7 +421,7 @@ class MultiLanguageContentFilter:
             r"\bsparare\b",
             r"\baccoltellare\b",
             r"\battentat",
-            r"\bgranat[ae]\b",
+            r"\bgranat[ae] a mano\b",
             r"\bmolotov\b",
         ],
         "de": [

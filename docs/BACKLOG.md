@@ -311,7 +311,7 @@ Follow-up to BITB-185 v2: "I want to kill myself and my family", "...and take ev
 
 Full story: [`BITB-196-murder-suicide-elliptical-phrasing.md`](BACKLOG_STORIES/BITB-196-murder-suicide-elliptical-phrasing.md)
 
-### 🎯 BITB-198: Keyword Fallback Has No Native Violence Patterns for ru/zh/hi/ko
+### 🔍 BITB-198: Keyword Fallback Has No Native Violence Patterns for ru/zh/hi/ko
 
 **Status:** 🔍 In Review
 **Priority:** P1
