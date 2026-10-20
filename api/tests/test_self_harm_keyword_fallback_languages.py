@@ -122,6 +122,14 @@ CRISIS = [
     ("ru", "Хочу сдохнуть"),
     ("ru", "Мне незачем жить"),
     ("hi", "मुझे मरना है"),
+    # BITB-200: phrasings the BITB-186 guards over-suppressed.
+    ("hi", "मुझे मरना है तो मैं क्या करूँ"),
+    ("hi", "मुझे मरना है ?"),
+    ("hi", "बस अब मुझे मरना है?"),
+    ("zh", "我一个人想跳楼"),
+    ("zh", "我一個人想跳樓"),
+    ("zh", "我觉得这样活着没意思吗"),
+    ("zh", "我覺得這樣活著沒意思嗎"),
 ]
 
 # Fullwidth punctuation / wrapped / embedded-in-sentence variants.
