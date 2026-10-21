@@ -574,11 +574,13 @@ class ChatViewModel @Inject constructor(
         verseRefRegex: Regex,
         localizedToEnglish: Map<String, String>,
     ) {
-        if (_uiState.value.speakingMessageId == message.id) {
+        // Decide from the engine, not uiState: uiState mirrors it asynchronously, so a quick
+        // second tap would otherwise see stale state and restart instead of pausing.
+        if (speechEngine.speakingId.value == message.id) {
             speechEngine.pause()
             return
         }
-        if (_uiState.value.pausedMessageId == message.id) {
+        if (speechEngine.pausedId.value == message.id) {
             // Resume does not re-send tts_started. If it can't resume (focus denied) the
             // answer simply stays paused.
             speechEngine.resume()
