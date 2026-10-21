@@ -29,7 +29,7 @@ GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
 AGENTS_DOC = REPO_ROOT / "deployment" / "kubeopencode" / "agents.md"
 
-TIER1_FALLBACK = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+TIER1_FALLBACK = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
 TIER2_FALLBACK = "openrouter/openai/gpt-oss-120b"
 # The retired IDs must never come back: both were non-existent on their
 # providers (BITB-173), which made the whole fallback chain inert.

@@ -30,15 +30,17 @@ DEFAULT_SMALL_MODEL = "opencode/nemotron-3-ultra-free"
 #
 # Corrected chain, per the original #1079 intent — powerful FREE model first,
 # PAID model last:
-#   tier 1 — Nemotron-3-Super-120B-A12B, the free variant, served by OpenRouter
-#     (`openrouter/nvidia/nemotron-3-super-120b-a12b:free`). OpenCode Zen has no
-#     Super variant, so the free hop lives on the provider that actually serves
+#   tier 1 — Nemotron-3-Ultra-550B-A55B, the free variant, served by OpenRouter
+#     (`openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`). OpenCode Zen has no
+#     550B variant, so the free hop lives on the provider that actually serves
 #     it. Being a different provider from the (Zen) primary, it survives a full
-#     Zen outage.
+#     Zen outage. (Supersedes `nvidia/nemotron-3-super-120b-a12b:free`, which
+#     Nvidia's upstream began 404ing — "Function not found for account" — while
+#     the Ultra 550B endpoint verified live on 2026-10-21.)
 #   tier 2 — gpt-oss-120b, the PAID OpenRouter ID (`openrouter/openai/gpt-oss-120b`,
 #     ~$0.10/$0.40 per 1M tokens; no free variant exists). Engages only when
 #     both free hops fail, so cost is bounded to double-failure events.
-TIER1_FALLBACK = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+TIER1_FALLBACK = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
 TIER2_FALLBACK = "openrouter/openai/gpt-oss-120b"
 
 # Built-in (non-.md) agents still need a fallback so they degrade instead of

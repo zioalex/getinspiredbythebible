@@ -232,8 +232,8 @@ All 12 agents share the same two fallbacks:
 
 | Agent group | Tier 1 (free) | Tier 2 (paid) | Covers |
 |---|---|---|---|
-| 11 Zen-primary agents (`opencode/*`) | `openrouter/nvidia/nemotron-3-super-120b-a12b:free` | `openrouter/openai/gpt-oss-120b` | OpenCode Zen outage |
-| android-gemini (primary `openrouter/qwen/qwen3-coder`) | `openrouter/nvidia/nemotron-3-super-120b-a12b:free` | `openrouter/openai/gpt-oss-120b` | Model-level failures only; its whole chain is on OpenRouter, so an OpenRouter outage takes it down (accepted trade-off) |
+| 11 Zen-primary agents (`opencode/*`) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | OpenCode Zen outage |
+| android-gemini (primary `openrouter/qwen/qwen3-coder`) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Model-level failures only; its whole chain is on OpenRouter, so an OpenRouter outage takes it down (accepted trade-off) |
 
 An OpenRouter outage leaves the Zen-primary agents unaffected; if both
 providers are down, every agent is down. `OPENROUTER_API_KEY` is therefore

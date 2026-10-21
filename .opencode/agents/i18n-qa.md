@@ -3,7 +3,7 @@ description: i18n QA across all 11 UI languages — translation completeness, lo
 mode: subagent
 model: opencode/mimo-v2.6-flash-free
 fallback_models:
-  - openrouter/nvidia/nemotron-3-super-120b-a12b:free
+  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
   - openrouter/openai/gpt-oss-120b
 tools:
   bash: true
