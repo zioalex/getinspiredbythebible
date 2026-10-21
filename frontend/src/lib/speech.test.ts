@@ -265,6 +265,21 @@ describe("pause / resume (BITB-205)", () => {
     expect(getPausedId()).toBeNull();
   });
 
+  it("watchdog fallback un-pauses an engine whose native resume was a no-op", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    startChunk(1);
+    pause();
+    synth.resume.mockImplementation(() => {}); // Chrome: resume() silently does nothing
+    resume();
+    expect(synth.paused).toBe(true);
+    synth.spoken.length = 0;
+    synth.resume.mockClear();
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS);
+    expect(synth.resume).toHaveBeenCalled(); // engine un-paused before re-speaking
+    expect(synth.spoken.map((u) => u.text)).toEqual(["two", "three"]);
+  });
+
   it("watchdog does not fire when stopped or paused again before it elapses", () => {
     vi.useFakeTimers();
     speak("m1", chunks, voice, "en");

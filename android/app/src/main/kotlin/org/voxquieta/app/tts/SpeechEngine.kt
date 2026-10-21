@@ -343,6 +343,8 @@ class AndroidSpeechEngine @Inject constructor(
             return false
         }
         val language = currentLanguageTag
+        // Never both speaking and paused: clear paused first, restore it on failure.
+        _pausedId.value = null
         if (!startSpeaking(id, chunks, language, index)) {
             // Focus denied / voice gone: startSpeaking cleared the position; keep it paused.
             currentId = id
@@ -352,7 +354,6 @@ class AndroidSpeechEngine @Inject constructor(
             _pausedId.value = id
             return false
         }
-        _pausedId.value = null
         return true
     }
 

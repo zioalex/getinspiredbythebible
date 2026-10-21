@@ -139,6 +139,7 @@ class AndroidSpeechEngineTest {
         assertEquals(listOf("two", "three"), h.queuedTexts)
         assertEquals("m1", h.engine.speakingId.value)
         assertNull(h.engine.pausedId.value)
+        assertTrue("never both speaking and paused", h.engine.speakingId.value == null || h.engine.pausedId.value == null)
         // QUEUE_FLUSH for the first re-queued chunk, QUEUE_ADD after it.
         verify { h.tts.speak("two", TextToSpeech.QUEUE_FLUSH, null, any()) }
         verify { h.tts.speak("three", TextToSpeech.QUEUE_ADD, null, any()) }

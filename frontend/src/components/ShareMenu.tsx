@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Share2, Copy, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -11,11 +11,38 @@ interface ShareMenuProps {
   answer: string;
 }
 
+/** Open the dropdown upward when there is no room below the trigger (BITB-205 rail). */
+export function shouldOpenUpward(
+  triggerBottom: number,
+  triggerTop: number,
+  menuHeight: number,
+  viewportHeight: number,
+): boolean {
+  const below = viewportHeight - triggerBottom;
+  return below < menuHeight && triggerTop > below;
+}
+
 export default function ShareMenu({ question, answer }: ShareMenuProps) {
   const t = useTranslations("Share");
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [upward, setUpward] = useState(false);
+
+  // Measure on open: default down, flip up when the dropdown would not fit below.
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current || !dropdownRef.current) return;
+    const trigger = menuRef.current.getBoundingClientRect();
+    setUpward(
+      shouldOpenUpward(
+        trigger.bottom,
+        trigger.top,
+        dropdownRef.current.offsetHeight,
+        window.innerHeight,
+      ),
+    );
+  }, [open]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -110,10 +137,13 @@ export default function ShareMenu({ question, answer }: ShareMenuProps) {
   ];
 
   return (
-    <div ref={menuRef} className="relative inline-block">
+    <div
+      ref={menuRef}
+      className={`relative inline-block ${open ? "z-20" : ""}`}
+    >
       <button
         onClick={() => setOpen(!open)}
-        className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+        className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
         aria-label={t("share")}
         title={t("share")}
       >
@@ -121,7 +151,10 @@ export default function ShareMenu({ question, answer }: ShareMenuProps) {
       </button>
 
       {open && (
-        <div className="absolute top-full end-0 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+        <div
+          ref={dropdownRef}
+          className={`absolute end-0 w-52 ${upward ? "bottom-full mb-1" : "top-full mt-1"} bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1`}
+        >
           {shareLinks.map((item) =>
             item.href ? (
               <a

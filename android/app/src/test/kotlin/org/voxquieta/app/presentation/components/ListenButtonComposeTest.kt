@@ -135,15 +135,24 @@ class ListenButtonComposeTest : ComposeTestHarness() {
         composeRule.onNode(
             hasAnyAncestor(hasTestTag("message_action_rail")) and hasContentDescription("Share message"),
         ).assertIsDisplayed()
-        // The thumbs row is still there, outside the rail.
+        // The thumbs row is still there below the answer, outside the rail.
+        composeRule.onNode(
+            hasContentDescription("This was helpful") and !hasAnyAncestor(hasTestTag("message_action_rail")),
+        ).assertIsDisplayed()
         composeRule.onNode(
             hasContentDescription("Copy message") and !hasAnyAncestor(hasTestTag("message_action_rail")),
         ).assertDoesNotExist()
     }
 
     @Test
-    fun `no rail while streaming or for user messages`() {
+    fun `no rail while streaming`() {
         mount(assistant(content = "Partial", streaming = true))
+        composeRule.onNodeWithTag("message_action_rail").assertDoesNotExist()
+    }
+
+    @Test
+    fun `no rail for user messages`() {
+        mount(Message(id = "u", role = Message.Role.USER, content = "My question"))
         composeRule.onNodeWithTag("message_action_rail").assertDoesNotExist()
     }
 

@@ -149,11 +149,12 @@ export function getPausedId(): string | null {
   return pausedId;
 }
 
-/** Cancels the browser queue; a natively paused queue must also be resumed or it stays paused. */
+/** Cancels the browser queue; a paused queue must also be resumed or it stays paused. */
 function cancelQueue(synth: SpeechSynthesis): void {
   try {
     synth.cancel();
-    if (nativePaused) synth.resume();
+    // A native resume() can silently no-op (Chrome), leaving the engine paused.
+    if (nativePaused || synth.paused) synth.resume();
   } catch {
     // ignore
   }
