@@ -212,6 +212,8 @@ class ContentSafetyService:
         2. Self-harm spans in ANY language and violence matches in ALL languages
            (script-agnostic). Violence matches lying inside a self-harm span ("kill" in
            "kill myself") are dropped.
+           Murder-suicide / elliptical third-party phrasing ("kill myself and my family",
+           "take everyone with me", BITB-196) counts as remaining violence.
         3. Self-harm and no remaining violence -> compassionate result (no LLM).
         4. Self-harm AND remaining violence -> AMBIGUOUS: the safe default is a block that
            maps to the crisis-resources template (``self_harm_with_violence (fallback)``).
@@ -259,6 +261,12 @@ class ContentSafetyService:
                 + self._hard_violence_outside(normalized)
                 if not any(a <= m[0] and m[1] <= b for a, b in sh_spans)
             ]
+            # BITB-196: murder-suicide / elliptical third-party phrasing ("...and my family",
+            # "take everyone with me"). These are not violence keywords, so they join the
+            # ambiguity set WITHOUT the span-containment filter (a de/zh self-harm span may
+            # legitimately cover the verb that follows the target).
+            ms = flt.find_murder_suicide_matches(normalized)
+            outside = outside + ms
             self_harm = flt.find_self_harm(normalized, preferred=language)
             pattern = self_harm[1] if self_harm else normalized[sh_spans[0][0] : sh_spans[0][1]]
             if outside:
@@ -270,6 +278,7 @@ class ContentSafetyService:
                         "language": language,
                         "pattern": pattern,
                         "violence_pattern": outside[0][2],
+                        "murder_suicide": bool(ms),
                     },
                 )
                 return ContentSafetyCheckResult(
