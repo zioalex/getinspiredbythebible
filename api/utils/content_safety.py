@@ -40,6 +40,11 @@ from utils.metrics import (
 )
 from utils.security import MultiLanguageContentFilter
 
+# BITB-198: these tables only match Cyrillic/Han/Devanagari/Hangul, so they are safe to check
+# under any UI language (an en-UI user typing Russian). ``ar`` is excluded on purpose: its
+# table has a bare "قتل" that would spread Bible-narrative false positives (BITB-194).
+_UNIQUE_SCRIPT_VIOLENCE_LANGS = ("ru", "zh", "hi", "ko")
+
 logger = get_logger(__name__)
 
 AMBIGUOUS_REASON = "self_harm_with_violence (fallback)"
@@ -213,7 +218,8 @@ class ContentSafetyService:
         4. Self-harm AND remaining violence -> AMBIGUOUS: the safe default is a block that
            maps to the crisis-resources template (``self_harm_with_violence (fallback)``).
            The async ``_keyword_fallback`` may refine it with a second LLM opinion.
-        5. No self-harm: violence scoped to ``[language, "en"]`` -> block; else clean.
+        5. No self-harm: violence scoped to ``[language, "en"]`` plus the unique-script tables
+           (ru/zh/hi/ko, BITB-198) -> block; else clean.
 
         Self-harm only ("I want to kill myself", fr "je veux me tuer") stays
         compassionate; "I want to die, how do I build a bomb" never passes unblocked.
@@ -303,7 +309,9 @@ class ContentSafetyService:
             )
 
         # (e) Violence scoped to detected language + English (high confidence -> block)
-        violence = flt.find_violence_matches(normalized, [language, "en"])
+        violence = flt.find_violence_matches(
+            normalized, [language, "en", *_UNIQUE_SCRIPT_VIOLENCE_LANGS]
+        )
         if violence:
             pattern = violence[0][2]
             logger.warning(

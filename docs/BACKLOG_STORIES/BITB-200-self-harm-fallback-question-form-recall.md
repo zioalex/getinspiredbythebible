@@ -1,6 +1,6 @@
 # BITB-200: Self-Harm Fallback — Question-Form and Edge Recall Gaps (hi/zh)
 
-**Status:** Todo
+**Status:** 🔍 In Review (PR pending)
 **Size:** S
 **Created:** 2026-10-14
 
@@ -14,6 +14,6 @@ genuine crisis phrasings:
 
 ## Acceptance criteria
 
-- [ ] Each missed phrasing above triggers the compassionate path (parametrized test)
-- [ ] BITB-186's Bible-study/negated BENIGN cases stay clean
+- [x] Each missed phrasing above triggers the compassionate path (parametrized test; also added Traditional `跳樓`)
+- [x] BITB-186's Bible-study/negated BENIGN cases stay clean
 - [ ] Reviewed by a native speaker or reference list (owner step)
