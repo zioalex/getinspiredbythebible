@@ -164,7 +164,7 @@ All acceptance criteria met:
 - [x] PR #182 merged to main (2026-02-24)
 - [x] Backend deployed to production (Azure Container Apps auto-deploy)
 - [x] Frontend deployed to production (Azure Container Apps auto-deploy)
-- [ ] **TODO: Run HNSW migration on production database**
+- [x] **TODO: Run HNSW migration on production database**
   - Migration script: `scripts/migrations/002_add_hnsw_indexes.sql`
   - Expected downtime: 5-10 minutes during index build
   - Recommended: Schedule during low-traffic window
