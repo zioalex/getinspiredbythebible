@@ -367,6 +367,12 @@ def normalize_text(text: str) -> str:
     return text.lower()
 
 
+# Hindi lookbehinds (BITB-198): skip reflexive "kill myself" spans (owned by the self-harm
+# table) and avoid matching inside longer Devanagari words such as आत्महत्या.
+_HI_NOT_SELF = r"(?<!खुद को )(?<!ख़ुद को )(?<!अपने आप को )(?<!स्वयं को )"
+_HI_NB = r"(?<![\u0900-\u097f\-])"
+
+
 class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
@@ -392,6 +398,16 @@ class MultiLanguageContentFilter:
             r"\bshoot\b",
             r"\bstab\b",
             r"\bslaughter\b",
+            r"\bgrenades?\b",
+            r"\bmolotovs?\b",
+            r"\bieds?\b",
+            r"\bnapalm\b",
+            r"\bricin\b",
+            r"\banthrax\b",
+            r"\bsarin\b",
+            r"\bdetonat",
+            r"\bmass[ -]?shoot",
+            r"\bschool[ -]?shoot",
         ],
         "it": [
             r"\bbomba\b",
@@ -404,6 +420,9 @@ class MultiLanguageContentFilter:
             r"\bterror",
             r"\bsparare\b",
             r"\baccoltellare\b",
+            r"\battentat",
+            r"\bgranat[ae]\b",
+            r"\bmolotov\b",
         ],
         "de": [
             r"\bbombe\b",
@@ -416,6 +435,11 @@ class MultiLanguageContentFilter:
             r"\bterror",
             r"\bschießen\b",
             r"\bstechen\b",
+            r"\bsprengsatz",
+            r"\bhandgranate",
+            r"\bmolotow",
+            r"\bmolotov",
+            r"\battentat",
         ],
         "es": [
             r"\bbomba\b",
@@ -428,6 +452,10 @@ class MultiLanguageContentFilter:
             r"\bterror",
             r"\bdisparar\b",
             r"\bapuñalar\b",
+            r"\batentado",
+            r"\btiroteo",
+            r"\bgranadas? de mano\b",
+            r"\bmolotov\b",
         ],
         "fr": [
             r"\bbombe\b",
@@ -440,6 +468,10 @@ class MultiLanguageContentFilter:
             r"\bterror",
             r"\btirer\b",
             r"\bpoignarder\b",
+            r"\battentat",
+            r"\bfusillade",
+            r"\bgrenades? (?:à|a) main\b",
+            r"\bmolotov\b",
         ],
         "pt": [
             r"\bbomba\b",
@@ -452,6 +484,10 @@ class MultiLanguageContentFilter:
             r"\bterror",
             r"\batirar\b",
             r"\besfaquear\b",
+            r"\batentado",
+            r"\btiroteio",
+            r"\bgranadas? de m[aã]o\b",
+            r"\bmolotov\b",
         ],
         "ar": [
             r"قنبلة",
@@ -462,6 +498,97 @@ class MultiLanguageContentFilter:
             r"جريمة قتل",
             r"هجوم",
             r"إرهاب",
+            r"تفجير",
+            r"ناسف",
+        ],
+        # BITB-198: conservative native patterns for ru/zh/hi/ko. Unambiguous modern
+        # weapon/terror words match alone; kill/attack verbs only in first-person intent or
+        # how-to phrasing, so Bible narrative ("How did David kill Goliath?") stays clean.
+        # Words with Bible/everyday senses (massacre, attack, bare explosion, ru оружие,
+        # hi हथियार) stay hard-only (HARD_VIOLENCE_PATTERNS, checked next to self-harm).
+        "ru": [
+            r"\bбомб",
+            r"\bвзрывчат",
+            r"\bвзрывн\w*\s+устройств",
+            r"\bвзорв(?:ать|у|ём|ем|ёт|ет|ут)\b",
+            r"\bтеракт",
+            r"\bтеррорист",
+            r"\bтерроризм",
+            r"\bогнестрельн",
+            r"\bпистолет",
+            r"\bгранатом[её]т",
+            r"\bкоктейл\w*\s+молотова\b",
+            r"\b(?:массов\w*|школьн\w*)\s+(?:расстрел|стрельб)",
+            r"(?<!\bне )\b(?:хочу|хочется|собираюсь|планирую)\s+(?:(?!себя\b|самого\b|самой\b)\w+\s+){0,2}?"
+            r"(?:убить|зарезать|застрелить|задушить|отравить|взорвать|расстрелять|напасть|атаковать)\b"
+            r"(?!\s+(?:себя|самого\s+себя|самой\s+себя|в\s+себе))",
+            r"\bкак\s+(?:мне\s+|можно\s+|лучше\s+|быстро\s+)?"
+            r"(?:убить|зарезать|застрелить|задушить|отравить|взорвать|расстрелять|напасть|атаковать)\b"
+            r"(?!\s+(?:себя|в\s+себе|время|скуку|грех|гордын|страст|плоть|ветхого|похоть))",
+            r"\b(?:убью|зарежу|застрелю|взорву)\s+(?:тебя|вас|его|её|ее|их)\b",
+            r"\bнапад(?:у|ём|ем)\s+на\b",
+        ],
+        "zh": [
+            r"炸弹",
+            r"炸彈",
+            r"炸药",
+            r"炸藥",
+            r"爆炸物",
+            r"爆裂物",
+            r"手榴弹",
+            r"手榴彈",
+            r"燃烧瓶",
+            r"燃燒瓶",
+            r"恐怖(?:分子|份子|袭击|襲擊|主义|主義|活动|活動)",
+            r"恐攻",
+            r"恐袭",
+            r"枪击",
+            r"槍擊",
+            r"枪支",
+            r"槍支",
+            r"槍枝",
+            r"手枪",
+            r"手槍",
+            r"步枪",
+            r"步槍",
+            r"我(?:真的)?(?:想|要|会|會|打算|准备|準備|计划|計劃|决定|決定)(?:要)?(?:去)?"
+            r"(?:杀|殺|捅死|毒死|炸死|炸掉|炸毁|炸毀|袭击|襲擊|攻击|攻擊|枪杀|槍殺)"
+            r"(?!了?(?:我)?自己)(?![^，。！？,.!?]{0,8}(?:罪|骄傲|驕傲|老我|私欲|私慾|情欲|情慾|肉体|肉體))",
+            r"(?:怎么|怎麼|怎样|怎樣|如何)(?:才能|可以|能)?(?:杀|殺)(?:死|掉)?(?:人|一个人|一個人|别人|別人|某人)",
+        ],
+        "hi": [
+            r"(?<![\u0900-\u097f])बम(?:ों|ो)?(?![\u0900-\u097f])",
+            r"बमबारी",
+            r"विस्फोटक",
+            r"आतंकवाद",
+            r"आतंकी",
+            r"बंदूक",
+            r"पिस्तौल",
+            r"ग्रेनेड",
+            _HI_NOT_SELF
+            + _HI_NB
+            + r"(?:मार(?:ना|\s+डालना|\s+देना)|हत्या\s+करना|हमला\s+करना|गोली\s+मारना|उड़ा\s+देना)"
+            r"\s+चाहत[ाी]\s+हू[ँं]",
+            _HI_NOT_SELF + _HI_NB + r"मार\s+(?:दूँ|दूं|डालूँ|डालूं)(?:गा|गी)",
+            r"कैसे\s+(?:मारें|मारूँ|मारूं|मार\s+डालें|मार\s+डालूँ|मार\s+डालूं|"
+            + _HI_NB
+            + r"हत्या\s+करें|"
+            + _HI_NB
+            + r"हत्या\s+करूँ|हमला\s+करें|हमला\s+करूँ)",
+            _HI_NB + r"(?:हमला|हत्या)\s+कैसे\s+कर(?:ें|ूँ|ूं)",
+        ],
+        "ko": [
+            r"폭탄",
+            r"폭발물",
+            r"폭파",
+            r"테러",
+            r"총기\s?난사",
+            r"수류탄",
+            r"화염병",
+            r"(?<!자신을 )(?<!나를 )(?<!저를 )(?:죽이고|공격하고|살해하고)\s?싶(?:어|다|습니다|네)(?!\s?(?:하|했|해))",
+            r"죽여\s?버(?:리겠|릴|리고\s?싶)",
+            r"(?:죽일|공격할)\s?(?:거|겁니다|거야|거예요|거에요)(?:야|예요|에요|다)?(?![라고])",
+            r"(?:사람|누군가|남|상대)(?:을|를)?\s?죽이는\s?(?:법|방법)",
         ],
     }
 
@@ -470,6 +597,9 @@ class MultiLanguageContentFilter:
     # text. In a self-harm message these are NEVER a "method" of self-harm, so they
     # force the crisis block regardless of any second-opinion verdict. Method words
     # (gun, weapon, knife, shoot, kill, arma, Waffe ...) are deliberately excluded.
+    # BITB-198: every entry here either also appears in VIOLENCE_PATTERNS[lang] or is
+    # hard-only because it occurs in Bible narrative / ordinary speech (massacre, attack,
+    # bare explosion/terror).
     HARD_VIOLENCE_PATTERNS = {
         "en": [
             r"\bbombs?\b",
@@ -573,6 +703,10 @@ class MultiLanguageContentFilter:
             r"террор",
             r"расстрел",
             r"нападен",
+            r"\bнапасть\s+на\b",
+            r"\bнапад(?:у|ём|ем|ёт|ет|ут|ёте|ете)\b",
+            r"\bгранатом[её]т",
+            r"\bкоктейл\w*\s+молотова\b",
         ],
         "zh": [
             r"炸弹",
@@ -589,6 +723,11 @@ class MultiLanguageContentFilter:
             r"屠殺",
             r"枪击",
             r"槍擊",
+            r"炸彈",
+            r"手榴弹",
+            r"手榴彈",
+            r"燃烧瓶",
+            r"燃燒瓶",
         ],
         "hi": [
             r"(?<![\u0900-\u097f])बम(?:ों|ो)?(?![\u0900-\u097f])",
@@ -597,6 +736,7 @@ class MultiLanguageContentFilter:
             r"आतंक",
             r"नरसंहार",
             r"हमला",
+            r"ग्रेनेड",
         ],
         "ko": [
             r"폭탄",
@@ -606,6 +746,8 @@ class MultiLanguageContentFilter:
             r"테러",
             r"학살",
             r"총기\s?난사",
+            r"수류탄",
+            r"화염병",
         ],
     }
 
