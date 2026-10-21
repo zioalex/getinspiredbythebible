@@ -29,8 +29,12 @@ GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
 AGENTS_DOC = REPO_ROOT / "deployment" / "kubeopencode" / "agents.md"
 
-TIER1_FALLBACK = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
+STRONG_PRIMARY = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
 TIER2_FALLBACK = "openrouter/openai/gpt-oss-120b"
+# Tier-1 hops are cross-provider: an OpenRouter primary fails over to Zen,
+# a Zen primary fails over to OpenRouter. Both hops are FREE; tier-2 is PAID.
+OR_FREE_HOP = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
+ZEN_FREE_HOP = "opencode/nemotron-3-ultra-free"
 # The retired IDs must never come back: both were non-existent on their
 # providers (BITB-173), which made the whole fallback chain inert.
 STALE_MODEL_IDS = ("opencode/nemotron-3-super-free", "openrouter/openai/gpt-oss-120b:free")
@@ -69,13 +73,24 @@ def test_all_md_agents_present(config, md_agents):
         assert name in config["agent"], f"{name} missing from generated config"
 
 
+def expected_chain(primary: str) -> list:
+    """Tier-1 hop must be cross-provider (and free); tier-2 is always paid."""
+    return (
+        [ZEN_FREE_HOP, TIER2_FALLBACK]
+        if primary.partition("/")[0] == "openrouter"
+        else [OR_FREE_HOP, TIER2_FALLBACK]
+    )
+
+
 def test_every_md_agent_has_fallback_models(config, md_agents):
     """The core regression: fallback_models was absent for every agent."""
     for name in md_agents:
         fallbacks = config["agent"][name].get("fallback_models")
         assert fallbacks, f"{name} has no fallback_models"
-        assert TIER1_FALLBACK in fallbacks, f"{name} missing {TIER1_FALLBACK}"
-        assert TIER2_FALLBACK in fallbacks, f"{name} missing {TIER2_FALLBACK}"
+        primary = config["agent"][name]["model"]
+        assert fallbacks == expected_chain(primary), (
+            f"{name}: expected {expected_chain(primary)}, got {fallbacks}"
+        )
 
 
 def test_fallback_chain_is_free_first_paid_last(config, md_agents):
@@ -99,32 +114,47 @@ def test_fallback_chain_is_free_first_paid_last(config, md_agents):
 
 
 def test_fallback_chain_exact_and_ordered(config, md_agents):
-    """Every .md agent must declare exactly [tier1, tier2] — no partial edits."""
-    for name in md_agents:
-        assert config["agent"][name]["fallback_models"] == [
-            TIER1_FALLBACK,
-            TIER2_FALLBACK,
-        ], f"{name} fallback chain is not exactly [tier1, tier2]"
+    """Every .md agent must declare exactly [tier1, tier2] — no partial edits.
 
-
-def test_zen_primary_agents_have_cross_provider_hop(config, md_agents):
-    """An OpenCode Zen primary must fail over off Zen (BITB-173).
-
-    The observed failure was a Zen-side `503 Upstream error from Nvidia`; a
-    same-provider fallback would have died in the same incident. (android-gemini
-    is exempt: its primary is already on OpenRouter, and its whole chain living
-    on OpenRouter is the documented trade-off of serving the free Super variant
-    only from OpenRouter.)
+    Expected chain is per primary provider: OpenRouter primaries fail over to
+    Zen first (cross-provider); Zen primaries fail over to OpenRouter first.
     """
     for name in md_agents:
         primary = config["agent"][name]["model"]
-        if primary.partition("/")[0] == "opencode":
-            providers = {
-                fb.partition("/")[0] for fb in config["agent"][name]["fallback_models"]
-            }
-            assert "openrouter" in providers, (
-                f"{name}: Zen primary has no cross-provider fallback hop"
-            )
+        assert config["agent"][name]["fallback_models"] == expected_chain(primary), (
+            f"{name} fallback chain is not exactly {expected_chain(primary)}"
+        )
+
+
+def test_primary_is_the_strongest_free_model(config):
+    """The global primary (builtins: build/plan/general/explore/etc.) is the
+    strongest model on the graph — Nemotron-3-Ultra-550B-A55B free (rank #4
+    overall, #1 free per docs/LLM_PRICING_OPENROUTER.md)."""
+    assert config["model"] == STRONG_PRIMARY
+    # Cheap ops tier stays on Zen free, off the OpenRouter free-tier limits.
+    assert config["small_model"] == ZEN_FREE_HOP
+
+
+def test_fallback_chain_is_cross_provider(config, md_agents):
+    """Tier-1 must be on a different provider than the primary (BITB-173).
+
+    The observed failure was a Zen-side `503 Upstream error from Nvidia`; a
+    same-provider fallback would have died in the same incident. With the
+    strong 550B primary on OpenRouter, the same rule now also protects
+    OpenRouter-primary agents: their tier-1 hop must be Zen.
+    """
+    for name in md_agents:
+        primary = config["agent"][name]["model"]
+        primary_provider = primary.partition("/")[0]
+        hop_provider = config["agent"][name]["fallback_models"][0].partition("/")[0]
+        assert primary_provider != hop_provider, (
+            f"{name}: tier-1 fallback is same-provider as primary "
+            f"({primary_provider}) — a provider outage kills the whole chain"
+        )
+    # Builtins inherit the global (OpenRouter) primary; their tier-1 hop is Zen.
+    for name in BUILTINS:
+        hop = config["agent"][name]["fallback_models"][0]
+        assert hop == ZEN_FREE_HOP, f"builtin {name}: tier-1 hop is {hop}, not Zen"
 
 
 def test_no_stale_model_ids_in_config(config):
@@ -135,12 +165,13 @@ def test_no_stale_model_ids_in_config(config):
 
 
 def test_builtin_agents_have_fallback_models(config):
+    """Builtins inherit the OpenRouter primary, so their tier-1 hop is Zen."""
     for name in BUILTINS:
         assert name in config["agent"], f"builtin {name} missing"
         fallbacks = config["agent"][name].get("fallback_models")
-        assert TIER1_FALLBACK in fallbacks, f"builtin {name} missing free-tier fallback"
-        assert TIER2_FALLBACK in fallbacks, f"builtin {name} missing paid-tier fallback"
-        assert len(fallbacks) >= 2, f"builtin {name} missing 2-hop fallback"
+        assert fallbacks == [ZEN_FREE_HOP, TIER2_FALLBACK], (
+            f"builtin {name}: expected [Zen free, paid], got {fallbacks}"
+        )
 
 
 def test_builtin_primary_modes_preserved(config):
