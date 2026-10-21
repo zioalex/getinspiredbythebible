@@ -228,15 +228,17 @@ provider returning "subscription exhausted" still fails over) with
 Primary model ──429/5xx──▶ Tier 1 fallback ──429/5xx──▶ Tier 2 fallback
 ```
 
-All 12 agents share the same two fallbacks:
+The tier-1 hop is always cross-provider (the other provider than the
+primary), free-first / paid-last:
 
-| Agent group | Tier 1 (free) | Tier 2 (paid) | Covers |
-|---|---|---|---|
-| 11 Zen-primary agents (`opencode/*`) | `openrouter/nvidia/nemotron-3-super-120b-a12b:free` | `openrouter/openai/gpt-oss-120b` | OpenCode Zen outage |
-| android-gemini (primary `openrouter/qwen/qwen3-coder`) | `openrouter/nvidia/nemotron-3-super-120b-a12b:free` | `openrouter/openai/gpt-oss-120b` | Model-level failures only; its whole chain is on OpenRouter, so an OpenRouter outage takes it down (accepted trade-off) |
+| Agent group | Primary | Tier 1 (free, cross-provider) | Tier 2 (paid) | Covers |
+|---|---|---|---|---|
+| Global builtins + orchestrator (build/plan/general/explore/etc.) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` (strongest free) | `opencode/nemotron-3-ultra-free` (Zen) | `openrouter/openai/gpt-oss-120b` | OpenRouter outage → Zen catches |
+| 10 Zen-primary specialist subagents (`opencode/*`) | `opencode/nemotron-3-ultra-free` / `opencode/mimo-v2.6-flash-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Zen outage → OpenRouter catches |
+| android-gemini | `openrouter/qwen/qwen3-coder` (paid) | `opencode/nemotron-3-ultra-free` (Zen) | `openrouter/openai/gpt-oss-120b` | OpenRouter outage → Zen catches |
 
-An OpenRouter outage leaves the Zen-primary agents unaffected; if both
-providers are down, every agent is down. `OPENROUTER_API_KEY` is therefore
+An outage of either provider leaves the other provider's agents (and every
+tier-1 hop) unaffected; if both providers are down, every agent is down. `OPENROUTER_API_KEY` is therefore
 required for **runtime resilience**, not just for `android-gemini`'s paid
 primary. The per-agent table and rationale live in
 [`agents.md`](agents.md), the source of truth; the `.opencode/agents/*.md`
