@@ -2,16 +2,19 @@ package org.voxquieta.app.viewmodels
 
 import android.content.Context
 import org.voxquieta.app.R
+import org.voxquieta.app.analytics.AnalyticsHelper
 import org.voxquieta.app.data.preferences.LanguagePreferences
 import org.voxquieta.app.data.preferences.LastConversationPreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
+import org.voxquieta.app.data.preferences.TtsPreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChapterVerseDto
 import org.voxquieta.app.data.remote.models.ConfigChatDto
+import org.voxquieta.app.data.remote.models.ConfigFeaturesDto
 import org.voxquieta.app.data.remote.models.ConfigResponseDto
 import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
@@ -31,6 +34,7 @@ import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import org.voxquieta.app.presentation.viewmodels.ChurchFinderSheetState
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.testing.FakeSpeechEngine
 import org.voxquieta.app.utils.LocaleApplier
 import org.voxquieta.app.utils.LogCollector
 import org.voxquieta.app.utils.NetworkMonitor
@@ -86,6 +90,9 @@ class ChatViewModelTest {
     private lateinit var lastConversationPreferences: LastConversationPreferences
     private lateinit var bibleApiService: BibleApiService
     private lateinit var networkMonitor: NetworkMonitor
+    private lateinit var speechEngine: FakeSpeechEngine
+    private lateinit var ttsPreferences: TtsPreferences
+    private lateinit var analyticsHelper: AnalyticsHelper
     private val localeApplier: LocaleApplier = object : LocaleApplier {
         override fun apply(languageTag: String) { /* no-op for unit tests */ }
     }
@@ -125,6 +132,10 @@ class ChatViewModelTest {
         networkMonitor = mockk {
             every { isOffline } returns MutableStateFlow(false)
         }
+        speechEngine = FakeSpeechEngine()
+        ttsPreferences = mockk(relaxed = true)
+        every { ttsPreferences.showListenButtonFlow } returns flowOf(true)
+        analyticsHelper = mockk(relaxed = true)
         themePreferences = mockk(relaxed = true)
         every { themePreferences.themeModeFlow } returns flowOf("system")
         translationPreferences = mockk(relaxed = true)
@@ -155,6 +166,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
     }
 
@@ -626,6 +640,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -652,6 +669,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -684,6 +704,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -720,6 +743,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertTrue(vm.availableTranslations.value.isEmpty())
@@ -752,6 +778,9 @@ class ChatViewModelTest {
             localApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -779,6 +808,9 @@ class ChatViewModelTest {
             localApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -816,6 +848,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -842,6 +877,9 @@ class ChatViewModelTest {
             localApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -870,6 +908,9 @@ class ChatViewModelTest {
             localApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -906,6 +947,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -932,6 +976,9 @@ class ChatViewModelTest {
             localApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -960,6 +1007,9 @@ class ChatViewModelTest {
             localApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -989,6 +1039,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(3, vm.uiState.value.sessionMaxRequests)
@@ -1039,6 +1092,9 @@ class ChatViewModelTest {
             localApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1073,6 +1129,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(800, vm.uiState.value.maxMessageLength)
@@ -1120,6 +1179,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1153,6 +1215,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1184,6 +1249,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -1305,6 +1373,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
     }
 
@@ -2461,6 +2532,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         assertEquals("de", vm.uiState.value.currentLocale)
     }
@@ -2488,6 +2562,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -2520,6 +2597,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -2620,6 +2700,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -2647,6 +2730,9 @@ class ChatViewModelTest {
             bibleApiService,
             networkMonitor,
             localeApplier,
+            speechEngine,
+            ttsPreferences,
+            analyticsHelper,
         )
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -2919,5 +3005,276 @@ class ChatViewModelTest {
             listOf("a", "b"),
             viewModel.uiState.value.followUps,
         )
+    }
+
+    // ── BITB-119: read aloud ──────────────────────────────────────────────
+
+    private fun newViewModel(
+        engine: FakeSpeechEngine = speechEngine,
+        prefs: TtsPreferences = ttsPreferences,
+        api: BibleApiService = bibleApiService,
+    ) = ChatViewModel(
+        repository,
+        churchRepository,
+        contactRepository,
+        turnstileManager,
+        languagePreferences,
+        context,
+        themePreferences,
+        translationPreferences,
+        sessionPreferences,
+        lastConversationPreferences,
+        api,
+        networkMonitor,
+        localeApplier,
+        engine,
+        prefs,
+        analyticsHelper,
+    )
+
+    /** Drives one finished assistant answer into the view model and returns it. */
+    private fun ChatViewModel.answer(text: String = "Read John 3:16 today."): Message {
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = text, done = true))
+        sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+        return uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+    }
+
+    private val noRegex = org.voxquieta.app.presentation.components.DEFAULT_VERSE_REF_REGEX
+
+    @Test
+    fun `ttsServerEnabled defaults to true before and when config has no features block`() = runTest {
+        assertTrue(viewModel.uiState.value.ttsServerEnabled)
+        testDispatcher.scheduler.advanceUntilIdle() // setUp stubs a config without `features`
+        assertTrue(viewModel.uiState.value.ttsServerEnabled)
+    }
+
+    @Test
+    fun `ttsServerEnabled turns off only for an explicit false`() = runTest {
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            features = ConfigFeaturesDto(ttsEnabled = false),
+        )
+        val vm = newViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(vm.uiState.value.ttsServerEnabled)
+        assertFalse(vm.canSpeak())
+    }
+
+    @Test
+    fun `ttsServerEnabled stays true for a true or null flag and when config fails`() = runTest {
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            features = ConfigFeaturesDto(ttsEnabled = true),
+        )
+        val enabled = newViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(enabled.uiState.value.ttsServerEnabled)
+
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            features = ConfigFeaturesDto(ttsEnabled = null),
+        )
+        val nullFlag = newViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(nullFlag.uiState.value.ttsServerEnabled)
+
+        coEvery { bibleApiService.getConfig() } throws IOException("no network")
+        val failed = newViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(failed.uiState.value.ttsServerEnabled)
+    }
+
+    @Test
+    fun `canSpeak requires engine ready, a local voice and the preference`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.canSpeak())
+
+        // network-only / missing language data: the engine reports no local voice
+        speechEngine.localLanguages.remove("en")
+        assertFalse(viewModel.canSpeak())
+        speechEngine.localLanguages.add("en")
+
+        speechEngine.setReady(false)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.canSpeak())
+        speechEngine.setReady(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.canSpeak())
+
+        viewModel.setShowListenButton(false)
+        assertFalse(viewModel.canSpeak())
+    }
+
+    @Test
+    fun `speech starts the engine only while the preference is on`() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, speechEngine.warmUpCalls)
+
+        val offEngine = FakeSpeechEngine()
+        val offPrefs = mockk<TtsPreferences>(relaxed = true)
+        every { offPrefs.showListenButtonFlow } returns flowOf(false)
+        val off = newViewModel(engine = offEngine, prefs = offPrefs)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(0, offEngine.warmUpCalls)
+        assertFalse(off.uiState.value.showListenButton)
+        assertFalse(off.canSpeak())
+    }
+
+    @Test
+    fun `setShowListenButton persists and updates state`() = runTest {
+        viewModel.setShowListenButton(false)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.showListenButton)
+        io.mockk.coVerify { ttsPreferences.setShowListenButton(false) }
+    }
+
+    @Test
+    fun `turning the preference off silences speech`() = runTest {
+        val prefFlow = MutableStateFlow(true)
+        every { ttsPreferences.showListenButtonFlow } returns prefFlow
+        val vm = newViewModel()
+        val message = vm.answer()
+        vm.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(message.id, vm.uiState.value.speakingMessageId)
+
+        prefFlow.value = false
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(vm.uiState.value.speakingMessageId)
+    }
+
+    @Test
+    fun `toggleSpeak speaks normalized chunks in the UI language and logs only the locale`() = runTest {
+        val message = viewModel.answer("Read **John 3:16** today.")
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val spoken = speechEngine.spoken.single()
+        assertEquals(message.id, spoken.id)
+        assertEquals("en", spoken.languageTag)
+        assertEquals(listOf("Read John chapter 3, verse 16 today."), spoken.chunks)
+        assertEquals(message.id, viewModel.uiState.value.speakingMessageId)
+        verify(exactly = 1) {
+            analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_STARTED, mapOf(AnalyticsHelper.PARAM_LOCALE to "en"))
+        }
+    }
+
+    @Test
+    fun `toggleSpeak on the speaking message stops it without a new started event`() = runTest {
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+        val stopsBefore = speechEngine.stopCalls
+
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(stopsBefore + 1, speechEngine.stopCalls)
+        assertNull(viewModel.uiState.value.speakingMessageId)
+        assertEquals(1, speechEngine.spoken.size)
+        verify(exactly = 1) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_STARTED, any()) }
+    }
+
+    @Test
+    fun `speaking another message replaces the first (one voice at a time)`() = runTest {
+        val first = viewModel.answer("First answer.")
+        val second = viewModel.answer("Second answer.")
+        viewModel.toggleSpeak(first, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.toggleSpeak(second, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(second.id, viewModel.uiState.value.speakingMessageId)
+        assertEquals(listOf(first.id, second.id), speechEngine.spoken.map { it.id })
+    }
+
+    @Test
+    fun `refused speech (audio focus denied) is not counted as started`() = runTest {
+        val message = viewModel.answer()
+        speechEngine.audioFocusGranted = false
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.speakingMessageId)
+        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_STARTED, any()) }
+    }
+
+    @Test
+    fun `markup-only content speaks nothing`() = runTest {
+        val message = Message(id = "m", role = Message.Role.ASSISTANT, content = "---\n\n```")
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        assertTrue(speechEngine.spoken.isEmpty())
+    }
+
+    @Test
+    fun `finishing the last chunk clears the speaking id`() = runTest {
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+        speechEngine.finishSpeaking()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.speakingMessageId)
+    }
+
+    @Test
+    fun `switching, starting or clearing a conversation and changing language stop speech`() = runTest {
+        every { repository.observeMessages(any()) } returns flowOf(emptyList())
+        val actions: List<Pair<String, () -> Unit>> = listOf(
+            "loadConversation" to { viewModel.loadConversation("conv-1") },
+            "startNewConversation" to { viewModel.startNewConversation() },
+            "clearConversation" to { viewModel.clearConversation() },
+            "clearAllConversations" to { viewModel.clearAllConversations() },
+            "setLocale" to { viewModel.setLocale("it") },
+            "stopSpeaking" to { viewModel.stopSpeaking() },
+        )
+        for ((name, action) in actions) {
+            val before = speechEngine.stopCalls
+            action()
+            testDispatcher.scheduler.advanceUntilIdle()
+            assertTrue("$name must stop speech", speechEngine.stopCalls > before)
+        }
+    }
+
+    @Test
+    fun `tts_unavailable is reported once per language, only after an answer exists`() = runTest {
+        speechEngine.localLanguages.remove("en")
+        val vm = newViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        // No answer yet: the button would not have appeared, so nothing is reported.
+        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_UNAVAILABLE, any()) }
+
+        vm.answer("First.")
+        vm.answer("Second.")
+        testDispatcher.scheduler.advanceUntilIdle()
+        verify(exactly = 1) {
+            analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_UNAVAILABLE, mapOf(AnalyticsHelper.PARAM_LOCALE to "en"))
+        }
+    }
+
+    @Test
+    fun `tts_unavailable is not reported when a voice exists, the flag is off or the preference is off`() = runTest {
+        // voice exists
+        val withVoice = newViewModel()
+        withVoice.answer()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // server flag explicitly off
+        speechEngine.localLanguages.remove("en")
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto(
+            features = ConfigFeaturesDto(ttsEnabled = false),
+        )
+        val flagOff = newViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        flagOff.answer()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // user preference off
+        val offPrefs = mockk<TtsPreferences>(relaxed = true)
+        every { offPrefs.showListenButtonFlow } returns flowOf(false)
+        coEvery { bibleApiService.getConfig() } returns ConfigResponseDto()
+        val prefOff = newViewModel(prefs = offPrefs)
+        testDispatcher.scheduler.advanceUntilIdle()
+        prefOff.answer()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_UNAVAILABLE, any()) }
     }
 }

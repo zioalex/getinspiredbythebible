@@ -456,6 +456,37 @@ first and must not be skipped.
 """
 
 
+# ---------------------------------------------------------------------------
+# Interpretation integrity guidance (BITB-178)
+# ---------------------------------------------------------------------------
+# Appended to the default, verse-lookup and prayer-lookup system prompts. A reported
+# conversation about Luke 1:79 named the wrong person, then reversed itself on a bare
+# "are you sure?" without citing any text, and promised to "be more careful". These
+# rules keep "who is this about?" answers tied to the surrounding verses and keep the
+# answer stable under pushback unless the text gives a reason to change it.
+INTERPRETATION_INTEGRITY_GUIDANCE = """
+## Who or What a Verse Refers To — Read the Text, Hold Your Ground
+When the user asks who is speaking, who is being addressed, or who or what a verse is about:
+- **Keep three things apart**: the *speaker* (who says it), the *addressee* (who it is said \
+to) and the *subject* (who or what it is about). If a question could mean "who says this?" \
+or "who is this about?", answer both briefly rather than guessing which was meant.
+- **Resolve pronouns and titles from the verses before them.** A "he", "him", "this one" or \
+a title usually points back to a person named earlier in the passage. Find the antecedent in \
+the Scripture Context (including any "Surrounding Passage" block) and name the verse that \
+holds it (for example "the 'he' of verse 79 points back to verse 78"). If the surrounding \
+verses are not in the Scripture Context and the referent is unclear, say that the context is \
+needed instead of guessing. Where faithful readers differ, say so plainly and give the \
+reading the text supports best.
+- **When the user challenges or doubts your answer** ("are you sure?", "isn't it rather ...?"): \
+first re-read the text in the Scripture Context, then decide on the evidence. If the text \
+shows you were wrong, correct yourself plainly and name the verse that shows it. If the text \
+supports your answer, keep it, kindly, and show the verse that supports it. Never change an \
+answer only because the user doubted it, and never defend an answer only because you gave it.
+- **Make no promises about the future.** Do not say you will be more careful, read more \
+closely or do better next time. Give the grounded answer now.
+"""
+
+
 def get_opening_phrase(language_code: str = "en") -> str:
     """Return the localized "In the Bible is written..." opening phrase."""
     return BIBLE_OPENING_PHRASES.get(language_code, BIBLE_OPENING_PHRASES["en"])
@@ -502,6 +533,7 @@ def get_system_prompt(language_code: str = "en") -> str:
         + RESPONSE_DEPTH_GUIDANCE
         + TYPO_TOLERANCE_GUIDANCE
         + SPECIFIC_FOCUS_GUIDANCE
+        + INTERPRETATION_INTEGRITY_GUIDANCE
     )
 
 
@@ -530,6 +562,7 @@ def get_verse_lookup_prompt(language_code: str = "en") -> str:
         + SCRIPTURE_FIDELITY_GUIDANCE
         + TYPO_TOLERANCE_GUIDANCE
         + SPECIFIC_FOCUS_GUIDANCE
+        + INTERPRETATION_INTEGRITY_GUIDANCE
     )
 
 
@@ -553,15 +586,49 @@ def get_prayer_lookup_prompt(language_code: str = "en") -> str:
         + BIBLE_VERSION_GUIDANCE
         + SCRIPTURE_FIDELITY_GUIDANCE
         + TYPO_TOLERANCE_GUIDANCE
+        + INTERPRETATION_INTEGRITY_GUIDANCE
     )
 
 
-def build_search_context_prompt(search_results: dict) -> str:
+def _build_surrounding_passage_blocks(passage_context: list[dict]) -> list[str]:
+    """Render "Surrounding Passage" sub-blocks for build_search_context_prompt (BITB-178).
+
+    Each entry is ``{"focus": str, "carried_over": bool, "verses": [{"reference", "text",
+    "is_focus"}]}``. The verse(s) under discussion are marked so the model can tell them from
+    the verses read only for context.
+    """
+    parts: list[str] = []
+    for entry in passage_context:
+        verses = entry.get("verses") or []
+        if not verses:
+            continue
+        parts.append(f"\n### Surrounding Passage \u2014 {entry.get('focus', '')}")
+        if entry.get("carried_over"):
+            parts.append(
+                "This is the passage discussed earlier in the conversation. Re-read it before "
+                "answering the user's follow-up, and name the verse that supports your answer."
+            )
+        else:
+            parts.append(
+                "Read these verses before explaining what or whom the marked verse refers to; "
+                "pronouns and titles usually point back to a person named just before."
+            )
+        for v in verses:
+            marker = " [VERSE UNDER DISCUSSION]" if v.get("is_focus") else ""
+            parts.append(f'**{v["reference"]}**{marker}: "{v["text"]}"')
+    return parts
+
+
+def build_search_context_prompt(
+    search_results: dict, passage_context: list[dict] | None = None
+) -> str:
     """
     Build a context prompt from scripture search results.
 
     Args:
         search_results: Dictionary with 'verses' and 'passages' lists
+        passage_context: Optional BITB-178 surrounding-verse blocks (see
+            _build_surrounding_passage_blocks). Falsy leaves the output exactly as before.
 
     Returns:
         Formatted context string to prepend to the system prompt
@@ -585,6 +652,9 @@ def build_search_context_prompt(search_results: dict) -> str:
             if len(text) > 500:
                 text = text[:500] + "..."
             context_parts.append(f'"{text}"')
+
+    if passage_context:
+        context_parts.extend(_build_surrounding_passage_blocks(passage_context))
 
     if context_parts:
         context = "\n".join(context_parts)
@@ -915,6 +985,40 @@ _BLOCKED_RESPONSE_TEMPLATES: dict[str, dict[str, str]] = {
             "- **دولي:** https://findahelpline.com\n\n"
             "لست وحدك في هذا. هناك شخص مستعد للاستماع إليك."
         ),
+        "ru": (
+            "Я чувствую, что на тебе лежит что-то очень тяжёлое, и мне искренне жаль. "
+            "Твоя жизнь драгоценна и глубоко любима Богом.\n\n"
+            "Пожалуйста, прямо сейчас обратись к тому, кто может помочь:\n"
+            "- **США:** позвони или отправь сообщение на **988** "
+            "(линия помощи при суицидальном кризисе, бесплатно, 24/7)\n"
+            "- **В других странах:** https://findahelpline.com\n\n"
+            "Тебе не нужно проходить через это в одиночку. Живой человек готов тебя выслушать."
+        ),
+        "zh": (
+            "我能感受到有一份沉重的负担压在你身上，我真的很难过。"
+            "你的生命十分宝贵，深受上帝所爱。\n\n"
+            "请现在就联系可以帮助你的人：\n"
+            "- **美国：** 拨打或发短信至 **988**（自杀与危机生命线，免费，全天候）\n"
+            "- **国际：** https://findahelpline.com\n\n"
+            "你不必独自面对这一切。有真人愿意倾听你。"
+        ),
+        "hi": (
+            "मैं महसूस कर सकता हूँ कि कोई बहुत भारी बोझ आप पर है, और मुझे सचमुच दुख है। "
+            "आपका जीवन अनमोल है और परमेश्वर को बहुत प्रिय है।\n\n"
+            "कृपया अभी किसी ऐसे व्यक्ति से संपर्क करें जो मदद कर सके:\n"
+            "- **अमेरिका:** **988** पर कॉल या टेक्स्ट करें "
+            "(सुसाइड एंड क्राइसिस लाइफलाइन, निःशुल्क, 24/7)\n"
+            "- **अंतरराष्ट्रीय:** https://findahelpline.com\n\n"
+            "आपको इसे अकेले नहीं सहना है। कोई वास्तविक व्यक्ति सुनने के लिए तैयार है।"
+        ),
+        "ko": (
+            "매우 무거운 짐이 당신을 짓누르고 있다는 것이 느껴지고, 정말 마음이 아픕니다. "
+            "당신의 생명은 소중하며 하나님께 깊이 사랑받고 있습니다.\n\n"
+            "지금 바로 도움을 줄 수 있는 사람에게 연락해 주세요:\n"
+            "- **미국:** **988**로 전화 또는 문자 (자살 및 위기 상담 전화, 무료, 24시간)\n"
+            "- **국제:** https://findahelpline.com\n\n"
+            "이 일을 혼자 감당하지 않아도 됩니다. 귀 기울여 줄 사람이 있습니다."
+        ),
     },
     "violence_or_threat": {
         "en": (
@@ -1193,7 +1297,8 @@ def get_blocked_response(reason: str, language_code: str = "en") -> str:
 
     Args:
         reason: ContentSafetyCheckResult.reason string
-        language_code: ISO 639-1 language code (en, it, de, es, fr, pt, ar)
+        language_code: ISO 639-1 language code (en, it, de, es, fr, pt, ar, ru, zh, hi, ko;
+            the self_harm_blocked template covers all 11)
 
     Returns:
         Localized message string; falls back to English then generic.

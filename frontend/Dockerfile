@@ -38,6 +38,12 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
 
+# Optional: Support-Us donate URL base (BITB-157). Next.js inlines NEXT_PUBLIC_*
+# at build time, so it must be a build arg. Empty => donateUrl.ts falls back to
+# the live Ko-fi page.
+ARG NEXT_PUBLIC_DONATE_URL=
+ENV NEXT_PUBLIC_DONATE_URL=${NEXT_PUBLIC_DONATE_URL}
+
 # Per-build cache-busting id (BITB-102). Consumed by scripts/generate-build-info.mjs
 # at prebuild and written to public/build-info.json, which the client reads to
 # register /sw.js?v=<id>. A changed id renames the service worker's shell cache,

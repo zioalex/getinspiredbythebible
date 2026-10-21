@@ -87,13 +87,15 @@ compare book/chapter/verseStart (web) or book/chapter/verseNumber (Android) and 
 A case is skipped on a platform when that platform has a **known, tracked** behavioral gap for
 it — not when a test is merely inconvenient to write. Every non-empty `skip` entry must be paired
 with a non-empty `skipReason` explaining *why* (ideally referencing a backlog story or PR), so a
-skip never silently rots into "nobody remembers why this is disabled." Two skips are currently in
+skip never silently rots into "nobody remembers why this is disabled." The skips currently in
 the corpus:
 
 - `known_divergence_android_russian_lamentations` (skipped for `"android"`) is a real, deliberate
   gap: Android's regex resolves a two-word Russian book name differently from Python and web. It
   is captured here on purpose so the follow-up unification work (BITB-059 AC #1–#3) has a concrete
   regression case to close, rather than being fixed ad hoc in this test-only PR.
+- `negative_fullwidth_colon_no_verse_zh` (skipped for `"android"`) is BITB-179: Android deliberately links
+  chapter-only references (`Psalm 23`), so a book + chapter + dangling colon yields a chapter link there.
 - The eight `zh_hant_*` / `zh_mixed_script_*` cases (skipped for `"android"`) are BITB-025
   (Traditional-to-Simplified Chinese normalization for verse parsing): shipped for Python and web
   only in the PR that added them, with the Android T2S table + `injectVerseLinks` shadow-string
@@ -153,3 +155,71 @@ must be listed here with a reviewed reason. A new one-sided key (e.g. a citation
 to one side and not the other) fails that test until it is either propagated to the other side or
 added here — so a gap can't ship silently, and the allowlist can't rot once a gap is closed
 elsewhere (a stale entry also fails the test).
+
+## `speakable_text.json`
+
+Shared cross-platform fixture for BITB-119 (read the answer aloud). It specifies, once, how an
+assistant answer (markdown) becomes text a speech synthesizer can read, so the web and Android
+implementations cannot drift apart (the BITB-059 lesson).
+
+This file is consumed by:
+
+- `frontend/src/lib/speakableText.crossplatform.test.ts` (vitest)
+- `android/app/src/test/kotlin/org/voxquieta/app/tts/SpeakableTextParityTest.kt` (JUnit)
+
+(There is no backend consumer: speech is synthesized on-device, so no answer text is ever sent
+anywhere.) The implementations under test are `frontend/src/lib/speakableText.ts` and
+`android/app/src/main/kotlin/org/voxquieta/app/tts/SpeakableText.kt`.
+
+### Schema
+
+```jsonc
+{
+  "description": "…",
+  "maxChunkChars": 200,
+  "verseTemplates": {
+    "en": { "verse": "{book} chapter {c}, verse {v}", "range": "{book} chapter {c}, verses {v} to {e}" }
+    // … all 11 languages (en, it, de, es, fr, pt, ar, ru, zh, hi, ko)
+  },
+  "normalize_cases": [
+    {
+      "id": "unique_snake_case_id",
+      "language": "en",             // selects the verse template (UI locale)
+      "input": "markdown text",
+      "expected": "speakable text", // lines joined with "\n"; blank lines collapse
+      "origin": "free-text provenance — what behavior this case guards",
+      "skip": [],                   // subset of ["web", "android"] — platforms that must skip it
+      "skipReason": ""              // required (non-empty) whenever "skip" is non-empty
+    }
+  ],
+  "chunk_cases": [
+    { "id": "…", "language": "en", "input": "normalized text", "expected": ["chunk 1", "chunk 2"] }
+  ]
+}
+```
+
+### Rules the cases pin down
+
+- **Normalization:** markdown links keep their text, images keep their alt text, bare
+  `http(s)://` URLs are removed; emphasis/code markers, heading `#`, blockquote `>`, bullet
+  markers and horizontal rules are removed while numbered-list numbers are kept; `<<Book>>` and
+  `《Book》` guillemets are stripped; whitespace is collapsed.
+- **Verse references** are detected with each platform's **existing** verse parser (web
+  `createVersePatternGlobal` + `isKnownBook`; Android the `verseRefRegex` that `ChatScreen`
+  already builds) — no new verse regex — and replaced with the locale's template, keeping the
+  book name exactly as written. Digits are normalized to ASCII (Devanagari / Eastern Arabic).
+  **Chapter-only references ("Psalm 23") are left as written**: the web parser only matches
+  `chapter:verse`, and the Android parser's chapter-only matches are skipped for parity.
+- **Chunking:** text is split at line breaks and sentence terminators (`. ! ?` before whitespace,
+  plus `。！？ । ॥ ؟` anywhere) and packed into chunks of at most `maxChunkChars` (200)
+  UTF-16 code units; a sentence longer than the limit is hard-split at the last space (or at
+  the limit when there is none, never inside a surrogate pair). A line break always ends a chunk.
+- **Templates:** each client keeps its own copy of `verseTemplates` and a parity test asserts the
+  copy equals this file's table — edit all three together.
+
+### Regenerating expected strings
+
+`expected` values are produced by running the **web** implementation and then hand-checked for
+sense in each language; Android must reproduce them exactly. When changing a rule, update the
+web implementation first, regenerate the affected `expected` values, review the diff by eye
+(especially the non-Latin languages), then make Android match.

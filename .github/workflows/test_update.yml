@@ -649,7 +649,9 @@ jobs:
       - name: Check npm dependencies for vulnerabilities
         run: |
           cd frontend
-          npm audit --audit-level=high
+          # Fails on high/critical advisories except those in
+          # audit-allowlist.json (each with a reason and reviewBy date).
+          node scripts/npm-audit-gate.mjs
 
   # Search-Eval Golden Set Validation (BITB-139 P2)
   # Non-blocking: validates the dataset file structure without DB or secrets.

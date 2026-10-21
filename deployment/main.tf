@@ -77,6 +77,9 @@ locals {
   backend_env_vars = merge(
     # Core configuration
     {
+      "CHAT_FOLLOW_UPS_ENABLED" = {
+        value = tostring(var.chat_follow_ups_enabled)
+      }
       "CONTENT_FILTER_ENABLED" = {
         value = tostring(var.content_filter_enabled)
       }
@@ -85,6 +88,9 @@ locals {
       }
       "CONTENT_SAFETY_MODE" = {
         value = var.content_safety_mode
+      }
+      "TTS_ENABLED" = {
+        value = tostring(var.tts_enabled)
       }
       "CORS_ORIGINS" = {
         value = local.cors_origins_value

@@ -193,3 +193,33 @@ describe("parenthesized and bracketed references", () => {
     expect(createVersePattern().test("See John 3:16 for hope.")).toBe(true);
   });
 });
+
+describe("fullwidth colon, tilde range and fullwidth digits (BITB-179)", () => {
+  const cases: Array<[string, string]> = [
+    ["fullwidth colon", "路加福音1：79"],
+    ["bracketed corner", "「约翰福音3：16」"],
+    ["fullwidth parens", "（诗篇23：1）"],
+    ["fullwidth tilde range", "马太福音5：3～12"],
+    ["wave dash range", "马太福音5：3〜12"],
+    ["fullwidth digits", "约翰福音３：１６"],
+    ["korean", "요한복음 3：16"],
+    ["german", "Lukas 1：79"],
+  ];
+  it.each(cases)("matches %s", (_label, text) => {
+    expect(createVersePattern().test(text)).toBe(true);
+  });
+
+  it("captures the whole range with a tilde", () => {
+    const m = createVersePatternGlobal().exec("马太福音5：3～12");
+    expect(m?.[2]).toBe("5");
+    expect(m?.[3]).toBe("3");
+    expect(m?.[4]).toBe("12");
+  });
+
+  it.each(["时间：3点", "比例3：1", "第3～5章", "约翰福音3："])(
+    "does not match %s",
+    (text) => {
+      expect(createVersePatternGlobal().exec(text)).toBeNull();
+    },
+  );
+});

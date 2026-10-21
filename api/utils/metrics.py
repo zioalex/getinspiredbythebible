@@ -326,6 +326,12 @@ client_errors_counter = meter.create_counter(
     unit="1",
 )  # attributes: type (window_onerror|unhandledrejection|api_failure|react_render|turnstile|other)
 
+client_tts_events_counter = meter.create_counter(
+    name="client.tts_events_total",
+    description="Read-aloud client events received at /api/v1/client-events (BITB-119)",
+    unit="1",
+)  # attributes: event (tts_started|tts_unavailable), locale (11 supported locales|other)
+
 preflight_errors_counter = meter.create_counter(
     name="api.preflight_errors_total",
     description="CORS preflight (OPTIONS) requests that returned HTTP 5xx — browser-only failure signal (BITB-066)",
@@ -346,6 +352,15 @@ rate_limiter_db_error_counter = meter.create_counter(
     description="Postgres-backed rate limiter errors (transient DB failure while checking/recording a hit) (BITB-061)",
     unit="1",
 )  # attributes: reason (<exc_name>)
+
+content_safety_second_opinion_counter = meter.create_counter(
+    name="content_safety.second_opinion_total",
+    description=(
+        "Count of second-opinion LLM classifications for ambiguous self-harm + violence "
+        "messages in the keyword fallback (BITB-185 v2)"
+    ),
+    unit="1",
+)  # attributes: verdict (SELF_HARM|HARM_TO_OTHERS|BOTH|NEITHER|hard_violence|timeout|error|unparseable|disabled)
 
 rate_limiter_fallback_counter = meter.create_counter(
     name="rate_limiter.fallback_total",

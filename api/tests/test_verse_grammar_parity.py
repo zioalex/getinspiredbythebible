@@ -18,8 +18,8 @@ independent reasons (recorded in full in the BITB-113 story's "Scope Cut" sectio
    from a contract test on them either.
 
 What Python *does* share literally with the JSON: the chapter/verse separator characters
-(``:``, ``,``) and the range characters (``-``, en dash ``–``), embedded in
-``verse_parser.py``'s module-level ``CV_PATTERN = r"(\\d+)[:\\,](\\d+)(?:\\s*[-–]\\s*(\\d+))?"``.
+(``:``, ``,``, fullwidth colon ``：``) and the range characters (``-``, en dash ``–``, fullwidth
+tilde ``～``, wave dash ``〜``), embedded in ``verse_parser.py``'s module-level ``CV_PATTERN``.
 This test imports that constant directly from ``verse_parser.py`` (rather than holding its
 own hand-copied duplicate of the string) so a change to the real source is always what gets
 checked against the JSON — a hand-copied literal would only ever be checked against itself,
@@ -134,3 +134,22 @@ def test_non_canonical_separator_and_range_characters_are_rejected():
                 f"{rng!r} (not in verse_grammar.json's range_separators): {text!r} "
                 f"captured group(4)={m.group(4)!r}"
             )
+
+
+def test_every_canonical_non_ascii_digit_matches_and_converts():
+    """``\\d`` is a superset of the JSON's ``non_ascii_digit_ranges`` (BITB-179): every digit in
+    every canonical range must match the backend's digit class and convert with ``int()`` to the
+    ASCII value its position in the range implies (so a reference stores ASCII ints)."""
+    compiled = re.compile(_build_verse_pattern(), re.IGNORECASE)
+    ranges = _GRAMMAR["non_ascii_digit_ranges"]
+    assert ranges, "verse_grammar.json lists no non_ascii_digit_ranges"
+    for entry in ranges:
+        start, end = ord(entry["start"]), ord(entry["end"])
+        assert end - start == 9, f"{entry['label']} is not a 10-digit range"
+        for offset in range(10):
+            ch = chr(start + offset)
+            assert re.fullmatch(r"\d", ch), f"{entry['label']} digit {ch!r} not matched by \\d"
+            assert int(ch) == offset
+            m = compiled.search(f"John {ch}:{ch}")
+            assert m, f"compiled verse pattern rejected {entry['label']} digit {ch!r}"
+            assert (int(m.group(2)), int(m.group(3))) == (offset, offset)

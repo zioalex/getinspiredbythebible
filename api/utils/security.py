@@ -371,7 +371,7 @@ class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
 
-    Supports 7 languages: EN, IT, DE, ES, FR, PT, AR
+    Supports 11 languages: EN, IT, DE, ES, FR, PT, AR, RU, ZH, HI, KO
 
     Critical distinction:
     - Help-seeking (low confidence) → allow, flag for compassionate response
@@ -465,6 +465,167 @@ class MultiLanguageContentFilter:
         ],
     }
 
+    # Hard-violence terms (BITB-185 v2 / H1): explosives, bombings, terror, massacre,
+    # mass shooting. Matched script-agnostically (all languages at once) on normalized
+    # text. In a self-harm message these are NEVER a "method" of self-harm, so they
+    # force the crisis block regardless of any second-opinion verdict. Method words
+    # (gun, weapon, knife, shoot, kill, arma, Waffe ...) are deliberately excluded.
+    HARD_VIOLENCE_PATTERNS = {
+        "en": [
+            r"\bbombs?\b",
+            r"\bbomb(?:ing|ings|er|ers)\b",
+            r"\bexplosive",
+            r"\bdetonat",
+            r"\bterror(?:ism|ists?|s)?\b",
+            r"\bmassacre",
+            r"\bmass[ -]?shoot",
+            r"\bschool[ -]?shoot",
+            r"\bshoot(?:ing)? up\b(?!\s+(?:heroin|drugs?|meth|coke|cocaine|dope))",
+            r"\bblow(?:ing)? up\b",
+            r"\battack",
+            r"\bgrenades?\b",
+            r"\bmolotovs?\b",
+            r"\bieds?\b",
+            r"\bnapalm\b",
+            r"\bricin\b",
+            r"\banthrax\b",
+            r"\bsarin\b",
+        ],
+        "it": [
+            r"\bbomb[ae]\b",
+            r"\besplosiv",
+            r"\besplo[dn]",
+            r"\battentat",
+            r"\bterror",
+            r"\bstrage\b",
+            r"\bmassacro",
+            r"\battacc(?:o|are|hi)\b",
+            r"\bgranat[ae]\b",
+            r"\bmolotov\b",
+        ],
+        "de": [
+            r"\bbombe",
+            r"\bsprengstoff",
+            r"\bsprengsatz",
+            r"\banschlag",
+            r"\bterror",
+            r"\bamok",
+            r"\bmassaker",
+            r"\battentat",
+            r"\bangriff",
+            r"\bhandgranate",
+            r"\bgranaten?\b",
+            r"\bmolotow",
+            r"\bmolotov",
+        ],
+        "es": [
+            r"\bbomba",
+            r"\bexplosiv",
+            r"\batentado",
+            r"\bterror",
+            r"\bmasacre",
+            r"\btiroteo",
+            r"\bataque\b",
+            r"\bgranadas? de mano\b",
+            r"\bmolotov\b",
+        ],
+        "fr": [
+            r"\bbombe",
+            r"\bexplosif",
+            r"\bexplos",
+            r"\battentat",
+            r"\bterror",
+            r"\bmassacre",
+            r"\bfusillade",
+            r"\battaque\b",
+            r"\bgrenades? (?:\u00e0|a) main\b",
+            r"\bgrenades? d[\u00e9e]goupill",
+            r"\bmolotov\b",
+        ],
+        "pt": [
+            r"\bbomba",
+            r"\bexplosiv",
+            r"\bexplod",
+            r"\batentado",
+            r"\bterror",
+            r"\bmassacre",
+            r"\btiroteio",
+            r"\bataque\b",
+            r"\bgranadas? de m[a\u00e3]o\b",
+            r"\bmolotov\b",
+        ],
+        "ar": [
+            r"قنبل",
+            r"متفجر",
+            r"تفجير",
+            r"ناسف",
+            r"إرهاب",
+            r"ارهاب",
+            r"مجزرة",
+            r"هجوم",
+        ],
+        "ru": [
+            r"бомб",
+            r"взрывчат",
+            r"взрыв",
+            r"взорва",
+            r"теракт",
+            r"террор",
+            r"расстрел",
+            r"нападен",
+        ],
+        "zh": [
+            r"炸弹",
+            r"炸藥",
+            r"炸药",
+            r"爆炸",
+            r"爆破",
+            r"恐怖(?:分子|份子|袭击|襲擊|主义|主義|活动|活動)",
+            r"恐攻",
+            r"恐袭",
+            r"袭击",
+            r"襲擊",
+            r"屠杀",
+            r"屠殺",
+            r"枪击",
+            r"槍擊",
+        ],
+        "hi": [
+            r"(?<![\u0900-\u097f])बम(?:ों|ो)?(?![\u0900-\u097f])",
+            r"बमबारी",
+            r"विस्फोट",
+            r"आतंक",
+            r"नरसंहार",
+            r"हमला",
+        ],
+        "ko": [
+            r"폭탄",
+            r"폭발물",
+            r"폭발시[키킬켜킨킵켰]",
+            r"폭파",
+            r"테러",
+            r"학살",
+            r"총기\s?난사",
+        ],
+    }
+
+    # False-positive exclusions for hard violence (checked as a post-filter on each match
+    # because they need variable-width context). A crisis message about anxiety must not be
+    # treated as a threat just because it says "anxiety attacks" / "attacco di panico".
+    _HARD_VIOLENCE_EXCLUDE_BEFORE = re.compile(
+        r"\b(?:panic|anxiety|heart|asthma|nervous)[\s-]*$", re.IGNORECASE
+    )
+    _HARD_VIOLENCE_EXCLUDE_NIGHT = re.compile(r"\bnight[\s-]*$", re.IGNORECASE)
+    _HARD_VIOLENCE_EXCLUDE_AFTER = re.compile(
+        r"terror(?:iz|is)(?:ed|ing|es)\b|bombard(?:ed|ing|s)?\b|bombshell|"
+        r"(?:attacc\w*|attaque|ataque)\s+"
+        r"(?:(?:d['\u2019]\s*|di\s+|de\s+|do\s+)"
+        r"(?:ansia|panico|cuore|p[a\u00e1\u00e2]nico|ansiedad|ansiedade|nervios|"
+        r"coraz[o\u00f3]n|cora\u00e7\u00e3o|panique|anxi[e\u00e9]t[e\u00e9]|angoisse|"
+        r"c\u0153ur|coeur)|card[i\u00ed]a\w*)",
+        re.IGNORECASE,
+    )
+
     # Self-harm patterns by language
     SELF_HARM_PATTERNS = {
         "en": [
@@ -519,6 +680,90 @@ class MultiLanguageContentFilter:
             r"إنهاء حياتي",
             r"إيذاء النفس",
             r"أريد أن أموت",
+        ],
+        # BITB-183: ru uses \b (Cyrillic is word-char safe); zh/hi/ko use plain
+        # substrings because there are no spaces (CJK) or \b is unreliable with
+        # Devanagari combining marks (matras). Patterns stay specific: never a
+        # bare 死 / 죽 / मर, which occur in ordinary Bible-study questions.
+        "ru": [
+            r"\bсамоубийств",
+            r"\bсуицид",
+            r"\bпокончить с собой\b",
+            r"\bпокончу с собой\b",
+            r"\bубить себя\b",
+            # BITB-186 known limitation (accepted): the "не" guard is a fixed-width lookbehind,
+            # so a double space ("не  хочу") or an intervening word ("не очень хочу умереть")
+            # defeats it. Failing toward the compassionate path is the safe direction.
+            r"(?<!\bне )\bхочу умереть\b",
+            r"\bхочу сдохнуть\b",
+            r"\bмне незачем жить\b(?!\s+(?:во?\s+(?:грехе|страхе)|ради\s+денег|для\s+себя))",
+            r"\bзакончить свою жизнь\b",
+            r"\bпорезать себя\b",
+            r"\bсамоповреждени",
+            r"\bнет смысла жить\b",
+            r"\bне хочу жить\b",
+            r"\bне хочу больше жить\b",
+            r"\bжить не хочу\b",
+            r"(?<!\bне )\bхочется умереть\b",
+            r"\bубью себя\b",
+            r"\bрежу себя\b",
+        ],
+        "zh": [
+            r"自杀",
+            r"(?<![不他她人])(?<!为什么)(?<!為什麼)(?<!为何)(?<!為何)想跳楼",
+            r"跳楼自",
+            r"(?<!所罗门)(?<![他她])活[着著]没意思(?![吗嗎])",
+            r"(?<!所羅門)(?<![他她])活[着著]沒意思(?![吗嗎])",
+            r"自殺",
+            r"(?:没有|沒有|失去)[他她]活[着著][没沒]意思",
+            r"(?<!不)想死(?!亡|后(?!一了百了)|後(?!一了百了)|你|人|海|刑)",
+            r"(?<!不)想去死(?!亡|后(?!一了百了)|後(?!一了百了)|你|人|海|刑)",
+            r"(?<!不)想要死(?!亡|后(?!一了百了)|後(?!一了百了)|你|人|海|刑)",
+            r"轻生",
+            r"輕生",
+            r"寻死",
+            r"尋死",
+            r"自尽",
+            r"自盡",
+            r"不想活(?!在)",
+            r"活不下去",
+            r"结束(?:自己的)?生命",
+            r"結束(?:自己的)?生命",
+            r"结束我的生命",
+            r"結束我的生命",
+            r"自残",
+            r"自殘",
+            r"割腕",
+            r"伤害自己",
+            r"傷害自己",
+        ],
+        "hi": [
+            r"आत्महत्या",
+            r"आत्म-हत्या",
+            r"मरना चाहता",
+            r"मरना चाहती",
+            r"अपनी जान ले(?!कर)",
+            r"ख\u093c?ुद को (?:नुक\u093c?सान|चोट|मार)",
+            r"ख\u093c?ुदकुशी",
+            r"मर जाना चाहत",
+            r"जीना नहीं चाहता",
+            r"जीना नहीं चाहती",
+            r"जीने का कोई मतलब नहीं",
+            r"(?<!क्या )(?<!अगर )मुझे मरना है(?! तो)(?!\s*\?)",
+        ],
+        "ko": [
+            r"(?<!혼)자살",
+            r"죽고 ?싶(?!지 ?않)",
+            r"목숨을 ?끊",
+            r"스스로 ?목숨",
+            r"(?<![문저독학])자해(?![석설])",
+            r"살기 ?싫",
+            r"죽어 ?버[리릴]",
+            r"살 ?이유가 ?없",
+            r"살고 ?싶지 ?않",
+            r"죽어 ?버리고 ?싶",
+            r"삶을 ?끝내",
+            r"사라지고 ?싶(?!지 ?않)",
         ],
     }
 
@@ -586,6 +831,12 @@ class MultiLanguageContentFilter:
         for lang, patterns in self.VIOLENCE_PATTERNS.items():
             self._violence_regex[lang] = re.compile("|".join(patterns), re.IGNORECASE | re.UNICODE)
 
+        # Compile hard-violence patterns into ONE script-agnostic regex (BITB-185 v2)
+        self._hard_violence_regex = re.compile(
+            "|".join(p for pats in self.HARD_VIOLENCE_PATTERNS.values() for p in pats),
+            re.IGNORECASE | re.UNICODE,
+        )
+
         # Compile self-harm patterns
         for lang, patterns in self.SELF_HARM_PATTERNS.items():
             self._self_harm_regex[lang] = re.compile("|".join(patterns), re.IGNORECASE | re.UNICODE)
@@ -601,6 +852,89 @@ class MultiLanguageContentFilter:
                 "|".join(patterns), re.IGNORECASE | re.UNICODE
             )
 
+    def find_self_harm(
+        self, normalized: str, preferred: str | None = None
+    ) -> tuple[str, str] | None:
+        """Search the self-harm patterns of every language (script-agnostic, BITB-185).
+
+        The ``preferred`` language is tried first, then every other language.
+        ``normalized`` must already be passed through :func:`normalize_text`.
+
+        Returns:
+            ``(language, matched_text)`` for the first match, or ``None``.
+        """
+        langs = list(self._self_harm_regex)
+        if preferred in self._self_harm_regex:
+            langs.remove(preferred)
+            langs.insert(0, preferred)
+        for lang in langs:
+            match = self._self_harm_regex[lang].search(normalized)
+            if match:
+                return lang, match.group(0)
+        return None
+
+    def find_all_self_harm_spans(self, normalized: str) -> list[tuple[int, int]]:
+        """Return the ``(start, end)`` spans of EVERY self-harm match in every language.
+
+        Script-agnostic (BITB-185 v2). Used to tell whether a violence keyword lies
+        inside a self-harm phrase ("kill" in "kill myself") or outside it.
+        """
+        spans: list[tuple[int, int]] = []
+        for regex in self._self_harm_regex.values():
+            spans.extend(m.span() for m in regex.finditer(normalized))
+        return spans
+
+    def find_violence_matches(
+        self, normalized: str, languages: list[str] | None = None
+    ) -> list[tuple[int, int, str]]:
+        """Return ``(start, end, text)`` for every violence match.
+
+        ``languages=None`` searches the violence patterns of ALL languages
+        (script-agnostic); otherwise only the listed languages.
+        """
+        langs = list(self._violence_regex) if languages is None else languages
+        matches: list[tuple[int, int, str]] = []
+        for lang in dict.fromkeys(langs):
+            regex = self._violence_regex.get(lang)
+            if regex:
+                matches.extend((m.start(), m.end(), m.group(0)) for m in regex.finditer(normalized))
+        return matches
+
+    def find_hard_violence_matches(self, normalized: str) -> list[tuple[int, int, str]]:
+        """Return ``(start, end, text)`` for every hard-violence term (bombs, terror, ...).
+
+        Script-agnostic: all languages are searched at once. ``normalized`` must already
+        be passed through :func:`normalize_text`.
+        """
+        matches: list[tuple[int, int, str]] = []
+        for m in self._hard_violence_regex.finditer(normalized):
+            before = normalized[max(0, m.start() - 20) : m.start()]
+            term = m.group(0)
+            # Context exclusions apply only to the ambiguous word itself, so a real hard
+            # term next to "panic"/"night" ("nervous bombing", "night terrorists") still counts.
+            if term.startswith("attack") and self._HARD_VIOLENCE_EXCLUDE_BEFORE.search(before):
+                continue  # "panic attack", "heart-attack"
+            if self._HARD_VIOLENCE_EXCLUDE_AFTER.match(normalized, m.start()):
+                continue
+            if term in ("terror", "terrors") and self._HARD_VIOLENCE_EXCLUDE_NIGHT.search(before):
+                continue  # "night terrors" is a sleep disorder, not terrorism
+            matches.append((m.start(), m.end(), m.group(0)))
+        return matches
+
+    def find_directed_harm(self, normalized: str) -> str | None:
+        """Search directed-harm patterns (every language) and hate speech (BITB-185).
+
+        ``normalized`` must already be passed through :func:`normalize_text`.
+
+        Returns:
+            The matched text, or ``None``.
+        """
+        for regex in (*self._directed_harm_regex.values(), self._hate_speech_regex):
+            match = regex.search(normalized)
+            if match:
+                return match.group(0)
+        return None
+
     def check_multilingual(
         self, text: str, language: str = "en"
     ) -> tuple[bool, str, str | None, str | None]:
@@ -612,7 +946,7 @@ class MultiLanguageContentFilter:
 
         Args:
             text: The message to check
-            language: ISO 639-1 language code (en, it, de, es, fr, pt, ar)
+            language: ISO 639-1 language code (en, it, de, es, fr, pt, ar, ru, zh, hi, ko)
 
         Returns:
             Tuple of (blocked, confidence, violation_type, pattern_matched)

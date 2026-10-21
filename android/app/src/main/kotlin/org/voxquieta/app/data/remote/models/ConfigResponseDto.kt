@@ -10,6 +10,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ConfigResponseDto(
     val chat: ConfigChatDto? = null,
+    // BITB-119: server-published feature flags. Absent (older backend) => treated as enabled.
+    val features: ConfigFeaturesDto? = null,
+)
+
+@Serializable
+data class ConfigFeaturesDto(
+    // Fail open: only an explicit `false` hides the Listen button.
+    @SerialName("tts_enabled") val ttsEnabled: Boolean? = null,
 )
 
 @Serializable

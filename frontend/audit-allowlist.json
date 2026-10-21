@@ -1,0 +1,11 @@
+{
+  "description": "npm audit advisories the CI gate (scripts/npm-audit-gate.mjs) may ignore. Each entry needs a reason and a reviewBy date; an expired entry fails CI so exceptions cannot rot. Remove an entry as soon as a fixed version is available.",
+  "advisories": [
+    {
+      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "package": "braces",
+      "reason": "Stack-exhaustion DoS via deeply nested glob patterns. Every braces version (<=3.0.3) is affected and no patched release exists. Reached only through dev/build tooling (tailwindcss@3 via chokidar/micromatch, eslint-config-next via fast-glob@3.3.1), which runs on repo-controlled patterns; the production dependency tree (npm audit --omit=dev) is clean. Upgrading Tailwind to v4 would not clear it because @next/eslint-plugin-next pins fast-glob@3.3.1.",
+      "reviewBy": "2027-01-04"
+    }
+  ]
+}

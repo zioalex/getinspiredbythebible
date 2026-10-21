@@ -8,7 +8,7 @@ import { useFooterLinks } from "./Footer";
 // and effectively unreachable (BITB-079). This compact row renders the same
 // links inside the chat shell's own sticky bottom container instead.
 export default function ChatFooterLinks() {
-  const links = useFooterLinks();
+  const links = useFooterLinks({ supportRef: "web-chat-footer" });
 
   return (
     <nav
@@ -24,6 +24,12 @@ export default function ChatFooterLinks() {
             rel="noopener noreferrer"
             className="hover:text-primary-700 transition-colors"
           >
+            {link.icon && (
+              <link.icon
+                aria-hidden="true"
+                className="inline-block w-3 h-3 mr-1 align-[-1px]"
+              />
+            )}
             {link.label}
           </a>
         ) : (

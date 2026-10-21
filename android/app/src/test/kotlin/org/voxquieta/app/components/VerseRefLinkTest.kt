@@ -9,6 +9,7 @@ import org.voxquieta.app.presentation.components.injectVerseQuoteHighlights
 import org.voxquieta.app.presentation.components.parseVerseLink
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
+import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
@@ -1214,6 +1215,28 @@ class VerseRefLinkTest {
     }
 
     @Test
+    fun `citedVerses John 3 16 does not match John 3 1 or 3 160 (BITB-166)`() {
+        val verses = listOf(
+            Verse(book = "John", chapter = 3, verse = 1, text = "a"),
+            Verse(book = "John", chapter = 3, verse = 16, text = "b"),
+            Verse(book = "John", chapter = 3, verse = 160, text = "c"),
+        )
+        val result = citedVerses(assistant("…", verses, cited = listOf("John 3:16")))
+        assertEquals(listOf(16), result.map { it.verse })
+    }
+
+    @Test
+    fun `citedVerses range matches inside verses only (BITB-166)`() {
+        val verses = listOf(
+            Verse(book = "Romans", chapter = 8, verse = 2, text = "a"),
+            Verse(book = "Romans", chapter = 8, verse = 29, text = "b"),
+            Verse(book = "Romans", chapter = 8, verse = 31, text = "c"),
+        )
+        val result = citedVerses(assistant("…", verses, cited = listOf("Romans 8:28-30")))
+        assertEquals(listOf(29), result.map { it.verse })
+    }
+
+    @Test
     fun `citedVerses falls back to all verses when versesCited is empty`() {
         val verses = listOf(Verse(book = "Proverbs", chapter = 17, verse = 17, text = "…"))
         val result = citedVerses(assistant("…", verses, cited = emptyList()))
@@ -1247,5 +1270,87 @@ class VerseRefLinkTest {
     fun `injectVerseLinks wraps an italian reference in parentheses`() {
         val result = injectVerseLinks("Coraggio (Giovanni 3:16).")
         assertTrue(result, result.contains("[Giovanni 3:16]"))
+    }
+
+    // ── BITB-179: fullwidth colon, tilde ranges, fullwidth digits ─────────────
+
+    private val urlRegex = Regex("""verse://[^)\]\s]+""")
+
+    private fun linkUrl(input: String): String? = urlRegex.find(injectVerseLinks(input))?.value
+
+    @Test
+    fun `fullwidth colon reference links with an ASCII url and keeps the colon in the label`() {
+        val result = injectVerseLinks("约翰福音 3：16是著名的经文")
+        assertTrue(result, result.contains("[约翰福音 3：16]"))
+        val link = parseVerseLink(linkUrl("约翰福音 3：16是著名的经文")!!, null)!!
+        assertEquals("john", link.book.lowercase())
+        assertEquals(3, link.chapter)
+        assertEquals(16, link.verseNumber)
+    }
+
+    @Test
+    fun `fullwidth digits are written as ASCII in the url but kept in the label`() {
+        val input = "约翰福音 ３：１６是著名的经文"
+        val result = injectVerseLinks(input)
+        assertTrue(result, result.contains("[约翰福音 ３：１６]"))
+        val url = linkUrl(input)!!
+        assertTrue(url, url.lowercase().startsWith("verse://john/3/16"))
+    }
+
+    @Test
+    fun `tilde and wave dash ranges keep the label and use a hyphen in the url`() {
+        for (rng in listOf("～", "〜", "-")) {
+            val input = "马太福音 5：3${rng}12是重要的"
+            val result = injectVerseLinks(input)
+            assertTrue(result, result.contains("[马太福音 5：3${rng}12]"))
+            val url = linkUrl(input)!!
+            assertTrue(url, url.lowercase().startsWith("verse://matthew/5/3-12"))
+            assertEquals(3, parseVerseLink(url, null)!!.verseNumber)
+        }
+    }
+
+    @Test
+    fun `ASCII colon and German comma separators are still preserved in the label`() {
+        assertTrue(injectVerseLinks("John 3:16").contains("[John 3:16]"))
+        assertTrue(injectVerseLinks("Johannes 3,16").contains("[Johannes 3,16]"))
+    }
+
+    @Test
+    fun `Devanagari digits produce an ASCII url`() {
+        val url = linkUrl("यूहन्ना ३：१६")!!
+        assertTrue(url, url.lowercase().startsWith("verse://john/3/16"))
+    }
+
+    @Test
+    fun `unrelated fullwidth colon text produces no link`() {
+        assertEquals(null, linkUrl("时间：3点"))
+        assertEquals(null, linkUrl("比例3：1"))
+        assertEquals(null, linkUrl("第3～5章"))
+    }
+
+    @Test
+    fun `fullwidth colon after the John book name of every supported language links to John 3 16`() {
+        // One John name per UI language (en, it, de, es, fr, pt, ar, ru, zh, hi, ko); each must
+        // be a real entry of the generated book map so this stays tied to the shared data.
+        val johnNames = mapOf(
+            "en" to "John", "it" to "Giovanni", "de" to "Johannes", "es" to "Juan",
+            "fr" to "Jean", "pt" to "João", "ar" to "يوحنا", "ru" to "Иоанна",
+            "zh" to "约翰福音", "hi" to "यूहन्ना", "ko" to "요한복음",
+        )
+        for ((lang, name) in johnNames) {
+            if (lang != "en") {
+                assertEquals(lang, "john", LOCALIZED_BOOK_TO_ENGLISH[name.lowercase()])
+            }
+            for (cv in listOf("3：16", "３：１６")) {
+                val input = "$name $cv 参见"
+                val url = linkUrl(input)
+                assertTrue("[$lang] no link for '$input'", url != null)
+                val link = parseVerseLink(url!!, null)!!
+                assertEquals("[$lang] $input", "john", link.book.lowercase())
+                assertEquals("[$lang] $input", 3, link.chapter)
+                assertEquals("[$lang] $input", 16, link.verseNumber)
+                assertTrue("[$lang] $url", url.lowercase().startsWith("verse://john/3/16"))
+            }
+        }
     }
 }

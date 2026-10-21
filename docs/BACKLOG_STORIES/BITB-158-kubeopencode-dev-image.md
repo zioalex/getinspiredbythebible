@@ -126,7 +126,7 @@ Docker engine, Ollama, Terraform, full `api/` backend venv.
       `npx` already on `PATH`; no image or hook change needed
 - [ ] Follow-ups filed or fixed: stale `README.md` cross-provider table
       (`muse-spark`/`gemma-3-27b` → super/gpt-oss, matching `agents.md`) — see
-      `docs/BACKLOG_STORIES/BITB-163-sync-kubeopencode-fallback-table-post-1079.md`
+      `docs/DONE/BITB-163-sync-kubeopencode-fallback-table-post-1079.md`
       (blocked on PR #1079 merging); NVM-assumption note — resolved above,
       no longer applicable on the `executorImage` base this image derives from
 

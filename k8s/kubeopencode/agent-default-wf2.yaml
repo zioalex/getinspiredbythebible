@@ -1,21 +1,26 @@
-# Agent: default-wf2 — the full, self-contained manifest (BITB-171).
+# Agent: default-wf2 — the full, self-contained manifest (BITB-171/172).
 #
 # Equivalent to deployment/kubeopencode/agent.yaml (configRef -> the
 # opencode-config ConfigMap, PVC-backed persistence per BITB-128, all provider
-# credentials) plus the OPENCODE_SERVER_PASSWORD credential the mobile app
-# authenticates with. Applying this over a live object applied from
-# deployment/kubeopencode/agent.yaml converges. It was previously a bare sketch
-# (inline config, no persistence, two credentials), and `kubectl apply` of it
-# stripped persistence/configRef/credentials from the live Agent: the workspace
-# fell back to EmptyDir and was destroyed by the pod restart every config sync
-# requires. Keep it field-for-field in sync with deployment/kubeopencode/agent.yaml
-# (scripts/test_kubeopencode_manifests.py T6 asserts the parity).
+# credentials, the pinned custom agentImage) — the two are kept in parity by
+# scripts/test_kubeopencode_manifests.py (T6). Applying either converges.
+#
+# agentImage + imagePullSecrets (BITB-172): the custom build of the opencode
+# binary in a private GHCR package. These fields lived only on the live cluster
+# object (applied by kubectl patch per custom-opencode-image.md) until BITB-172
+# committed them; repo applies silently fell back to the default :latest image.
+#
+# server-password (OPENCODE_SERVER_PASSWORD) is deliberately NOT pre-wired
+# (BITB-172): pre-wiring it made every pod crashloop with
+# CreateContainerConfigError on clusters without the opencode-server-auth
+# secret — exactly the default-wf3 failure that surfaced the drift. Mobile
+# Basic auth is opt-in per agent; see mobile-access.md.
 #
 # Prerequisites (see README.md):
 #   - ConfigMap opencode-config (make sync-opencode-configmap) — the Agent
 #     will not start without it
-#   - Secrets: ai-credentials, opencode-server-auth, openrouter-api-key,
-#     github-copilot-auth
+#   - Secrets: ai-credentials, openrouter-api-key, github-copilot-auth
+#   - Secret ghcr-pull (the agentImage package is private)
 #   - RBAC: role-agent.yaml + rolebinding-agent.yaml (serviceAccountName below)
 apiVersion: kubeopencode.io/v1alpha1
 kind: Agent
@@ -26,6 +31,11 @@ spec:
   profile: "General-purpose development agent with automatic fallback"
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
+  # Custom opencode binary (pinned tag — never :latest; see
+  # custom-opencode-image.md). Keep in sync with deployment/kubeopencode/agent.yaml.
+  agentImage: ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31
+  imagePullSecrets:
+    - name: ghcr-pull
   # Full OpenCode config (models, prompts, permissions, fallbacks) comes from
   # the generated opencode.json via the ConfigMap — NOT inline. Run
   # `make sync-opencode-configmap` (repo root) before applying. configRef and
@@ -54,12 +64,6 @@ spec:
         name: ai-credentials
         key: api-key
       env: OPENCODE_API_KEY
-    # Basic-auth password for the opencode server (mobile app uses this)
-    - name: server-password
-      secretRef:
-        name: opencode-server-auth
-        key: password
-      env: OPENCODE_SERVER_PASSWORD
     # GitHub Copilot OAuth user token (gho_...) for the github-copilot provider.
     # PATs (classic ghp_... or fine-grained github_pat_...) are rejected by the
     # copilot_internal/v2/token exchange — see deployment/kubeopencode/README.md

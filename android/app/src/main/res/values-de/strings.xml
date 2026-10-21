@@ -182,10 +182,12 @@
     <string name="settings_changelog_title">Was ist neu</string>
     <string name="settings_changelog_link">Was ist neu</string>
     <string name="settings_support_us">Unterstütze Vox Quieta</string>
+    <string name="drawer_support_us">Unterstütze Vox Quieta</string>
     <string name="changelog_empty">Es sind noch keine Versionshinweise verfügbar.</string>
     <string name="whats_new_title">Was ist neu</string>
     <string name="whats_new_dismiss">Verstanden</string>
     <string name="whats_new_see_all">Alle anzeigen</string>
+    <string name="whats_new_support_note">Du kannst Vox Quieta jetzt über das Menü unterstützen, wenn du möchtest. Das ist völlig freiwillig — die App bleibt für alle kostenlos.</string>
 
     <!-- About intro bottom sheet (BITB-082) -->
     <string name="about_intro_title">Warum Vox Quieta</string>
@@ -297,4 +299,13 @@
 
     <!-- Share -->
     <string name="share_prefix">Ich habe diese inspirierende biblische Erkenntnis gefunden:</string>
+
+    <!-- Read aloud (BITB-119) -->
+    <string name="action_listen">Antwort anhören</string>
+    <string name="action_stop_listening">Wiedergabe beenden</string>
+    <string name="state_listening">Wird vorgelesen</string>
+    <string name="state_not_listening">Wird nicht vorgelesen</string>
+    <string name="settings_tts_title">Vorlesen</string>
+    <string name="settings_tts_show_listen">Schaltfläche „Anhören“ anzeigen</string>
+    <string name="settings_tts_show_listen_desc">Fügt den Antworten eine Schaltfläche zum Anhören hinzu. Die Antworten werden von der Stimme deines Geräts vorgelesen; der Text verlässt dein Gerät nie.</string>
 </resources>

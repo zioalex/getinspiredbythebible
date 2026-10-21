@@ -8,6 +8,7 @@ import asyncio
 import os
 import traceback as _traceback
 from contextlib import asynccontextmanager
+from typing import Literal
 
 # Configure Azure Monitor (Application Insights) as early as possible.
 # This ensures that all subsequent imports that might create meters/tracers
@@ -34,7 +35,7 @@ if _appinsights_conn:
 from fastapi import Depends, FastAPI, Request  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
-from pydantic import BaseModel, Field  # noqa: E402
+from pydantic import BaseModel, ConfigDict, Field  # noqa: E402
 
 from config import settings  # noqa: E402
 from middleware.access_audit import AccessAuditMiddleware  # noqa: E402
@@ -53,6 +54,7 @@ from utils.local_only import require_local_access  # noqa: E402
 from utils.logging_config import get_logger, setup_logging  # noqa: E402
 from utils.metrics import (  # noqa: E402
     client_errors_counter,
+    client_tts_events_counter,
     translation_data_missing_counter,
 )
 from utils.metrics import meter as _metrics_meter  # noqa: F401, E402
@@ -404,6 +406,9 @@ async def get_config():
             "max_message_length": settings.max_message_length,
             "session_max_requests": settings.rate_limit_session_max_requests,
         },
+        "features": {
+            "tts_enabled": settings.tts_enabled,
+        },
         "security": {
             "turnstile_enabled": settings.turnstile_enabled,
             "turnstile_site_key": (
@@ -477,6 +482,42 @@ async def report_client_error(report: ClientErrorReport, request: Request):
             "user_agent": request.headers.get("user-agent"),
             "ip": client_ip,
         },
+    )
+    return {"status": "ok"}
+
+
+# BITB-119: read-aloud client events. Event + locale only — never message text,
+# IDs, IP or user agent. Both are whitelisted so the counter's cardinality is bounded.
+_CLIENT_EVENT_LOCALES = frozenset(
+    {"en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"}
+)
+
+
+class ClientEvent(BaseModel):
+    """Body for POST /api/v1/client-events. Unknown events/extra fields -> 422."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event: Literal["tts_started", "tts_unavailable"]
+    locale: str = Field(default="", max_length=16)
+
+
+def _normalize_client_event_locale(raw: str) -> str:
+    """Reduce a BCP-47-ish tag (``zh-CN``, ``pt_BR``) to a supported locale, else ``other``."""
+    primary = raw.strip().lower().replace("_", "-").split("-")[0]
+    return primary if primary in _CLIENT_EVENT_LOCALES else "other"
+
+
+@app.post(
+    "/api/v1/client-events",
+    include_in_schema=False,
+    dependencies=[Depends(require_rate_limit)],
+)
+async def report_client_event(event: ClientEvent):
+    """Count a whitelisted client telemetry event (no logging of IP / user agent)."""
+    client_tts_events_counter.add(
+        1,
+        {"event": event.event, "locale": _normalize_client_event_locale(event.locale)},
     )
     return {"status": "ok"}
 

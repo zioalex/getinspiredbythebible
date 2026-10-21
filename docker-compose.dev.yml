@@ -21,6 +21,8 @@ services:
     ports:
       - "127.0.0.1:8001:8000"
     environment:
+      # BITB-080/178: suggested follow-up chips; off by default, set true in .env to test them.
+      - CHAT_FOLLOW_UPS_ENABLED=${CHAT_FOLLOW_UPS_ENABLED:-false}
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - LLM_MODEL=${LLM_MODEL:-mistral:7b}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
@@ -118,6 +120,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # Builds the production stage, where NEXT_PUBLIC_* is inlined at build
+      # time, so a runtime env var would do nothing (BITB-157).
+      args:
+        NEXT_PUBLIC_DONATE_URL: ${NEXT_PUBLIC_DONATE_URL:-}
     ports:
       - "127.0.0.1:3001:3000"
     environment:

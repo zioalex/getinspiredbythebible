@@ -3,8 +3,8 @@ description: Independent verification agent. Runs backend, frontend, and Android
 mode: subagent
 model: opencode/nemotron-3-ultra-free
 fallback_models:
-  - opencode/nemotron-3-super-free
-  - openrouter/openai/gpt-oss-120b:free
+  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+  - openrouter/openai/gpt-oss-120b
 permission:
   edit: deny
   bash:

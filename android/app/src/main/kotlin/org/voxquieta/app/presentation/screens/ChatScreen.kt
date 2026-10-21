@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LocationOn
@@ -49,6 +50,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -60,10 +62,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.voxquieta.app.R
+import org.voxquieta.app.utils.DonateRef
+import org.voxquieta.app.utils.donateUrl
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
@@ -77,6 +85,7 @@ import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
 import org.voxquieta.app.presentation.components.VersesPanel
 import org.voxquieta.app.presentation.components.WelcomeBanner
 import org.voxquieta.app.presentation.components.buildVerseRefRegex
+import org.voxquieta.app.presentation.components.cjkBookNamesFrom
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.presentation.viewmodels.ConversationsViewModel
 import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
@@ -106,29 +115,45 @@ fun ChatScreen(
     // are excluded: the numbered-prefix branch (Alt 1) already handles them via the generic book
     // pattern, and including them here would double-consume the "1 " prefix.
     //
-    // NB: we intentionally do NOT seed CJK names here. A non-empty CJK list makes
-    // buildVerseRefRegex exclude BOTH Han and Hangul from the generic pattern, but only Han
-    // names get an explicit alternation — so seeding it offline would break Korean. CJK/Hangul
-    // are matched by the generic pattern (they are \p{L}) plus the isKnownBook gate instead.
+    // CJK names are handled separately below via cjkBookNamesFrom(), which returns BOTH Han
+    // (Chinese) and Hangul (Korean) names from the localized map. A non-empty CJK list makes
+    // buildVerseRefRegex exclude Han AND Hangul from the generic book pattern, so every name of
+    // either script must be in the explicit alternation or it would stop matching.
     val bundledMultiWord = remember {
         LOCALIZED_BOOK_TO_ENGLISH.keys.filter { it.contains(' ') && !it.first().isDigit() }
     }
     val allMultiWord = remember(multiWordNames) {
         (multiWordNames + bundledMultiWord).distinct().sortedByDescending { it.length }
     }
-    // Extract CJK (Han-script) book names from the localized map for no-space matching.
-    val cjkBookNames = remember(localizedToEnglish) {
-        localizedToEnglish.keys.filter { key ->
-            key.length >= 2 && key.all { ch ->
-                Character.UnicodeScript.of(ch.code) == Character.UnicodeScript.HAN
-            }
-        }.sortedByDescending { it.length }
-    }
+    // Extract CJK (Han) and Korean (Hangul) book names from the localized map for no-space
+    // matching. Both scripts are required -- see cjkBookNamesFrom.
+    val cjkBookNames = remember(localizedToEnglish) { cjkBookNamesFrom(localizedToEnglish) }
     val verseRefRegex = remember(allMultiWord, cjkBookNames) {
         buildVerseRefRegex(allMultiWord, cjkBookNames)
     }
+    // BITB-119: Listen button availability (server flag + preference + an offline voice for the
+    // UI language), re-evaluated when any of those inputs change.
+    val canSpeak = remember(
+        uiState.ttsServerEnabled,
+        uiState.showListenButton,
+        uiState.ttsEngineReady,
+        uiState.currentLocale,
+    ) { viewModel.canSpeak() }
+    // Stop reading aloud when the app is backgrounded or this screen is left.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) viewModel.stopSpeaking()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stopSpeaking()
+        }
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val uriHandler = LocalUriHandler.current
     val snackbarHostState = remember { SnackbarHostState() }
     var inputText by rememberSaveable { mutableStateOf("") }
 
@@ -294,6 +319,10 @@ fun ChatScreen(
                     showChurchFinderSheet = true
                     viewModel.openChurchFinder()
                 },
+                onOpenSupport = {
+                    scope.launch { drawerState.close() }
+                    runCatching { uriHandler.openUri(donateUrl(DonateRef.DRAWER)) }
+                },
                 onOpenSettings = {
                     scope.launch { drawerState.close() }
                     onOpenSettings()
@@ -411,6 +440,11 @@ fun ChatScreen(
                             feedbackGiven = uiState.feedbackGiven[message.id],
                             verseRefRegex = verseRefRegex,
                             localizedToEnglish = localizedToEnglish,
+                            showListen = canSpeak,
+                            isSpeaking = uiState.speakingMessageId == message.id,
+                            onToggleListen = {
+                                viewModel.toggleSpeak(message, verseRefRegex, localizedToEnglish)
+                            },
                         )
                         Spacer(modifier = Modifier.height(2.dp))
 
@@ -568,7 +602,7 @@ fun ChatScreen(
 }
 
 @Composable
-private fun ChatHistoryDrawer(
+internal fun ChatHistoryDrawer(
     conversations: List<org.voxquieta.app.domain.models.Conversation>,
     currentConversationId: String?,
     hasMessages: Boolean,
@@ -579,6 +613,7 @@ private fun ChatHistoryDrawer(
     onOpenLanguagePicker: () -> Unit,
     onOpenTranslationPicker: () -> Unit,
     onOpenChurchFinder: () -> Unit,
+    onOpenSupport: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     ModalDrawerSheet {
@@ -695,6 +730,18 @@ private fun ChatHistoryDrawer(
             label = { Text(stringResource(R.string.drawer_search_community)) },
             selected = false,
             onClick = onOpenChurchFinder,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        NavigationDrawerItem(
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.FavoriteBorder,
+                    contentDescription = null,
+                )
+            },
+            label = { Text(stringResource(R.string.drawer_support_us)) },
+            selected = false,
+            onClick = onOpenSupport,
             modifier = Modifier.padding(horizontal = 12.dp),
         )
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))

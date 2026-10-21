@@ -24,7 +24,7 @@ describe("Footer", () => {
       "/privacy",
       "/terms",
       "/changelog",
-      "https://ko-fi.com/voxquieta",
+      "https://ko-fi.com/voxquieta?ref=web-footer",
     ]);
   });
 
@@ -53,5 +53,26 @@ describe("Footer", () => {
     expect(internalLink).not.toBeNull();
     expect(internalLink).not.toHaveAttribute("target");
     expect(internalLink).not.toHaveAttribute("rel");
+  });
+
+  it("adds a decorative heart to the support link without raising its visual weight", () => {
+    renderWithIntl(<Footer />);
+
+    const supportLink = screen
+      .getByText(enMessages.Footer.supportUs)
+      .closest("a") as HTMLElement;
+    expect(supportLink.querySelector("svg[aria-hidden='true']")).not.toBeNull();
+    expect(supportLink.className).not.toMatch(
+      /font-semibold|font-bold|text-base/,
+    );
+    const parent = supportLink.parentElement as HTMLElement;
+    expect(parent.className).toContain("text-sm");
+    expect(parent.className).toContain("text-gray-500");
+  });
+
+  it("renders no icon on internal links", () => {
+    renderWithIntl(<Footer />);
+    const internal = screen.getByText(enMessages.Footer.getApp).closest("a");
+    expect(internal?.querySelector("svg")).toBeNull();
   });
 });

@@ -111,6 +111,16 @@ class Settings(BaseSettings):
 
     # Chat Settings
     max_context_verses: int = 10  # Max verses to include in context
+    # BITB-178: surrounding-verse context for referenced verses. A direct lookup of
+    # "Luke 1:79" otherwise fetches only that verse, whose opening pronoun refers back to
+    # 1:78 -- so the model guessed the referent. When a verse reference is in the message
+    # (or, on a reference-less follow-up, in recent history), the prompt also carries the
+    # verses around it. Prompt-only: never added to the scripture_context sent to clients.
+    passage_context_enabled: bool = True
+    passage_context_verses_before: int = 4  # verses before the first referenced verse
+    passage_context_verses_after: int = 2  # verses after the last referenced verse
+    passage_context_max_references: int = 2  # references expanded per turn (bounds extra queries)
+    passage_context_history_lookback: int = 4  # history messages scanned; 0 disables carry-over
     max_conversation_history: int = 10  # Max messages to keep in context
     # BITB-058: fail closed when a scripture-seeking request cannot be grounded in any
     # verse (hard retrieval failure OR zero results). Rather than answer without
@@ -282,6 +292,8 @@ class Settings(BaseSettings):
     # (e.g. a browser-only outage) alerts. Cap the free-text detail to bound
     # log/metric size and abuse.
     client_error_reporting_enabled: bool = True
+    # BITB-119: Read-aloud (on-device TTS) feature flag, published via GET /config.
+    tts_enabled: bool = True
     client_error_max_detail_chars: int = 500
 
     # Azure Content Safety Settings
@@ -301,6 +313,13 @@ class Settings(BaseSettings):
     #                  Maximum accuracy, requires Azure Content Safety resource.
     content_safety_enabled: bool = True  # Master switch (matches Terraform prod default)
     content_safety_mode: Literal["keyword_only", "hybrid", "ml_only"] = "ml_only"
+
+    # Second LLM opinion for ambiguous fallback cases (BITB-185 v2). When ML moderation is
+    # down and the keyword fallback sees BOTH self-harm and violence keywords (outside the
+    # self-harm phrase), the main chat LLM_PROVIDER classifies SELF_HARM / HARM_TO_OTHERS /
+    # BOTH / NEITHER. Disabled, timeout, error or BOTH -> crisis-resources block.
+    content_safety_second_opinion_enabled: bool = True
+    content_safety_second_opinion_timeout: float = 3.0  # Seconds
 
     # Llama Guard Settings
     # Note: These settings only apply when content_safety_mode is ml_only.

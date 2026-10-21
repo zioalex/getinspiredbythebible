@@ -90,7 +90,7 @@ export default async function TesterPage({
               className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 bg-white border border-primary-100 rounded-xl"
             >
               <div className="flex items-start gap-4 flex-1">
-                <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 text-primary-600">
+                <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-50 text-primary-600">
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
@@ -107,7 +107,7 @@ export default async function TesterPage({
                 href={step.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0 self-start sm:self-center inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors whitespace-nowrap"
+                className="shrink-0 self-start sm:self-center inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors whitespace-nowrap"
               >
                 {step.cta}
               </a>

@@ -13,6 +13,7 @@
 import { createVersePatternGlobal as _createVersePatternGlobal } from "./versePatterns";
 import { normalizeTraditionalToSimplified } from "./chineseScript";
 import { LOCALIZED_BOOK_TO_ENGLISH } from "./localizedBookMap.generated";
+import { NON_ASCII_DIGIT_RANGES } from "./verseGrammar.generated";
 
 export { LOCALIZED_BOOK_TO_ENGLISH };
 
@@ -115,30 +116,24 @@ function normalizeBookName(book: string): string {
  * - Korean:   "요한복음 3:16", "시편 23:1", "예레미야 애가 3:3"
  */
 /**
- * Normalize Devanagari digits (०-९, U+0966-U+096F) to ASCII digits (0-9).
- * Returns the string unchanged if no Devanagari digits are present.
- */
-function normalizeDevanagariDigits(s: string): string {
-  return s.replace(/[\u0966-\u096F]/g, (ch) =>
-    String(ch.charCodeAt(0) - 0x0966),
-  );
-}
-
-/**
- * Normalize Eastern Arabic digits (٠-٩, U+0660-U+0669) to ASCII digits (0-9).
- */
-function normalizeEasternArabicDigits(s: string): string {
-  return s.replace(/[\u0660-\u0669]/g, (ch) =>
-    String(ch.charCodeAt(0) - 0x0660),
-  );
-}
-
-/**
  * Normalize non-ASCII digit systems to ASCII.
- * Handles Devanagari (०-९) and Eastern Arabic (٠-٩) numerals.
+ *
+ * Data-driven from NON_ASCII_DIGIT_RANGES (generated from
+ * tests/fixtures/verse_grammar.json): every code point in each ten-digit range
+ * (Devanagari ०-९, Eastern Arabic ٠-٩, fullwidth ０-９, ...) maps to its ASCII
+ * digit, so a new range in the JSON needs no further code here.
  */
 export function normalizeDigits(s: string): string {
-  return normalizeEasternArabicDigits(normalizeDevanagariDigits(s));
+  let out = s;
+  for (const { start, end } of NON_ASCII_DIGIT_RANGES) {
+    const lo = start.codePointAt(0) as number;
+    const hi = end.codePointAt(0) as number;
+    out = Array.from(out, (ch) => {
+      const cp = ch.codePointAt(0) as number;
+      return cp >= lo && cp <= hi ? String(cp - lo) : ch;
+    }).join("");
+  }
+  return out;
 }
 
 /**

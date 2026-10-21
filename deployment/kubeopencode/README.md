@@ -16,7 +16,9 @@ cluster-side wiring (the `configRef` pointer and credentials).
 - Secret `openrouter-api-key` with key `openrouter-api-key` in
   `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required:
   `android-gemini` uses paid-tier primary `openrouter/qwen/qwen3-coder`;
-  without it the agent falls back to `opencode/muse-spark-1.3-contributor-free`)
+  without it the agent's whole chain — primary and both fallbacks — is on
+  OpenRouter, so it has no working model; see
+  [Cross-provider Resilience](#cross-provider-resilience))
 - Secret `github-copilot-auth` in `kubeopencode-system` → Copilot credential
   for the `github-copilot/*` models (orchestrator, verifier, risk-auditor).
   Working mechanism today is key `token` (a `gho_…` OAuth user token) →
@@ -216,8 +218,8 @@ kubectl -n kubeopencode-system describe agent default-wf2
 
 ## Cross-provider Resilience
 
-Every agent uses a **2-hop fallback chain across 2 providers** (OpenCode Zen,
-OpenRouter). The `opencode-runtime-fallback@0.2.4` plugin retries on
+Every agent uses a **2-hop fallback chain** (free first, paid last, BITB-173)
+that ends on OpenRouter. The `opencode-runtime-fallback@0.2.4` plugin retries on
 `[400, 401, 402, 403, 429, 500, 502, 503, 504]` (auth/quota 4xx included, so a
 provider returning "subscription exhausted" still fails over) with
 `max_fallback_attempts: 2`:
@@ -226,15 +228,21 @@ provider returning "subscription exhausted" still fails over) with
 Primary model ──429/5xx──▶ Tier 1 fallback ──429/5xx──▶ Tier 2 fallback
 ```
 
-| Agent group | Tier 1 | Tier 2 | Covers |
-|---|---|---|---|
-| All agents (nemotron/mimo prim) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenCode Zen outage |
-| android-gemini (OpenRouter prim) | `opencode/muse-spark` | `openrouter/gemma-3-27b:free` | OpenRouter outage → OpenCode → back to OpenRouter |
+The tier-1 hop is always cross-provider (the other provider than the
+primary), free-first / paid-last:
 
-In the worst case (both providers degrade), agents survive on the last
-responding model rather than hard-failing. `OPENROUTER_API_KEY` is therefore
+| Agent group | Primary | Tier 1 (free, cross-provider) | Tier 2 (paid) | Covers |
+|---|---|---|---|---|
+| Global builtins + orchestrator (build/plan/general/explore/etc.) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` (strongest free) | `opencode/nemotron-3-ultra-free` (Zen) | `openrouter/openai/gpt-oss-120b` | OpenRouter outage → Zen catches |
+| 10 Zen-primary specialist subagents (`opencode/*`) | `opencode/nemotron-3-ultra-free` / `opencode/mimo-v2.6-flash-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Zen outage → OpenRouter catches |
+| android-gemini | `openrouter/qwen/qwen3-coder` (paid) | `opencode/nemotron-3-ultra-free` (Zen) | `openrouter/openai/gpt-oss-120b` | OpenRouter outage → Zen catches |
+
+An outage of either provider leaves the other provider's agents (and every
+tier-1 hop) unaffected; if both providers are down, every agent is down. `OPENROUTER_API_KEY` is therefore
 required for **runtime resilience**, not just for `android-gemini`'s paid
-primary.
+primary. The per-agent table and rationale live in
+[`agents.md`](agents.md), the source of truth; the `.opencode/agents/*.md`
+frontmatter compiled into `opencode.json` is what actually ships.
 
 > **Note (2026-09-14):** `github-copilot/claude-opus-5` was the primary for
 > orchestrator, verifier, and risk-auditor until Copilot subscription credits
@@ -305,7 +313,9 @@ kubectl -n kubeopencode-system delete pvc <workspace-pvc>
 
 - `agent.yaml` — the `Agent` CRD (`default-wf2`): `configRef` pointing at the
   `opencode-config` ConfigMap, credentials wiring (incl. the GitHub Copilot
-  OAuth token), and `spec.persistence` (workspace + sessions PVCs)
+  OAuth token), `spec.persistence` (workspace + sessions PVCs), and the pinned
+  custom `agentImage` + `ghcr-pull` pull secret (BITB-172 — matches what the
+  live object runs; see `k8s/kubeopencode/custom-opencode-image.md`)
 - `agents.md` — documented 12-agent model table (mirrors the `agent` section of
   the generated `opencode.json`)
 

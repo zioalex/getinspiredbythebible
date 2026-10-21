@@ -137,7 +137,7 @@ export default function ChapterModal({
                 >
                   <div className="flex gap-3">
                     <span
-                      className={`flex-shrink-0 w-8 text-right text-sm font-bold ${
+                      className={`shrink-0 w-8 text-right text-sm font-bold ${
                         highlightVerse === verse.verse
                           ? "text-amber-700"
                           : "text-gray-400 group-hover:text-gray-600"

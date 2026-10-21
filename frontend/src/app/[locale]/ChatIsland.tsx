@@ -64,6 +64,7 @@ import { mergeVerses } from "@/lib/mergeVerses";
 import { useTurnstile } from "@/lib/turnstile";
 import { useServerConfig } from "@/lib/serverConfig";
 import { isSmokeMode } from "@/lib/smoke";
+import { useStopSpeechOnChange } from "@/lib/useStopSpeechOnChange";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import {
@@ -840,6 +841,10 @@ export default function ChatIsland({
     }
   };
 
+  // BITB-119: starting or switching conversation silences any answer being read
+  // aloud (messages are keyed by index, so their unmount cleanup alone is not enough).
+  useStopSpeechOnChange(conversationId);
+
   const handleNewChat = () => {
     setMessages([]);
     setRelevantVerses([]);
@@ -1006,7 +1011,7 @@ export default function ChatIsland({
   return (
     <main className="flex h-dvh">
       {/* Main Chat Area */}
-      <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto [overflow-x:clip]">
+      <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto overflow-x-clip">
         {/* Header */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
@@ -1033,9 +1038,9 @@ export default function ChatIsland({
               <Link
                 href="/app"
                 title={tHeader("appCta")}
-                className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-sm hover:shadow transition-all"
+                className="relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-full shadow-xs hover:shadow-sm transition-all"
               >
-                <Smartphone className="w-4 h-4 flex-shrink-0" />
+                <Smartphone className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">{tHeader("appCta")}</span>
               </Link>
 
@@ -1052,7 +1057,7 @@ export default function ChatIsland({
                 title={tHeader("bibleVersion")}
               >
                 <Book
-                  className={`w-3.5 h-3.5 flex-shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-700"}`}
+                  className={`w-3.5 h-3.5 shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-700"}`}
                 />
                 <span
                   className={`text-xs font-medium max-w-[5rem] sm:max-w-[8rem] truncate ${translations.length === 0 ? "text-gray-400" : "text-amber-800"}`}
@@ -1062,7 +1067,7 @@ export default function ChatIsland({
                     : tHeader("bibleVersion")}
                 </span>
                 <ChevronDown
-                  className={`w-3 h-3 flex-shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-600"}`}
+                  className={`w-3 h-3 shrink-0 ${translations.length === 0 ? "text-gray-400" : "text-amber-600"}`}
                 />
                 {/* Native select is invisible but handles click-to-open and keyboard navigation */}
                 <select
@@ -1094,7 +1099,7 @@ export default function ChatIsland({
         {/* Backend warming-up notification */}
         {backendReady === false && (
           <div className="mx-3 sm:mx-6 mt-3 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-center gap-3">
-            <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
             <span className="text-sm">{tChat("backendWarmingUp")}</span>
           </div>
         )}
@@ -1150,7 +1155,7 @@ export default function ChatIsland({
                   alt={tWelcome("appTitle")}
                   width={40}
                   height={40}
-                  className="flex-shrink-0 w-10 h-10 rounded-xl"
+                  className="shrink-0 w-10 h-10 rounded-xl"
                 />
                 <span className="flex-1 min-w-0">
                   <span className="block font-semibold text-teal-900">
@@ -1160,7 +1165,7 @@ export default function ChatIsland({
                     {tWelcome("appBody")}
                   </span>
                 </span>
-                <ArrowRight className="w-5 h-5 text-teal-600 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-5 h-5 text-teal-600 shrink-0 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
           ) : (
@@ -1174,6 +1179,7 @@ export default function ChatIsland({
                       citations: message.citations,
                     }}
                     messageId={message.messageId}
+                    isStreaming={isLoading && index === messages.length - 1}
                     userMessage={message.userMessage}
                     onVerseClick={handleVerseClick}
                     onSubmitFeedback={
@@ -1276,7 +1282,7 @@ export default function ChatIsland({
               placeholder={tChat("inputPlaceholder")}
               rows={1}
               maxLength={maxMessageLength}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none overflow-y-auto leading-6"
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none overflow-y-auto leading-6"
               disabled={showSessionLimitButton}
             />
             {isLoading ? (

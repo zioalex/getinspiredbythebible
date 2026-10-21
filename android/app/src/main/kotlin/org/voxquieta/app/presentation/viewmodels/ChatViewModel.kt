@@ -6,10 +6,12 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import org.voxquieta.app.R
+import org.voxquieta.app.analytics.AnalyticsHelper
 import org.voxquieta.app.data.preferences.LanguagePreferences
 import org.voxquieta.app.data.preferences.LastConversationPreferences
 import org.voxquieta.app.data.preferences.SessionPreferences
 import org.voxquieta.app.data.preferences.ThemePreferences
+import org.voxquieta.app.data.preferences.TtsPreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
@@ -26,6 +28,8 @@ import org.voxquieta.app.domain.repositories.ChurchRepository
 import org.voxquieta.app.domain.repositories.ContactRepository
 import org.voxquieta.app.presentation.components.ContactFormState
 import org.voxquieta.app.security.TurnstileManager
+import org.voxquieta.app.tts.SpeechEngine
+import org.voxquieta.app.tts.speakableChunks
 import org.voxquieta.app.utils.LocaleApplier
 import org.voxquieta.app.utils.normalizeBookName
 import org.voxquieta.app.utils.LogCollector
@@ -46,6 +50,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -159,6 +164,18 @@ data class ChatUiState(
      * own configured limit regardless of this value.
      */
     val sessionMaxRequests: Int = ChatViewModel.MAX_INTERACTIONS,
+    /**
+     * Server flag for the read-aloud feature (BITB-119), from GET /config
+     * `features.tts_enabled`. Fails open: stays true unless the backend explicitly
+     * says false (absent field, older backend, or failed fetch all keep it on).
+     */
+    val ttsServerEnabled: Boolean = true,
+    /** User preference "Show Listen button" (BITB-119), default on. */
+    val showListenButton: Boolean = true,
+    /** True once the on-device speech engine has initialised and voices can be queried. */
+    val ttsEngineReady: Boolean = false,
+    /** ID of the message currently being read aloud, or null. */
+    val speakingMessageId: String? = null,
 )
 
 @HiltViewModel
@@ -176,6 +193,9 @@ class ChatViewModel @Inject constructor(
     private val bibleApiService: BibleApiService,
     private val networkMonitor: NetworkMonitor,
     private val localeApplier: LocaleApplier,
+    private val speechEngine: SpeechEngine,
+    private val ttsPreferences: TtsPreferences,
+    private val analyticsHelper: AnalyticsHelper,
 ) : ViewModel() {
 
     companion object {
@@ -295,6 +315,9 @@ class ChatViewModel @Inject constructor(
      */
     private var streamJob: Job? = null
 
+    /** Languages already reported as `tts_unavailable` (at most once each per ViewModel). */
+    private val ttsUnavailableReported = mutableSetOf<String>()
+
     init {
         // isTurnstileReady is true when a valid token is held OR when Turnstile has
         // errored (fail-open): the interceptor already forwards requests without a
@@ -335,6 +358,54 @@ class ChatViewModel @Inject constructor(
                     isSessionLimitReached = restoredCount >= it.sessionMaxRequests,
                 )
             }
+        }
+        // BITB-119: "Show Listen button" preference. The platform TextToSpeech engine is only
+        // started (warmUp) while the button is enabled, so users who turned it off never bind
+        // to the TTS service; turning it off also silences anything being read.
+        viewModelScope.launch {
+            ttsPreferences.showListenButtonFlow.collect { show ->
+                _uiState.update { it.copy(showListenButton = show) }
+                if (show) speechEngine.warmUp() else speechEngine.stop()
+            }
+        }
+        viewModelScope.launch {
+            speechEngine.isReady.collect { ready ->
+                _uiState.update { it.copy(ttsEngineReady = ready) }
+            }
+        }
+        viewModelScope.launch {
+            speechEngine.speakingId.collect { id ->
+                _uiState.update { it.copy(speakingMessageId = id) }
+            }
+        }
+        // BITB-119: count devices that would show Listen but have no on-device voice for the
+        // language, once per language per ViewModel, and only after an answer exists (the
+        // moment the button would have appeared) — mirrors the web.
+        viewModelScope.launch {
+            _uiState
+                .map { state ->
+                    TtsGate(
+                        enabled = state.ttsServerEnabled && state.showListenButton,
+                        engineReady = state.ttsEngineReady,
+                        language = speechLanguage(state.currentLocale),
+                        hasAnswer = state.messages.any {
+                            it.role == Message.Role.ASSISTANT && !it.isStreaming &&
+                                !it.isError && it.content.isNotBlank()
+                        },
+                    )
+                }
+                .distinctUntilChanged()
+                .collect { gate ->
+                    if (gate.enabled && gate.engineReady && gate.hasAnswer &&
+                        !speechEngine.hasLocalVoice(gate.language) &&
+                        ttsUnavailableReported.add(gate.language)
+                    ) {
+                        analyticsHelper.logEvent(
+                            AnalyticsHelper.EVENT_TTS_UNAVAILABLE,
+                            mapOf(AnalyticsHelper.PARAM_LOCALE to gate.language),
+                        )
+                    }
+                }
         }
         // Fetch available translations from the backend with retry.
         viewModelScope.launch { fetchTranslationsWithRetry() }
@@ -441,6 +512,11 @@ class ChatViewModel @Inject constructor(
                 if (sessionMax != null && sessionMax > 0) {
                     _uiState.update { it.copy(sessionMaxRequests = sessionMax) }
                 }
+                // BITB-119: fail open — only an explicit `false` hides the Listen button.
+                if (response.features?.ttsEnabled == false) {
+                    _uiState.update { it.copy(ttsServerEnabled = false) }
+                    speechEngine.stop()
+                }
                 return
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
@@ -454,6 +530,71 @@ class ChatViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    // ── Read aloud (BITB-119) ────────────────────────────────────────────────
+
+    /** Inputs that decide whether `tts_unavailable` should be reported. */
+    private data class TtsGate(
+        val enabled: Boolean,
+        val engineReady: Boolean,
+        val language: String,
+        val hasAnswer: Boolean,
+    )
+
+    /** Primary language code that speech and telemetry use for [currentLocale] (e.g. "zh"). */
+    private fun speechLanguage(currentLocale: String): String =
+        Locale.forLanguageTag(currentLocale.ifBlank { Locale.getDefault().toLanguageTag() })
+            .language
+
+    /**
+     * True when the Listen button may be shown for the current UI language: the server flag
+     * is not explicitly off, the user preference is on, and an offline voice is installed.
+     */
+    fun canSpeak(): Boolean {
+        val state = _uiState.value
+        return state.ttsServerEnabled && state.showListenButton && state.ttsEngineReady &&
+            speechEngine.hasLocalVoice(speechLanguage(state.currentLocale))
+    }
+
+    /**
+     * Listen <-> Stop for one message: stops it if it is the one speaking, otherwise speaks
+     * its normalized text (replacing anything else that was speaking).
+     */
+    fun toggleSpeak(
+        message: Message,
+        verseRefRegex: Regex,
+        localizedToEnglish: Map<String, String>,
+    ) {
+        if (_uiState.value.speakingMessageId == message.id) {
+            speechEngine.stop()
+            return
+        }
+        val language = speechLanguage(_uiState.value.currentLocale)
+        val chunks = speakableChunks(message.content, language, verseRefRegex, localizedToEnglish)
+        if (chunks.isEmpty()) return
+        if (speechEngine.speak(message.id, chunks, language)) {
+            analyticsHelper.logEvent(
+                AnalyticsHelper.EVENT_TTS_STARTED,
+                mapOf(AnalyticsHelper.PARAM_LOCALE to language),
+            )
+        }
+    }
+
+    /** Stops any answer being read aloud (conversation switch, background, settings off). */
+    fun stopSpeaking() {
+        speechEngine.stop()
+    }
+
+    /** Persists the "Show Listen button" preference. */
+    fun setShowListenButton(show: Boolean) {
+        _uiState.update { it.copy(showListenButton = show) }
+        viewModelScope.launch { ttsPreferences.setShowListenButton(show) }
+    }
+
+    override fun onCleared() {
+        speechEngine.stop()
+        super.onCleared()
     }
 
     fun sendMessage(text: String) {
@@ -769,6 +910,7 @@ class ChatViewModel @Inject constructor(
 
     /** Load a previously saved conversation by ID and replace in-memory messages. */
      fun loadConversation(conversationId: String) {
+        speechEngine.stop() // BITB-119: never keep reading the previous thread
         // Clear stale chips from whatever thread was previously active exactly once,
         // synchronously, when switching conversations. This must NOT happen inside the
         // collector below: observeMessages is a live Room Flow that re-emits every time
@@ -815,6 +957,7 @@ class ChatViewModel @Inject constructor(
 
     /** Reset in-memory state and clear the active conversation ID (starts a new session). */
     fun startNewConversation() {
+        speechEngine.stop() // BITB-119
         viewModelScope.launch {
             sessionPreferences.resetSessionId()
         }
@@ -889,6 +1032,7 @@ class ChatViewModel @Inject constructor(
     fun setLocale(locale: String) {
         if (locale == _uiState.value.currentLocale) return
         Timber.tag("VoxLocale").i("ChatViewModel.setLocale(%s) called", locale)
+        speechEngine.stop() // BITB-119: the answer language no longer matches the UI language
         _uiState.update { it.copy(currentLocale = locale) }
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
@@ -975,6 +1119,7 @@ class ChatViewModel @Inject constructor(
 
     /** Deletes the active conversation from DB and resets in-memory state. */
     fun clearConversation() {
+        speechEngine.stop() // BITB-119
         // Stop any in-flight stream first: its onCompletion would otherwise try to persist
         // the assistant message against the conversation we are about to delete.
         cancelStream()
@@ -990,6 +1135,7 @@ class ChatViewModel @Inject constructor(
 
     /** Deletes ALL conversations from DB and resets in-memory state. */
     fun clearAllConversations() {
+        speechEngine.stop() // BITB-119
         // Stop any in-flight stream first: its onCompletion would otherwise try to persist
         // the assistant message against a conversation we are about to delete.
         cancelStream()

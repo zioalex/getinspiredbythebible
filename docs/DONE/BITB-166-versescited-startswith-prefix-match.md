@@ -1,6 +1,6 @@
 # BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1127, 2026-10-01)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30
@@ -34,10 +34,21 @@ range-aware comparison, not a prefix test.
 
 ## Acceptance Criteria
 
-- [ ] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
-- [ ] Regression tests: a `John 3:16` citation does not surface John 3:1; `Romans 8:28-30` still
+- [x] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
+- [x] Regression tests: a `John 3:16` citation does not surface John 3:1; `Romans 8:28-30` still
       resolves; multi-language book names (en, it, de, es, fr, pt, ar, ru, zh, hi, ko) unaffected
 
 ## Related
 
 - **BITB-164** -- fixed the same bug for the client-regex fallback
+
+## Resolution
+
+- One shared helper in `ChatMessageItem.kt` (`parseCitedRef`, `matchesCitation`,
+  `filterByCitations`) parses each server citation once and matches on exact book
+  (case-insensitive, English or localized, Traditional->Simplified normalized), exact chapter, and
+  verse. Used by both `referencedVerses` and `citedVerses`.
+- Decision: ranges are inclusive -- `Romans 8:28-30` matches verses 28, 29 and 30 (not 8:2/8:31).
+  Reversed ranges degrade to the start verse; chapter-only citations match nothing.
+- Tests: `CitedVerseMatchingTest.kt` (parameterized over 11 languages) plus regressions in
+  `VersesPanelTest.kt` and `VerseRefLinkTest.kt`.

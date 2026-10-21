@@ -7,6 +7,14 @@ spec:
   profile: "General-purpose development agent with automatic fallback"
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
+  # Custom opencode binary (BITB-172): the live Agent has run this pinned tag
+  # since it was wired on the cluster per custom-opencode-image.md; committing
+  # it here keeps repo applies converging with live instead of silently
+  # falling back to the default :latest image. The GHCR package is private,
+  # hence ghcr-pull (custom-opencode-image.md Option B).
+  agentImage: ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31
+  imagePullSecrets:
+    - name: ghcr-pull
   # Full OpenCode config (models, prompts, permissions, fallbacks) is generated
   # from .opencode/agents/*.md via `make gen-opencode-config` and synced with
   # `make sync-opencode-configmap` (BITB-123, Option A2).

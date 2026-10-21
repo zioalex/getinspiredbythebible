@@ -113,7 +113,7 @@ class VersesPanelTest {
     @Test
     fun `referencedVerses matches verse range reference eg John 3 16-17`() {
         val john316 = verse("John", 3, 16)
-        // The regex captures "John 3:16-17"; baseRef "John 3:16" should match via startsWith
+        // The regex captures "John 3:16-17"; the cited start verse (3:16) is matched exactly
         val messages = listOf(assistantMsg("Read John 3:16-17 carefully."))
 
         val result = referencedVerses(listOf(john316), messages)
@@ -418,5 +418,39 @@ class VersesPanelTest {
         for (text in listOf("As 1 John 3:16 says", "Wie 1. Johannes 3:16 sagt", "Come dice 1 Giovanni 3:16")) {
             assertTrue(text, referencedVerses(listOf(john316), listOf(assistantMsg(text))).isEmpty())
         }
+    }
+
+    // ── Server versesCited path (BITB-166: exact match, not startsWith) ─────
+
+    private fun citedMsg(vararg cited: String) = Message(
+        id = UUID.randomUUID().toString(),
+        role = Message.Role.ASSISTANT,
+        content = "ignored when versesCited present",
+        versesCited = cited.toList(),
+    )
+
+    @Test
+    fun `referencedVerses server path John 3 16 excludes 3 1 and 3 160`() {
+        val all = listOf(verse("John", 3, 1), verse("John", 3, 16), verse("John", 3, 160))
+
+        val result = referencedVerses(all, listOf(citedMsg("John 3:16")))
+
+        assertEquals(listOf(16), result.map { it.verse })
+    }
+
+    @Test
+    fun `referencedVerses server path range matches every verse inside it`() {
+        val all = listOf(verse("Romans", 8, 2), verse("Romans", 8, 28), verse("Romans", 8, 30), verse("Romans", 8, 31))
+
+        val result = referencedVerses(all, listOf(citedMsg("Romans 8:28-30")))
+
+        assertEquals(listOf(28, 30), result.map { it.verse })
+    }
+
+    @Test
+    fun `referencedVerses server path ignores unparseable citations`() {
+        val all = listOf(verse("John", 3, 16))
+
+        assertTrue(referencedVerses(all, listOf(citedMsg("John 3"))).isEmpty())
     }
 }

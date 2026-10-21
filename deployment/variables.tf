@@ -401,6 +401,12 @@ variable "content_filter_enabled" {
   default     = true
 }
 
+variable "chat_follow_ups_enabled" {
+  description = "Enable suggested follow-up question chips in chat responses (BITB-080). Off by default; measure with scripts/run_follow_up_eval.py (BITB-182) before enabling."
+  type        = bool
+  default     = false
+}
+
 variable "max_message_length" {
   description = "Maximum length of chat messages"
   type        = number
@@ -409,6 +415,12 @@ variable "max_message_length" {
 
 variable "content_safety_enabled" {
   description = "Enable ML-backed content safety pipeline (Llama Guard 3 via OpenRouter)"
+  type        = bool
+  default     = true
+}
+
+variable "tts_enabled" {
+  description = "Show the on-device Listen (read aloud) button in web and Android clients (BITB-119)"
   type        = bool
   default     = true
 }

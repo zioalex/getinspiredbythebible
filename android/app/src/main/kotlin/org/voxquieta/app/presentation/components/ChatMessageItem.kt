@@ -19,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -33,8 +34,10 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,7 +57,11 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
 import org.voxquieta.app.R
@@ -63,7 +70,9 @@ import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.utils.VerseGrammar
 import org.voxquieta.app.utils.knownBooks
 import org.voxquieta.app.utils.normalizeBookName
+import org.voxquieta.app.utils.normalizeRangeSeparators
 import org.voxquieta.app.utils.normalizeTraditionalToSimplified
+import org.voxquieta.app.utils.normalizeVerseDigits
 import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import java.net.URLDecoder
@@ -278,6 +287,25 @@ internal fun buildVerseRefRegex(
     )
 }
 
+/**
+ * Han (Chinese) and Hangul (Korean) book names of length >= 2 from [localizedToEnglish],
+ * longest first, for [buildVerseRefRegex]'s no-space alternation.
+ *
+ * BOTH scripts must be included: as soon as the list is non-empty, [buildVerseRefRegex]
+ * excludes Han AND Hangul from its generic book-name pattern, so a Han-only list silently
+ * stops matching Korean references ("요한복음 3:16") the moment the server's book-name map
+ * loads.
+ */
+internal fun cjkBookNamesFrom(localizedToEnglish: Map<String, String>): List<String> =
+    localizedToEnglish.keys
+        .filter { key ->
+            key.length >= 2 && key.all { ch ->
+                val script = Character.UnicodeScript.of(ch.code)
+                script == Character.UnicodeScript.HAN || script == Character.UnicodeScript.HANGUL
+            }
+        }
+        .sortedByDescending { it.length }
+
 private const val VERSE_SCHEME = "verse://"
 
 /**
@@ -305,8 +333,8 @@ private fun resolveLinkBook(
     val normalized = normalizeBookName(rawBook, localizedToEnglish)
     if (normalized != rawBook) return normalized
 
-    val chapterNum = chapter.toIntOrNull()
-    val verseNum = verse.toIntOrNull()
+    val chapterNum = normalizeVerseDigits(chapter).toIntOrNull()
+    val verseNum = normalizeVerseDigits(verse).toIntOrNull()
     if (chapterNum != null && verseNum != null) {
         val candidates = verses
             .filter { it.chapter == chapterNum && it.verse == verseNum }
@@ -411,14 +439,22 @@ internal fun injectVerseLinks(
             val book = markdown.substring(bookRange.first, bookRange.last + 1)
             val linkBook = resolveLinkBook(shadowBook, chapter, verse, verses, localizedToEnglish)
             val encodedBook = URLEncoder.encode(linkBook, "UTF-8")
-            // Preserve the chapter/verse separator the source used (":" or ",") so a German /
-            // French / Italian citation like "Römer 13,1" is not rewritten to "13:1". The
-            // verse:// target below uses numeric path segments only, so it is unaffected.
-            // Digits are ASCII in both `search` and `markdown` (T2S only touches Han characters),
-            // so checking either copy is equivalent.
-            val sep = if (Regex("\\d,\\d").containsMatchIn(result.value)) "," else ":"
+            // Preserve the chapter/verse separator the source used (":", "," or the fullwidth
+            // "：") so a German / French / Italian citation like "Römer 13,1" is not rewritten
+            // to "13:1". The separator is the character right after the chapter digits (the
+            // regex allows nothing in between); chapter-only matches have none, and the verse
+            // is empty then. The display text keeps the digits and range separator as written.
+            val chapterGroup = result.groups[if (g[1].isNotEmpty()) 2 else 5]!!.range
+            val sep = if (verse.isNotEmpty()) search[chapterGroup.last + 1].toString() else ":"
             val display = if (verse.isNotEmpty()) "$book $chapter$sep$verse" else "$book $chapter"
-            val urlVerse = if (verse.isNotEmpty()) "/$verse" else ""
+            // The verse:// target carries ASCII digits and "-" only (BITB-179), whatever the
+            // source used (Devanagari / fullwidth digits, "～" / "〜" ranges).
+            val urlChapter = normalizeVerseDigits(chapter)
+            val urlVerse = if (verse.isNotEmpty()) {
+                "/" + normalizeRangeSeparators(normalizeVerseDigits(verse))
+            } else {
+                ""
+            }
             // Carry the localized book token in the URL so parseVerseLink can set it on
             // PendingVerseLink without discarding the name the LLM used -- in its original script.
             val localizedParam = if (shadowBook != linkBook) {
@@ -426,7 +462,7 @@ internal fun injectVerseLinks(
             } else {
                 ""
             }
-            val link = "[$display]($VERSE_SCHEME$encodedBook/$chapter$urlVerse$localizedParam)"
+            val link = "[$display]($VERSE_SCHEME$encodedBook/$urlChapter$urlVerse$localizedParam)"
             // Wrap in bold so verse references are visually prominent (matching the web's
             // font-semibold styling) regardless of whether the LLM already used bold markdown.
             // If the LLM already wrapped the ref in ** (before == '*'), the surrounding **
@@ -456,27 +492,91 @@ internal val QUOTE_HIGHLIGHT_REGEX = Regex(
 
 internal fun injectVerseQuoteHighlights(markdown: String): String = markdown
 
+/** A parsed server citation, e.g. "John 3:16-17" -> (John, 3, 16, 17). */
+internal data class CitedRef(
+    val book: String,
+    val chapter: Int,
+    val verseStart: Int,
+    val verseEnd: Int,
+)
+
+// Server citation grammar: "<book> <chapter><sep><verse>[<range-sep><verse>]". The book is lazy so
+// a numbered book ("1 John") keeps its prefix and the chapter is the digit run right before the
+// separator. Composed from the shared VerseGrammar fragments (same as the scan regexes above).
+private val CITED_REF_REGEX = Regex(
+    "^\\s*(.+?)\\s*($CV_DIGIT+)[$CV_SEPARATOR_CLASS]\\s*($CV_DIGIT+)" +
+        "(?:\\s*[$RANGE_SEPARATOR_CLASS]\\s*($CV_DIGIT+))?\\s*$"
+)
+
+/**
+ * Parses one server `versesCited` entry. Returns null when it is not a book + chapter + verse
+ * citation (e.g. chapter-only "John 3"). A reversed range ("John 3:17-16") degrades to the
+ * start verse only.
+ */
+internal fun parseCitedRef(raw: String): CitedRef? {
+    val m = CITED_REF_REGEX.matchEntire(raw) ?: return null
+    val book = m.groupValues[1].trim()
+    val chapter = normalizeVerseDigits(m.groupValues[2]).toIntOrNull() ?: return null
+    val start = normalizeVerseDigits(m.groupValues[3]).toIntOrNull() ?: return null
+    val endRaw = normalizeVerseDigits(m.groupValues[4])
+    val end = if (endRaw.isEmpty()) start else endRaw.toIntOrNull() ?: start
+    return CitedRef(book, chapter, start, if (end < start) start else end)
+}
+
+/**
+ * True when [verse] is covered by any of [refs]: exact chapter, verse within the cited
+ * start..end range (inclusive -- a range such as "Romans 8:28-30" matches every verse inside it),
+ * and an exact case-insensitive book match against the verse's English or localized book name.
+ * The cited book is tried as-is and normalized (Traditional->Simplified, localized->English),
+ * mirroring the book keys used by the fallback scan in [referencedVerses].
+ */
+internal fun matchesCitation(
+    verse: Verse,
+    refs: List<CitedRef>,
+    localizedToEnglish: Map<String, String> = emptyMap(),
+): Boolean {
+    val verseBooks = listOfNotNull(verse.book.lowercase(), verse.localizedBook?.lowercase())
+    return refs.any { ref ->
+        if (verse.chapter != ref.chapter || verse.verse !in ref.verseStart..ref.verseEnd) {
+            return@any false
+        }
+        val bookKeys = setOf(
+            ref.book.lowercase(),
+            normalizeBookName(normalizeTraditionalToSimplified(ref.book), localizedToEnglish)
+                .lowercase(),
+        )
+        verseBooks.any { it in bookKeys }
+    }
+}
+
+/** Verses from [verses] covered by the server [cited] strings (parsed once). */
+internal fun filterByCitations(
+    verses: List<Verse>,
+    cited: List<String>,
+    localizedToEnglish: Map<String, String> = emptyMap(),
+): List<Verse> {
+    val refs = cited.mapNotNull { parseCitedRef(it) }
+    if (refs.isEmpty()) return emptyList()
+    return verses.filter { matchesCitation(it, refs, localizedToEnglish) }
+}
+
 /**
  * Returns the verses to show as inline cards under [message]: the ones the backend reported
  * this answer actually cited.
  *
- * Prefers the server-provided [Message.versesCited] (English canonical, e.g. "John 3:16"),
- * intersecting it with [Message.verses] (which carry the text). When [Message.versesCited]
- * is empty (older messages, or none reported) it falls back to all [Message.verses] so the
- * text is still shown. Matching mirrors [referencedVerses] in VersesPanel.
+ * Prefers the server-provided [Message.versesCited] (e.g. "John 3:16"), intersecting it with
+ * [Message.verses] (which carry the text) by exact book + chapter + verse (BITB-166), so
+ * "John 3:16" no longer surfaces John 3:1. A cited range matches every verse inside it. When
+ * [Message.versesCited] is empty (older messages, or none reported) or nothing matches, it
+ * falls back to all [Message.verses] so the text is still shown. Matching is shared with
+ * [referencedVerses] in VersesPanel via [filterByCitations].
  */
 internal fun citedVerses(message: Message): List<Verse> {
     if (message.verses.isEmpty()) return emptyList()
     if (message.versesCited.isEmpty()) return message.verses
-
-    val citedLower = message.versesCited.map { it.lowercase() }.toHashSet()
-    val filtered = message.verses.filter { verse ->
-        val baseRef = "${verse.book} ${verse.chapter}:${verse.verse}".lowercase()
-        citedLower.any { it.startsWith(baseRef) }
-    }
     // If nothing matched (e.g. citation/verse book-name mismatch) fall back to all verses
     // rather than hiding the text entirely.
-    return filtered.ifEmpty { message.verses }
+    return filterByCitations(message.verses, message.versesCited).ifEmpty { message.verses }
 }
 
 /**
@@ -499,9 +599,11 @@ internal fun parseVerseLink(url: String, preferredTranslation: String?): Pending
     val parts = pathPart.split("/")
     if (parts.size < 2) return null
     val book = runCatching { URLDecoder.decode(parts[0], "UTF-8") }.getOrNull() ?: return null
-    val chapter = parts[1].toIntOrNull() ?: return null
-    // Verse number may be a range like "16-18" — take the first number.
-    val verseNumber = parts.getOrNull(2)?.split("-")?.firstOrNull()?.toIntOrNull() ?: 1
+    val chapter = normalizeVerseDigits(parts[1]).toIntOrNull() ?: return null
+    // Verse number may be a range like "16-18", "16–18" or "16～18" — take the first number.
+    val verseNumber = parts.getOrNull(2)
+        ?.let { normalizeVerseDigits(it) }
+        ?.split(*VerseGrammar.RANGE_SEPARATORS.toCharArray())?.firstOrNull()?.toIntOrNull() ?: 1
     return PendingVerseLink(
         book = book,
         chapter = chapter,
@@ -532,6 +634,35 @@ internal fun handleVerseLink(
     onLoadChapter(book, chapter, preferredTranslation)
 }
 
+/** Horizontal padding of a chat message row; subtracted from the available width (BITB-174). */
+internal val BubbleRowHorizontalPadding = 12.dp
+
+/** Floor for the bubble max width so phones keep their historical 320dp cap (BITB-174). */
+internal val BubbleMinMaxWidth = 320.dp
+
+/** Ceiling for the bubble max width so lines stay readable on large tablets (BITB-174). */
+internal val BubbleMaxMaxWidth = 840.dp
+
+/** Fraction of the available row width a bubble may occupy (BITB-174). */
+internal const val BubbleWidthFraction = 0.85f
+
+/**
+ * Maximum width of a chat bubble given the [available] row width (after row padding). BITB-174.
+ *
+ * `available * 0.85`, raised to at least 320dp (phones unchanged), capped at 840dp, and never
+ * wider than [available] itself. Infinite/unspecified input yields the 840dp cap; non-positive
+ * input yields 0dp.
+ */
+internal fun bubbleMaxWidth(available: Dp): Dp {
+    if (available == Dp.Unspecified || available == Dp.Infinity || available.value.isNaN()) {
+        return BubbleMaxMaxWidth
+    }
+    if (available <= 0.dp) return 0.dp
+    return (available * BubbleWidthFraction)
+        .coerceIn(BubbleMinMaxWidth, BubbleMaxMaxWidth)
+        .coerceAtMost(available)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatMessageItem(
@@ -547,6 +678,11 @@ fun ChatMessageItem(
     feedbackGiven: String? = null,
     verseRefRegex: Regex = DEFAULT_VERSE_REF_REGEX,
     localizedToEnglish: Map<String, String> = emptyMap(),
+    // BITB-119: read-aloud. `showListen` already folds in the server flag, the user
+    // preference and "an offline voice exists"; the item adds finished/non-empty itself.
+    showListen: Boolean = false,
+    isSpeaking: Boolean = false,
+    onToggleListen: (() -> Unit)? = null,
 ) {
     val isUser = message.role == Message.Role.USER
     val arrangement = if (isUser) Arrangement.End else Arrangement.Start
@@ -597,273 +733,282 @@ fun ChatMessageItem(
     var pendingVerseLink by remember { mutableStateOf<PendingVerseLink?>(null) }
     val linkSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = arrangement,
-    ) {
-        Column(
-            modifier = Modifier.widthIn(max = 320.dp),
-            horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+    // BITB-174: size bubbles from the real available width instead of a phone-only 320dp cap.
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val bubbleWidthCap = bubbleMaxWidth(maxWidth - BubbleRowHorizontalPadding * 2)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BubbleRowHorizontalPadding, vertical = 4.dp),
+            horizontalArrangement = arrangement,
         ) {
-            if (showBubble) {
-                val bubbleModifier = if (isUser) {
-                    // User bubble: filled primary, no border
-                    Modifier
-                        .background(
-                            color = bubbleColor,
-                            shape = RoundedCornerShape(
-                                topStart = 18.dp,
-                                topEnd = 18.dp,
-                                bottomStart = 18.dp,
-                                bottomEnd = 4.dp,
-                            ),
-                        )
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                } else {
-                    // Assistant bubble: white surface with primary border — matches web card style
-                    Modifier
-                        .background(
-                            color = bubbleColor,
-                            shape = RoundedCornerShape(
-                                topStart = 4.dp,
-                                topEnd = 18.dp,
-                                bottomStart = 18.dp,
-                                bottomEnd = 18.dp,
-                            ),
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(
-                                topStart = 4.dp,
-                                topEnd = 18.dp,
-                                bottomStart = 18.dp,
-                                bottomEnd = 18.dp,
-                            ),
-                        )
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
-                }
-
-                Box(modifier = bubbleModifier) {
-                    when {
-                        // (a) Waiting for the first chunk — show animated typing dots
-                        !isUser && message.isStreaming && message.content.isEmpty() -> {
-                            TypingIndicator()
-                        }
-
-                        // (b) Streaming with partial content — show text + blinking cursor
-                        !isUser && message.isStreaming && message.content.isNotEmpty() -> {
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                SelectionContainer {
-                                    Text(
-                                        text = message.content,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = textColor,
-                                    )
-                                }
-                                Text(
-                                    text = "▌",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = textColor,
-                                    modifier = Modifier.alpha(cursorAlpha),
-                                )
-                            }
-                        }
-
-                        // (c) Finished assistant message — render as Markdown with tappable verse refs.
-                        !isUser -> {
-                            val bodyMedium = MaterialTheme.typography.bodyMedium
-                            // Amber colour for verse links — matches web's amber-600 link colour
-                            val amberColor = MaterialTheme.colorScheme.tertiary
-                            MarkdownText(
-                                markdown = injectVerseQuoteHighlights(
-                                    injectVerseLinks(
-                                        message.content,
-                                        verseRefRegex,
-                                        message.verses,
-                                        localizedToEnglish,
-                                    ),
+            Column(
+                modifier = Modifier
+                    .widthIn(max = bubbleWidthCap)
+                    .testTag("chat_bubble"),
+                horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
+            ) {
+                if (showBubble) {
+                    val bubbleModifier = if (isUser) {
+                        // User bubble: filled primary, no border
+                        Modifier
+                            .background(
+                                color = bubbleColor,
+                                shape = RoundedCornerShape(
+                                    topStart = 18.dp,
+                                    topEnd = 18.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 4.dp,
                                 ),
-                                style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                                linkColor = amberColor,
-                                isTextSelectable = true,
-                                // MUST stay true: compose-markdowntext is built on Markwon, whose
-                                // softBreakAddsNewLine default flipped from true (0.5.x) to false (0.7.x).
-                                // With false, single newlines in assistant messages collapse into one
-                                // paragraph, breaking existing chat formatting. Do not remove. (BITB-135)
-                                enableSoftBreakAddsNewLine = true,
-                                onLinkClicked = { url ->
-                                    val parsed = parseVerseLink(url, preferredTranslation)
-                                    if (parsed != null) {
-                                        // Reset chapter state so VerseDetailBottomSheet always gets a fresh load.
-                                        onDismissSheet()
-                                        pendingVerseLink = parsed
-                                        onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
-                                    }
-                                },
-                                beforeSetMarkdown = { _, spanned ->
-                                    if (spanned is Spannable) {
-                                        applyQuoteHighlights(spanned)
-                                    }
-                                },
                             )
-                        }
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    } else {
+                        // Assistant bubble: white surface with primary border — matches web card style
+                        Modifier
+                            .background(
+                                color = bubbleColor,
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 18.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 18.dp,
+                                ),
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 18.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 18.dp,
+                                ),
+                            )
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    }
 
-                        // (d) User message — plain text bubble, selectable so the
-                        // question text can be copied manually (matches assistant text).
-                        else -> {
-                            // The default selection highlight is derived from the primary
-                            // colour, which is also this bubble's background — so a selection
-                            // would be nearly invisible. Pick a highlight that contrasts with
-                            // the bubble in both themes: dark when the text is light, light
-                            // when the text is dark, keeping the selected text readable.
-                            val selectionHighlight =
-                                if (textColor.luminance() > 0.5f) Color.Black else Color.White
-                            val bubbleSelectionColors = remember(selectionHighlight) {
-                                TextSelectionColors(
-                                    handleColor = selectionHighlight,
-                                    backgroundColor = selectionHighlight.copy(alpha = 0.4f),
-                                )
+                    Box(modifier = bubbleModifier) {
+                        when {
+                            // (a) Waiting for the first chunk — show animated typing dots
+                            !isUser && message.isStreaming && message.content.isEmpty() -> {
+                                TypingIndicator()
                             }
-                            CompositionLocalProvider(
-                                LocalTextSelectionColors provides bubbleSelectionColors,
-                            ) {
-                                SelectionContainer {
+
+                            // (b) Streaming with partial content — show text + blinking cursor
+                            !isUser && message.isStreaming && message.content.isNotEmpty() -> {
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    SelectionContainer {
+                                        Text(
+                                            text = message.content,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = textColor,
+                                        )
+                                    }
                                     Text(
-                                        text = message.content,
+                                        text = "▌",
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = textColor,
+                                        modifier = Modifier.alpha(cursorAlpha),
                                     )
+                                }
+                            }
+
+                            // (c) Finished assistant message — render as Markdown with tappable verse refs.
+                            !isUser -> {
+                                val bodyMedium = MaterialTheme.typography.bodyMedium
+                                // Amber colour for verse links — matches web's amber-600 link colour
+                                val amberColor = MaterialTheme.colorScheme.tertiary
+                                MarkdownText(
+                                    markdown = injectVerseQuoteHighlights(
+                                        injectVerseLinks(
+                                            message.content,
+                                            verseRefRegex,
+                                            message.verses,
+                                            localizedToEnglish,
+                                        ),
+                                    ),
+                                    style = bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                                    linkColor = amberColor,
+                                    isTextSelectable = true,
+                                    // MUST stay true: compose-markdowntext is built on Markwon, whose
+                                    // softBreakAddsNewLine default flipped from true (0.5.x) to false (0.7.x).
+                                    // With false, single newlines in assistant messages collapse into one
+                                    // paragraph, breaking existing chat formatting. Do not remove. (BITB-135)
+                                    enableSoftBreakAddsNewLine = true,
+                                    onLinkClicked = { url ->
+                                        val parsed = parseVerseLink(url, preferredTranslation)
+                                        if (parsed != null) {
+                                            // Reset chapter state so VerseDetailBottomSheet always gets a fresh load.
+                                            onDismissSheet()
+                                            pendingVerseLink = parsed
+                                            onLoadChapter(parsed.book, parsed.chapter, parsed.translation)
+                                        }
+                                    },
+                                    beforeSetMarkdown = { _, spanned ->
+                                        if (spanned is Spannable) {
+                                            applyQuoteHighlights(spanned)
+                                        }
+                                    },
+                                )
+                            }
+
+                            // (d) User message — plain text bubble, selectable so the
+                            // question text can be copied manually (matches assistant text).
+                            else -> {
+                                // The default selection highlight is derived from the primary
+                                // colour, which is also this bubble's background — so a selection
+                                // would be nearly invisible. Pick a highlight that contrasts with
+                                // the bubble in both themes: dark when the text is light, light
+                                // when the text is dark, keeping the selected text readable.
+                                val selectionHighlight =
+                                    if (textColor.luminance() > 0.5f) Color.Black else Color.White
+                                val bubbleSelectionColors = remember(selectionHighlight) {
+                                    TextSelectionColors(
+                                        handleColor = selectionHighlight,
+                                        backgroundColor = selectionHighlight.copy(alpha = 0.4f),
+                                    )
+                                }
+                                CompositionLocalProvider(
+                                    LocalTextSelectionColors provides bubbleSelectionColors,
+                                ) {
+                                    SelectionContainer {
+                                        Text(
+                                            text = message.content,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = textColor,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Copy button for user messages — one-tap copy of the prompt text (BITB-047).
-            if (isUser && message.content.isNotBlank()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("question", message.content))
-                            Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
-                        },
+                // Copy button for user messages — one-tap copy of the prompt text (BITB-047).
+                if (isUser && message.content.isNotBlank()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = stringResource(R.string.action_copy_message),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-            // Inline scripture cards — show the actual text of the verses the backend cited
-            // for this answer, directly under the message (matching the web's verse cards),
-            // so the verse text is visible without opening the top-bar Verses panel.
-            if (!isUser && !message.isStreaming && !message.isError) {
-                val cited = citedVerses(message)
-                if (cited.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        cited.forEach { verse ->
-                            InlineVerseCard(
-                                verse = verse,
-                                preferredTranslation = preferredTranslation,
-                                chapterState = chapterSheetState,
-                                onLoadChapter = onLoadChapter,
-                                onDismissSheet = onDismissSheet,
-                                modifier = Modifier.fillMaxWidth(),
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("question", message.content))
+                                Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.action_copy_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                 }
-            }
 
-            // Action row — feedback (left) and copy+share (right).
-            val showFeedback = message.role == Message.Role.ASSISTANT
-                && !message.isStreaming
-                && message.messageId.isNotBlank()
-                && onFeedback != null
-
-            // Copy + share actions, reused as the trailing slot of FeedbackControls
-            // or rendered alone when there is no feedback row.
-            val trailingActions: @Composable RowScope.() -> Unit = {
-                if (showShare) {
-                    IconButton(
-                        onClick = {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
-                            Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ContentCopy,
-                            contentDescription = stringResource(R.string.action_copy_message),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            val shareText = if (userMessage.isNotBlank()) {
-                                "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
-                            } else {
-                                "$sharePrefix\n\n${message.content}"
+                // Inline scripture cards — show the actual text of the verses the backend cited
+                // for this answer, directly under the message (matching the web's verse cards),
+                // so the verse text is visible without opening the top-bar Verses panel.
+                if (!isUser && !message.isStreaming && !message.isError) {
+                    val cited = citedVerses(message)
+                    if (cited.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            cited.forEach { verse ->
+                                InlineVerseCard(
+                                    verse = verse,
+                                    preferredTranslation = preferredTranslation,
+                                    chapterState = chapterSheetState,
+                                    onLoadChapter = onLoadChapter,
+                                    onDismissSheet = onDismissSheet,
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                             }
-                            ShareCompat.IntentBuilder(context)
-                                .setType("text/plain")
-                                .setText(shareText)
-                                .startChooser()
-                        },
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = stringResource(R.string.action_share_message),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        }
                     }
                 }
-            }
 
-            if (showFeedback) {
-                FeedbackControls(
-                    feedbackGiven = feedbackGiven,
-                    onSubmit = { rating, comment, reason -> onFeedback!!(message.id, rating, comment, reason) },
-                    trailing = trailingActions,
-                )
-            } else if (showShare) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Spacer(modifier = Modifier.weight(1f))
-                    trailingActions()
+                // Action row — feedback (left) and copy+share (right).
+                val showFeedback = message.role == Message.Role.ASSISTANT
+                    && !message.isStreaming
+                    && message.messageId.isNotBlank()
+                    && onFeedback != null
+
+                // Copy + share actions, reused as the trailing slot of FeedbackControls
+                // or rendered alone when there is no feedback row.
+                val trailingActions: @Composable RowScope.() -> Unit = {
+                    if (showShare && showListen && onToggleListen != null) {
+                        ListenButton(isSpeaking = isSpeaking, onClick = onToggleListen)
+                    }
+                    if (showShare) {
+                        IconButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                                Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = stringResource(R.string.action_copy_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        IconButton(
+                            onClick = {
+                                val shareText = if (userMessage.isNotBlank()) {
+                                    "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
+                                } else {
+                                    "$sharePrefix\n\n${message.content}"
+                                }
+                                ShareCompat.IntentBuilder(context)
+                                    .setType("text/plain")
+                                    .setText(shareText)
+                                    .startChooser()
+                            },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = stringResource(R.string.action_share_message),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
-            }
 
-            // Inline Retry button for error assistant messages
-            if (showRetry && onRetry != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedButton(
-                    onClick = onRetry,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 4.dp),
+                if (showFeedback) {
+                    FeedbackControls(
+                        feedbackGiven = feedbackGiven,
+                        onSubmit = { rating, comment, reason -> onFeedback!!(message.id, rating, comment, reason) },
+                        trailing = trailingActions,
                     )
-                    Text(text = stringResource(R.string.action_retry))
+                } else if (showShare) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        trailingActions()
+                    }
                 }
-            }
 
+                // Inline Retry button for error assistant messages
+                if (showRetry && onRetry != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = onRetry,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 4.dp),
+                        )
+                        Text(text = stringResource(R.string.action_retry))
+                    }
+                }
+
+            }
         }
     }
 
@@ -882,6 +1027,35 @@ fun ChatMessageItem(
                 pendingVerseLink = null
                 onDismissSheet()
             },
+        )
+    }
+}
+
+/**
+ * BITB-119: Listen <-> Stop toggle. One button whose icon, accessible name and state
+ * description all flip while the answer is being read (48dp minimum touch target comes from
+ * [IconButton]).
+ */
+@Composable
+internal fun ListenButton(
+    isSpeaking: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val label = stringResource(if (isSpeaking) R.string.action_stop_listening else R.string.action_listen)
+    val stateText = stringResource(
+        if (isSpeaking) R.string.state_listening else R.string.state_not_listening,
+    )
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .testTag("listen_button")
+            .semantics { stateDescription = stateText },
+    ) {
+        Icon(
+            imageVector = if (isSpeaking) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+            contentDescription = label,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

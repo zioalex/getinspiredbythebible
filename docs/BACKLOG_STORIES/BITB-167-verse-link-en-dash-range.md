@@ -1,6 +1,6 @@
 # BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (2026-10-04)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30
@@ -19,5 +19,5 @@ verse 1.
 
 ## Acceptance Criteria
 
-- [ ] `parseVerseLink` splits on `VerseGrammar.RANGE_SEPARATORS`
-- [ ] Test across all 11 languages' separators (hyphen, en dash) and non-ASCII digits
+- [x] `parseVerseLink` splits on `VerseGrammar.RANGE_SEPARATORS`
+- [x] Test across all 11 languages' separators (hyphen, en dash) and non-ASCII digits

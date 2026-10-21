@@ -2,7 +2,19 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-09-30 (BITB-171 done — k8s agent-default-wf2.yaml made
+**Last Updated:** 2026-10-14 (BITB-186 in review — keyword fallback gains missed zh/ko/ru/hi crisis phrasings and a ru negation guard) — previously 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
+`VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
+valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
+Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
+chain never once fired and agents died on primary 503s), broken
+mimo-v2.5-free primaries (verse-parity-keeper, i18n-qa) moved to
+mimo-v2.6-flash-free, agents.md table parity test extended to fallback
+columns, PR #1128; BITB-172 done — repo-vs-live drift fixed: custom
+agentImage + ghcr-pull committed into all Agent manifests (was cluster-only),
+server-password made opt-in so pods don't crashloop on the missing
+opencode-server-auth secret, validated agent-default-wf3.yaml committed, T7
+parity tests, PR #1126; BITB-171 done — k8s agent-default-wf2.yaml made
 self-contained: configRef + persistence + full credentials, parity-tested against
 deployment/agent.yaml so applying it converges instead of stripping fields from the
 live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
@@ -223,6 +235,190 @@ positives on Bible queries. This unblocks it.
 > new code. See `docs/EMBEDDINGS_IMPROVEMENT_STRATEGY.md` and
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
+
+### 🎯 BITB-193: Stage-1 Directed-Harm Check Is Limited to the Detected Language
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: `check_multilingual` uses `_directed_harm_regex.get(language) or .get("en")`,
+so directed harm in another language (e.g. "Je vais te tuer" detected as `en`, or any ru/zh/hi/ko/ar
+text, which has no directed-harm table) skips Stage 1. The fallback now checks every language;
+Stage 1 should too. Note: the fallback's all-language `find_directed_harm` already yields
+single-word cross-language false positives (it "Gioco della morra", pt `\bmorra\b`, it `\bmuori\b`,
+fr `\bcrève\b`, es `\bmuérete\b`); tighten these here.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Stage 1 checks directed harm in every language, independent of detected language
+- [ ] Cross-language parametrized tests (11 languages, mismatched codes)
+
+Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
+
+### 🎯 BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: when ML moderation is down, the fallback violence patterns (`\bkill\b`,
+`\battack\b`, `\bweapon\b`...) block ordinary Bible questions such as "How did David kill Goliath?".
+
+**Acceptance Criteria (summary):**
+
+- [ ] Bible-narrative questions about killing/battle are allowed in the fallback (all 11 languages)
+- [ ] Genuine violent-intent phrasings still block
+
+Full story: [`BITB-194-fallback-violence-bible-narrative-false-positives.md`](BACKLOG_STORIES/BITB-194-fallback-violence-bible-narrative-false-positives.md)
+
+### ❌ BITB-195: Decision — Mixed Self-Harm and Third-Party Violence Messages
+
+**Status:** ❌ Cancelled — decided and implemented in BITB-185 v2 (second-opinion classifier)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185: self-harm now wins over plain violence in the fallback, so "I will kill him and
+then myself" (no directed-harm phrase) takes the compassionate path instead of a block. Decide the
+intended behaviour (block, compassionate, or compassionate plus flag for review) and test it.
+Examples: "I will kill him and then kill myself", pt "Vou matar meu vizinho e depois me matar", and
+the victim misclassification pt "Eles querem me matar" (matches `me matar`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Product decision recorded
+- [ ] Behaviour implemented and tested across all 11 languages
+
+Full story: [`BITB-195-mixed-self-harm-and-third-party-violence.md`](BACKLOG_STORIES/BITB-195-mixed-self-harm-and-third-party-violence.md)
+
+### 🎯 BITB-196: Murder-Suicide Elliptical Phrasing Takes the Compassionate Path
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-13
+
+Follow-up to BITB-185 v2: "I want to kill myself and my family", "...and take everyone with me" and the fr/pt/ar equivalents match a self-harm span, and the remaining words ("my family", "everyone") are not violence keywords, so the fallback takes the compassionate path without consulting the classifier. Decide whether to route these to the ambiguity branch (classifier plus crisis default) and implement it.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Decision recorded: route murder-suicide phrasing to the ambiguous branch (or document why not)
+- [ ] Elliptical phrasings blocked or classified in all 11 languages (parametrized)
+- [ ] Plain self-harm ("I want to kill myself") stays compassionate without an LLM call
+
+Full story: [`BITB-196-murder-suicide-elliptical-phrasing.md`](BACKLOG_STORIES/BITB-196-murder-suicide-elliptical-phrasing.md)
+
+### 🎯 BITB-198: Keyword Fallback Has No Native Violence Patterns for ru/zh/hi/ko
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-13
+
+Follow-up to BITB-185 v2 (pre-existing at main): `VIOLENCE_PATTERNS` has no ru, zh, hi or ko entries, so plain violence (no self-harm) in those languages is clean in the fallback when ML moderation is down. BITB-185 v2 added a separate `HARD_VIOLENCE_PATTERNS` table (bombs, terror, massacre) used only next to self-harm; the general violence table was deliberately not edited.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Native violence patterns for ru, zh, hi, ko with Bible-narrative false-positive review (see BITB-194)
+- [ ] Parametrized tests across all 11 languages incl. CJK/fullwidth and Devanagari
+- [ ] Hard-violence table reconciled with the violence table
+
+Full story: [`BITB-198-fallback-native-violence-patterns-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-198-fallback-native-violence-patterns-ru-zh-hi-ko.md)
+
+### 🎯 BITB-200: Self-Harm Fallback — Question-Form and Edge Recall Gaps (hi/zh)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-14
+
+Follow-up to BITB-186: its Bible-study guards suppress a few real crisis phrasings (hi `मुझे मरना है तो …`,
+trailing-`?` forms; zh `我一个人想跳楼`, question-form `活着没意思吗`).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Missed phrasings trigger the compassionate path; BITB-186 benign cases stay clean
+
+Full story: [`BITB-200-self-harm-fallback-question-form-recall.md`](BACKLOG_STORIES/BITB-200-self-harm-fallback-question-form-recall.md)
+
+### 🔍 BITB-186: Self-Harm Keyword Fallback — Cover Missed Crisis Phrasings and Negations
+
+**Status:** 🔍 In Review
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-11
+
+Follow-up to BITB-183: the ru/zh/hi/ko patterns miss several common crisis phrasings (zh 我想跳楼,
+活着没意思; ko 사라지고 싶어; ru Хочу сдохнуть, Мне незачем жить; hi मुझे मरना है) and still fire on
+negated first-person sentences (ru "Я не хочу умереть без покаяния").
+
+**Acceptance Criteria (summary):**
+
+- [x] Each missed phrasing triggers the compassionate path (parametrized, all four languages)
+- [x] Negated / Bible-study variants stay clean
+- [ ] Native-speaker or reference-list review recorded
+
+Full story: [`BITB-186-self-harm-keyword-phrasing-gaps.md`](BACKLOG_STORIES/BITB-186-self-harm-keyword-phrasing-gaps.md)
+
+### ✅ BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
+
+**Status:** ✅ Done (PR #1145 merged 2026-10-10) — AC12 live run pending (owner)
+**Completed:** 2026-10-10
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-09
+
+Bug: asked who Luke 1:79 speaks of, the app named John the Baptist, then reversed without evidence
+when the user doubted it. Causes: a direct lookup fetches only the named verse (the antecedent is in
+1:78), follow-up turns are not re-grounded, no prompt rule covers interpretation or pushback, and the
+golden set has no live runner. Fix: prompt-only passage context (4 before / 2 after), reference
+carry-over from recent history, a shared interpretation-and-pushback guidance block, and an 81-case
+`interpretation` golden-set category with a live runner (manual CLI plus a weekly scheduled run
+against production through the existing server-to-server probe bypass; a measurement, not a gate).
+
+Follow-ups: BITB-179 (fullwidth colon), BITB-180 (topic-aware carry-over), BITB-181 (probe
+sessions in the weekly report).
+
+**Acceptance Criteria (summary):**
+
+- [x] Referenced verses carry their surrounding passage into the prompt (11 languages, both chat paths)
+- [x] Follow-ups without a reference re-fetch the passage from history; verse panel unchanged
+- [x] Guidance block in default, verse-lookup and prayer-lookup prompts
+- [x] 81 `interpretation` cases (core and the Luke 1:79 pushback pair in 11 languages, wider set in
+      en/de/it), no vacuous groups
+- [x] `must_contain_any` evaluator, async live runner + CLI (probe header, exit codes 0-3), weekly
+      `golden-set-live.yml` workflow, docs updated
+- [ ] Live pass rate against the production model recorded (owner-run)
+
+Full story: [`BITB-178-verse-referent-passage-context-and-pushback.md`](DONE/BITB-178-verse-referent-passage-context-and-pushback.md)
+
+---
+
+### ✅ BITB-174: Android Tablet — Chat Messages Don't Fill the Available Width
+
+**Status:** ✅ Done (PR #1129 merged 2026-10-04)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-03
+**Completed:** 2026-10-04
+
+Bug: on tablets (portrait and landscape) chat bubbles are hard-capped at 320dp
+(`ChatMessageItem.kt`), so the conversation sits in a narrow strip. Fix: adaptive
+bubble width (~85% of available, min 320dp, max 840dp).
+
+**Acceptance Criteria (summary):**
+
+- [x] Bubble width derived from available width via a tested pure function
+- [x] Phones unchanged; tablet portrait wider; tablet landscape capped at 840dp
+- [x] Unit + Robolectric Compose tests at tablet qualifiers
+- [x] PR merged
+
+Full story: [`BITB-174-android-tablet-chat-width.md`](DONE/BITB-174-android-tablet-chat-width.md)
+
+---
 
 ### 🚧 BITB-155: OpenRouter Model Refresh — Paid Llama 3.3 Primary + Gemma 4 31B Cross-Provider Fallback
 
@@ -2368,9 +2564,9 @@ not yet proven to help is low value.
 
 ---
 
-### 🎯 BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
+### ✅ BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR pending, 2026-10-07; PR #1079 merged 2026-09-29)
 **Priority:** P3 — doc-only drift, no functional impact
 **Size:** XS
 **Created:** 2026-09-25
@@ -2383,11 +2579,11 @@ still untouched by that PR's own edits — see `git diff main -- deployment/kube
 
 **Acceptance Criteria:**
 
-- [ ] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
+- [x] Once PR #1079 merges, update `deployment/kubeopencode/README.md`'s fallback table (tiers,
       model names) to match the merged `agents.md` / generated `opencode.json`
-- [ ] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
+- [x] `make verify-opencode-config` still passes after the sync (no functional change, doc only)
 
-**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](BACKLOG_STORIES/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
+**Full Story:** [`BITB-163-sync-kubeopencode-fallback-table-post-1079.md`](DONE/BITB-163-sync-kubeopencode-fallback-table-post-1079.md)
 
 ---
 
@@ -2834,6 +3030,193 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-197: Blocked-Response Templates Missing ru/zh/hi/ko
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185 v2: only `self_harm_blocked` was localized for ru, zh, hi, ko. The `violence_or_threat`, hate, directed-harm, sexual and generic blocked templates in `api/chat/prompts.py` still lack those four languages and fall back to English.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Each blocked template exists in all 11 languages
+- [ ] Parametrized test asserts every template x language is non-English
+- [ ] Native-speaker or reference review recorded
+
+Full story: [`BITB-197-blocked-templates-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-197-blocked-templates-ru-zh-hi-ko.md)
+
+### 🎯 BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-12
+
+The backend's whitelist lookbehind rejects a book name right after `」`/`)`/`"`, so
+`「神爱世人」约翰福音3:16` gets no lookup, passage context or grounding; web and Android detect it.
+BITB-179 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Closing-bracket citations parse in all three parsers (shared corpus); grounding test with no space
+- [ ] No corpus regression; boundary parity documented
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-189-citation-after-closing-bracket.md`
+
+---
+
+### ✅ BITB-179: Fullwidth Verse References — Colon, Range Tildes and Digits (All Three Parsers)
+
+**Status:** ✅ Done (PR #1163 merged 2026-10-12)
+**Completed:** 2026-10-12
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-10
+
+Chinese IME text writes `路加福音1：79`, `马太福音5：3～12` and `约翰福音３：１６`; the shared grammar
+(`tests/fixtures/verse_grammar.json`) and the backend `CV_PATTERN` miss them (the backend accepts
+fullwidth digits only by accident). Add `：`, `～`/`〜` and fullwidth digits to all three parsers,
+normalised to ASCII. BITB-178 follow-up (strict xfail in `test_passage_context.py`).
+
+Follow-ups: BITB-189 (citation after a closing bracket), BITB-190 (spaced ranges), BITB-191
+(Android range book fallback), BITB-192 (Android CJK link label space).
+
+**Acceptance Criteria (summary):**
+
+- [x] All forms parse in backend, web and Android (generated grammar), with parity tests
+- [x] BITB-178 xfail removed; grounding integration test through `chat()`; 11-language test
+- [x] No false positives on prose (`时间：3点`, `比例3：1`); corpus does not regress; ASCII-normalised output
+
+Full story: [`BITB-179-fullwidth-colon-verse-separator.md`](DONE/BITB-179-fullwidth-colon-verse-separator.md)
+
+---
+
+### 🎯 BITB-180: Topic-Aware Passage Carry-Over for Follow-Up Turns
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-10
+
+BITB-178 carries the passage from the last 4 history messages into any follow-up without a
+reference, even an unrelated topical question. Carry it only when the follow-up is plausibly about
+that passage, keeping the pushback case ("are you sure?") working. May be cancelled if live runs show
+no harm.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Unrelated topical follow-up gets no carried-over passage (11 languages, both chat paths)
+- [ ] BITB-178 pushback cases unchanged; `interpretation` live pass rate does not regress
+- [ ] New "topic switch" golden-set cases (en/de/it); behind a setting
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-180-topic-aware-passage-carry-over.md`
+
+---
+
+### ✅ BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
+
+**Status:** ✅ Done (PR #1147 merged 2026-10-11)
+**Completed:** 2026-10-11
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-09
+
+The follow-up chips (BITB-080/149) ship dark and nothing could switch `CHAT_FOLLOW_UPS_ENABLED` on
+locally or measure the chips. Add a curated 11-language golden set, a live runner that checks a
+running backend, and pass the flag through every compose file and Terraform (default off).
+
+Follow-ups: BITB-183 (done, PR #1148), BITB-184, BITB-187 (live run and enablement decision), BITB-188 (runner sessions in the weekly report).
+
+**Acceptance Criteria (summary):**
+
+- [x] `follow_ups.yaml` covers 11 languages x expected / verse-citing / suppressed / multi-turn
+- [x] Evaluator and runner unit-tested (mocked HTTP); `make follow-up-eval` works
+- [x] `CHAT_FOLLOW_UPS_ENABLED` reaches the API container in every compose stack; Terraform default `false`
+- [x] `docs/FOLLOW_UPS_TESTING.md` explains the Android debug-build flow
+
+**Full Story:** `docs/DONE/BITB-182-follow-up-chips-golden-set.md`
+
+---
+
+### 🎯 BITB-187: Live-Run the Follow-Up Chip Set Against a Real LLM, Then Decide on Enabling Chips
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-11
+
+BITB-182 shipped the 77-case golden set and the live runner (`make follow-up-eval`) but only
+smoke-tested them with a faked model. `chat_follow_ups_enabled` is still `false` in production.
+Owner task: run the set in all 11 languages, triage failures, and record a go/no-go.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Live-run report with per-language and per-scenario results saved
+- [ ] Every failing scenario has a filed story or a fix
+- [ ] BITB-080's open check of the 10-message session limit (BITB-024) done before rollout
+- [ ] Go/no-go recorded; if go, production flag enabled and chips checked on a device
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-187-follow-up-chips-live-run-and-enablement.md`
+
+---
+
+### ✅ BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
+
+**Status:** ✅ Done — PR #1166, 2026-10-13
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-10
+
+Follow-up to BITB-183: `_full_keyword_fallback` only checks `[language, "en"]`, so short or
+mismatched-script messages detected as `en` skip ru/zh/hi/ko/ar patterns; and violence is
+checked before self-harm, so fr "je veux me tuer" / pt "me matar" are blocked instead of
+getting the compassionate path. v2: when self-harm AND a violence keyword (outside the self-harm
+phrase, any language) both match, the main chat LLM is asked as a second-opinion classifier
+(SELF_HARM / HARM_TO_OTHERS / BOTH / NEITHER); BOTH, junk, timeout, error or disabled -> crisis
+resources block. The crisis message now exists in all 11 languages.
+
+**Acceptance Criteria (summary):**
+
+- [x] Fallback runs every language's self-harm regex (script-agnostic)
+- [x] Self-harm-only phrases stay compassionate without an LLM call
+- [x] Ambiguous self-harm + violence -> second-opinion classifier, safe default crisis block
+- [x] Crisis block message localized in all 11 languages
+- [x] Cross-language parametrized tests (11 languages)
+- [x] Hard-violence terms (bomb, explosive, terror, attack, massacre ...) next to self-harm always block, no classifier call
+
+**Follow-ups:** BITB-193, BITB-194, BITB-196, BITB-197, BITB-198, BITB-199. (BITB-195 cancelled — decided here.)
+
+**Full Story:** `docs/DONE/BITB-185-self-harm-fallback-script-agnostic.md`
+
+---
+
+### ✅ BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
+
+**Status:** ✅ Done — PR #1148, 2026-10-11 (native-speaker review AC left open)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-10
+
+When the ML safety classifier is unavailable, `ContentSafetyService._full_keyword_fallback` is the
+only crisis detector, and `MultiLanguageContentFilter.SELF_HARM_PATTERNS` covers only en/it/de/es/fr/pt/ar.
+A crisis message in ru, zh, hi or ko then gets no compassionate response (and chips are not
+suppressed). Found by BITB-182, which pins the gap in `test_golden_set.py`.
+
+**Acceptance Criteria (summary):**
+
+- [x] Self-harm patterns for ru, zh, hi, ko; the fallback flags a direct crisis message in each
+- [x] No false positives on ordinary Bible questions in those languages (e.g. about Judas's death)
+- [x] BITB-182 pin test flipped; `crisis-keyword` golden-set cases added for the four languages
+- [ ] Patterns reviewed by a native speaker or against a reference list per language
+
+**Follow-ups:** BITB-185 (done, PR #1166 — script-agnostic matching, second-opinion classifier), BITB-186 (uncovered crisis phrasings and negated false positives)
+
+**Full Story:** `docs/DONE/BITB-183-self-harm-keyword-fallback-ru-zh-hi-ko.md`
+
+---
+
 ### 🚧 BITB-165: Auto-Update Opted-In PR Branches When main Moves
 
 **Status:** 🚧 In Progress
@@ -3043,9 +3426,11 @@ Full story: [`BITB-129-right-size-ci-for-opencode-changes.md`](DONE/BITB-129-rig
 
 ---
 
-### 🎯 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
+### 🚧 BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Review — PR #1132 (spec + plan agreed 2026-10-04: on-device voices only, localized verse
+speech, Listen ↔ Stop, enabled by default, user "Show Listen button" option, web telemetry via
+`POST /api/v1/client-events`)
 **Priority:** P2
 **Size:** L (M per platform + a shared text-normalization layer)
 **Created:** 2026-09-04
@@ -3076,6 +3461,46 @@ BITB-059/108/113/114 family for what the alternative looks like).
 - [ ] 11 locales, remote `GET /config` flag (fail closed), telemetry, tests, changelog
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-119-read-aloud-assistant-responses.md`
+
+---
+
+### 🎯 BITB-175: Localized What's New / Changelog Entries (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
+
+What's New on both platforms is derived from the English, release-please-generated `CHANGELOG.md`,
+so non-English users read English release notes (surfaced by BITB-119). Add a per-locale
+release-notes source with English fallback.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Localized notes for all 11 locales keyed by version; English fallback
+- [ ] Web + Android pick the UI locale's entry; tests for selection and fallback
+- [ ] Release process documented without breaking release-please
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-175-localized-whats-new.md`
+
+---
+
+### 🎯 BITB-176: Read Aloud — Keep Playing with the Screen Off (Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
+
+BITB-119 v1 stops playback when the app is backgrounded or the screen turns off. Add a
+foreground media-playback service with a Stop notification, gated on listen-rate telemetry.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Continues with screen off; notification Stop action; focus loss / new answer stop it
+- [ ] Foreground-service Play declaration reviewed; Robolectric + device tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-176-read-aloud-background-playback.md`
 
 ---
 
@@ -4197,9 +4622,9 @@ longer see, a ~2.6 GB full HNSW index plus a per-translation partial index set, 
 
 ---
 
-### 🎯 BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
+### 🚧 BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** M
 **Created:** 2026-09-30
@@ -4370,7 +4795,223 @@ section and `mobile-access.md` updated for consistency.
 
 ---
 
+### ✅ BITB-172: Repo-vs-Live Drift — agentImage Wiring Uncommitted, Mobile Credential Pre-Wired
+
+**Status:** ✅ Done (PR #1126)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-30
+**Completed:** 2026-09-30
+**Found by:** Live `default-wf3` deployment test (follow-up to BITB-170/171)
+
+**As** the operator of the home k3s cluster, **I want** the committed Agent manifests to match what the live `default-wf2` object actually runs — custom `agentImage` + pull secret included, mobile Basic auth opt-in — **so that** repo applies converge with live and a fresh agent (wf3) starts without missing-secret or default-image surprises.
+
+Surfaced while testing `default-wf3`: the pod crashlooped on
+`secret "opencode-server-auth" not found` (BITB-171 pre-wired the mobile
+credential, but the flow was never rolled out — no cluster had the secret), and
+it ran the default opencode image, not the custom build (`agentImage` +
+`ghcr-pull` were wired only on the live object via kubectl patch, existing
+nowhere in git). Live wf2 worked because it predates mobile auth and was
+patched directly. Fix: `agentImage`/`imagePullSecrets` committed into both
+`default-wf2` manifests and the new cluster-validated
+`agent-default-wf3.yaml`; `server-password` removed from manifests and made an
+opt-in `kubectl edit` patch in `mobile-access.md` (merge-patch replaces the
+whole credential list — documented); T7 tests pin the image + pull secret on
+every manifest, keep wf3 in parity with wf2, assert exact credential match,
+and parametrize doc coverage over both k8s manifests; README secrets section
+now marks optional (`opencode-server-auth`, mobile-only) vs required
+(`ghcr-pull`, private package) and the Files row no longer overstates
+"safe to apply standalone".
+
+**Acceptance Criteria (summary):**
+
+- [x] `agentImage` + `imagePullSecrets` in `deployment/agent.yaml`,
+      `k8s/agent-default-wf2.yaml`, and the new `k8s/agent-default-wf3.yaml` — repo = live
+- [x] No manifest pre-wires `server-password`; mobile-access.md documents the opt-in patch
+- [x] `agent-default-wf3.yaml` committed, matching the cluster-validated shape
+- [x] T7 green: image pinning (3 manifests), wf3 parity, exact credential match, doc coverage ×2
+- [x] README optional/required secrets + no standalone overstatement
+- [x] `pytest` + `markdownlint` + `yamllint` + `prettier` (pinned) green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-172-kubeopencode-agent-image-drift.md`
+
+---
+
+### ✅ BITB-173: Runtime Fallback Chain Pins Non-Existent Model IDs — Failovers Never Fire
+
+**Status:** ✅ Done (PR #1128)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-01
+**Completed:** 2026-10-01
+**Found by:** PR #1125/#1126 post-merge verification (verifier dispatches died on the primary's Nvidia 503; both fallback hops failed with ProviderModelNotFoundError)
+
+**As** the operator of the KubeOpenCode agent graph, **I want** every `model`/`fallback_models` ID to be a model the provider actually serves, **so that** runtime failovers fire when a primary 503s and agents degrade instead of dying mid-dispatch.
+
+The #1079 chain had never once fired: `opencode/nemotron-3-super-free` (Zen
+serves no Super variant — it is an OpenRouter model,
+`openrouter/nvidia/nemotron-3-super-120b-a12b:free`) and
+`openrouter/openai/gpt-oss-120b:free` (no free variant of gpt-oss-120b exists
+on OpenRouter; the paid ID is `openrouter/openai/gpt-oss-120b`). The same
+pass found `verse-parity-keeper` + `i18n-qa` primaries on
+`opencode/mimo-v2.5-free`, which Zen no longer serves — dead agents on every
+dispatch. Tests asserted internal consistency, not existence, so all three
+sources (frontmatter, opencode.json, agents.md) agreed on the same wrong IDs.
+Fix (IDs verified against `opencode models`, the gateway being the source of
+truth): tier 1 free `nemotron-3-super` via OpenRouter, tier 2 paid
+`gpt-oss-120b` — free first, paid last; broken primaries moved to
+`opencode/mimo-v2.6-flash-free`; generator constants renamed
+`TIER1/TIER2_FALLBACK`; agents.md table + coverage matrix corrected with the
+android-gemini all-OpenRouter trade-off documented; opencode.json regenerated;
+new regression tests (free-first/paid-last, exact chain, cross-provider hop
+for Zen primaries, retired-ID tripwire, agents.md parity extended to the
+fallback columns).
+
+**Acceptance Criteria (summary):**
+
+- [x] Every configured ID exists in the live gateway catalog; retired IDs tripwired in tests
+- [x] Tier 1 free + tier 2 paid on every agent (incl. builtins); Zen primaries keep a cross-provider hop
+- [x] agents.md table parity test now covers primary + both fallback columns
+- [x] `gen/verify-opencode-config` + `pytest` (generator + manifest suites) green
+- [x] Operator follow-up after merge: `make sync-opencode-configmap` + pod restart (live ConfigMap still carries the broken IDs)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-173-opencode-fallback-model-ids.md`
+
+---
+
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-199: Second-Opinion Classifier Uses the Primary Model Only
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-13
+
+Follow-up to BITB-185 v2: the classifier calls the primary `LLM_PROVIDER` model with `max_tokens=16`. A reasoning model may spend the budget on thinking and return no parseable label, which always degrades to the crisis block. Consider a dedicated small model setting, a fallback chain, and observability (unparseable rate alert).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Choice of classifier model documented/configurable
+- [ ] Unparseable/timeout/error rate visible on a dashboard or alert
+- [ ] Test with a reasoning-style empty response keeps the crisis block
+
+Full story: [`BITB-199-second-opinion-classifier-model-observability.md`](BACKLOG_STORIES/BITB-199-second-opinion-classifier-model-observability.md)
+
+### 🎯 BITB-190: Verse Ranges Written With Spaces Parse Differently on Backend vs Web/Android
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-12
+
+`John 3:16 - 18` (and `～`) is a range on the backend but one verse on web/Android, whose patterns do
+not allow spaces around the range separator. Align all three. BITB-179 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Same reference in all three parsers (shared corpus); ReDoS tests pass
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-190-spaced-verse-range-parity.md`
+
+---
+
+### 🎯 BITB-191: Android Range Links Skip the Cited-Verse Book Fallback
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-10-12
+
+`resolveLinkBook` gets `16-18`/`3～12`, so `toIntOrNull()` is null and the cited-verse fallback never
+runs for ranges. Use the range start. BITB-179 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Unmapped book + range resolves via cited verses for all four range separators (unit test)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-191-android-range-link-book-resolution.md`
+
+---
+
+### 🎯 BITB-192: Android Link Labels Insert a Space Between a CJK Book Name and the Chapter
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-10-12
+
+Android rebuilds the label as `"$book $chapter$sep$verse"`, showing `路加福音 1：79` for `路加福音1：79`.
+Use the original matched text, as web does. BITB-179 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Labels keep the exact original text (CJK no-space, fullwidth digits, ASCII)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-192-android-cjk-link-label-space.md`
+
+---
+
+### 🎯 BITB-181: Keep Probe Sessions (Hourly Browser Smoke) Out of the Weekly Report
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-10
+
+`track_session` records authorized probe requests that carry a `session_id`. The hourly
+`prod-browser-smoke.yml` run does (about 168 English/desktop sessions a week), so it inflates the weekly
+digest. The BITB-178 golden-set run sends no `session_id` and is already excluded. Skip session
+tracking for probe requests and pin the golden-set runner as sessionless.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Probe request with a `session_id` writes no `sessions` row (`/chat` and `/chat/stream`)
+- [ ] Normal requests still tracked; golden-set runner payload has no `session_id` (test)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-181-probe-traffic-in-weekly-report.md`
+
+---
+
+### 🎯 BITB-184: Detect a Bracketed Chapter:Verse After the Book Name
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-10
+
+The backend parser misses `Romans (8:28)`, `Römer (8,28)` and `罗马书（8:28）` (only the chapter:verse in
+brackets), though it finds a fully wrapped `（罗马书8:28）`. Found by BITB-182.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Book-then-bracketed chapter:verse parses in backend, frontend and Android, with parity tests
+- [ ] 11-language parametrized test; no false positives without a book name
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-184-bracketed-chapter-verse-after-book.md`
+
+---
+
+### 🎯 BITB-188: Keep Follow-Up Runner Sessions Out of the Weekly Report
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-11
+
+The follow-up runner sends a fresh `fu-eval-<hex>` `session_id` with every case and no probe header,
+so against production each case is recorded by `track_session` and counted by the weekly report.
+BITB-181's fix skips only authorized probe requests, so it does not cover this runner.
+
+**Acceptance Criteria (summary):**
+
+- [ ] A runner run creates no `sessions` rows counted by the weekly report and does not
+      increment the OTel `chat_sessions_counter`
+- [ ] Multi-turn cases still work; a test pins the runner's request headers and payload
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-188-follow-up-runner-sessions-out-of-weekly-report.md`
+
+---
 
 ### ✅ BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
 
@@ -4396,9 +5037,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
+### ✅ BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1127, 2026-10-01)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30
@@ -4410,16 +5051,16 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
-- [ ] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
+- [x] Both paths match on exact chapter + verse + book (range suffixes handled explicitly)
+- [x] Regression tests: `John 3:16` citation does not surface John 3:1; ranges (`Romans 8:28-30`) still resolve
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-166-versescited-startswith-prefix-match.md`
+**Full Story:** `docs/DONE/BITB-166-versescited-startswith-prefix-match.md`
 
 ---
 
-### 🎯 BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
+### 🚧 BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR pending, 2026-10-04)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-30
@@ -4437,9 +5078,9 @@ migrated onto the shared `VerseGrammar` via `DEFAULT_VERSE_REF_REGEX`.
 
 ---
 
-### 🎯 BITB-127: Make `translations.created_at` Timezone-Aware
+### 🚧 BITB-127: Make `translations.created_at` Timezone-Aware
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (PR pending)
 **Size:** S
 **Created:** 2026-09-10
 **Surfaced by:** BITB-094 (column-type audit)
@@ -4961,6 +5602,13 @@ bookkeeping table.
 
 ## Done (Recent Completions)
 
+### BITB-177: Bump Next.js to clear npm-audit CI gate
+
+**Status:** In review (2026-10-09)
+**Size:** XS
+Bump `next` to ^16.4.0 (plus sharp/source-map-js via lockfile) to clear new high advisories failing the
+`Security & Dependency Check` job. [Full story](BACKLOG_STORIES/BITB-177-bump-next-clear-npm-audit-gate.md)
+
 ### ✅ BITB-132: Verify and Fix Verse Linking in Android Chat
 
 **Status:** ✅ Done (`buildVerseRefRegex`/`verseRefRegex` wired into `ChatMessageItem`, backed by
@@ -5041,9 +5689,9 @@ Includes chat interface, verse display, and local-first architecture.
 
 ---
 
-### 🎯 BITB-157: Wire `NEXT_PUBLIC_DONATE_URL` Into Docker Compose / Dockerfile / Azure Deploy
+### 🚧 BITB-157: Wire `NEXT_PUBLIC_DONATE_URL` Into Docker Compose / Dockerfile / Azure Deploy
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P3
 **Size:** S
 **Created:** 2026-09-17

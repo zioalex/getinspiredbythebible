@@ -51,7 +51,7 @@ updates:
         patterns:
           - "tailwindcss"
           - "postcss"
-          - "autoprefixer"
+          - "@tailwindcss/*"
     labels:
       - "dependencies"
       - "frontend"

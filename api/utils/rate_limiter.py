@@ -198,7 +198,7 @@ class PostgresStore:
                     text("SELECT pg_advisory_xact_lock(hashtext(:key))"), {"key": key}
                 )
 
-            ip_count = (
+            ip_count: int = (
                 await session.execute(
                     text(
                         "SELECT count(*) FROM rate_limit_hits "
@@ -213,7 +213,7 @@ class PostgresStore:
                 return False, "IP rate limit exceeded"
 
             if sess_key:
-                lifetime_total = (
+                lifetime_total: int | None = (
                     await session.execute(
                         text(
                             "SELECT total_requests FROM rate_limit_sessions WHERE session_id = :sid"
@@ -227,7 +227,7 @@ class PostgresStore:
                 if (lifetime_total or 0) >= self.session_max_requests:
                     return False, "Session lifetime limit exceeded"
 
-                session_count = (
+                session_count: int = (
                     await session.execute(
                         text(
                             "SELECT count(*) FROM rate_limit_hits "

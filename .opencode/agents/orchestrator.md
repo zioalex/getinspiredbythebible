@@ -1,10 +1,10 @@
 ---
 description: High-level planner and coordinator. Starts every session by planning, decomposes tasks, delegates implementation to specialist subagents, verifies work, and reports to user. Can self-improve by updating AGENTS.md and opencode.json.
 mode: primary
-model: opencode/nemotron-3-ultra-free
+model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
 fallback_models:
-  - opencode/nemotron-3-super-free
-  - openrouter/openai/gpt-oss-120b:free
+  - opencode/nemotron-3-ultra-free
+  - openrouter/openai/gpt-oss-120b
 tools:
   bash: true
   read: true

@@ -12,7 +12,8 @@ and least-privilege RBAC) — see [`docs/SECURITY-KUBEOPENCODE.md`](../SECURITY-
 
 | File | What it is |
 |---|---|
-| `agent-default-wf2.yaml` | The `default-wf2` `Agent`, self-contained (BITB-171): full config via `configRef` → the `opencode-config` ConfigMap, PVC-backed persistence (workspace 20Gi + sessions 2Gi, BITB-128), all provider credentials, plus `OPENCODE_SERVER_PASSWORD` for mobile Basic auth; safe to apply standalone or over the live object (kept in parity with `deployment/kubeopencode/agent.yaml` by `scripts/test_kubeopencode_manifests.py`). Set `agentImage` here to pin the opencode version. |
+| `agent-default-wf2.yaml` | The `default-wf2` `Agent`, self-contained and **converging with the live object** (BITB-171/172): full config via `configRef` → the `opencode-config` ConfigMap, PVC-backed persistence (workspace 20Gi + sessions 2Gi, BITB-128), the three provider credentials, and the pinned custom `agentImage` + `ghcr-pull` pull secret. Over the live object it converges; standalone it needs the secrets, ConfigMap, and RBAC below. Kept in parity with `deployment/kubeopencode/agent.yaml` by `scripts/test_kubeopencode_manifests.py`. |
+| `agent-default-wf3.yaml` | Second Agent (`default-wf3`) for testing the custom agent image — identical shape to `default-wf2` (configRef, persistence, credentials, image wiring) with its own PVCs; validated on the home cluster 2026-09-30 (BITB-172). |
 | `service-mobile.yaml` | Stable Service both remote paths target (also carries Tailscale annotations). |
 | `cloudflared-deployment.yaml` | In-cluster `cloudflared` connector (token mode) for the Cloudflare WARP + private-route path. |
 | `mobile-access.md` | Plan/runbook for reaching the agent from the phone app (Cloudflare WARP + Tailscale). |
@@ -29,15 +30,18 @@ and least-privilege RBAC) — see [`docs/SECURITY-KUBEOPENCODE.md`](../SECURITY-
 
 ## Secrets to create (not stored in git)
 
-Each secret is wired into `agent-default-wf2.yaml` via `credentials[].secretRef` →
-the env var named in the comment:
+Each secret is wired into `agent-default-wf2.yaml` / `agent-default-wf3.yaml` via
+`credentials[].secretRef` → the env var named in the comment (a missing secret
+fails the pod with `CreateContainerConfigError` — the manifests' prerequisite
+list is their header comment):
 
 ```bash
 # provider key (OpenCode Zen) → OPENCODE_API_KEY
 kubectl -n kubeopencode-system create secret generic ai-credentials \
   --from-literal=api-key='<opencode-zen-key>'
 
-# opencode server Basic-auth password (mobile app) → OPENCODE_SERVER_PASSWORD
+# opencode server Basic-auth password — OPTIONAL, mobile flow only (NOT pre-wired
+# in the manifests; create it when enabling mobile access per mobile-access.md)
 kubectl -n kubeopencode-system create secret generic opencode-server-auth \
   --from-literal=password="$(openssl rand -hex 20)"
 
@@ -57,7 +61,9 @@ kubectl -n kubeopencode-system create secret generic openrouter-api-key \
 kubectl -n kubeopencode-system create secret generic github-copilot-auth \
   --from-literal=token="$(gh auth token)" # pragma: allowlist secret
 
-# GHCR pull secret (only if the custom agent image is private)
+# GHCR pull secret — REQUIRED: the manifests pin the custom agent image
+# (ghcr.io/zioalex/... — a private package) and reference this pull secret
+# (custom-opencode-image.md Option B)
 kubectl -n kubeopencode-system create secret docker-registry ghcr-pull \
   --docker-server=ghcr.io --docker-username=<user> \
   --docker-password='<PAT read:packages>' --docker-email=<email>
@@ -80,6 +86,7 @@ kubectl -n kubeopencode-system annotate secret opencode-api-key --overwrite kube
 kubectl apply -f role-agent.yaml -f rolebinding-agent.yaml
 # 3. agent + service (the opencode-config ConfigMap must exist first — see "OpenCode config")
 kubectl apply -f agent-default-wf2.yaml
+kubectl apply -f agent-default-wf3.yaml      # optional: custom-image test agent (BITB-172)
 kubectl apply -f service-mobile.yaml      # paste the live selector first — see file header
 # 4. mobile remote access (pick Cloudflare and/or Tailscale) — see mobile-access.md
 kubectl apply -f cloudflared-deployment.yaml

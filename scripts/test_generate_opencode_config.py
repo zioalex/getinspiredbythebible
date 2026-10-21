@@ -6,6 +6,13 @@ lost `fallback_models`, `tools`, the runtime-fallback plugin, and the provider
 timeouts when config moved out of `spec.config` in agent.yaml into a generated
 ConfigMap. The result was that fallback routing was inert: agents hard-failed
 on a 429/5xx instead of degrading to the free-tier model.
+
+BITB-173 additionally guards against non-existent model IDs: the original
+chain pinned `opencode/nemotron-3-super-free` (Zen serves no Super variant) and
+`openrouter/openai/gpt-oss-120b:free` (no free variant on OpenRouter), so every
+fallback hop failed with ProviderModelNotFoundError and the plugin never once
+failed over. Model IDs changed here MUST be verified against the live catalog
+(`opencode models`) — the gateway, not the docs, is the source of truth.
 """
 
 import json
@@ -22,8 +29,15 @@ GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
 AGENTS_DOC = REPO_ROOT / "deployment" / "kubeopencode" / "agents.md"
 
-FALLBACK = "opencode/nemotron-3-super-free"
-CROSS_FALLBACK = "openrouter/openai/gpt-oss-120b:free"
+STRONG_PRIMARY = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
+TIER2_FALLBACK = "openrouter/openai/gpt-oss-120b"
+# Tier-1 hops are cross-provider: an OpenRouter primary fails over to Zen,
+# a Zen primary fails over to OpenRouter. Both hops are FREE; tier-2 is PAID.
+OR_FREE_HOP = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
+ZEN_FREE_HOP = "opencode/nemotron-3-ultra-free"
+# The retired IDs must never come back: both were non-existent on their
+# providers (BITB-173), which made the whole fallback chain inert.
+STALE_MODEL_IDS = ("opencode/nemotron-3-super-free", "openrouter/openai/gpt-oss-120b:free")
 BUILTINS = ("build", "plan", "general", "explore", "compaction", "title", "summary")
 PLUGIN_NAME = "opencode-runtime-fallback@0.2.4"
 
@@ -59,22 +73,105 @@ def test_all_md_agents_present(config, md_agents):
         assert name in config["agent"], f"{name} missing from generated config"
 
 
+def expected_chain(primary: str) -> list:
+    """Tier-1 hop must be cross-provider (and free); tier-2 is always paid."""
+    return (
+        [ZEN_FREE_HOP, TIER2_FALLBACK]
+        if primary.partition("/")[0] == "openrouter"
+        else [OR_FREE_HOP, TIER2_FALLBACK]
+    )
+
+
 def test_every_md_agent_has_fallback_models(config, md_agents):
     """The core regression: fallback_models was absent for every agent."""
     for name in md_agents:
         fallbacks = config["agent"][name].get("fallback_models")
         assert fallbacks, f"{name} has no fallback_models"
-        assert FALLBACK in fallbacks, f"{name} missing {FALLBACK}"
-        assert CROSS_FALLBACK in fallbacks, f"{name} missing {CROSS_FALLBACK}"
+        primary = config["agent"][name]["model"]
+        assert fallbacks == expected_chain(primary), (
+            f"{name}: expected {expected_chain(primary)}, got {fallbacks}"
+        )
+
+
+def test_fallback_chain_is_free_first_paid_last(config, md_agents):
+    """BITB-173 design rule: powerful FREE model first, PAID model last.
+
+    Tier 1 must be a free variant (":free"/"-free" suffix) so routine failovers
+    cost nothing; tier 2 is the paid safety net that only engages on double
+    failure. This ordering is the whole point of the chain — inverting it
+    silently bills every primary hiccup.
+    """
+    for name in md_agents:
+        tier1, tier2 = config["agent"][name]["fallback_models"][:2]
+        model1 = tier1.partition("/")[2]
+        model2 = tier2.partition("/")[2]
+        assert model1.endswith(":free") or model1.endswith("-free"), (
+            f"{name}: tier-1 {tier1} is not a free variant"
+        )
+        assert not (model2.endswith(":free") or model2.endswith("-free")), (
+            f"{name}: tier-2 {tier2} must be the paid hop, not another free tier"
+        )
+
+
+def test_fallback_chain_exact_and_ordered(config, md_agents):
+    """Every .md agent must declare exactly [tier1, tier2] — no partial edits.
+
+    Expected chain is per primary provider: OpenRouter primaries fail over to
+    Zen first (cross-provider); Zen primaries fail over to OpenRouter first.
+    """
+    for name in md_agents:
+        primary = config["agent"][name]["model"]
+        assert config["agent"][name]["fallback_models"] == expected_chain(primary), (
+            f"{name} fallback chain is not exactly {expected_chain(primary)}"
+        )
+
+
+def test_primary_is_the_strongest_free_model(config):
+    """The global primary (builtins: build/plan/general/explore/etc.) is the
+    strongest model on the graph — Nemotron-3-Ultra-550B-A55B free (rank #4
+    overall, #1 free per docs/LLM_PRICING_OPENROUTER.md)."""
+    assert config["model"] == STRONG_PRIMARY
+    # Cheap ops tier stays on Zen free, off the OpenRouter free-tier limits.
+    assert config["small_model"] == ZEN_FREE_HOP
+
+
+def test_fallback_chain_is_cross_provider(config, md_agents):
+    """Tier-1 must be on a different provider than the primary (BITB-173).
+
+    The observed failure was a Zen-side `503 Upstream error from Nvidia`; a
+    same-provider fallback would have died in the same incident. With the
+    strong 550B primary on OpenRouter, the same rule now also protects
+    OpenRouter-primary agents: their tier-1 hop must be Zen.
+    """
+    for name in md_agents:
+        primary = config["agent"][name]["model"]
+        primary_provider = primary.partition("/")[0]
+        hop_provider = config["agent"][name]["fallback_models"][0].partition("/")[0]
+        assert primary_provider != hop_provider, (
+            f"{name}: tier-1 fallback is same-provider as primary "
+            f"({primary_provider}) — a provider outage kills the whole chain"
+        )
+    # Builtins inherit the global (OpenRouter) primary; their tier-1 hop is Zen.
+    for name in BUILTINS:
+        hop = config["agent"][name]["fallback_models"][0]
+        assert hop == ZEN_FREE_HOP, f"builtin {name}: tier-1 hop is {hop}, not Zen"
+
+
+def test_no_stale_model_ids_in_config(config):
+    """Tripwire: the retired non-existent IDs must never reappear (BITB-173)."""
+    blob = json.dumps(config)
+    for stale in STALE_MODEL_IDS:
+        assert stale not in blob, f"retired non-existent model id reappeared: {stale}"
 
 
 def test_builtin_agents_have_fallback_models(config):
+    """Builtins inherit the OpenRouter primary, so their tier-1 hop is Zen."""
     for name in BUILTINS:
         assert name in config["agent"], f"builtin {name} missing"
         fallbacks = config["agent"][name].get("fallback_models")
-        assert FALLBACK in fallbacks, f"builtin {name} missing primary fallback"
-        assert CROSS_FALLBACK in fallbacks, f"builtin {name} missing cross-provider fallback"
-        assert len(fallbacks) >= 2, f"builtin {name} missing cross-provider fallback"
+        assert fallbacks == [ZEN_FREE_HOP, TIER2_FALLBACK], (
+            f"builtin {name}: expected [Zen free, paid], got {fallbacks}"
+        )
 
 
 def test_builtin_primary_modes_preserved(config):
@@ -128,14 +225,33 @@ def test_every_agent_has_non_empty_prompt(config, md_agents):
 
 
 def test_models_match_agents_doc(config):
-    """Guards against drift between the docs table and the generated config."""
+    """Guards against drift between the docs table and the generated config.
+
+    BITB-173: the table's fallback columns were silently wrong for months
+    (they documented the two non-existent model IDs). Parse all three model
+    cells — primary, fallback 1, fallback 2 — and assert each against the
+    generated config so the table can never lie again.
+    """
     doc = AGENTS_DOC.read_text()
-    rows = re.findall(r"^\|\s*([a-z0-9-]+)\s*\|\s*`([^`]+)`", doc, re.MULTILINE)
+    rows = re.findall(
+        r"^\|\s*([a-z0-9-]+)\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`",
+        doc,
+        re.MULTILINE,
+    )
     assert len(rows) >= 12, f"could not parse agents.md table (got {len(rows)})"
-    for name, model in rows:
+    for name, model, fb1, fb2 in rows:
         assert name in config["agent"], f"{name} documented but not generated"
-        assert config["agent"][name]["model"] == model, (
-            f"{name}: agents.md says {model}, " f"generated {config['agent'][name]['model']}"
+        spec = config["agent"][name]
+        assert spec["model"] == model, (
+            f"{name}: agents.md says {model}, " f"generated {spec['model']}"
+        )
+        assert spec["fallback_models"][0] == fb1, (
+            f"{name}: agents.md fallback 1 says {fb1}, "
+            f"generated {spec['fallback_models'][0]}"
+        )
+        assert spec["fallback_models"][1] == fb2, (
+            f"{name}: agents.md fallback 2 says {fb2}, "
+            f"generated {spec['fallback_models'][1]}"
         )
 
 
