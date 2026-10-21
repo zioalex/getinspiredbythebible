@@ -3,6 +3,9 @@ package org.voxquieta.app.presentation.components
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -14,13 +17,14 @@ import org.voxquieta.app.presentation.viewmodels.ChapterSheetState
 import org.voxquieta.app.testing.ComposeTestHarness
 
 /**
- * Robolectric-backed Compose UI tests for the Listen <-> Stop control on [ChatMessageItem]
- * (BITB-119). Runs under the `testDebugCompose` task / `android-compose-tests.yml` lane.
+ * Robolectric-backed Compose UI tests for the Listen / Pause / Resume control on [ChatMessageItem]
+ * (BITB-119, BITB-205). Runs under the `testDebugCompose` task / `android-compose-tests.yml` lane.
  */
 class ListenButtonComposeTest : ComposeTestHarness() {
 
     private val listen = "Listen to this answer"
-    private val stop = "Stop listening"
+    private val pause = "Pause reading"
+    private val resume = "Resume reading"
 
     private fun assistant(
         content: String = "Here is an answer.",
@@ -38,6 +42,7 @@ class ListenButtonComposeTest : ComposeTestHarness() {
         message: Message,
         showListen: Boolean = true,
         isSpeaking: Boolean = false,
+        isPaused: Boolean = false,
         onToggleListen: (() -> Unit)? = {},
     ) = setContentThemed {
         ChatMessageItem(
@@ -48,6 +53,7 @@ class ListenButtonComposeTest : ComposeTestHarness() {
             onDismissSheet = {},
             showListen = showListen,
             isSpeaking = isSpeaking,
+            isPaused = isPaused,
             onToggleListen = onToggleListen,
         )
     }
@@ -91,11 +97,54 @@ class ListenButtonComposeTest : ComposeTestHarness() {
     }
 
     @Test
-    fun `speaking state shows Stop with the reading state description`() {
+    fun `speaking state shows Pause with the reading state description`() {
         mount(assistant(), isSpeaking = true)
-        composeRule.onNodeWithContentDescription(stop).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(pause).assertIsDisplayed()
         composeRule.onNodeWithTag("listen_button")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Reading aloud"))
+    }
+
+    @Test
+    fun `paused state shows Resume with the paused state description`() {
+        mount(assistant(), isPaused = true)
+        composeRule.onNodeWithContentDescription(resume).assertIsDisplayed()
+        composeRule.onNodeWithTag("listen_button")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Reading paused"))
+    }
+
+    @Test
+    fun `listen copy and share render in the side rail, not the feedback row`() {
+        setContentThemed {
+            ChatMessageItem(
+                message = assistant().copy(messageId = "srv-1"),
+                chapterSheetState = ChapterSheetState.Idle,
+                preferredTranslation = null,
+                onLoadChapter = { _, _, _ -> },
+                onDismissSheet = {},
+                onFeedback = { _, _, _, _ -> },
+                showListen = true,
+                onToggleListen = {},
+            )
+        }
+        composeRule.onNodeWithTag("message_action_rail").assertIsDisplayed()
+        composeRule.onNode(hasAnyAncestor(hasTestTag("message_action_rail")) and hasTestTag("listen_button"))
+            .assertIsDisplayed()
+        composeRule.onNode(
+            hasAnyAncestor(hasTestTag("message_action_rail")) and hasContentDescription("Copy message"),
+        ).assertIsDisplayed()
+        composeRule.onNode(
+            hasAnyAncestor(hasTestTag("message_action_rail")) and hasContentDescription("Share message"),
+        ).assertIsDisplayed()
+        // The thumbs row is still there, outside the rail.
+        composeRule.onNode(
+            hasContentDescription("Copy message") and !hasAnyAncestor(hasTestTag("message_action_rail")),
+        ).assertDoesNotExist()
+    }
+
+    @Test
+    fun `no rail while streaming or for user messages`() {
+        mount(assistant(content = "Partial", streaming = true))
+        composeRule.onNodeWithTag("message_action_rail").assertDoesNotExist()
     }
 
     @Test

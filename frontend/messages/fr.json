@@ -146,7 +146,8 @@
     "changeBibleVersion": "Changer de version de la Bible",
     "searchCommunity": "Rechercher une communauté",
     "listenAnswer": "Écouter la réponse",
-    "stopListening": "Arrêter l'écoute",
+    "pauseListening": "Mettre la lecture en pause",
+    "resumeListening": "Reprendre la lecture",
     "showListenButton": "Afficher le bouton Écouter"
   },
   "Verses": {

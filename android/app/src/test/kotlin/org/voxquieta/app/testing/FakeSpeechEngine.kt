@@ -20,10 +20,17 @@ class FakeSpeechEngine(
     private val _speakingId = MutableStateFlow<String?>(null)
     override val speakingId: StateFlow<String?> = _speakingId.asStateFlow()
 
+    private val _pausedId = MutableStateFlow<String?>(null)
+    override val pausedId: StateFlow<String?> = _pausedId.asStateFlow()
+
     val spoken = mutableListOf<Spoken>()
     var warmUpCalls = 0
         private set
     var stopCalls = 0
+        private set
+    var pauseCalls = 0
+        private set
+    var resumeCalls = 0
         private set
 
     /** Simulates audio focus being denied: speak() then refuses. */
@@ -36,6 +43,7 @@ class FakeSpeechEngine(
     /** Simulates the last chunk finishing on its own. */
     fun finishSpeaking() {
         _speakingId.value = null
+        _pausedId.value = null
     }
 
     override fun warmUp() {
@@ -48,12 +56,30 @@ class FakeSpeechEngine(
     override fun speak(id: String, chunks: List<String>, languageTag: String): Boolean {
         if (chunks.isEmpty() || !hasLocalVoice(languageTag) || !audioFocusGranted) return false
         spoken += Spoken(id, chunks, languageTag)
+        _pausedId.value = null // a new speak() discards any paused position
         _speakingId.value = id // replaces whatever was speaking: one voice at a time
+        return true
+    }
+
+    override fun pause() {
+        pauseCalls++
+        val id = _speakingId.value ?: return
+        _speakingId.value = null
+        _pausedId.value = id
+    }
+
+    override fun resume(): Boolean {
+        resumeCalls++
+        val id = _pausedId.value ?: return false
+        if (!audioFocusGranted) return false
+        _pausedId.value = null
+        _speakingId.value = id
         return true
     }
 
     override fun stop() {
         stopCalls++
         _speakingId.value = null
+        _pausedId.value = null
     }
 }

@@ -302,9 +302,11 @@
 
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">Antwort anhören</string>
-    <string name="action_stop_listening">Wiedergabe beenden</string>
+    <string name="action_pause_listening">Wiedergabe pausieren</string>
+    <string name="action_resume_listening">Wiedergabe fortsetzen</string>
     <string name="state_listening">Wird vorgelesen</string>
     <string name="state_not_listening">Wird nicht vorgelesen</string>
+    <string name="state_paused_listening">Vorlesen pausiert</string>
     <string name="settings_tts_title">Vorlesen</string>
     <string name="settings_tts_show_listen">Schaltfläche „Anhören“ anzeigen</string>
     <string name="settings_tts_show_listen_desc">Fügt den Antworten eine Schaltfläche zum Anhören hinzu. Die Antworten werden von der Stimme deines Geräts vorgelesen; der Text verlässt dein Gerät nie.</string>

@@ -311,9 +311,11 @@
 
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">Listen to this answer</string>
-    <string name="action_stop_listening">Stop listening</string>
+    <string name="action_pause_listening">Pause reading</string>
+    <string name="action_resume_listening">Resume reading</string>
     <string name="state_listening">Reading aloud</string>
     <string name="state_not_listening">Not reading aloud</string>
+    <string name="state_paused_listening">Reading paused</string>
     <string name="settings_tts_title">Read aloud</string>
     <string name="settings_tts_show_listen">Show Listen button</string>
     <string name="settings_tts_show_listen_desc">Adds a Listen button to answers. Answers are read by your device\'s voice; the text never leaves your device.</string>

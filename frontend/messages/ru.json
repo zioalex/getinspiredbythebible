@@ -146,7 +146,8 @@
     "changeBibleVersion": "Сменить версию Библии",
     "searchCommunity": "Найти общину",
     "listenAnswer": "Прослушать ответ",
-    "stopListening": "Остановить прослушивание",
+    "pauseListening": "Приостановить чтение",
+    "resumeListening": "Продолжить чтение",
     "showListenButton": "Показывать кнопку «Слушать»"
   },
   "Verses": {

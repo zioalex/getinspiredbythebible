@@ -32,6 +32,9 @@ export class FakeUtterance {
   lang = "";
   onend: (() => void) | null = null;
   onerror: (() => void) | null = null;
+  onstart: (() => void) | null = null;
+  onresume: (() => void) | null = null;
+  onboundary: (() => void) | null = null;
   constructor(text: string) {
     this.text = text;
   }
@@ -43,6 +46,10 @@ export interface FakeSynth {
   getVoices: ReturnType<typeof vi.fn>;
   speak: ReturnType<typeof vi.fn>;
   cancel: ReturnType<typeof vi.fn>;
+  pause: ReturnType<typeof vi.fn>;
+  resume: ReturnType<typeof vi.fn>;
+  /** Mirrors `speechSynthesis.paused`. */
+  paused: boolean;
   addEventListener: ReturnType<typeof vi.fn>;
   removeEventListener: ReturnType<typeof vi.fn>;
   emitVoicesChanged: () => void;
@@ -59,6 +66,13 @@ export function installSpeechMock(voices: FakeVoice[]): FakeSynth {
       synth.spoken.push(u);
     }),
     cancel: vi.fn(),
+    paused: false,
+    pause: vi.fn(() => {
+      synth.paused = true;
+    }),
+    resume: vi.fn(() => {
+      synth.paused = false;
+    }),
     addEventListener: vi.fn((_: string, l: () => void) => {
       listeners.add(l);
     }),

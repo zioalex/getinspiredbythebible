@@ -50,6 +50,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -62,6 +63,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -75,6 +78,8 @@ import org.voxquieta.app.utils.donateUrl
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
+import org.voxquieta.app.presentation.components.ChatViewportBounds
+import org.voxquieta.app.presentation.components.LocalChatViewportBounds
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
 import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
@@ -139,16 +144,17 @@ fun ChatScreen(
         uiState.ttsEngineReady,
         uiState.currentLocale,
     ) { viewModel.canSpeak() }
-    // Stop reading aloud when the app is backgrounded or this screen is left.
+    // Pause reading aloud (keeping the position) when the app is backgrounded or this screen is
+    // left (BITB-205; the ViewModel stops it when it is cleared).
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) viewModel.stopSpeaking()
+            if (event == Lifecycle.Event.ON_STOP) viewModel.pauseSpeaking()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            viewModel.stopSpeaking()
+            viewModel.pauseSpeaking()
         }
     }
     val listState = rememberLazyListState()
@@ -394,8 +400,17 @@ fun ChatScreen(
                     .weight(1f)
                     .fillMaxWidth(),
             ) {
+                // BITB-205: window bounds of the list, so each answer can pin its action rail.
+                val viewportBounds = remember { ChatViewportBounds() }
+                CompositionLocalProvider(LocalChatViewportBounds provides viewportBounds) {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onGloballyPositioned { coordinates ->
+                            val bounds = coordinates.boundsInWindow()
+                            viewportBounds.top = bounds.top
+                            viewportBounds.bottom = bounds.bottom
+                        },
                     state = listState,
                 ) {
                     if (uiState.messages.isEmpty()) {
@@ -442,6 +457,7 @@ fun ChatScreen(
                             localizedToEnglish = localizedToEnglish,
                             showListen = canSpeak,
                             isSpeaking = uiState.speakingMessageId == message.id,
+                            isPaused = uiState.pausedMessageId == message.id,
                             onToggleListen = {
                                 viewModel.toggleSpeak(message, verseRefRegex, localizedToEnglish)
                             },
@@ -478,6 +494,7 @@ fun ChatScreen(
                             )
                         }
                     }
+                }
                 }
 
                 // Scroll-to-bottom FAB — visible when the user has scrolled up from the bottom.

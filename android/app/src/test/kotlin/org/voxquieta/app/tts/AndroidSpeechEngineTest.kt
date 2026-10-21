@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioManager
 import android.os.Build
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import io.mockk.every
 import io.mockk.mockk
@@ -37,6 +38,12 @@ class AndroidSpeechEngineTest {
 
     private class Harness(val tts: TextToSpeech, val audio: AudioManager) {
         lateinit var engine: AndroidSpeechEngine
+        lateinit var progress: UtteranceProgressListener
+
+        /** Every (text, utteranceId) handed to the platform engine, in order. */
+        val queued = mutableListOf<Pair<String, String>>()
+        val queuedTexts get() = queued.map { it.first }
+        fun idOf(index: Int) = queued.last { it.second.endsWith(":$index") }.second
     }
 
     private fun harness(voices: List<Voice>, focusResult: Int = AudioManager.AUDIOFOCUS_REQUEST_GRANTED): Harness {
@@ -55,6 +62,14 @@ class AndroidSpeechEngineTest {
         every { context.getSystemService(Context.AUDIO_SERVICE) } returns audio
 
         val h = Harness(tts, audio)
+        every { tts.setOnUtteranceProgressListener(any()) } answers {
+            h.progress = firstArg()
+            TextToSpeech.SUCCESS
+        }
+        every { tts.speak(any<CharSequence>(), any(), any(), any()) } answers {
+            h.queued += firstArg<CharSequence>().toString() to arg<String>(3)
+            TextToSpeech.SUCCESS
+        }
         val engine = AndroidSpeechEngine(context)
         val listener = slot<TextToSpeech.OnInitListener>()
         engine.ttsFactory = { _, l ->
@@ -93,14 +108,115 @@ class AndroidSpeechEngineTest {
     }
 
     @Test
-    fun `audio focus loss stops speaking`() {
+    fun `audio focus loss pauses speaking and keeps the position`() {
         for (loss in listOf(AudioManager.AUDIOFOCUS_LOSS, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT)) {
             val h = harness(listOf(voice("en-US")))
             assertTrue(h.engine.speak("m1", listOf("Hello."), "en"))
             assertEquals("m1", h.engine.speakingId.value)
             h.engine.onAudioFocusChange(loss)
-            assertNull("focus change $loss must stop", h.engine.speakingId.value)
+            assertNull("focus change $loss must stop the audio", h.engine.speakingId.value)
+            assertEquals("focus change $loss must keep the position", "m1", h.engine.pausedId.value)
+            verify { h.tts.stop() }
         }
+    }
+
+    @Test
+    fun `pause then resume re-queues from the chunk that was playing, not chunk 0`() {
+        val h = harness(listOf(voice("en-US")))
+        assertTrue(h.engine.speak("m1", listOf("one", "two", "three"), "en"))
+        assertEquals(listOf("one", "two", "three"), h.queuedTexts)
+        h.progress.onStart(h.idOf(0))
+        h.progress.onDone(h.idOf(0))
+        h.progress.onStart(h.idOf(1))
+
+        h.engine.pause()
+        assertNull(h.engine.speakingId.value)
+        assertEquals("m1", h.engine.pausedId.value)
+        verify { h.audio.abandonAudioFocusRequest(any()) }
+
+        h.queued.clear()
+        assertTrue(h.engine.resume())
+        assertEquals(listOf("two", "three"), h.queuedTexts)
+        assertEquals("m1", h.engine.speakingId.value)
+        assertNull(h.engine.pausedId.value)
+        // QUEUE_FLUSH for the first re-queued chunk, QUEUE_ADD after it.
+        verify { h.tts.speak("two", TextToSpeech.QUEUE_FLUSH, null, any()) }
+        verify { h.tts.speak("three", TextToSpeech.QUEUE_ADD, null, any()) }
+    }
+
+    @Test
+    fun `resume continues to the end and finishing clears everything`() {
+        val h = harness(listOf(voice("en-US")))
+        h.engine.speak("m1", listOf("one", "two"), "en")
+        h.progress.onStart(h.idOf(1))
+        h.engine.pause()
+        h.engine.resume()
+        h.progress.onDone(h.idOf(1))
+        assertNull(h.engine.speakingId.value)
+        assertNull(h.engine.pausedId.value)
+        assertFalse(h.engine.resume())
+    }
+
+    @Test
+    fun `callbacks from the interrupted queue are ignored after pause`() {
+        val h = harness(listOf(voice("en-US")))
+        h.engine.speak("m1", listOf("one", "two"), "en")
+        val staleLast = h.idOf(1)
+        h.progress.onStart(h.idOf(0))
+        h.engine.pause()
+        h.progress.onDone(staleLast) // late binder callback from the old queue
+        assertEquals("m1", h.engine.pausedId.value)
+    }
+
+    @Test
+    fun `speaking another id discards the paused position`() {
+        val h = harness(listOf(voice("en-US")))
+        h.engine.speak("m1", listOf("one"), "en")
+        h.engine.pause()
+        assertEquals("m1", h.engine.pausedId.value)
+        assertTrue(h.engine.speak("m2", listOf("other"), "en"))
+        assertNull(h.engine.pausedId.value)
+        assertEquals("m2", h.engine.speakingId.value)
+    }
+
+    @Test
+    fun `stop discards the paused position and resume then does nothing`() {
+        val h = harness(listOf(voice("en-US")))
+        h.engine.speak("m1", listOf("one"), "en")
+        h.engine.pause()
+        h.engine.stop()
+        assertNull(h.engine.pausedId.value)
+        assertFalse(h.engine.resume())
+    }
+
+    @Test
+    fun `pause with nothing speaking is a no-op`() {
+        val h = harness(listOf(voice("en-US")))
+        h.engine.pause()
+        assertNull(h.engine.pausedId.value)
+    }
+
+    @Test
+    fun `resume with focus denied stays paused`() {
+        val h = harness(listOf(voice("en-US")))
+        h.engine.speak("m1", listOf("one", "two"), "en")
+        h.progress.onStart(h.idOf(1))
+        h.engine.pause()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            every { h.audio.requestAudioFocus(any<android.media.AudioFocusRequest>()) } returns
+                AudioManager.AUDIOFOCUS_REQUEST_FAILED
+        }
+        assertFalse(h.engine.resume())
+        assertEquals("m1", h.engine.pausedId.value)
+        assertNull(h.engine.speakingId.value)
+        // still resumable from the same chunk once focus is available again
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            every { h.audio.requestAudioFocus(any<android.media.AudioFocusRequest>()) } returns
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }
+        h.queued.clear()
+        assertTrue(h.engine.resume())
+        assertEquals(listOf("two"), h.queuedTexts)
     }
 
     @Test

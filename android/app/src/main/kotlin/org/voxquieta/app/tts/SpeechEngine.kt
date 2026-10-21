@@ -32,6 +32,12 @@ interface SpeechEngine {
     /** Id of the message currently being spoken, or null. */
     val speakingId: StateFlow<String?>
 
+    /**
+     * BITB-205: id of the message whose reading is paused (position kept), or null. At most one
+     * message is speaking or paused at a time; [speakingId] and [pausedId] are never both set.
+     */
+    val pausedId: StateFlow<String?>
+
     /** Starts engine initialisation (idempotent). Cheap to call repeatedly. */
     fun warmUp()
 
@@ -44,7 +50,20 @@ interface SpeechEngine {
      */
     fun speak(id: String, chunks: List<String>, languageTag: String): Boolean
 
-    /** Stops speaking immediately and releases audio focus. */
+    /**
+     * BITB-205: pauses the current reading and releases audio focus, keeping the position.
+     * The platform engine has no pause, so [resume] restarts the chunk that was playing.
+     * No-op when nothing is speaking.
+     */
+    fun pause()
+
+    /**
+     * BITB-205: continues a paused reading from the start of the chunk that was playing.
+     * Returns false (and stays paused) when nothing is paused or audio focus is denied.
+     */
+    fun resume(): Boolean
+
+    /** Stops speaking immediately, releases audio focus and discards any paused position. */
     fun stop()
 }
 
@@ -107,6 +126,9 @@ class AndroidSpeechEngine @Inject constructor(
     private val _speakingId = MutableStateFlow<String?>(null)
     override val speakingId: StateFlow<String?> = _speakingId.asStateFlow()
 
+    private val _pausedId = MutableStateFlow<String?>(null)
+    override val pausedId: StateFlow<String?> = _pausedId.asStateFlow()
+
     private var tts: TextToSpeech? = null
 
     /** Creates the platform engine; replaceable in tests. */
@@ -127,6 +149,13 @@ class AndroidSpeechEngine @Inject constructor(
     /** Identifies the current speak() call; callbacks from older calls are ignored. */
     @Volatile private var token = 0L
     @Volatile private var lastUtteranceId: String? = null
+
+    // BITB-205: the current call, kept so a paused reading can be re-queued from the chunk that
+    // was playing. `playingIndex` is set from UtteranceProgressListener.onStart (binder thread).
+    @Volatile private var currentId: String? = null
+    @Volatile private var currentChunks: List<String> = emptyList()
+    @Volatile private var currentLanguageTag: String = ""
+    @Volatile private var playingIndex = 0
 
     private val speechAttributes: AudioAttributes = AudioAttributes.Builder()
         // USAGE_ASSISTANT is API 26; minSdk is 24.
@@ -185,17 +214,21 @@ class AndroidSpeechEngine @Inject constructor(
         }
     }
 
-    /** A call, alarm or another media app took focus: stop (never talk over it). */
+    /** A call, alarm or another media app took focus: pause (never talk over it; BITB-205). */
     internal fun onAudioFocusChange(change: Int) {
         if (change == AudioManager.AUDIOFOCUS_LOSS ||
             change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
         ) {
-            stop()
+            pause()
         }
     }
 
     private val progressListener = object : UtteranceProgressListener() {
-        override fun onStart(utteranceId: String?) = Unit
+        override fun onStart(utteranceId: String?) {
+            // Ids are "$token:$index"; remember which chunk is audible for resume().
+            if (!belongsToCurrentCall(utteranceId)) return
+            utteranceId?.substringAfter(':')?.toIntOrNull()?.let { playingIndex = it }
+        }
 
         override fun onDone(utteranceId: String?) {
             if (utteranceId != null && utteranceId == lastUtteranceId) finish()
@@ -250,6 +283,13 @@ class AndroidSpeechEngine @Inject constructor(
 
     override fun speak(id: String, chunks: List<String>, languageTag: String): Boolean {
         if (chunks.isEmpty()) return false
+        // Any new speak() discards a paused position (one position at a time; BITB-205).
+        _pausedId.value = null
+        return startSpeaking(id, chunks, languageTag, fromIndex = 0)
+    }
+
+    /** Shared by [speak] and [resume]: queues `chunks.drop(fromIndex)` under [id]. */
+    private fun startSpeaking(id: String, chunks: List<String>, languageTag: String, fromIndex: Int): Boolean {
         val engine = tts ?: return false
         val voice = localVoices(languageTag).firstOrNull() ?: return false
 
@@ -264,18 +304,55 @@ class AndroidSpeechEngine @Inject constructor(
         }
 
         val myToken = ++token
+        currentId = id
+        currentChunks = chunks
+        currentLanguageTag = languageTag
+        playingIndex = fromIndex
         engine.voice = voice
         _speakingId.value = id
         chunks.forEachIndexed { index, chunk ->
+            if (index < fromIndex) return@forEachIndexed
             val utteranceId = "$myToken:$index"
             if (index == chunks.lastIndex) lastUtteranceId = utteranceId
             engine.speak(
                 chunk,
-                if (index == 0) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD,
+                if (index == fromIndex) TextToSpeech.QUEUE_FLUSH else TextToSpeech.QUEUE_ADD,
                 null,
                 utteranceId,
             )
         }
+        return true
+    }
+
+    override fun pause() {
+        val id = _speakingId.value ?: return
+        token++ // invalidate callbacks from the interrupted queue
+        lastUtteranceId = null
+        runCatching { tts?.stop() }
+        _speakingId.value = null
+        _pausedId.value = id
+        abandonFocus()
+    }
+
+    override fun resume(): Boolean {
+        val id = _pausedId.value ?: return false
+        val chunks = currentChunks
+        val index = playingIndex.coerceIn(0, (chunks.size - 1).coerceAtLeast(0))
+        if (currentId != id || chunks.isEmpty()) {
+            clearPosition()
+            return false
+        }
+        val language = currentLanguageTag
+        if (!startSpeaking(id, chunks, language, index)) {
+            // Focus denied / voice gone: startSpeaking cleared the position; keep it paused.
+            currentId = id
+            currentChunks = chunks
+            currentLanguageTag = language
+            playingIndex = index
+            _pausedId.value = id
+            return false
+        }
+        _pausedId.value = null
         return true
     }
 
@@ -286,8 +363,16 @@ class AndroidSpeechEngine @Inject constructor(
         finish()
     }
 
+    private fun clearPosition() {
+        currentId = null
+        currentChunks = emptyList()
+        playingIndex = 0
+        _pausedId.value = null
+    }
+
     private fun finish() {
         _speakingId.value = null
+        clearPosition()
         abandonFocus()
     }
 }

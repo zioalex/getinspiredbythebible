@@ -121,7 +121,7 @@ export default function ShareMenu({ question, answer }: ShareMenuProps) {
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 mb-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+        <div className="absolute top-full end-0 mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
           {shareLinks.map((item) =>
             item.href ? (
               <a

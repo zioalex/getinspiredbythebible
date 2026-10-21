@@ -3158,19 +3158,68 @@ class ChatViewModelTest {
     }
 
     @Test
-    fun `toggleSpeak on the speaking message stops it without a new started event`() = runTest {
+    fun `toggleSpeak on the speaking message pauses it without a new started event`() = runTest {
         val message = viewModel.answer()
         viewModel.toggleSpeak(message, noRegex, emptyMap())
         testDispatcher.scheduler.advanceUntilIdle()
-        val stopsBefore = speechEngine.stopCalls
 
         viewModel.toggleSpeak(message, noRegex, emptyMap())
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(stopsBefore + 1, speechEngine.stopCalls)
+        assertEquals(1, speechEngine.pauseCalls)
         assertNull(viewModel.uiState.value.speakingMessageId)
+        assertEquals(message.id, viewModel.uiState.value.pausedMessageId)
         assertEquals(1, speechEngine.spoken.size)
         verify(exactly = 1) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_STARTED, any()) }
+    }
+
+    @Test
+    fun `toggleSpeak on the paused message resumes it without a new started event`() = runTest {
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        viewModel.toggleSpeak(message, noRegex, emptyMap()) // pause
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSpeak(message, noRegex, emptyMap()) // resume
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, speechEngine.resumeCalls)
+        assertEquals(message.id, viewModel.uiState.value.speakingMessageId)
+        assertNull(viewModel.uiState.value.pausedMessageId)
+        assertEquals("resume must not re-queue the text", 1, speechEngine.spoken.size)
+        verify(exactly = 1) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_STARTED, any()) }
+    }
+
+    @Test
+    fun `speaking another message discards the paused position of the first`() = runTest {
+        val first = viewModel.answer("First answer.")
+        val second = viewModel.answer("Second answer.")
+        viewModel.toggleSpeak(first, noRegex, emptyMap())
+        viewModel.toggleSpeak(first, noRegex, emptyMap()) // pause first
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(first.id, viewModel.uiState.value.pausedMessageId)
+
+        viewModel.toggleSpeak(second, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(second.id, viewModel.uiState.value.speakingMessageId)
+        assertNull(viewModel.uiState.value.pausedMessageId)
+    }
+
+    @Test
+    fun `pauseSpeaking keeps the position and stopSpeaking discards it`() = runTest {
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.pauseSpeaking()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(message.id, viewModel.uiState.value.pausedMessageId)
+
+        viewModel.stopSpeaking()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.pausedMessageId)
+        assertNull(viewModel.uiState.value.speakingMessageId)
     }
 
     @Test

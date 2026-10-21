@@ -146,7 +146,8 @@
     "changeBibleVersion": "تغيير إصدار الكتاب المقدس",
     "searchCommunity": "البحث عن مجتمع إيماني",
     "listenAnswer": "الاستماع إلى الإجابة",
-    "stopListening": "إيقاف الاستماع",
+    "pauseListening": "إيقاف القراءة مؤقتًا",
+    "resumeListening": "استئناف القراءة",
     "showListenButton": "إظهار زر الاستماع"
   },
   "Verses": {
