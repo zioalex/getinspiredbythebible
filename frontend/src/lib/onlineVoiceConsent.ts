@@ -4,8 +4,9 @@
  * Offline voices are the default (BITB-119: no answer text leaves the device). When a
  * browser only has online voices for the UI language, speaking with one sends the answer
  * text to the browser vendor's speech service, so it needs an explicit opt-in. Persisted
- * per browser in localStorage (try/catch — storage can be blocked, in which case the
- * choice is "unset" and the dialog is shown again). Mirrors `ttsPreference.ts`.
+ * per browser in localStorage (try/catch). If storage is blocked, an in-memory value keeps
+ * the choice for the current page view (it is lost on reload, so the dialog is shown again
+ * then). Mirrors `ttsPreference.ts`.
  */
 import { useSyncExternalStore } from "react";
 
@@ -35,11 +36,11 @@ export function getOnlineVoiceConsent(): OnlineVoiceConsent {
 }
 
 export function setOnlineVoiceConsent(value: "granted" | "denied"): void {
-  memoryValue = value;
   try {
     localStorage.setItem(ONLINE_VOICES_KEY, value);
     storageBlocked = false;
   } catch {
+    memoryValue = value;
     storageBlocked = true;
     // Storage unavailable — the in-memory value keeps the choice for this page view.
   }
@@ -50,10 +51,15 @@ export function setOnlineVoiceConsent(value: "granted" | "denied"): void {
 
 function subscribe(onChange: () => void): () => void {
   window.addEventListener(CHANGE_EVENT, onChange);
-  window.addEventListener("storage", onChange);
+  // Another tab's write wins over a value we only held in memory after a failed write.
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === ONLINE_VOICES_KEY || e.key === null) storageBlocked = false;
+    onChange();
+  };
+  window.addEventListener("storage", onStorage);
   return () => {
     window.removeEventListener(CHANGE_EVENT, onChange);
-    window.removeEventListener("storage", onChange);
+    window.removeEventListener("storage", onStorage);
   };
 }
 

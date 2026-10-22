@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef, type RefObject } from "react";
 import { useTranslations } from "next-intl";
 
 const FOCUSABLE_SELECTOR =
@@ -10,6 +10,8 @@ interface OnlineVoiceConsentDialogProps {
   onAllow: () => void;
   /** "Not now", Esc and a backdrop click all decline. */
   onDecline: () => void;
+  /** Preferred focus target on close (Safari does not focus a clicked button). */
+  returnFocusTo?: RefObject<HTMLElement | null>;
 }
 
 /**
@@ -20,7 +22,9 @@ interface OnlineVoiceConsentDialogProps {
 export default function OnlineVoiceConsentDialog({
   onAllow,
   onDecline,
+  returnFocusTo,
 }: OnlineVoiceConsentDialogProps) {
+  const bodyId = useId();
   const t = useTranslations("Chat");
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<Element | null>(null);
@@ -57,9 +61,10 @@ export default function OnlineVoiceConsentDialog({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      if (previouslyFocused.current instanceof HTMLElement) {
-        previouslyFocused.current.focus();
-      }
+      // Read at close time on purpose: the ref's element is the one to restore.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      const target = returnFocusTo?.current ?? previouslyFocused.current;
+      if (target instanceof HTMLElement) target.focus();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -69,7 +74,7 @@ export default function OnlineVoiceConsentDialog({
       role="dialog"
       aria-modal="true"
       aria-label={t("onlineVoicesDialogTitle")}
-      aria-describedby="online-voices-dialog-body"
+      aria-describedby={bodyId}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onDecline();
@@ -83,10 +88,7 @@ export default function OnlineVoiceConsentDialog({
         <h2 className="text-xl font-bold text-gray-900 mb-3">
           {t("onlineVoicesDialogTitle")}
         </h2>
-        <p
-          id="online-voices-dialog-body"
-          className="text-gray-600 leading-relaxed mb-6"
-        >
+        <p id={bodyId} className="text-gray-600 leading-relaxed mb-6">
           {t("onlineVoicesDialogBody")}
         </p>
 

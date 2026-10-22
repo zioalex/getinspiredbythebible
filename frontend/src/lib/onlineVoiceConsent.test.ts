@@ -59,3 +59,30 @@ describe("onlineVoiceConsent (BITB-210)", () => {
     expect(result.current).toBe("denied");
   });
 });
+
+describe("onlineVoiceConsent storage edge cases (BITB-210)", () => {
+  it("a cross-tab storage event wins over a value held only in memory", () => {
+    const { result } = renderHook(() => useOnlineVoiceConsent());
+    const setItem = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("blocked");
+      });
+    act(() => setOnlineVoiceConsent("granted"));
+    expect(result.current).toBe("granted"); // memory fallback
+    setItem.mockRestore();
+    act(() => {
+      localStorage.setItem(ONLINE_VOICES_KEY, "denied");
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: ONLINE_VOICES_KEY }),
+      );
+    });
+    expect(result.current).toBe("denied");
+  });
+
+  it("a value set while storage worked does not resurface after storage is cleared", () => {
+    setOnlineVoiceConsent("granted");
+    localStorage.clear();
+    expect(getOnlineVoiceConsent()).toBe("unset");
+  });
+});

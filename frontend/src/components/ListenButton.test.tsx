@@ -66,6 +66,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   stop();
   removeSpeechMock();
 });
@@ -431,6 +432,38 @@ describe("ListenButton online voices (BITB-210)", () => {
         screen.getByRole("button", { name: "Share" }),
       ),
     );
+  });
+
+  it("returns focus to the next rail control after Esc", async () => {
+    render(
+      <div>
+        {ui("m1", "Peace be with you.")}
+        <button>Share</button>
+      </div>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "Share" }),
+      ),
+    );
+  });
+
+  it("does not reopen the dialog after another tab changes consent", async () => {
+    render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    expect(screen.getByRole("dialog", DIALOG)).toBeVisible();
+    act(() => setOnlineVoiceConsent("granted")); // e.g. granted in another tab
+    expect(screen.queryByRole("dialog")).toBeNull();
+    act(() => setOnlineVoiceConsent("denied"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    localStorage.removeItem("voxquieta.onlineVoices");
+    act(() => {
+      window.dispatchEvent(new Event("storage"));
+    });
+    // consent is "unset" again, but nobody clicked: still no dialog
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("keeps the choice when localStorage is blocked", async () => {

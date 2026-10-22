@@ -74,6 +74,11 @@ export default function ListenButton({
   const isSpeaking = speakingId === messageId;
   const isPaused = pausedId === messageId;
 
+  // Consent changed elsewhere (another tab): drop a stale dialog so it cannot reappear.
+  useEffect(() => {
+    if (!needsConsent) setDialogOpen(false);
+  }, [needsConsent]);
+
   // Flag + preference are on but this browser has no voice at all for the language: count it
   // (once). An online-only browser is not "unavailable" — the opt-in covers it (BITB-210).
   useEffect(() => {
@@ -133,7 +138,12 @@ export default function ListenButton({
         ).find((el) => el !== self)
       : undefined;
     setOnlineVoiceConsent("denied");
-    if (next) setTimeout(() => next.focus(), 0);
+    if (next) {
+      setTimeout(() => {
+        const active = document.activeElement;
+        if (!active || active === document.body) next.focus();
+      }, 0);
+    }
     setDialogOpen(false);
   };
 
@@ -175,10 +185,12 @@ export default function ListenButton({
       </button>
       {/* Portal: the sticky action rail is a stacking context that would trap z-50. */}
       {dialogOpen &&
+        needsConsent &&
         createPortal(
           <OnlineVoiceConsentDialog
             onAllow={handleAllow}
             onDecline={handleDecline}
+            returnFocusTo={buttonRef}
           />,
           document.body,
         )}
