@@ -323,7 +323,7 @@
     <!-- Feature Spotlight / Coach Marks (BITB-054) -->
     <string name="tour_title">App Tour</string>
     <string name="tour_step_indicator">Step %1$d of %2$d</string>
-    <string name="tour_step_1_drawer">Your chat history, settings & new chats live here.</string>
+    <string name="tour_step_1_drawer">Your chat history, settings &amp; new chats live here.</string>
     <string name="tour_step_2_translation">Switch Bible versions.</string>
     <string name="tour_step_3_language">Change the app language.</string>
     <string name="tour_step_4_input">Start a conversation.</string>
