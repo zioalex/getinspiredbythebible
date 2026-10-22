@@ -1,6 +1,6 @@
 package org.voxquieta.app.presentation.components
 
-import android.graphics.Rect
+import android.graphics.Rect as AndroidRect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.canvas.Canvas
 import androidx.compose.foundation.canvas.drawPath
@@ -27,13 +27,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect as ComposeRect
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
@@ -43,7 +45,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.voxquieta.app.R
@@ -59,7 +60,7 @@ sealed class SpotlightShape {
 /**
  * Target for a single spotlight step.
  *
- * @param bounds The bounds of the target element in window coordinates.
+ * @param bounds The bounds of the target element in window coordinates (Compose Rect).
  * @param captionRes String resource ID for the caption text.
  * @param autoOpenDrawer Optional callback to open the drawer for step 0 (drawer icon).
  * @param shape The shape of the highlight cutout.
@@ -121,15 +122,15 @@ fun FeatureSpotlight(
             val density = LocalDensity.current
 
             // Create the full screen rect
-            val screenPath = Path().apply { addRect(ComposeRect(0f, 0f, width, height)) }
+            val screenPath = Path().apply { addRect(Rect(0f, 0f, width, height)) }
 
             // Create the highlight cutout path based on target bounds and shape
             val highlightPath = Path()
             val bounds = currentTarget.bounds
-            val left = bounds.left.toFloat()
-            val top = bounds.top.toFloat()
-            val right = bounds.right.toFloat()
-            val bottom = bounds.bottom.toFloat()
+            val left = bounds.left
+            val top = bounds.top
+            val right = bounds.right
+            val bottom = bounds.bottom
 
             when (currentTarget.shape) {
                 is SpotlightShape.RoundedRect -> {
@@ -139,10 +140,7 @@ fun FeatureSpotlight(
                         top = top,
                         right = right,
                         bottom = bottom,
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(
-                            x = cornerRadius,
-                            y = cornerRadius
-                        )
+                        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
                     )
                     highlightPath.addRoundRect(roundRect, Path.Direction.CW)
                 }
@@ -230,10 +228,7 @@ private fun CaptionCard(
     ) {
         Card(
             modifier = Modifier
-                .graphicsLayer {
-                    translationX = captionX
-                    translationY = captionY
-                }
+                .offset(x = captionX.dp, y = captionY.dp)
                 .width(280.dp)
                 .padding(16.dp),
             colors = CardDefaults.cardColors(

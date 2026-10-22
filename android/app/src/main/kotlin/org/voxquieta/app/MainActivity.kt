@@ -1,6 +1,5 @@
 package org.voxquieta.app
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -52,45 +51,6 @@ import org.voxquieta.app.security.TurnstileManager
 import org.voxquieta.app.utils.aboutUrl
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-
-private fun Context.hasSplashBeenSeen(): Boolean =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .getBoolean("splash_seen", false)
-
-private fun Context.markSplashSeen() =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .edit().putBoolean("splash_seen", true).apply()
-
-private fun Context.lastSeenVersionCode(): Int =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .getInt("last_seen_version_code", -1)
-
-private fun Context.markVersionSeen(code: Int) =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .edit().putInt("last_seen_version_code", code).apply()
-
-// BITB-082: "seen once ever" flag for the About intro sheet, mirroring the
-// splash_seen boolean pattern above rather than the version-int pattern used
-// by What's New — this is a one-time announcement, not a per-release changelog.
-private fun Context.hasAboutIntroBeenSeen(): Boolean =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .getBoolean("about_intro_seen", false)
-
-private fun Context.markAboutIntroSeen() =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .edit().putBoolean("about_intro_seen", true).apply()
-
-private fun Context.hasTourBeenSeen(): Boolean =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .getBoolean("tour_seen", false)
-
-private fun Context.markTourSeen() =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .edit().putBoolean("tour_seen", true).apply()
-
-private fun Context.clearTourSeen() =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .edit().putBoolean("tour_seen", false).apply()
 
 /** Which first-run sheet (if any) a cold start should show, and whether to mark the
  * What's New version seen. Pure so the priority rule (About intro wins; What's New

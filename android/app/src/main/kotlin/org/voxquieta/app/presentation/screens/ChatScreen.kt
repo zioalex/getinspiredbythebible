@@ -56,6 +56,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -63,8 +64,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -189,7 +192,7 @@ fun ChatScreen(
 
     // Feature Spotlight tour (BITB-054)
     var showTour by remember { mutableStateOf(false) }
-    val tourTargets = remember { mutableStateListOf<SpotlightTarget>() }
+    val tourTargets = remember { mutableStateListOf<SpotlightTarget<Rect>>() }
 
     // Load existing conversation when navigated to a specific one.
     // Guard for the "new" route: only start a fresh conversation when the ViewModel
