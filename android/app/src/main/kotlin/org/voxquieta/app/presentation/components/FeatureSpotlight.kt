@@ -37,10 +37,9 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathDirection
 import androidx.compose.ui.graphics.PathOperation
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.offset
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -134,13 +133,13 @@ fun FeatureSpotlight(
                     bottom = bottom,
                     cornerRadius = CornerRadius(cornerRadius, cornerRadius)
                 )
-                highlightPath.addRoundRect(roundRect, PathDirection.CW)
+                highlightPath.addRoundRect(roundRect, Path.Direction.CW)
             }
             SpotlightShape.Circle -> {
                 val centerX = (left + right) / 2f
                 val centerY = (top + bottom) / 2f
                 val radius = maxOf(right - left, bottom - top) / 2f + 12f // ~8dp
-                highlightPath.addCircle(centerX, centerY, radius, PathDirection.CW)
+                highlightPath.addCircle(centerX, centerY, radius, Path.Direction.CW)
             }
         }
 
