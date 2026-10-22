@@ -76,9 +76,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.voxquieta.app.R
-import org.voxquieta.app.utils.DonateRef
-import org.voxquieta.app.utils.donateUrl
-import org.voxquieta.app.domain.models.Message
+import org.voxquieta.app.ContextExtensions.hasTourBeenSeen
+import org.voxquieta.app.ContextExtensions.markTourSeen
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChatViewportBounds
@@ -192,7 +191,7 @@ fun ChatScreen(
 
     // Feature Spotlight tour (BITB-054)
     var showTour by remember { mutableStateOf(false) }
-    val tourTargets = remember { mutableStateListOf<SpotlightTarget<Rect>>() }
+    val tourTargets = remember { mutableStateListOf<SpotlightTarget>() }
 
     // Load existing conversation when navigated to a specific one.
     // Guard for the "new" route: only start a fresh conversation when the ViewModel
