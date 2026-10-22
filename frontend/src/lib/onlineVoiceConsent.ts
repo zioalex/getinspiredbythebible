@@ -12,22 +12,36 @@ import { useSyncExternalStore } from "react";
 export const ONLINE_VOICES_KEY = "voxquieta.onlineVoices";
 const CHANGE_EVENT = "voxquieta:onlineVoicesChanged";
 
+/** Fallback for this page view when storage is blocked, so the choice still sticks. */
+let memoryValue: OnlineVoiceConsent = "unset";
+let storageBlocked = false;
+
+/** Test helper: forget the in-memory fallback. */
+export function __resetOnlineVoiceConsentForTest(): void {
+  memoryValue = "unset";
+  storageBlocked = false;
+}
+
 export type OnlineVoiceConsent = "granted" | "denied" | "unset";
 
 export function getOnlineVoiceConsent(): OnlineVoiceConsent {
   try {
     const value = localStorage.getItem(ONLINE_VOICES_KEY);
+    if (storageBlocked) return memoryValue;
     return value === "granted" || value === "denied" ? value : "unset";
   } catch {
-    return "unset";
+    return memoryValue;
   }
 }
 
 export function setOnlineVoiceConsent(value: "granted" | "denied"): void {
+  memoryValue = value;
   try {
     localStorage.setItem(ONLINE_VOICES_KEY, value);
+    storageBlocked = false;
   } catch {
-    // Storage unavailable — the choice still applies for this page view below.
+    storageBlocked = true;
+    // Storage unavailable — the in-memory value keeps the choice for this page view.
   }
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(CHANGE_EVENT));

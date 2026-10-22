@@ -14,6 +14,7 @@ import { ServerConfigProvider } from "@/lib/serverConfig";
 import { __resetClientEventsForTest } from "@/lib/clientEvents";
 import { setShowListen } from "@/lib/ttsPreference";
 import {
+  __resetOnlineVoiceConsentForTest,
   getOnlineVoiceConsent,
   setOnlineVoiceConsent,
 } from "@/lib/onlineVoiceConsent";
@@ -56,6 +57,7 @@ function eventPosts() {
 
 beforeEach(() => {
   localStorage.clear();
+  __resetOnlineVoiceConsentForTest();
   __resetClientEventsForTest();
   synth = installSpeechMock([makeVoice("en-US"), makeVoice("it-IT")]);
   fetchMock = vi.fn();
@@ -387,6 +389,82 @@ describe("ListenButton online voices (BITB-210)", () => {
     expect(getPausedId()).toBe("m1");
     act(() => setOnlineVoiceConsent("denied"));
     expect(getPausedId()).toBeNull();
+  });
+
+  it("renders the dialog in a portal on document.body, outside the sticky rail", async () => {
+    const { container } = render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    const dialog = screen.getByRole("dialog", DIALOG);
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog.parentElement).toBe(document.body);
+    expect(dialog).toHaveAttribute("aria-describedby");
+    expect(
+      document.getElementById(dialog.getAttribute("aria-describedby")!),
+    ).toHaveTextContent(/speech service/i);
+  });
+
+  it("focuses inside the dialog and Shift+Tab from open stays inside", async () => {
+    render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    const dialog = screen.getByRole("dialog", DIALOG);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    const notNow = screen.getByRole("button", { name: /not now/i });
+    const allow = screen.getByRole("button", { name: /allow online voices/i });
+    expect(document.activeElement).toBe(notNow);
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(allow);
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(document.activeElement).toBe(notNow);
+  });
+
+  it("returns focus to the next rail control after Not now", async () => {
+    render(
+      <div>
+        {ui("m1", "Peace be with you.")}
+        <button>Share</button>
+      </div>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(screen.getByRole("button", { name: /not now/i }));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "Share" }),
+      ),
+    );
+  });
+
+  it("keeps the choice when localStorage is blocked", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /allow online voices/i }),
+    );
+    expect(getSpeakingId()).toBe("m1");
+    // a second tap pauses instead of reopening the dialog
+    fireEvent.click(screen.getByRole("button", { name: PAUSE }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(getPausedId()).toBe("m1");
+    vi.restoreAllMocks();
+  });
+
+  it("Not now hides the button even when localStorage is blocked", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const { container } = render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(screen.getByRole("button", { name: /not now/i }));
+    expect(container.querySelector("button")).toBeNull();
+    vi.restoreAllMocks();
   });
 
   it("shows the dialog in the UI language", async () => {

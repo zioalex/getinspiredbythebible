@@ -24,10 +24,11 @@ export default function OnlineVoiceConsentDialog({
   const t = useTranslations("Chat");
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<Element | null>(null);
+  const firstButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     previouslyFocused.current = document.activeElement;
-    dialogRef.current?.focus();
+    firstButtonRef.current?.focus(); // inside the trap from the start
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -68,6 +69,7 @@ export default function OnlineVoiceConsentDialog({
       role="dialog"
       aria-modal="true"
       aria-label={t("onlineVoicesDialogTitle")}
+      aria-describedby="online-voices-dialog-body"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onDecline();
@@ -81,12 +83,16 @@ export default function OnlineVoiceConsentDialog({
         <h2 className="text-xl font-bold text-gray-900 mb-3">
           {t("onlineVoicesDialogTitle")}
         </h2>
-        <p className="text-gray-600 leading-relaxed mb-6">
+        <p
+          id="online-voices-dialog-body"
+          className="text-gray-600 leading-relaxed mb-6"
+        >
           {t("onlineVoicesDialogBody")}
         </p>
 
         <div className="flex items-center justify-end gap-3">
           <button
+            ref={firstButtonRef}
             type="button"
             onClick={onDecline}
             className="min-h-[44px] px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"

@@ -5,10 +5,12 @@ import {
   getOnlineVoiceConsent,
   setOnlineVoiceConsent,
   useOnlineVoiceConsent,
+  __resetOnlineVoiceConsentForTest,
 } from "./onlineVoiceConsent";
 
 beforeEach(() => {
   localStorage.clear();
+  __resetOnlineVoiceConsentForTest();
   vi.restoreAllMocks();
 });
 
@@ -39,6 +41,10 @@ describe("onlineVoiceConsent (BITB-210)", () => {
     });
     expect(getOnlineVoiceConsent()).toBe("unset");
     expect(() => setOnlineVoiceConsent("granted")).not.toThrow();
+    // ...and the choice sticks for this page view via the in-memory fallback.
+    expect(getOnlineVoiceConsent()).toBe("granted");
+    setOnlineVoiceConsent("denied");
+    expect(getOnlineVoiceConsent()).toBe("denied");
   });
 
   it("the hook follows changes in this tab and via storage events", () => {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { Pause, Play, Volume2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useServerConfig } from "@/lib/serverConfig";
@@ -59,6 +60,7 @@ export default function ListenButton({
   } = useSpeechAvailability(locale, prerequisitesMet);
   const consent = useOnlineVoiceConsent();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const speakingId = useSyncExternalStore(subscribe, getSpeakingId, () => null);
   const pausedId = useSyncExternalStore(subscribe, getPausedId, () => null);
 
@@ -122,7 +124,16 @@ export default function ListenButton({
   };
 
   const handleDecline = () => {
+    // Declining unmounts this button, which would drop focus to <body>; hand it to the
+    // next control in the action rail (e.g. Share) once the removal has happened.
+    const self = buttonRef.current;
+    const next = self?.parentElement
+      ? Array.from(
+          self.parentElement.querySelectorAll<HTMLElement>("button, a[href]"),
+        ).find((el) => el !== self)
+      : undefined;
     setOnlineVoiceConsent("denied");
+    if (next) setTimeout(() => next.focus(), 0);
     setDialogOpen(false);
   };
 
@@ -145,6 +156,7 @@ export default function ListenButton({
   return (
     <>
       <button
+        ref={buttonRef}
         type="button"
         onClick={handleClick}
         aria-label={label}
@@ -161,12 +173,15 @@ export default function ListenButton({
           <Volume2 className="w-4 h-4" aria-hidden="true" />
         )}
       </button>
-      {dialogOpen && (
-        <OnlineVoiceConsentDialog
-          onAllow={handleAllow}
-          onDecline={handleDecline}
-        />
-      )}
+      {/* Portal: the sticky action rail is a stacking context that would trap z-50. */}
+      {dialogOpen &&
+        createPortal(
+          <OnlineVoiceConsentDialog
+            onAllow={handleAllow}
+            onDecline={handleDecline}
+          />,
+          document.body,
+        )}
     </>
   );
 }
