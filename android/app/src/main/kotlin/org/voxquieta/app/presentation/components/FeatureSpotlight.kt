@@ -37,6 +37,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathDirection
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.offset
@@ -112,50 +113,46 @@ fun FeatureSpotlight(
     val buttonColor = MaterialTheme.colorScheme.primaryContainer
     val buttonContentColor = MaterialTheme.colorScheme.onPrimaryContainer
 
+    // Pre-compute the scrim path for the current target
+    val scrimPath = remember(currentTarget) {
+        val bounds = currentTarget.bounds
+        val left = bounds.left
+        val top = bounds.top
+        val right = bounds.right
+        val bottom = bounds.bottom
+
+        val screenPath = Path().apply { addRect(Rect(0f, 0f, Float.MAX_VALUE, Float.MAX_VALUE)) }
+        val highlightPath = Path()
+
+        when (currentTarget.shape) {
+            is SpotlightShape.RoundedRect -> {
+                val cornerRadius = currentTarget.shape.cornerRadius
+                val roundRect = RoundRect(
+                    left = left,
+                    top = top,
+                    right = right,
+                    bottom = bottom,
+                    cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+                )
+                highlightPath.addRoundRect(roundRect, PathDirection.CW)
+            }
+            SpotlightShape.Circle -> {
+                val centerX = (left + right) / 2f
+                val centerY = (top + bottom) / 2f
+                val radius = maxOf(right - left, bottom - top) / 2f + 12f // ~8dp
+                highlightPath.addCircle(centerX, centerY, radius, PathDirection.CW)
+            }
+        }
+
+        val scrimPath = Path()
+        scrimPath.op(screenPath, highlightPath, PathOperation.Difference)
+        scrimPath
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .drawBehind {
-                // Draw full-screen scrim with cutout using drawBehind
-                val width = this.size.width
-                val height = this.size.height
-                val density = LocalDensity.current
-
-                // Create the full screen rect
-                val screenPath = Path().apply { addRect(Rect(0f, 0f, width, height)) }
-
-                // Create the highlight cutout path based on target bounds and shape
-                val highlightPath = Path()
-                val bounds = currentTarget.bounds
-                val left = bounds.left
-                val top = bounds.top
-                val right = bounds.right
-                val bottom = bounds.bottom
-
-                when (currentTarget.shape) {
-                    is SpotlightShape.RoundedRect -> {
-                        val cornerRadius = currentTarget.shape.cornerRadius
-                        val roundRect = RoundRect(
-                            left = left,
-                            top = top,
-                            right = right,
-                            bottom = bottom,
-                            cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                        )
-                        highlightPath.addRoundRect(roundRect, Path.Direction.CW)
-                    }
-                    SpotlightShape.Circle -> {
-                        val centerX = (left + right) / 2f
-                        val centerY = (top + bottom) / 2f
-                        val radius = maxOf(right - left, bottom - top) / 2f + 12f // ~8dp
-                        highlightPath.addCircle(centerX, centerY, radius, Path.Direction.CW)
-                    }
-                }
-
-                // Cut out the highlight area from the scrim
-                val scrimPath = Path()
-                scrimPath.op(screenPath, highlightPath, PathOperation.Difference)
-
                 drawPath(
                     path = scrimPath,
                     color = scrimColor,
