@@ -1,6 +1,5 @@
 package org.voxquieta.app.presentation.components
 
-import android.graphics.Rect as AndroidRect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,17 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathOperation
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,33 +39,22 @@ import androidx.compose.ui.unit.sp
 import org.voxquieta.app.R
 
 /**
- * Shape of the spotlight highlight cutout.
- */
-sealed class SpotlightShape {
-    data class RoundedRect(val cornerRadius: Float) : SpotlightShape()
-    object Circle : SpotlightShape()
-}
-
-/**
  * Target for a single spotlight step.
  *
  * @param bounds The bounds of the target element in window coordinates (Compose Rect).
  * @param captionRes String resource ID for the caption text.
  * @param autoOpenDrawer Optional callback to open the drawer for step 0 (drawer icon).
- * @param shape The shape of the highlight cutout.
  */
 data class SpotlightTarget(
-    val bounds: Rect,
+    val bounds: androidx.compose.ui.geometry.Rect,
     val captionRes: Int,
-    val autoOpenDrawer: (() -> Unit)? = null,
-    val shape: SpotlightShape = SpotlightShape.RoundedRect(12f) // ~8dp on mdpi
+    val autoOpenDrawer: (() -> Unit)? = null
 )
 
 /**
  * Composable overlay that renders a coach-mark / feature spotlight tour.
  *
- * Shows a full-screen scrim with a cutout highlighting the current target,
- * a caption with step number, and Next/Skip/Done controls.
+ * Shows a full-screen scrim with a caption at the bottom, and Next/Skip/Done controls.
  *
  * @param targets List of [SpotlightTarget] in order (typically 4).
  * @param onComplete Called when Done/Skip tapped or last step Next.
@@ -111,59 +90,17 @@ fun FeatureSpotlight(
     val buttonColor = MaterialTheme.colorScheme.primaryContainer
     val buttonContentColor = MaterialTheme.colorScheme.onPrimaryContainer
 
-    // Pre-compute the scrim path for the current target
-    val scrimPath = remember(currentTarget) {
-        val bounds = currentTarget.bounds
-        val left = bounds.left
-        val top = bounds.top
-        val right = bounds.right
-        val bottom = bounds.bottom
-
-        val screenPath = Path().apply { addRect(Rect(0f, 0f, Float.MAX_VALUE, Float.MAX_VALUE)) }
-        val highlightPath = Path()
-
-        when (currentTarget.shape) {
-            is SpotlightShape.RoundedRect -> {
-                val cornerRadius = currentTarget.shape.cornerRadius
-                val roundRect = RoundRect(
-                    left = left,
-                    top = top,
-                    right = right,
-                    bottom = bottom,
-                    cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                )
-                highlightPath.addRoundRect(roundRect)
-            }
-            SpotlightShape.Circle -> {
-                // Fallback to rounded rect for circle shape
-                val cornerRadius = maxOf(right - left, bottom - top) / 2f
-                val roundRect = RoundRect(
-                    left = left,
-                    top = top,
-                    right = right,
-                    bottom = bottom,
-                    cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                )
-                highlightPath.addRoundRect(roundRect)
-            }
-        }
-
-        val scrimPath = Path()
-        scrimPath.op(screenPath, highlightPath, PathOperation.Difference)
-        scrimPath
-    }
-
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .drawBehind {
-                drawPath(
-                    path = scrimPath,
-                    color = scrimColor,
-                )
-            }
+        modifier = Modifier.fillMaxSize(),
     ) {
-        // Caption card positioned near the highlight
+        // Full-screen scrim
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(scrimColor)
+        )
+
+        // Caption card at bottom center
         CaptionCard(
             target = currentTarget,
             stepNumber = currentStep + 1,
@@ -192,57 +129,35 @@ fun FeatureSpotlight(
 
 /**
  * Caption card showing the step number and description.
- * Positioned above or below the highlight cutout depending on available space.
+ * Positioned at bottom center.
  */
 @Composable
 private fun CaptionCard(
     target: SpotlightTarget,
     stepNumber: Int,
     totalSteps: Int,
-    captionBackgroundColor: Color,
+    captionBackgroundColor: androidx.compose.ui.graphics.Color,
 ) {
-    val bounds = target.bounds
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val density = LocalDensity.current
-
-    // Decide whether to show caption above or below the highlight
-    val highlightCenterY = (bounds.top + bounds.bottom) / 2f
-    val showAbove = highlightCenterY > density.run { screenHeight.toPx() } * 0.6f
-
-    val captionX = ((bounds.left + bounds.right) / 2f).coerceIn(
-        density.run { 24.dp.toPx() },
-        density.run { screenWidth.toPx() } - density.run { 24.dp.toPx() } - density.run { 280.dp.toPx() }, // approximate card width
-    )
-
-    val captionY = if (showAbove) {
-        bounds.top - density.run { 160.dp.toPx() } // card height + margin
-    } else {
-        bounds.bottom + density.run { 16.dp.toPx() }
-    }.coerceIn(
-        density.run { 24.dp.toPx() },
-        density.run { screenHeight.toPx() } - density.run { 24.dp.toPx() } - density.run { 140.dp.toPx() },
-    )
-
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 120.dp),
     ) {
         Card(
             modifier = Modifier
-                .graphicsLayer {
-                    translationX = captionX
-                    translationY = captionY
-                }
-                .width(280.dp)
-                .padding(16.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = captionBackgroundColor,
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 // Step indicator
@@ -284,8 +199,8 @@ private fun ControlsBar(
     onNext: () -> Unit,
     onSkip: () -> Unit,
     onDone: () -> Unit,
-    buttonColor: Color,
-    buttonContentColor: Color,
+    buttonColor: androidx.compose.ui.graphics.Color,
+    buttonContentColor: androidx.compose.ui.graphics.Color,
 ) {
     val isLastStep = currentStep == totalSteps - 1
 
