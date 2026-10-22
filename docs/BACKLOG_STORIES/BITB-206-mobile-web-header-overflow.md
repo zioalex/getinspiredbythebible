@@ -40,8 +40,10 @@ chat and app icon stay visible. Considered and rejected: compacting every contro
 1. Below `sm`: the header `LanguageSwitcher` and the decorative `Book` logo icon are not rendered
    (`hidden sm:flex` / `hidden sm:block`). From `sm` up, nothing changes.
 2. The right-hand control group never shrinks (`shrink-0`). The left group can shrink (`min-w-0`)
-   and the title stays on one line, truncating if needed (`truncate`, `text-lg sm:text-xl`). At any
-   width ≥ 320px this keeps the Bible chip and New chat inside the viewport.
+   and the title stays on one line, truncating if needed (`truncate`, `text-lg sm:text-xl`). Verified
+   at 320, 360 and 412px that this keeps the Bible chip and New chat inside the viewport; widths
+   below 320px are not targeted. The outer row has `gap-2` so the truncated title never touches the
+   controls, and the `h1` is `dir="ltr"` so the Latin brand truncates from its end in Arabic too.
 3. The New chat button has an accessible name at every width (`aria-label`), because its text
    label is `hidden md:inline`, which also removes it from the accessibility tree.
 4. Language switching on mobile stays available through the hamburger menu (no change there).
@@ -58,12 +60,12 @@ chat and app icon stay visible. Considered and rejected: compacting every contro
 
 ## Acceptance Criteria
 
-- [ ] At 360px and 412px viewport widths, the Bible chip and New chat button are fully visible
-- [ ] The header language switcher is `hidden` below `sm` and visible from `sm` up; the hamburger
+- [x] At 360px and 412px viewport widths, the Bible chip and New chat button are fully visible
+- [x] The header language switcher is `hidden` below `sm` and visible from `sm` up; the hamburger
       menu still offers language switching
-- [ ] The title does not wrap; it truncates instead of pushing controls off-screen
-- [ ] The New chat button has an accessible name (`aria-label`) at all widths
-- [ ] Vitest coverage asserts the responsive classes and the accessible name for all 11 locales
+- [x] The title does not wrap; it truncates instead of pushing controls off-screen
+- [x] The New chat button has an accessible name (`aria-label`) at all widths
+- [x] Vitest coverage asserts the responsive classes and the accessible name for all 11 locales
 
 ## Out of Scope
 
@@ -81,3 +83,13 @@ chat and app icon stay visible. Considered and rejected: compacting every contro
 - Tests: a Vitest test rendering the header (`ChatIsland`), parametrized across the 11 locales'
   `Header` messages, asserting the wrapper's `hidden sm:flex` classes, the `aria-label` on New
   chat, the Bible version select being rendered, and the right group having `shrink-0`.
+
+## Verification (2026-10-22)
+
+Playwright on `next dev`, mobile contexts at 320/360/412px and desktop 1280px, locales en/pt/ar/ko/hi,
+with the backend down and with mocked translations: 40/40 combinations keep the Bible select and New
+chat inside the viewport. Before the fix the header content was 524–530px wide at 360/412 and both
+controls sat past the right edge, with the title wrapping to two lines. The header language switcher is
+hidden below `sm` and shown at 1280; the hamburger menu still offers the 11-locale switcher. Vitest:
+73 files / 1335 tests pass; lint, `tsc --noEmit` and Prettier are clean. Note: the overflow was
+clipped, so `documentElement.scrollWidth` did not reveal it — the header's own `scrollWidth` did.

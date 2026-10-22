@@ -1014,7 +1014,7 @@ export default function ChatIsland({
       <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto overflow-x-clip">
         {/* Header */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <MainMenu
                 onOpenHistory={() => setHistoryOpen(true)}
@@ -1025,7 +1025,10 @@ export default function ChatIsland({
               />
               <Book className="w-8 h-8 text-primary-600 hidden sm:block shrink-0" />
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
+                <h1
+                  dir="ltr"
+                  className="text-lg sm:text-xl font-semibold text-gray-800 truncate"
+                >
                   {tHeader("title")}
                 </h1>
                 <p className="text-sm text-gray-500 hidden sm:block">

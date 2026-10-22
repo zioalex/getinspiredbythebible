@@ -128,6 +128,8 @@ describe("ChatIsland header responsive layout (BITB-206)", () => {
       // Title stays on one line
       const h1 = screen.getByRole("heading", { level: 1 });
       expect(h1).toHaveClass("truncate");
+      // Latin brand truncates from its end even in RTL locales (ar)
+      expect(h1).toHaveAttribute("dir", "ltr");
 
       await waitFor(() => expect(screen.getByRole("main")).toBeInTheDocument());
     },
