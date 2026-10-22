@@ -148,7 +148,12 @@
     "listenAnswer": "الاستماع إلى الإجابة",
     "pauseListening": "إيقاف القراءة مؤقتًا",
     "resumeListening": "استئناف القراءة",
-    "showListenButton": "إظهار زر الاستماع"
+    "showListenButton": "إظهار زر الاستماع",
+    "allowOnlineVoices": "السماح بالأصوات عبر الإنترنت",
+    "onlineVoicesNotNow": "ليس الآن",
+    "onlineVoicesDialogTitle": "استخدام صوت عبر الإنترنت؟",
+    "onlineVoicesDialogBody": "لا يوفّر متصفحك لهذه اللغة إلا أصواتًا عبر الإنترنت. إذا سمحت بها، فسيُرسَل نص كل إجابة تستمع إليها إلى خدمة الصوت في متصفحك (مثل Google أو Microsoft أو Apple). أما الأصوات غير المتصلة فلا تفعل ذلك أبدًا. يمكنك تغيير رأيك في أي وقت من القائمة.",
+    "noVoiceForLanguage": "لا يتوفر في هذا المتصفح صوت للغة {language}."
   },
   "Verses": {
     "scriptureReferences": "المراجع الكتابية",

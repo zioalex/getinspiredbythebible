@@ -156,6 +156,8 @@ private fun speakVerseReferences(
     return out.toString()
 }
 
+private val HTML_COMMENT_REGEX = Regex("""<!--[\s\S]*?(?:-->|$)""")
+
 private val IMAGE_REGEX = Regex("""!\[([^\]]*)\]\([^)]*\)""")
 private val LINK_REGEX = Regex("""\[([^\]]*)\]\([^)]*\)""")
 // Leading blanks are consumed; trailing sentence punctuation / closing paren is left in place.
@@ -187,6 +189,11 @@ internal fun normalizeForSpeech(
     localizedToEnglish: Map<String, String> = emptyMap(),
 ): String {
     var text = markdown.replace("\r\n", "\n").replace('\r', '\n')
+
+    // HTML comments are never shown, so never read: above all the trailing
+    // `<!-- VERSES: John 3:16; ... -->` citation marker (BITB-211). An unterminated one
+    // runs to the end of the text.
+    text = HTML_COMMENT_REGEX.replace(text, "")
 
     // Markdown images -> alt text; links -> link text; bare URLs removed.
     text = IMAGE_REGEX.replace(text, "$1")

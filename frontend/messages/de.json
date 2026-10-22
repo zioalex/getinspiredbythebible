@@ -148,7 +148,12 @@
     "listenAnswer": "Antwort anhören",
     "pauseListening": "Vorlesen pausieren",
     "resumeListening": "Vorlesen fortsetzen",
-    "showListenButton": "Schaltfläche „Anhören“ anzeigen"
+    "showListenButton": "Schaltfläche „Anhören“ anzeigen",
+    "allowOnlineVoices": "Online-Stimmen erlauben",
+    "onlineVoicesNotNow": "Nicht jetzt",
+    "onlineVoicesDialogTitle": "Eine Online-Stimme verwenden?",
+    "onlineVoicesDialogBody": "Dein Browser hat für diese Sprache nur Online-Stimmen. Wenn du sie erlaubst, wird der Text jeder Antwort, die du dir anhörst, an den Sprachdienst deines Browsers gesendet (zum Beispiel Google, Microsoft oder Apple). Offline-Stimmen tun das nie. Du kannst es jederzeit im Menü ändern.",
+    "noVoiceForLanguage": "Dieser Browser hat keine Stimme für {language}."
   },
   "Verses": {
     "scriptureReferences": "Bibelstellen",
