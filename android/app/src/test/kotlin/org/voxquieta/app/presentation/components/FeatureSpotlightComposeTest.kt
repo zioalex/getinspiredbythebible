@@ -1,10 +1,10 @@
 package org.voxquieta.app.presentation.components
 
+import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,25 +12,30 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.voxquieta.app.R
 import org.voxquieta.app.testing.ComposeTestHarness
 
 /**
- * Robolectric-backed Compose UI tests for [FeatureSpotlight] (BITB-054).
+ * Robolectric-backed Compose UI tests for [FeatureSpotlight] (BITB-142).
  *
  * Verifies the overlay shows when tour_seen=false, hides after completion,
  * and basic RTL layout works.
+ *
+ * Test-body strings are resolved OUTSIDE composition via [appContext] (the
+ * repo idiom, cf. AboutIntroBottomSheetComposeTest): a private @Composable
+ * stringResource() helper cannot be invoked from a non-composable test body.
+ * `assertDoesNotExist()` is a member of SemanticsNodeInteraction (like
+ * `assertExists()`), so it is used WITHOUT an import.
  */
 class FeatureSpotlightComposeTest : ComposeTestHarness() {
+
+    private val appContext: Context = ApplicationProvider.getApplicationContext()
 
     @Test
     fun `spotlight shows when tour not seen and hides after Done`() {
@@ -71,33 +76,33 @@ class FeatureSpotlightComposeTest : ComposeTestHarness() {
         }
 
         // Spotlight should be visible initially
-        composeRule.onNodeWithText(stringResource(R.string.tour_title)).assertIsDisplayed()
-        composeRule.onNodeWithText(stringResource(R.string.tour_step_1_drawer)).assertIsDisplayed()
-        composeRule.onNodeWithText("Step 1 of 4").assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_1_drawer)).assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_indicator, 1, 4)).assertIsDisplayed()
 
         // Tap Next to advance through steps
-        composeRule.onNodeWithText(stringResource(R.string.tour_next)).performClick()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_next)).performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(stringResource(R.string.tour_step_2_translation)).assertIsDisplayed()
-        composeRule.onNodeWithText("Step 2 of 4").assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_2_translation)).assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_indicator, 2, 4)).assertIsDisplayed()
 
-        composeRule.onNodeWithText(stringResource(R.string.tour_next)).performClick()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_next)).performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(stringResource(R.string.tour_step_3_language)).assertIsDisplayed()
-        composeRule.onNodeWithText("Step 3 of 4").assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_3_language)).assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_indicator, 3, 4)).assertIsDisplayed()
 
-        composeRule.onNodeWithText(stringResource(R.string.tour_next)).performClick()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_next)).performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText(stringResource(R.string.tour_step_4_input)).assertIsDisplayed()
-        composeRule.onNodeWithText("Step 4 of 4").assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_4_input)).assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_indicator, 4, 4)).assertIsDisplayed()
 
         // Tap Done on last step
-        composeRule.onNodeWithText(stringResource(R.string.tour_done)).performClick()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_done)).performClick()
         composeRule.waitForIdle()
 
         // Spotlight should be dismissed
         assertTrue(completed)
-        composeRule.onNodeWithText(stringResource(R.string.tour_title)).assertDoesNotExist()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_title)).assertDoesNotExist()
     }
 
     @Test
@@ -131,15 +136,15 @@ class FeatureSpotlightComposeTest : ComposeTestHarness() {
         }
 
         // Spotlight should be visible initially
-        composeRule.onNodeWithText(stringResource(R.string.tour_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_title)).assertIsDisplayed()
 
         // Tap Skip on first step
-        composeRule.onNodeWithText(stringResource(R.string.tour_skip)).performClick()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_skip)).performClick()
         composeRule.waitForIdle()
 
         // Spotlight should be dismissed
         assertTrue(completed)
-        composeRule.onNodeWithText(stringResource(R.string.tour_title)).assertDoesNotExist()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_title)).assertDoesNotExist()
     }
 
     @Test
@@ -161,13 +166,7 @@ class FeatureSpotlightComposeTest : ComposeTestHarness() {
         }
 
         // Should render without crashing
-        composeRule.onNodeWithText(stringResource(R.string.tour_title)).assertIsDisplayed()
-        composeRule.onNodeWithText(stringResource(R.string.tour_step_1_drawer)).assertIsDisplayed()
-    }
-
-    @Composable
-    private fun stringResource(@androidx.annotation.StringRes id: Int): String {
-        val context = LocalContext.current
-        return context.getString(id)
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_title)).assertIsDisplayed()
+        composeRule.onNodeWithText(appContext.getString(R.string.tour_step_1_drawer)).assertIsDisplayed()
     }
 }
