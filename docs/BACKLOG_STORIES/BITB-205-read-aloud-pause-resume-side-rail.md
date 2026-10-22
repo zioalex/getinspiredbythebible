@@ -149,3 +149,11 @@ answer, so I don't have to scroll to control playback.
 Backend untouched. Frontend: `npx vitest run`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.
 Android: `testDebugUnitTest`, `testDebugCompose`, `lint` (CI is authoritative if Gradle can't fetch
 AGP in the sandbox).
+
+## Also fixed in this PR
+
+- **Deploys broken by #1183.** It renamed the Azure resource names in `azure-deploy.yml` and
+  `prod-deploy-drift.yml` to `voxquieta-*`. Terraform still creates them from
+  `project_name = "bible-app"` / `resource_suffix = "mb0172"`, so every PR preview and main deploy
+  failed at `az acr login`. Restored the real names. `api/tests/test_workflow_azure_resource_names.py`
+  derives the names from `deployment/terraform.tfvars` and guards against a repeat.
