@@ -176,6 +176,8 @@ data class ChatUiState(
     val ttsEngineReady: Boolean = false,
     /** ID of the message currently being read aloud, or null. */
     val speakingMessageId: String? = null,
+    /** BITB-205: ID of the message whose reading is paused (position kept), or null. */
+    val pausedMessageId: String? = null,
 )
 
 @HiltViewModel
@@ -378,6 +380,11 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(speakingMessageId = id) }
             }
         }
+        viewModelScope.launch {
+            speechEngine.pausedId.collect { id ->
+                _uiState.update { it.copy(pausedMessageId = id) }
+            }
+        }
         // BITB-119: count devices that would show Listen but have no on-device voice for the
         // language, once per language per ViewModel, and only after an answer exists (the
         // moment the button would have appeared) — mirrors the web.
@@ -558,16 +565,25 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * Listen <-> Stop for one message: stops it if it is the one speaking, otherwise speaks
-     * its normalized text (replacing anything else that was speaking).
+     * Listen / Pause / Resume for one message (BITB-205): pauses it if it is the one speaking,
+     * resumes it if it is the one paused, otherwise speaks its normalized text from the start
+     * (replacing anything else that was speaking or paused).
      */
     fun toggleSpeak(
         message: Message,
         verseRefRegex: Regex,
         localizedToEnglish: Map<String, String>,
     ) {
-        if (_uiState.value.speakingMessageId == message.id) {
-            speechEngine.stop()
+        // Decide from the engine, not uiState: uiState mirrors it asynchronously, so a quick
+        // second tap would otherwise see stale state and restart instead of pausing.
+        if (speechEngine.speakingId.value == message.id) {
+            speechEngine.pause()
+            return
+        }
+        if (speechEngine.pausedId.value == message.id) {
+            // Resume does not re-send tts_started. If it can't resume (focus denied) the
+            // answer simply stays paused.
+            speechEngine.resume()
             return
         }
         val language = speechLanguage(_uiState.value.currentLocale)
@@ -584,6 +600,11 @@ class ChatViewModel @Inject constructor(
     /** Stops any answer being read aloud (conversation switch, background, settings off). */
     fun stopSpeaking() {
         speechEngine.stop()
+    }
+
+    /** Pauses the answer being read, keeping its position (app backgrounded; BITB-205). */
+    fun pauseSpeaking() {
+        speechEngine.pause()
     }
 
     /** Persists the "Show Listen button" preference. */

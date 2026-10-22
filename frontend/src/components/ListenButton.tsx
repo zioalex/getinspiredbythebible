@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { Square, Volume2 } from "lucide-react";
+import { Pause, Play, Volume2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useServerConfig } from "@/lib/serverConfig";
 import { useShowListenPreference } from "@/lib/ttsPreference";
@@ -11,7 +11,15 @@ import {
   reportClientEvent,
   reportTtsUnavailableOnce,
 } from "@/lib/clientEvents";
-import { getSpeakingId, speak, stop, subscribe } from "@/lib/speech";
+import {
+  getPausedId,
+  getSpeakingId,
+  pause,
+  resume,
+  speak,
+  stop,
+  subscribe,
+} from "@/lib/speech";
 
 interface ListenButtonProps {
   /** Identifies the message so only one answer is spoken at a time. */
@@ -21,7 +29,7 @@ interface ListenButtonProps {
 }
 
 /**
- * BITB-119: Listen <-> Stop toggle for a finished assistant answer, using on-device
+ * BITB-119 / BITB-205: Listen / Pause / Resume control for a finished assistant answer, using on-device
  * speech only. Renders nothing unless the server flag is not explicitly off, the user
  * preference is on, and a local voice exists for the UI language — never
  * shown-and-broken.
@@ -37,10 +45,12 @@ export default function ListenButton({
   const prerequisitesMet = ttsEnabled && showPreference;
   const { voice, ready } = useSpeechAvailability(locale, prerequisitesMet);
   const speakingId = useSyncExternalStore(subscribe, getSpeakingId, () => null);
+  const pausedId = useSyncExternalStore(subscribe, getPausedId, () => null);
 
   const hasContent = content.trim().length > 0;
   const visible = prerequisitesMet && voice !== null && hasContent;
   const isSpeaking = speakingId === messageId;
+  const isPaused = pausedId === messageId;
 
   // Flag + preference are on but this browser has no local voice: count it (once).
   useEffect(() => {
@@ -49,26 +59,40 @@ export default function ListenButton({
     }
   }, [prerequisitesMet, ready, voice, locale]);
 
-  // Stop when this message unmounts or the language changes while it is speaking.
+  // Stop (and drop a paused position) when this message unmounts or the language changes
+  // while it is speaking or paused.
   useEffect(
     () => () => {
-      if (getSpeakingId() === messageId) stop();
+      if (getSpeakingId() === messageId || getPausedId() === messageId) stop();
     },
     [messageId, locale],
   );
 
   // Hiding the control (preference off, flag off) must also silence it.
   useEffect(() => {
-    if (!visible && getSpeakingId() === messageId) stop();
+    if (
+      !visible &&
+      (getSpeakingId() === messageId || getPausedId() === messageId)
+    ) {
+      stop();
+    }
   }, [visible, messageId]);
 
   if (!visible || !voice) return null;
 
-  const label = isSpeaking ? t("stopListening") : t("listenAnswer");
+  const label = isSpeaking
+    ? t("pauseListening")
+    : isPaused
+      ? t("resumeListening")
+      : t("listenAnswer");
 
   const handleClick = () => {
     if (isSpeaking) {
-      stop();
+      pause();
+      return;
+    }
+    if (isPaused) {
+      resume(); // does not re-send tts_started
       return;
     }
     const chunks = speakableChunks(content, locale);
@@ -83,11 +107,14 @@ export default function ListenButton({
       onClick={handleClick}
       aria-label={label}
       aria-pressed={isSpeaking}
+      data-state={isSpeaking ? "playing" : isPaused ? "paused" : "idle"}
       title={label}
-      className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors aria-pressed:text-primary-600"
+      className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors aria-pressed:text-primary-600 data-[state=paused]:text-primary-600"
     >
       {isSpeaking ? (
-        <Square className="w-4 h-4" aria-hidden="true" />
+        <Pause className="w-4 h-4" aria-hidden="true" />
+      ) : isPaused ? (
+        <Play className="w-4 h-4" aria-hidden="true" />
       ) : (
         <Volume2 className="w-4 h-4" aria-hidden="true" />
       )}

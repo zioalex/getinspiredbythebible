@@ -146,7 +146,8 @@
     "changeBibleVersion": "성경 버전 변경",
     "searchCommunity": "커뮤니티 찾기",
     "listenAnswer": "답변 듣기",
-    "stopListening": "듣기 중지",
+    "pauseListening": "읽기 일시정지",
+    "resumeListening": "읽기 재개",
     "showListenButton": "듣기 버튼 표시"
   },
   "Verses": {

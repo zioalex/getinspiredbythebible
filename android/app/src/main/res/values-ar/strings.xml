@@ -306,9 +306,11 @@
 
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">الاستماع إلى الإجابة</string>
-    <string name="action_stop_listening">إيقاف الاستماع</string>
+    <string name="action_pause_listening">إيقاف القراءة مؤقتًا</string>
+    <string name="action_resume_listening">استئناف القراءة</string>
     <string name="state_listening">جارٍ القراءة بصوت عالٍ</string>
     <string name="state_not_listening">القراءة متوقفة</string>
+    <string name="state_paused_listening">القراءة متوقفة مؤقتًا</string>
     <string name="settings_tts_title">القراءة بصوت عالٍ</string>
     <string name="settings_tts_show_listen">إظهار زر الاستماع</string>
     <string name="settings_tts_show_listen_desc">يضيف زر استماع إلى الإجابات. تُقرأ الإجابات بصوت جهازك، ولا يغادر النص جهازك أبدًا.</string>

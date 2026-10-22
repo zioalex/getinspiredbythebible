@@ -21,8 +21,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,9 +35,10 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,12 +49,19 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +72,9 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
@@ -682,10 +693,11 @@ fun ChatMessageItem(
     // preference and "an offline voice exists"; the item adds finished/non-empty itself.
     showListen: Boolean = false,
     isSpeaking: Boolean = false,
+    // BITB-205: reading is paused (position kept); the Listen button then offers "Resume".
+    isPaused: Boolean = false,
     onToggleListen: (() -> Unit)? = null,
 ) {
     val isUser = message.role == Message.Role.USER
-    val arrangement = if (isUser) Arrangement.End else Arrangement.Start
 
     // User bubble: primary colour (matches web's bg-primary-600 for user messages)
     // Assistant bubble: white surface with a subtle border (matches web's bg-white border)
@@ -733,14 +745,62 @@ fun ChatMessageItem(
     var pendingVerseLink by remember { mutableStateOf<PendingVerseLink?>(null) }
     val linkSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // BITB-205: Listen / Copy / Share rail content (assistant answers only; see BubbleRow).
+    val railContent: @Composable () -> Unit = {
+        MessageActionRail {
+            if (showListen && onToggleListen != null) {
+                ListenButton(
+                    isSpeaking = isSpeaking,
+                    isPaused = isPaused,
+                    onClick = onToggleListen,
+                )
+            }
+            IconButton(
+                onClick = {
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
+                    Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = stringResource(R.string.action_copy_message),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(
+                onClick = {
+                    val shareText = if (userMessage.isNotBlank()) {
+                        "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
+                    } else {
+                        "$sharePrefix\n\n${message.content}"
+                    }
+                    ShareCompat.IntentBuilder(context)
+                        .setType("text/plain")
+                        .setText(shareText)
+                        .startChooser()
+                },
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = stringResource(R.string.action_share_message),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+
     // BITB-174: size bubbles from the real available width instead of a phone-only 320dp cap.
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val bubbleWidthCap = bubbleMaxWidth(maxWidth - BubbleRowHorizontalPadding * 2)
-        Row(
+        // BITB-205: Listen / Copy / Share live in a sticky rail beside the assistant bubble.
+        BubbleRow(
+            alignEnd = isUser,
+            bubbleMaxWidth = bubbleWidthCap,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = BubbleRowHorizontalPadding, vertical = 4.dp),
-            horizontalArrangement = arrangement,
+            rail = if (showShare) railContent else null,
         ) {
             Column(
                 modifier = Modifier
@@ -929,68 +989,17 @@ fun ChatMessageItem(
                     }
                 }
 
-                // Action row — feedback (left) and copy+share (right).
+                // Action row — feedback only. Listen / Copy / Share moved to the side rail (BITB-205).
                 val showFeedback = message.role == Message.Role.ASSISTANT
                     && !message.isStreaming
                     && message.messageId.isNotBlank()
                     && onFeedback != null
 
-                // Copy + share actions, reused as the trailing slot of FeedbackControls
-                // or rendered alone when there is no feedback row.
-                val trailingActions: @Composable RowScope.() -> Unit = {
-                    if (showShare && showListen && onToggleListen != null) {
-                        ListenButton(isSpeaking = isSpeaking, onClick = onToggleListen)
-                    }
-                    if (showShare) {
-                        IconButton(
-                            onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText("message", message.content))
-                                Toast.makeText(context, context.getString(R.string.action_copied), Toast.LENGTH_SHORT).show()
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = stringResource(R.string.action_copy_message),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        IconButton(
-                            onClick = {
-                                val shareText = if (userMessage.isNotBlank()) {
-                                    "$sharePrefix\n\nQ: $userMessage\n\n${message.content}"
-                                } else {
-                                    "$sharePrefix\n\n${message.content}"
-                                }
-                                ShareCompat.IntentBuilder(context)
-                                    .setType("text/plain")
-                                    .setText(shareText)
-                                    .startChooser()
-                            },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = stringResource(R.string.action_share_message),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
                 if (showFeedback) {
                     FeedbackControls(
                         feedbackGiven = feedbackGiven,
                         onSubmit = { rating, comment, reason -> onFeedback!!(message.id, rating, comment, reason) },
-                        trailing = trailingActions,
                     )
-                } else if (showShare) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Spacer(modifier = Modifier.weight(1f))
-                        trailingActions()
-                    }
                 }
 
                 // Inline Retry button for error assistant messages
@@ -1032,19 +1041,30 @@ fun ChatMessageItem(
 }
 
 /**
- * BITB-119: Listen <-> Stop toggle. One button whose icon, accessible name and state
- * description all flip while the answer is being read (48dp minimum touch target comes from
- * [IconButton]).
+ * BITB-119 / BITB-205: Listen / Pause / Resume control. One button whose icon, accessible name
+ * and state description follow the three states: idle (speaker), playing (pause icon) and
+ * paused (play icon). 48dp minimum touch target comes from [IconButton].
  */
 @Composable
 internal fun ListenButton(
     isSpeaking: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isPaused: Boolean = false,
 ) {
-    val label = stringResource(if (isSpeaking) R.string.action_stop_listening else R.string.action_listen)
+    val label = stringResource(
+        when {
+            isSpeaking -> R.string.action_pause_listening
+            isPaused -> R.string.action_resume_listening
+            else -> R.string.action_listen
+        },
+    )
     val stateText = stringResource(
-        if (isSpeaking) R.string.state_listening else R.string.state_not_listening,
+        when {
+            isSpeaking -> R.string.state_listening
+            isPaused -> R.string.state_paused_listening
+            else -> R.string.state_not_listening
+        },
     )
     IconButton(
         onClick = onClick,
@@ -1053,10 +1073,124 @@ internal fun ListenButton(
             .semantics { stateDescription = stateText },
     ) {
         Icon(
-            imageVector = if (isSpeaking) Icons.Default.Stop else Icons.AutoMirrored.Filled.VolumeUp,
+            imageVector = when {
+                isSpeaking -> Icons.Default.Pause
+                isPaused -> Icons.Default.PlayArrow
+                else -> Icons.AutoMirrored.Filled.VolumeUp
+            },
             contentDescription = label,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** Vertical Listen / Copy / Share column shown beside a finished assistant answer (BITB-205). */
+@Composable
+internal fun MessageActionRail(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier.testTag("message_action_rail"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        content = content,
+    )
+}
+
+/** Gap kept between the pinned rail and the viewport edges (BITB-205). */
+internal val RailViewportMargin = 8.dp
+
+/**
+ * BITB-205: window-space bounds of the scrolling message list, provided by `ChatScreen` so each
+ * answer can pin its action rail inside the visible area. Values are Compose state read only in
+ * the layout (placement) phase, so scrolling re-places rails without recomposing messages.
+ */
+internal class ChatViewportBounds {
+    var top by mutableStateOf(0f)
+    var bottom by mutableStateOf(Float.POSITIVE_INFINITY)
+}
+
+/** Null (previews / tests / non-list hosts) means the rail simply sits at the top of its answer. */
+internal val LocalChatViewportBounds = staticCompositionLocalOf<ChatViewportBounds?> { null }
+
+/**
+ * Y offset (px, relative to the item's top) at which an answer's action rail is placed so it
+ * stays visible while the answer is partly on screen (BITB-205).
+ *
+ * The rail is pinned [marginPx] below the viewport top and clamped to the answer: never above
+ * its top edge nor below its bottom edge. It is also kept above `viewportBottom - marginPx`
+ * when the answer's top is already inside a short viewport. A rail taller than the answer
+ * (nothing to slide through) stays at 0.
+ */
+internal fun stickyRailOffset(
+    itemTop: Float,
+    itemHeight: Float,
+    railHeight: Float,
+    viewportTop: Float,
+    viewportBottom: Float,
+    marginPx: Float,
+): Float {
+    val maxOffset = itemHeight - railHeight
+    if (maxOffset <= 0f) return 0f
+    val pinned = (viewportTop + marginPx - itemTop).coerceIn(0f, maxOffset)
+    val bottomLimit = viewportBottom - marginPx - railHeight - itemTop
+    return min(pinned, max(bottomLimit, 0f))
+}
+
+/**
+ * Lays out a chat bubble ([content]) and, for finished assistant answers, an action [rail]
+ * beside it on the end side (right in LTR, left in RTL). The bubble is capped at
+ * [bubbleMaxWidth] (BITB-174) and shrinks only as far as needed to leave room for the rail.
+ * The rail's vertical offset is computed in the placement phase from [stickyRailOffset].
+ */
+@Composable
+private fun BubbleRow(
+    alignEnd: Boolean,
+    bubbleMaxWidth: Dp,
+    modifier: Modifier = Modifier,
+    rail: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    val viewport = LocalChatViewportBounds.current
+    val marginPx = with(LocalDensity.current) { RailViewportMargin.toPx() }
+    var itemTop by remember { mutableStateOf(0f) }
+    val tracksViewport = rail != null && viewport != null
+    Layout(
+        content = {
+            Box { content() }
+            if (rail != null) Box { rail() }
+        },
+        modifier = if (tracksViewport) {
+            modifier.onGloballyPositioned { itemTop = it.positionInWindow().y }
+        } else {
+            modifier
+        },
+    ) { measurables, constraints ->
+        val rtl = layoutDirection == LayoutDirection.Rtl
+        val railPlaceable = measurables.getOrNull(1)?.measure(Constraints())
+        val railWidth = railPlaceable?.width ?: 0
+        val bubbleMax = min(bubbleMaxWidth.roundToPx(), constraints.maxWidth - railWidth).coerceAtLeast(0)
+        val bubble = measurables[0].measure(Constraints(maxWidth = bubbleMax))
+        val width = constraints.maxWidth
+        val height = max(bubble.height, railPlaceable?.height ?: 0)
+        layout(width, height) {
+            // Position as if LTR, then mirror for RTL.
+            val bubbleX = if (alignEnd) width - bubble.width else 0
+            fun mirrored(x: Int, w: Int) = if (rtl) width - x - w else x
+            bubble.place(mirrored(bubbleX, bubble.width), 0)
+            if (railPlaceable != null) {
+                val offset = if (viewport != null) {
+                    stickyRailOffset(
+                        itemTop = itemTop,
+                        itemHeight = height.toFloat(),
+                        railHeight = railPlaceable.height.toFloat(),
+                        viewportTop = viewport.top,
+                        viewportBottom = viewport.bottom,
+                        marginPx = marginPx,
+                    ).roundToInt()
+                } else {
+                    0
+                }
+                railPlaceable.place(mirrored(bubbleX + bubble.width, railWidth), offset)
+            }
+        }
     }
 }
 

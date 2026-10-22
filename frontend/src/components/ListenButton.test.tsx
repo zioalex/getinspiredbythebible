@@ -13,7 +13,7 @@ import itMessages from "../../messages/it.json";
 import { ServerConfigProvider } from "@/lib/serverConfig";
 import { __resetClientEventsForTest } from "@/lib/clientEvents";
 import { setShowListen } from "@/lib/ttsPreference";
-import { getSpeakingId, stop } from "@/lib/speech";
+import { getPausedId, getSpeakingId, stop } from "@/lib/speech";
 import {
   FakeSynth,
   installSpeechMock,
@@ -65,7 +65,8 @@ afterEach(() => {
 });
 
 const LISTEN = /listen to this answer/i;
-const STOP = /stop listening/i;
+const PAUSE = /pause reading/i;
+const RESUME = /resume reading/i;
 
 describe("ListenButton visibility", () => {
   it("shows when a local voice exists (flag on by default, fail open)", async () => {
@@ -158,20 +159,37 @@ describe("ListenButton behaviour", () => {
     expect(eventPosts()).toEqual([{ event: "tts_started", locale: "en" }]);
   });
 
-  it("flips to Stop with aria-pressed, and a second click cancels", async () => {
+  it("flips to Pause with aria-pressed, then Resume when paused, then back to Pause", async () => {
     render(ui("m1", "Hello there."));
     fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
-    const stopButton = screen.getByRole("button", { name: STOP });
-    expect(stopButton).toHaveAttribute("aria-pressed", "true");
-    synth.cancel.mockClear();
-    fireEvent.click(stopButton);
-    expect(synth.cancel).toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: LISTEN })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-    // Stopping is not a new "started" event.
+    const pauseButton = screen.getByRole("button", { name: PAUSE });
+    expect(pauseButton).toHaveAttribute("aria-pressed", "true");
+    expect(pauseButton).toHaveAttribute("data-state", "playing");
+
+    fireEvent.click(pauseButton);
+    expect(synth.pause).toHaveBeenCalled();
+    expect(getPausedId()).toBe("m1");
+    const resumeButton = screen.getByRole("button", { name: RESUME });
+    expect(resumeButton).toHaveAttribute("aria-pressed", "false");
+    expect(resumeButton).toHaveAttribute("data-state", "paused");
+
+    fireEvent.click(resumeButton);
+    expect(synth.resume).toHaveBeenCalled();
+    expect(getSpeakingId()).toBe("m1");
+    expect(screen.getByRole("button", { name: PAUSE })).toBeInTheDocument();
+    // Pause / resume are not new "started" events.
     expect(eventPosts()).toHaveLength(1);
+  });
+
+  it("shows Listen again once a paused answer is stopped", async () => {
+    render(ui("m1", "Hello there."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(screen.getByRole("button", { name: PAUSE }));
+    act(() => stop());
+    expect(screen.getByRole("button", { name: LISTEN })).toHaveAttribute(
+      "data-state",
+      "idle",
+    );
   });
 
   it("reverts to Listen when the answer finishes", async () => {
@@ -193,8 +211,33 @@ describe("ListenButton behaviour", () => {
     expect(getSpeakingId()).toBe("m1");
     fireEvent.click(screen.getAllByRole("button", { name: LISTEN })[0]);
     expect(getSpeakingId()).toBe("m2");
-    // exactly one Stop button is showing
-    expect(screen.getAllByRole("button", { name: STOP })).toHaveLength(1);
+    // exactly one Pause button is showing
+    expect(screen.getAllByRole("button", { name: PAUSE })).toHaveLength(1);
+  });
+
+  it("playing another message discards the first one's paused position", async () => {
+    render(
+      <>
+        {ui("m1", "First answer.")}
+        {ui("m2", "Second answer.")}
+      </>,
+    );
+    const buttons = await screen.findAllByRole("button", { name: LISTEN });
+    fireEvent.click(buttons[0]);
+    fireEvent.click(screen.getByRole("button", { name: PAUSE }));
+    expect(getPausedId()).toBe("m1");
+    fireEvent.click(screen.getAllByRole("button", { name: LISTEN })[0]);
+    expect(getSpeakingId()).toBe("m2");
+    expect(getPausedId()).toBeNull();
+    expect(screen.getAllByRole("button", { name: LISTEN })).toHaveLength(1);
+  });
+
+  it("unmounting a paused message clears its paused position", async () => {
+    const { unmount } = render(ui("m1", "Hello there."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(screen.getByRole("button", { name: PAUSE }));
+    unmount();
+    expect(getPausedId()).toBeNull();
   });
 
   it("unmounting the speaking message cancels playback", async () => {

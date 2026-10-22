@@ -133,13 +133,17 @@ env:
         || github.sha }}
   TF_VERSION: "1.10.5"
   TF_WORKING_DIR: "./deployment"
-  # Updated Azure resource names to voxquieta naming scheme
-  BACKEND_APP_NAME: voxquieta-backend
-  FRONTEND_APP_NAME: voxquieta-frontend
-  ACR_NAME: voxquietaacrmb0172
-  RESOURCE_GROUP: voxquieta-rg
-  # azurerm_container_app_environment.main = "${var.project_name}-env" (main.tf:358)
-  CONTAINER_APP_ENV_NAME: voxquieta-env
+  # These must match the resources Terraform actually created, which are named from
+  # project_name / resource_suffix in deployment/terraform.tfvars. Renaming them here
+  # alone (#1183) pointed every deploy at resources that don't exist; renaming the
+  # Azure resources needs a Terraform migration first. Guarded by
+  # api/tests/test_workflow_azure_resource_names.py.
+  BACKEND_APP_NAME: bible-app-backend
+  FRONTEND_APP_NAME: bible-app-frontend
+  ACR_NAME: bibleappacrmb0172
+  RESOURCE_GROUP: bible-app-rg
+  # azurerm_container_app_environment.main = "${var.project_name}-env" (main.tf:369)
+  CONTAINER_APP_ENV_NAME: bible-app-env
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}

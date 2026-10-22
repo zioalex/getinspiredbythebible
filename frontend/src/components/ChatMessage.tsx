@@ -58,6 +58,9 @@ export default function ChatMessage({
   // Stable id for the one-voice-at-a-time controller; restored history has no messageId.
   const fallbackSpeakId = useId();
   const showListen = !isStreaming && message.content.trim().length > 0;
+  // Share (with Copy) only for answers that have a feedback row, as before (BITB-205 moved it
+  // into the rail).
+  const showShare = !isUser && !!(messageId && onSubmitFeedback);
 
   const [copied, setCopied] = useState(false);
 
@@ -233,7 +236,7 @@ export default function ChatMessage({
       )}
 
       <div
-        className={`max-w-[90%] sm:max-w-[80%] rounded-2xl px-4 py-3 sm:px-5 sm:py-4 ${
+        className={`min-w-0 max-w-[90%] sm:max-w-[80%] rounded-2xl px-4 py-3 sm:px-5 sm:py-4 ${
           isUser
             ? "bg-primary-600 text-white rounded-br-md"
             : "bg-white border border-gray-200 text-gray-800 rounded-bl-md shadow-xs"
@@ -396,41 +399,39 @@ export default function ChatMessage({
               </ReactMarkdown>
             </div>
 
-            {/* Feedback, listen and share controls for assistant messages */}
+            {/* Feedback stays at the bottom; Listen / Share live in the side rail (BITB-205) */}
             {messageId && onSubmitFeedback && (
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <FeedbackControls
                   given={feedbackGiven ?? null}
                   disabled={feedbackDisabled}
                   onSubmit={onSubmitFeedback}
-                  trailing={
-                    <div className="flex items-center gap-1">
-                      {showListen && (
-                        <ListenButton
-                          messageId={messageId}
-                          content={message.content}
-                        />
-                      )}
-                      <ShareMenu
-                        question={userMessage || ""}
-                        answer={message.content}
-                      />
-                    </div>
-                  }
-                />
-              </div>
-            )}
-            {!(messageId && onSubmitFeedback) && showListen && (
-              <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
-                <ListenButton
-                  messageId={messageId ?? fallbackSpeakId}
-                  content={message.content}
                 />
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* BITB-205: sticky rail on the end side (right in LTR, left in RTL via flex direction).
+          The scrolling ancestor is the messages area below the header, so `top-2` pins the
+          rail just under the header; `self-start` keeps it from stretching to the bubble. */}
+      {!isUser && (showShare || showListen) && (
+        <div
+          data-testid="message-action-rail"
+          className="sticky top-2 self-start shrink-0 flex flex-col items-center gap-1"
+        >
+          {showListen && (
+            <ListenButton
+              messageId={messageId ?? fallbackSpeakId}
+              content={message.content}
+            />
+          )}
+          {showShare && (
+            <ShareMenu question={userMessage || ""} answer={message.content} />
+          )}
+        </div>
+      )}
 
       {isUser && (
         <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary-600 flex items-center justify-center">

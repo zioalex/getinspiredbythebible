@@ -45,9 +45,10 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  BACKEND_APP_NAME: voxquieta-backend
-  FRONTEND_APP_NAME: voxquieta-frontend
-  RESOURCE_GROUP: voxquieta-rg
+  # Real (Terraform-created) names; see the note in azure-deploy.yml.
+  BACKEND_APP_NAME: bible-app-backend
+  FRONTEND_APP_NAME: bible-app-frontend
+  RESOURCE_GROUP: bible-app-rg
   STATE_BRANCH: gh-monitor-state
   # A component is only reported as drifted once its expected commit has been
   # sitting undeployed longer than this — a deploy already in flight (build +

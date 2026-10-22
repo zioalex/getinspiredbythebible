@@ -1,15 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   findLocalVoice,
+  getPausedId,
   getSpeakingId,
   isSpeechSupported,
   loadVoices,
+  pause,
+  RESUME_WATCHDOG_MS,
+  resume,
   speak,
   stop,
   subscribe,
 } from "./speech";
 import {
   FakeSynth,
+  FakeUtterance,
   installSpeechMock,
   makeVoice,
   removeSpeechMock,
@@ -182,5 +187,179 @@ describe("speak / stop", () => {
     unsubscribe();
     stop();
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("pause / resume (BITB-205)", () => {
+  const voice = makeVoice("en-US") as unknown as SpeechSynthesisVoice;
+  const chunks = ["one", "two", "three"];
+  const originalUA = navigator.userAgent;
+
+  const setUserAgent = (ua: string) =>
+    Object.defineProperty(navigator, "userAgent", {
+      value: ua,
+      configurable: true,
+    });
+
+  afterEach(() => setUserAgent(originalUA));
+
+  /** Simulate the browser starting chunk `i` of the current queue. */
+  const startChunk = (i: number, queue: FakeUtterance[] = synth.spoken) =>
+    queue.find((u) => u.text === chunks[i])?.onstart?.();
+
+  it("native path: pause() calls synth.pause, keeps the position and flips state", () => {
+    speak("m1", chunks, voice, "en");
+    pause();
+    expect(synth.pause).toHaveBeenCalledTimes(1);
+    expect(synth.cancel).toHaveBeenCalledTimes(1); // only the initial speak() cancel
+    expect(getSpeakingId()).toBeNull();
+    expect(getPausedId()).toBe("m1");
+  });
+
+  it("native path: resume() calls synth.resume without re-queuing", () => {
+    speak("m1", chunks, voice, "en");
+    pause();
+    expect(resume()).toBe(true);
+    expect(synth.resume).toHaveBeenCalledTimes(1);
+    expect(synth.spoken).toHaveLength(3);
+    expect(getSpeakingId()).toBe("m1");
+    expect(getPausedId()).toBeNull();
+  });
+
+  it("native path: a resume that produces events keeps the native queue (watchdog cleared)", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    pause();
+    resume();
+    synth.spoken[0].onresume?.();
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS * 3);
+    expect(synth.spoken).toHaveLength(3);
+    expect(synth.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("native path: onboundary and onstart also count as resume progress", () => {
+    vi.useFakeTimers();
+    for (const signal of ["onboundary", "onstart"] as const) {
+      speak("m1", chunks, voice, "en");
+      const first = synth.spoken[synth.spoken.length - 3];
+      pause();
+      resume();
+      first[signal]?.();
+      const queued = synth.spoken.length;
+      vi.advanceTimersByTime(RESUME_WATCHDOG_MS * 2);
+      expect(synth.spoken).toHaveLength(queued); // no watchdog re-queue
+      expect(getSpeakingId()).toBe("m1");
+    }
+  });
+
+  it("watchdog: a silent native resume restarts from the chunk that was playing", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    startChunk(1); // "two" is playing
+    pause();
+    resume();
+    synth.spoken.length = 0;
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS);
+    expect(synth.spoken.map((u) => u.text)).toEqual(["two", "three"]);
+    expect(getSpeakingId()).toBe("m1");
+    expect(getPausedId()).toBeNull();
+  });
+
+  it("watchdog fallback un-pauses an engine whose native resume was a no-op", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    startChunk(1);
+    pause();
+    synth.resume.mockImplementation(() => {}); // Chrome: resume() silently does nothing
+    resume();
+    expect(synth.paused).toBe(true);
+    synth.spoken.length = 0;
+    synth.resume.mockClear();
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS);
+    expect(synth.resume).toHaveBeenCalled(); // engine un-paused before re-speaking
+    expect(synth.spoken.map((u) => u.text)).toEqual(["two", "three"]);
+  });
+
+  it("watchdog does not fire when stopped or paused again before it elapses", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    pause();
+    resume();
+    pause();
+    synth.spoken.length = 0;
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS * 2);
+    expect(synth.spoken).toHaveLength(0);
+    expect(getPausedId()).toBe("m1");
+  });
+
+  it("Android UA: pause cancels the queue and resume re-speaks from the playing chunk", () => {
+    setUserAgent("Mozilla/5.0 (Linux; Android 14) Chrome/120 Mobile Safari");
+    speak("m1", chunks, voice, "en");
+    startChunk(1);
+    pause();
+    expect(synth.pause).not.toHaveBeenCalled();
+    expect(synth.cancel).toHaveBeenCalledTimes(2);
+    expect(getPausedId()).toBe("m1");
+
+    synth.spoken.length = 0;
+    expect(resume()).toBe(true);
+    expect(synth.resume).not.toHaveBeenCalled();
+    expect(synth.spoken.map((u) => u.text)).toEqual(["two", "three"]);
+    expect(getSpeakingId()).toBe("m1");
+  });
+
+  it("Android UA: callbacks from the cancelled queue are ignored", () => {
+    setUserAgent("Mozilla/5.0 (Linux; Android 14) Chrome/120");
+    speak("m1", chunks, voice, "en");
+    const stale = synth.spoken[synth.spoken.length - 1];
+    pause();
+    stale.onend?.();
+    stale.onerror?.();
+    expect(getPausedId()).toBe("m1");
+  });
+
+  it("finishing the last chunk after a resume clears everything", () => {
+    speak("m1", chunks, voice, "en");
+    pause();
+    resume();
+    synth.spoken[2].onend?.();
+    expect(getSpeakingId()).toBeNull();
+    expect(getPausedId()).toBeNull();
+    expect(resume()).toBe(false);
+  });
+
+  it("speak() of another id discards the paused position", () => {
+    speak("m1", chunks, voice, "en");
+    pause();
+    speak("m2", ["x"], voice, "en");
+    expect(getPausedId()).toBeNull();
+    expect(getSpeakingId()).toBe("m2");
+    // a natively paused queue is un-paused so the new speech is audible
+    expect(synth.resume).toHaveBeenCalled();
+  });
+
+  it("stop() while paused clears the position and resume() then does nothing", () => {
+    speak("m1", chunks, voice, "en");
+    pause();
+    stop();
+    expect(getPausedId()).toBeNull();
+    expect(getSpeakingId()).toBeNull();
+    expect(resume()).toBe(false);
+  });
+
+  it("pause() with nothing speaking is a no-op", () => {
+    pause();
+    expect(synth.pause).not.toHaveBeenCalled();
+    expect(getPausedId()).toBeNull();
+  });
+
+  it("notifies subscribers on pause and resume", () => {
+    const listener = vi.fn();
+    speak("m1", chunks, voice, "en");
+    const unsubscribe = subscribe(listener);
+    pause();
+    resume();
+    expect(listener).toHaveBeenCalledTimes(2);
+    unsubscribe();
   });
 });
