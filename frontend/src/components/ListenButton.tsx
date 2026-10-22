@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Pause, Play, Volume2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useServerConfig } from "@/lib/serverConfig";
+import OnlineVoiceConsentDialog from "@/components/OnlineVoiceConsentDialog";
+import {
+  setOnlineVoiceConsent,
+  useOnlineVoiceConsent,
+} from "@/lib/onlineVoiceConsent";
 import { useShowListenPreference } from "@/lib/ttsPreference";
 import { useSpeechAvailability } from "@/lib/useSpeechAvailability";
 import { speakableChunks } from "@/lib/speakableText";
@@ -29,10 +34,13 @@ interface ListenButtonProps {
 }
 
 /**
- * BITB-119 / BITB-205: Listen / Pause / Resume control for a finished assistant answer, using on-device
- * speech only. Renders nothing unless the server flag is not explicitly off, the user
- * preference is on, and a local voice exists for the UI language — never
- * shown-and-broken.
+ * BITB-119 / BITB-205: Listen / Pause / Resume control for a finished assistant answer.
+ * Renders nothing unless the server flag is not explicitly off, the user preference is on,
+ * and a usable voice exists for the UI language — never shown-and-broken.
+ *
+ * BITB-210: an offline voice always wins. With only an online voice, the first tap asks for
+ * a per-device opt-in (the answer text goes to the browser's speech service); "Not now" hides
+ * the button, and revoking consent in the menu stops any online reading.
  */
 export default function ListenButton({
   messageId,
@@ -43,21 +51,34 @@ export default function ListenButton({
   const { ttsEnabled } = useServerConfig();
   const showPreference = useShowListenPreference();
   const prerequisitesMet = ttsEnabled && showPreference;
-  const { voice, ready } = useSpeechAvailability(locale, prerequisitesMet);
+  const {
+    voice: localVoice,
+    onlineVoice,
+    availability,
+    ready,
+  } = useSpeechAvailability(locale, prerequisitesMet);
+  const consent = useOnlineVoiceConsent();
+  const [dialogOpen, setDialogOpen] = useState(false);
   const speakingId = useSyncExternalStore(subscribe, getSpeakingId, () => null);
   const pausedId = useSyncExternalStore(subscribe, getPausedId, () => null);
 
   const hasContent = content.trim().length > 0;
-  const visible = prerequisitesMet && voice !== null && hasContent;
+  // Offline voice first; an online voice only after the user's opt-in.
+  const voice = localVoice ?? (consent === "granted" ? onlineVoice : null);
+  const needsConsent =
+    voice === null && availability === "online" && consent === "unset";
+  const visible =
+    prerequisitesMet && (voice !== null || needsConsent) && hasContent;
   const isSpeaking = speakingId === messageId;
   const isPaused = pausedId === messageId;
 
-  // Flag + preference are on but this browser has no local voice: count it (once).
+  // Flag + preference are on but this browser has no voice at all for the language: count it
+  // (once). An online-only browser is not "unavailable" — the opt-in covers it (BITB-210).
   useEffect(() => {
-    if (prerequisitesMet && ready && voice === null) {
+    if (prerequisitesMet && ready && availability === "none") {
       reportTtsUnavailableOnce(locale);
     }
-  }, [prerequisitesMet, ready, voice, locale]);
+  }, [prerequisitesMet, ready, availability, locale]);
 
   // Stop (and drop a paused position) when this message unmounts or the language changes
   // while it is speaking or paused.
@@ -78,7 +99,7 @@ export default function ListenButton({
     }
   }, [visible, messageId]);
 
-  if (!visible || !voice) return null;
+  if (!visible) return null;
 
   const label = isSpeaking
     ? t("pauseListening")
@@ -86,7 +107,30 @@ export default function ListenButton({
       ? t("resumeListening")
       : t("listenAnswer");
 
+  const startSpeaking = (withVoice: SpeechSynthesisVoice) => {
+    const chunks = speakableChunks(content, locale);
+    if (chunks.length === 0) return;
+    speak(messageId, chunks, withVoice, locale);
+    reportClientEvent("tts_started", locale);
+  };
+
+  const handleAllow = () => {
+    setOnlineVoiceConsent("granted");
+    setDialogOpen(false);
+    // Still inside the click gesture (iOS Safari requirement).
+    if (onlineVoice) startSpeaking(onlineVoice);
+  };
+
+  const handleDecline = () => {
+    setOnlineVoiceConsent("denied");
+    setDialogOpen(false);
+  };
+
   const handleClick = () => {
+    if (!voice) {
+      setDialogOpen(true);
+      return;
+    }
     if (isSpeaking) {
       pause();
       return;
@@ -95,29 +139,34 @@ export default function ListenButton({
       resume(); // does not re-send tts_started
       return;
     }
-    const chunks = speakableChunks(content, locale);
-    if (chunks.length === 0) return;
-    speak(messageId, chunks, voice, locale);
-    reportClientEvent("tts_started", locale);
+    startSpeaking(voice);
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      aria-label={label}
-      aria-pressed={isSpeaking}
-      data-state={isSpeaking ? "playing" : isPaused ? "paused" : "idle"}
-      title={label}
-      className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors aria-pressed:text-primary-600 data-[state=paused]:text-primary-600"
-    >
-      {isSpeaking ? (
-        <Pause className="w-4 h-4" aria-hidden="true" />
-      ) : isPaused ? (
-        <Play className="w-4 h-4" aria-hidden="true" />
-      ) : (
-        <Volume2 className="w-4 h-4" aria-hidden="true" />
+    <>
+      <button
+        type="button"
+        onClick={handleClick}
+        aria-label={label}
+        aria-pressed={isSpeaking}
+        data-state={isSpeaking ? "playing" : isPaused ? "paused" : "idle"}
+        title={label}
+        className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors aria-pressed:text-primary-600 data-[state=paused]:text-primary-600"
+      >
+        {isSpeaking ? (
+          <Pause className="w-4 h-4" aria-hidden="true" />
+        ) : isPaused ? (
+          <Play className="w-4 h-4" aria-hidden="true" />
+        ) : (
+          <Volume2 className="w-4 h-4" aria-hidden="true" />
+        )}
+      </button>
+      {dialogOpen && (
+        <OnlineVoiceConsentDialog
+          onAllow={handleAllow}
+          onDecline={handleDecline}
+        />
       )}
-    </button>
+    </>
   );
 }

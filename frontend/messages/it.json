@@ -148,7 +148,12 @@
     "listenAnswer": "Ascolta la risposta",
     "pauseListening": "Metti in pausa la lettura",
     "resumeListening": "Riprendi la lettura",
-    "showListenButton": "Mostra il pulsante Ascolta"
+    "showListenButton": "Mostra il pulsante Ascolta",
+    "allowOnlineVoices": "Consenti voci online",
+    "onlineVoicesNotNow": "Non ora",
+    "onlineVoicesDialogTitle": "Usare una voce online?",
+    "onlineVoicesDialogBody": "Il tuo browser ha solo voci online per questa lingua. Se le consenti, il testo di ogni risposta che ascolti viene inviato al servizio vocale del tuo browser (ad esempio Google, Microsoft o Apple). Le voci offline non lo fanno mai. Puoi cambiare idea in qualsiasi momento dal menu.",
+    "noVoiceForLanguage": "Questo browser non ha una voce per {language}."
   },
   "Verses": {
     "scriptureReferences": "Riferimenti Scritturali",

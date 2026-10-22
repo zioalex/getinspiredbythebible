@@ -13,6 +13,10 @@ import itMessages from "../../messages/it.json";
 import { ServerConfigProvider } from "@/lib/serverConfig";
 import { __resetClientEventsForTest } from "@/lib/clientEvents";
 import { setShowListen } from "@/lib/ttsPreference";
+import {
+  getOnlineVoiceConsent,
+  setOnlineVoiceConsent,
+} from "@/lib/onlineVoiceConsent";
 import { getPausedId, getSpeakingId, stop } from "@/lib/speech";
 import {
   FakeSynth,
@@ -75,8 +79,8 @@ describe("ListenButton visibility", () => {
     expect(await screen.findByRole("button", { name: LISTEN })).toBeVisible();
   });
 
-  it("is hidden for remote-only voices and reports tts_unavailable once", async () => {
-    synth.voices = [makeVoice("en-US", { localService: false })];
+  it("is hidden with no voice at all and reports tts_unavailable once", async () => {
+    synth.voices = [makeVoice("de-DE", { localService: false })];
     const { container } = render(ui("m1", "Hello"));
     await waitFor(() =>
       expect(eventPosts()).toEqual([
@@ -271,5 +275,129 @@ describe("ListenButton behaviour", () => {
     });
     fireEvent.click(button);
     expect(synth.spoken[synth.spoken.length - 1].voice?.lang).toBe("it-IT");
+  });
+});
+
+// BITB-210: online-only browsers get a per-device opt-in instead of a silent miss.
+describe("ListenButton online voices (BITB-210)", () => {
+  const DIALOG = { name: /use an online voice/i };
+
+  beforeEach(() => {
+    synth.voices = [makeVoice("en-US", { localService: false })];
+  });
+
+  it("shows Listen for an online-only voice and opens the consent dialog first", async () => {
+    render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    expect(screen.getByRole("dialog", DIALOG)).toBeVisible();
+    expect(synth.speak).not.toHaveBeenCalled();
+    expect(eventPosts().filter((e) => e.event === "tts_unavailable")).toEqual(
+      [],
+    );
+  });
+
+  it("Allow persists consent and speaks with the online voice immediately", async () => {
+    render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /allow online voices/i }),
+    );
+    expect(getOnlineVoiceConsent()).toBe("granted");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(getSpeakingId()).toBe("m1");
+    expect(synth.spoken[0].voice?.localService).toBe(false);
+    expect(eventPosts()).toContainEqual({ event: "tts_started", locale: "en" });
+    // pause / resume work like a local voice
+    fireEvent.click(screen.getByRole("button", { name: PAUSE }));
+    expect(getPausedId()).toBe("m1");
+  });
+
+  it("Not now persists the decision and hides the button", async () => {
+    const { container } = render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(screen.getByRole("button", { name: /not now/i }));
+    expect(getOnlineVoiceConsent()).toBe("denied");
+    expect(container.querySelector("button")).toBeNull();
+    expect(synth.speak).not.toHaveBeenCalled();
+  });
+
+  it("Esc counts as Not now", async () => {
+    const { container } = render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(getOnlineVoiceConsent()).toBe("denied");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(container.querySelector("button")).toBeNull();
+  });
+
+  it("stays hidden when consent was already denied", async () => {
+    setOnlineVoiceConsent("denied");
+    const { container } = render(ui("m1", "Hello"));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(container.querySelector("button")).toBeNull();
+  });
+
+  it("speaks without a dialog when consent was already granted", async () => {
+    setOnlineVoiceConsent("granted");
+    render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(getSpeakingId()).toBe("m1");
+  });
+
+  it("prefers an offline voice over an online one even after consent", async () => {
+    setOnlineVoiceConsent("granted");
+    synth.voices = [
+      makeVoice("en-US", { localService: false, name: "cloud" }),
+      makeVoice("en-GB", { name: "offline" }),
+    ];
+    render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    expect(synth.spoken[0].voice?.name).toBe("offline");
+  });
+
+  it("an offline voice never shows the dialog", async () => {
+    synth.voices = [
+      makeVoice("en-US", { localService: false }),
+      makeVoice("en-GB"),
+    ];
+    render(ui("m1", "Hello"));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(getSpeakingId()).toBe("m1");
+  });
+
+  it("revoking consent stops an online reading and hides Listen", async () => {
+    setOnlineVoiceConsent("granted");
+    const { container } = render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    expect(getSpeakingId()).toBe("m1");
+    act(() => setOnlineVoiceConsent("denied"));
+    expect(getSpeakingId()).toBeNull();
+    expect(container.querySelector("button")).toBeNull();
+  });
+
+  it("revoking consent while paused drops the paused position", async () => {
+    setOnlineVoiceConsent("granted");
+    render(ui("m1", "Peace be with you."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(screen.getByRole("button", { name: PAUSE }));
+    expect(getPausedId()).toBe("m1");
+    act(() => setOnlineVoiceConsent("denied"));
+    expect(getPausedId()).toBeNull();
+  });
+
+  it("shows the dialog in the UI language", async () => {
+    render(ui("m1", "La pace sia con te.", "it"));
+    synth.voices = [makeVoice("it-IT", { localService: false })];
+    act(() => synth.emitVoicesChanged());
+    fireEvent.click(
+      await screen.findByRole("button", { name: /ascolta la risposta/i }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: /usare una voce online/i }),
+    ).toBeVisible();
   });
 });

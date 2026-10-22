@@ -148,7 +148,12 @@
     "listenAnswer": "Escuchar la respuesta",
     "pauseListening": "Pausar la lectura",
     "resumeListening": "Reanudar la lectura",
-    "showListenButton": "Mostrar el botón Escuchar"
+    "showListenButton": "Mostrar el botón Escuchar",
+    "allowOnlineVoices": "Permitir voces en línea",
+    "onlineVoicesNotNow": "Ahora no",
+    "onlineVoicesDialogTitle": "¿Usar una voz en línea?",
+    "onlineVoicesDialogBody": "Tu navegador solo tiene voces en línea para este idioma. Si las permites, el texto de cada respuesta que escuches se envía al servicio de voz de tu navegador (por ejemplo, Google, Microsoft o Apple). Las voces sin conexión nunca lo hacen. Puedes cambiar de opinión en cualquier momento desde el menú.",
+    "noVoiceForLanguage": "Este navegador no tiene voz para {language}."
   },
   "Verses": {
     "scriptureReferences": "Referencias Bíblicas",

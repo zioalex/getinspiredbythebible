@@ -1,0 +1,53 @@
+/**
+ * BITB-210: per-device consent to use the browser's online speech voices.
+ *
+ * Offline voices are the default (BITB-119: no answer text leaves the device). When a
+ * browser only has online voices for the UI language, speaking with one sends the answer
+ * text to the browser vendor's speech service, so it needs an explicit opt-in. Persisted
+ * per browser in localStorage (try/catch — storage can be blocked, in which case the
+ * choice is "unset" and the dialog is shown again). Mirrors `ttsPreference.ts`.
+ */
+import { useSyncExternalStore } from "react";
+
+export const ONLINE_VOICES_KEY = "voxquieta.onlineVoices";
+const CHANGE_EVENT = "voxquieta:onlineVoicesChanged";
+
+export type OnlineVoiceConsent = "granted" | "denied" | "unset";
+
+export function getOnlineVoiceConsent(): OnlineVoiceConsent {
+  try {
+    const value = localStorage.getItem(ONLINE_VOICES_KEY);
+    return value === "granted" || value === "denied" ? value : "unset";
+  } catch {
+    return "unset";
+  }
+}
+
+export function setOnlineVoiceConsent(value: "granted" | "denied"): void {
+  try {
+    localStorage.setItem(ONLINE_VOICES_KEY, value);
+  } catch {
+    // Storage unavailable — the choice still applies for this page view below.
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+  }
+}
+
+function subscribe(onChange: () => void): () => void {
+  window.addEventListener(CHANGE_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(CHANGE_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+/** Reactive online-voice consent. Server render assumes "unset". */
+export function useOnlineVoiceConsent(): OnlineVoiceConsent {
+  return useSyncExternalStore(
+    subscribe,
+    getOnlineVoiceConsent,
+    (): OnlineVoiceConsent => "unset",
+  );
+}
