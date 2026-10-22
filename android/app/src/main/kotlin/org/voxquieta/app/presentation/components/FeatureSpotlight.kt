@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.offset
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -230,7 +229,10 @@ private fun CaptionCard(
     ) {
         Card(
             modifier = Modifier
-                .offset(x = captionX.dp, y = captionY.dp)
+                .graphicsLayer {
+                    translationX = captionX
+                    translationY = captionY
+                }
                 .width(280.dp)
                 .padding(16.dp),
             colors = CardDefaults.cardColors(
