@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-21 (BITB-205 in progress — read-aloud pause/resume and sticky side action rail, web + Android) — previously 2026-10-21 (BITB-196 in review — murder-suicide / elliptical third-party phrasing routes to the ambiguous safety branch, 11 languages; BITB-201/202/203 opened as its follow-ups; BITB-186 closed — PR #1169) — previously 2026-10-19 (BITB-198 in review — keyword fallback gains conservative, Bible-narrative-aware native violence patterns for ru/zh/hi/ko (checked under any UI language), hard-violence table reconciled incl. ru «напасть на»; BITB-204 filed) — previously 2026-10-14 (BITB-186 in review — keyword fallback gains missed zh/ko/ru/hi crisis phrasings and a ru negation guard) — previously 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-22 (BITB-205 done — PR #1188 merged, which also restored the deploy workflows' real Azure resource names; BITB-206/207/208/209 opened as its follow-ups — Android rail fling lag, short-answer rail height, Terraform-based Azure rename, web resume watchdog replay) — previously 2026-10-21 (BITB-205 in progress) — previously 2026-10-21 (BITB-196 in review — murder-suicide / elliptical third-party phrasing routes to the ambiguous safety branch, 11 languages; BITB-201/202/203 opened as its follow-ups; BITB-186 closed — PR #1169) — previously 2026-10-19 (BITB-198 in review — keyword fallback gains conservative, Bible-narrative-aware native violence patterns for ru/zh/hi/ko (checked under any UI language), hard-violence table reconciled incl. ru «напасть на»; BITB-204 filed) — previously 2026-10-14 (BITB-186 in review — keyword fallback gains missed zh/ko/ru/hi crisis phrasings and a ru negation guard) — previously 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -3555,26 +3555,100 @@ foreground media-playback service with a Stop notification, gated on listen-rate
 
 ---
 
-### 🚧 BITB-205: Read Aloud — Pause/Resume and a Sticky Side Rail for Answer Actions (Web + Android)
+### ✅ BITB-205: Read Aloud — Pause/Resume and a Sticky Side Rail for Answer Actions (Web + Android)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1188, merged 2026-10-22 (also restored the real Azure resource names in the
+deploy workflows that #1183 had broken)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-21
 
-Product-owner feedback on v1.57.0 (follow-up to BITB-119): Listen becomes Listen → Pause → Resume
-(web: native pause with chunk fallback; Android: resume at the paused chunk), backgrounding / audio-focus
-loss pause instead of stop, and Listen / Copy / Share move from the bottom row into a sticky vertical
-rail on the end side of each answer on both platforms.
+Listen → Pause → Resume on web (native pause, chunk fallback) and Android (resume at the paused chunk);
+backgrounding / audio-focus loss pause; Listen / Copy / Share in a sticky end-side rail beside each answer.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Pause/resume keeps one position until another answer plays; Android resumes at the paused chunk
-- [ ] Web native pause with Android-UA and watchdog chunk fallback
-- [ ] Sticky end-side action rail on web + Android; feedback row stays at the bottom
-- [ ] New strings in all 11 locales; engine, ViewModel, Compose and Vitest coverage
+- [x] Pause/resume keeps one position until another answer plays; Android resumes at the paused chunk
+- [x] Web native pause with Android-UA and watchdog chunk fallback
+- [x] Sticky end-side action rail on web + Android; feedback row stays at the bottom
+- [x] New strings in all 11 locales; engine, ViewModel, Compose and Vitest coverage
+- [ ] Owner check on a phone (long answer, scroll, pause, background, resume)
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-205-read-aloud-pause-resume-side-rail.md`
+**Follow-ups:** BITB-206, BITB-207, BITB-208, BITB-209
+
+**Full Story:** `docs/DONE/BITB-205-read-aloud-pause-resume-side-rail.md`
+
+---
+
+### 🎯 BITB-206: Android Side Rail Trails One Frame Behind During a Fast Fling
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-205 follow-up: the rail offset reads last frame's position (`onGloballyPositioned` state), so it trails during a fling.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Offset computed from current placement coordinates; no per-frame recomposition
+- [ ] Device-verified fast fling
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-206-android-side-rail-fling-lag.md`
+
+---
+
+### 🎯 BITB-207: Short Answers Grow to the Side Rail's Height (Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-205 follow-up: `BubbleRow` height is `max(bubble, rail)`, leaving blank space under one-line answers; web differs.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Product decision for answers shorter than the rail
+- [ ] Android and web consistent; Compose test for a one-line answer
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-207-side-rail-short-answer-height.md`
+
+---
+
+### 🎯 BITB-208: Rename Azure Resources to `voxquieta-*` Through Terraform
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-22
+
+BITB-205 follow-up: #1183 renamed only the workflow env, breaking every deploy; a real rename needs a Terraform migration and every hardcoded `bible-app-*` name updated.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Go/no-go decision with cost (downtime, ACR, DNS, DB)
+- [ ] If go: migration plan and one PR updating Terraform + all hardcoded names, guard test green
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-208-azure-resource-rename-terraform.md`
+
+---
+
+### 🎯 BITB-209: Web Resume Watchdog Can Replay a Chunk When the Voice Emits No Events
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-205 follow-up: the 1 s resume watchdog restarts the current chunk if a working voice fires no `onresume`/`onboundary`; a stuck engine reporting `paused=false` stays silent.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Measure resume events across Chrome/Edge/Safari/Firefox
+- [ ] No false positives; tests for both edge cases
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-209-web-resume-watchdog-replay.md`
 
 ---
 
