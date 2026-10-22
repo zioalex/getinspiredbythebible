@@ -1015,7 +1015,7 @@ export default function ChatIsland({
         {/* Header */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-primary-100 px-3 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <MainMenu
                 onOpenHistory={() => setHistoryOpen(true)}
                 onOpenChurchFinder={() => setChurchFinderModalOpen(true)}
@@ -1023,9 +1023,9 @@ export default function ChatIsland({
                 activeTranslationCode={activeTranslationCode}
                 onSelectTranslation={handleTranslationChange}
               />
-              <Book className="w-8 h-8 text-primary-600" />
-              <div>
-                <h1 className="text-xl font-semibold text-gray-800">
+              <Book className="w-8 h-8 text-primary-600 hidden sm:block shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
                   {tHeader("title")}
                 </h1>
                 <p className="text-sm text-gray-500 hidden sm:block">
@@ -1033,7 +1033,7 @@ export default function ChatIsland({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               {/* Official app on Google Play — primary call to action */}
               <Link
                 href="/app"
@@ -1044,8 +1044,13 @@ export default function ChatIsland({
                 <span className="hidden sm:inline">{tHeader("appCta")}</span>
               </Link>
 
-              {/* Language Switcher */}
-              <LanguageSwitcher />
+              {/* Language Switcher — hidden on mobile (also in the hamburger menu) */}
+              <div
+                className="hidden sm:flex"
+                data-testid="header-language-switcher"
+              >
+                <LanguageSwitcher />
+              </div>
 
               {/* Bible Version Chip — prominent amber badge; click opens native translation dropdown */}
               <div
@@ -1087,7 +1092,8 @@ export default function ChatIsland({
               </div>
               <button
                 onClick={handleNewChat}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label={tHeader("newChat")}
+                className="flex items-center gap-2 px-2 sm:px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span className="hidden md:inline">{tHeader("newChat")}</span>
