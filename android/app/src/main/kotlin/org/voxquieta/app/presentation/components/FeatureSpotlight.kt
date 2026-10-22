@@ -1,7 +1,6 @@
 package org.voxquieta.app.presentation.components
 
 import android.graphics.Rect
-import androidx.compose.ui.geometry.Rect as ComposeRect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.canvas.Canvas
 import androidx.compose.foundation.canvas.drawPath
@@ -33,15 +32,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect as ComposeRect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathDirection
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.voxquieta.app.R
@@ -114,11 +116,12 @@ fun FeatureSpotlight(
     ) {
         // Full-screen scrim with cutout
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val width = size.width.toInt()
-            val height = size.height.toInt()
+            val width = size.width
+            val height = size.height
+            val density = LocalDensity.current
 
             // Create the full screen rect
-            val screenPath = Path().apply { addRect(0f, 0f, width.toFloat(), height.toFloat()) }
+            val screenPath = Path().apply { addRect(ComposeRect(0f, 0f, width, height)) }
 
             // Create the highlight cutout path based on target bounds and shape
             val highlightPath = Path()
@@ -131,18 +134,23 @@ fun FeatureSpotlight(
             when (currentTarget.shape) {
                 is SpotlightShape.RoundedRect -> {
                     val cornerRadius = currentTarget.shape.cornerRadius
-                    highlightPath.addRoundRect(
-                        ComposeRect(left, top, right, bottom),
-                        cornerRadius,
-                        cornerRadius,
-                        PathDirection.CW,
+                    val roundRect = RoundRect(
+                        left = left,
+                        top = top,
+                        right = right,
+                        bottom = bottom,
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+                            x = cornerRadius,
+                            y = cornerRadius
+                        )
                     )
+                    highlightPath.addRoundRect(roundRect, Path.Direction.CW)
                 }
                 SpotlightShape.Circle -> {
                     val centerX = (left + right) / 2f
                     val centerY = (top + bottom) / 2f
                     val radius = maxOf(right - left, bottom - top) / 2f + 12f // ~8dp
-                    highlightPath.addCircle(centerX, centerY, radius, PathDirection.CW)
+                    highlightPath.addCircle(centerX, centerY, radius, Path.Direction.CW)
                 }
             }
 
@@ -192,38 +200,40 @@ private fun CaptionCard(
     target: SpotlightTarget,
     stepNumber: Int,
     totalSteps: Int,
-    captionBackgroundColor: androidx.compose.ui.graphics.Color,
+    captionBackgroundColor: Color,
 ) {
     val bounds = target.bounds
-    val screenHeight = androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp
-    val screenWidth = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val density = LocalDensity.current
 
     // Decide whether to show caption above or below the highlight
     val highlightCenterY = (bounds.top + bounds.bottom) / 2f
-    val showAbove = highlightCenterY > screenHeight.toPx() * 0.6f
+    val showAbove = highlightCenterY > density.run { screenHeight.toPx() } * 0.6f
 
     val captionX = ((bounds.left + bounds.right) / 2f).coerceIn(
-        24.dp.toPx(),
-        screenWidth.toPx() - 24.dp.toPx() - 280.dp.toPx(), // approximate card width
+        density.run { 24.dp.toPx() },
+        density.run { screenWidth.toPx() } - density.run { 24.dp.toPx() } - density.run { 280.dp.toPx() }, // approximate card width
     )
 
     val captionY = if (showAbove) {
-        bounds.top - 160.dp.toPx() // card height + margin
+        bounds.top - density.run { 160.dp.toPx() } // card height + margin
     } else {
-        bounds.bottom + 16.dp.toPx()
+        bounds.bottom + density.run { 16.dp.toPx() }
     }.coerceIn(
-        24.dp.toPx(),
-        screenHeight.toPx() - 24.dp.toPx() - 140.dp.toPx(),
+        density.run { 24.dp.toPx() },
+        density.run { screenHeight.toPx() } - density.run { 24.dp.toPx() } - density.run { 140.dp.toPx() },
     )
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
     ) {
         Card(
             modifier = Modifier
-                .absoluteOffset(x = captionX, y = captionY)
+                .graphicsLayer {
+                    translationX = captionX
+                    translationY = captionY
+                }
                 .width(280.dp)
                 .padding(16.dp),
             colors = CardDefaults.cardColors(
@@ -275,8 +285,8 @@ private fun ControlsBar(
     onNext: () -> Unit,
     onSkip: () -> Unit,
     onDone: () -> Unit,
-    buttonColor: androidx.compose.ui.graphics.Color,
-    buttonContentColor: androidx.compose.ui.graphics.Color,
+    buttonColor: Color,
+    buttonContentColor: Color,
 ) {
     val isLastStep = currentStep == totalSteps - 1
 
