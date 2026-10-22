@@ -78,6 +78,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.voxquieta.app.R
 import org.voxquieta.app.ContextExtensions.hasTourBeenSeen
 import org.voxquieta.app.ContextExtensions.markTourSeen
+import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChatViewportBounds
@@ -97,7 +98,9 @@ import org.voxquieta.app.presentation.components.buildVerseRefRegex
 import org.voxquieta.app.presentation.components.cjkBookNamesFrom
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.presentation.viewmodels.ConversationsViewModel
+import org.voxquieta.app.utils.DonateRef
 import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
+import org.voxquieta.app.utils.donateUrl
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
