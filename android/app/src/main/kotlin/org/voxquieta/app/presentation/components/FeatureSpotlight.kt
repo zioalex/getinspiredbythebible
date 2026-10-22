@@ -2,8 +2,6 @@ package org.voxquieta.app.presentation.components
 
 import android.graphics.Rect as AndroidRect
 import androidx.compose.foundation.background
-import androidx.compose.foundation.canvas.Canvas
-import androidx.compose.foundation.canvas.drawPath
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.CornerRadius
@@ -114,55 +113,55 @@ fun FeatureSpotlight(
     val buttonContentColor = MaterialTheme.colorScheme.onPrimaryContainer
 
     Box(
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        // Full-screen scrim with cutout
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val width = size.width
-            val height = size.height
-            val density = LocalDensity.current
+        modifier = Modifier
+            .fillMaxSize()
+            .drawBehind {
+                // Draw full-screen scrim with cutout using drawBehind
+                val width = this.size.width
+                val height = this.size.height
+                val density = LocalDensity.current
 
-            // Create the full screen rect
-            val screenPath = Path().apply { addRect(Rect(0f, 0f, width, height)) }
+                // Create the full screen rect
+                val screenPath = Path().apply { addRect(Rect(0f, 0f, width, height)) }
 
-            // Create the highlight cutout path based on target bounds and shape
-            val highlightPath = Path()
-            val bounds = currentTarget.bounds
-            val left = bounds.left
-            val top = bounds.top
-            val right = bounds.right
-            val bottom = bounds.bottom
+                // Create the highlight cutout path based on target bounds and shape
+                val highlightPath = Path()
+                val bounds = currentTarget.bounds
+                val left = bounds.left
+                val top = bounds.top
+                val right = bounds.right
+                val bottom = bounds.bottom
 
-            when (currentTarget.shape) {
-                is SpotlightShape.RoundedRect -> {
-                    val cornerRadius = currentTarget.shape.cornerRadius
-                    val roundRect = RoundRect(
-                        left = left,
-                        top = top,
-                        right = right,
-                        bottom = bottom,
-                        cornerRadius = CornerRadius(cornerRadius, cornerRadius)
-                    )
-                    highlightPath.addRoundRect(roundRect, Path.Direction.CW)
+                when (currentTarget.shape) {
+                    is SpotlightShape.RoundedRect -> {
+                        val cornerRadius = currentTarget.shape.cornerRadius
+                        val roundRect = RoundRect(
+                            left = left,
+                            top = top,
+                            right = right,
+                            bottom = bottom,
+                            cornerRadius = CornerRadius(cornerRadius, cornerRadius)
+                        )
+                        highlightPath.addRoundRect(roundRect, Path.Direction.CW)
+                    }
+                    SpotlightShape.Circle -> {
+                        val centerX = (left + right) / 2f
+                        val centerY = (top + bottom) / 2f
+                        val radius = maxOf(right - left, bottom - top) / 2f + 12f // ~8dp
+                        highlightPath.addCircle(centerX, centerY, radius, Path.Direction.CW)
+                    }
                 }
-                SpotlightShape.Circle -> {
-                    val centerX = (left + right) / 2f
-                    val centerY = (top + bottom) / 2f
-                    val radius = maxOf(right - left, bottom - top) / 2f + 12f // ~8dp
-                    highlightPath.addCircle(centerX, centerY, radius, Path.Direction.CW)
-                }
+
+                // Cut out the highlight area from the scrim
+                val scrimPath = Path()
+                scrimPath.op(screenPath, highlightPath, PathOperation.Difference)
+
+                drawPath(
+                    path = scrimPath,
+                    color = scrimColor,
+                )
             }
-
-            // Cut out the highlight area from the scrim
-            val scrimPath = Path()
-            scrimPath.op(screenPath, highlightPath, PathOperation.Difference)
-
-            drawPath(
-                path = scrimPath,
-                color = scrimColor,
-            )
-        }
-
+    ) {
         // Caption card positioned near the highlight
         CaptionCard(
             target = currentTarget,
