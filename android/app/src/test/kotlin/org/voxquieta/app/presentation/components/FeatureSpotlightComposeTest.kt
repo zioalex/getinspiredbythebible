@@ -37,19 +37,19 @@ class FeatureSpotlightComposeTest : ComposeTestHarness() {
         var completed = false
         val targets = listOf(
             SpotlightTarget(
-                bounds = Rect(100, 100, 200, 200),
+                bounds = Rect(100f, 100f, 200f, 200f),
                 captionRes = R.string.tour_step_1_drawer,
             ),
             SpotlightTarget(
-                bounds = Rect(300, 100, 400, 200),
+                bounds = Rect(300f, 100f, 400f, 200f),
                 captionRes = R.string.tour_step_2_translation,
             ),
             SpotlightTarget(
-                bounds = Rect(100, 300, 200, 400),
+                bounds = Rect(100f, 300f, 200f, 400f),
                 captionRes = R.string.tour_step_3_language,
             ),
             SpotlightTarget(
-                bounds = Rect(300, 300, 400, 400),
+                bounds = Rect(300f, 300f, 400f, 400f),
                 captionRes = R.string.tour_step_4_input,
             ),
         )
@@ -105,11 +105,11 @@ class FeatureSpotlightComposeTest : ComposeTestHarness() {
         var completed = false
         val targets = listOf(
             SpotlightTarget(
-                bounds = Rect(100, 100, 200, 200),
+                bounds = Rect(100f, 100f, 200f, 200f),
                 captionRes = R.string.tour_step_1_drawer,
             ),
             SpotlightTarget(
-                bounds = Rect(300, 100, 400, 200),
+                bounds = Rect(300f, 100f, 400f, 200f),
                 captionRes = R.string.tour_step_2_translation,
             ),
         )
@@ -148,7 +148,7 @@ class FeatureSpotlightComposeTest : ComposeTestHarness() {
         // This test verifies the component doesn't crash in RTL context.
         val targets = listOf(
             SpotlightTarget(
-                bounds = Rect(100, 100, 200, 200),
+                bounds = Rect(100f, 100f, 200f, 200f),
                 captionRes = R.string.tour_step_1_drawer,
             ),
         )
