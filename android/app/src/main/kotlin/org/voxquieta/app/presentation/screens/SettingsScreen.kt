@@ -306,6 +306,19 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
+            TextButton(
+                onClick = {
+                    context.clearTourSeen()
+                    // Navigate back to chat to trigger the tour
+                    onNavigateBack()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_show_app_tour),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }

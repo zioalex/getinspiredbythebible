@@ -311,4 +311,16 @@
     <string name="settings_tts_title">Lettura ad alta voce</string>
     <string name="settings_tts_show_listen">Mostra il pulsante Ascolta</string>
     <string name="settings_tts_show_listen_desc">Aggiunge un pulsante Ascolta alle risposte. Le risposte sono lette dalla voce del tuo dispositivo; il testo non lascia mai il tuo dispositivo.</string>
+
+    <!-- Feature Spotlight / Coach Marks (BITB-054) -->
+    <string name="tour_title">Tour dell\'app</string>
+    <string name="tour_step_indicator">Passo %1$d di %2$d</string>
+    <string name="tour_step_1_drawer">Qui trovi la cronologia chat, le impostazioni e le nuove chat.</string>
+    <string name="tour_step_2_translation">Cambia versione della Bibbia.</string>
+    <string name="tour_step_3_language">Cambia la lingua dell\'app.</string>
+    <string name="tour_step_4_input">Inizia una conversazione.</string>
+    <string name="tour_next">Avanti</string>
+    <string name="tour_skip">Salta</string>
+    <string name="tour_done">Fine</string>
+    <string name="settings_show_app_tour">Mostra di nuovo il tour dell\'app</string>
 </resources>

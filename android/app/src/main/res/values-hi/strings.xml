@@ -310,4 +310,16 @@
     <string name="settings_tts_title">ज़ोर से पढ़ना</string>
     <string name="settings_tts_show_listen">सुनें बटन दिखाएँ</string>
     <string name="settings_tts_show_listen_desc">उत्तरों में सुनें बटन जोड़ता है। उत्तर आपके डिवाइस की आवाज़ में पढ़े जाते हैं; टेक्स्ट आपके डिवाइस से बाहर कभी नहीं जाता।</string>
+
+    <!-- Feature Spotlight / Coach Marks (BITB-054) -->
+    <string name="tour_title">ऐप टूर</string>
+    <string name="tour_step_indicator">चरण %1$d का %2$d</string>
+    <string name="tour_step_1_drawer">आपका चैट इतिहास, सेटिंग्स और नए चैट यहाँ हैं।</string>
+    <string name="tour_step_2_translation">बाइबिल संस्करण बदलें।</string>
+    <string name="tour_step_3_language">ऐप की भाषा बदलें।</string>
+    <string name="tour_step_4_input">बातचीत शुरू करें।</string>
+    <string name="tour_next">अगला</string>
+    <string name="tour_skip">छोड़ें</string>
+    <string name="tour_done">पूर्ण</string>
+    <string name="settings_show_app_tour">ऐप टूर फिर से दिखाएँ</string>
 </resources>

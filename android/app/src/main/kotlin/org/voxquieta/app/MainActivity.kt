@@ -80,6 +80,18 @@ private fun Context.markAboutIntroSeen() =
     getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         .edit().putBoolean("about_intro_seen", true).apply()
 
+private fun Context.hasTourBeenSeen(): Boolean =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .getBoolean("tour_seen", false)
+
+private fun Context.markTourSeen() =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .edit().putBoolean("tour_seen", true).apply()
+
+private fun Context.clearTourSeen() =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .edit().putBoolean("tour_seen", false).apply()
+
 /** Which first-run sheet (if any) a cold start should show, and whether to mark the
  * What's New version seen. Pure so the priority rule (About intro wins; What's New
  * defers to the next launch rather than being marked seen now) is unit-testable

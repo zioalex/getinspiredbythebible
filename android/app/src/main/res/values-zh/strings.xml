@@ -309,4 +309,16 @@
     <string name="settings_tts_title">朗读</string>
     <string name="settings_tts_show_listen">显示朗读按钮</string>
     <string name="settings_tts_show_listen_desc">在回答中添加朗读按钮。回答由您设备的语音朗读，文字不会离开您的设备。</string>
+
+    <!-- Feature Spotlight / Coach Marks (BITB-054) -->
+    <string name="tour_title">应用导览</string>
+    <string name="tour_step_indicator">第 %1$d 步，共 %2$d 步</string>
+    <string name="tour_step_1_drawer">您的聊天记录、设置和新对话都在这里。</string>
+    <string name="tour_step_2_translation">切换圣经版本。</string>
+    <string name="tour_step_3_language">更改应用语言。</string>
+    <string name="tour_step_4_input">开始对话。</string>
+    <string name="tour_next">下一步</string>
+    <string name="tour_skip">跳过</string>
+    <string name="tour_done">完成</string>
+    <string name="settings_show_app_tour">再次显示应用导览</string>
 </resources>

@@ -310,4 +310,16 @@
     <string name="settings_tts_title">Vorlesen</string>
     <string name="settings_tts_show_listen">Schaltfläche „Anhören“ anzeigen</string>
     <string name="settings_tts_show_listen_desc">Fügt den Antworten eine Schaltfläche zum Anhören hinzu. Die Antworten werden von der Stimme deines Geräts vorgelesen; der Text verlässt dein Gerät nie.</string>
+
+    <!-- Feature Spotlight / Coach Marks (BITB-054) -->
+    <string name="tour_title">App-Tour</string>
+    <string name="tour_step_indicator">Schritt %1$d von %2$d</string>
+    <string name="tour_step_1_drawer">Dein Chat-Verlauf, Einstellungen & neue Chats findest du hier.</string>
+    <string name="tour_step_2_translation">Bibelversion wechseln.</string>
+    <string name="tour_step_3_language">App-Sprache ändern.</string>
+    <string name="tour_step_4_input">Eine Unterhaltung starten.</string>
+    <string name="tour_next">Weiter</string>
+    <string name="tour_skip">Überspringen</string>
+    <string name="tour_done">Fertig</string>
+    <string name="settings_show_app_tour">App-Tour erneut anzeigen</string>
 </resources>
