@@ -5,7 +5,7 @@
 **Size:** M
 **Created:** 2026-10-22
 **Prompted by:** bug report 2026-10-22 — "I cannot see the voice button in the web version although 1.57.0 is
-deployed. The option flag is selected in the menu though." (Linux desktop Firefox)
+deployed. The option flag is selected in the menu though." (Linux desktop Firefox; then "I tested also in Chrome and I don't see it either" — Linux desktop Chrome). The production `TTS_ENABLED` flag is on (Terraform default, and the Android app shows Listen against the same server).
 
 Follow-up to BITB-119 / BITB-205.
 
