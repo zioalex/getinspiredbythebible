@@ -1,5 +1,6 @@
 package org.voxquieta.app.presentation.screens
 
+import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -76,8 +77,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.voxquieta.app.R
-import org.voxquieta.app.ContextExtensions.hasTourBeenSeen
-import org.voxquieta.app.ContextExtensions.markTourSeen
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
@@ -102,6 +101,15 @@ import org.voxquieta.app.utils.DonateRef
 import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
 import org.voxquieta.app.utils.donateUrl
 import kotlinx.coroutines.launch
+
+// BITB-054: SharedPreferences helpers for tour_seen flag
+private fun Context.hasTourBeenSeen(): Boolean =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .getBoolean("tour_seen", false)
+
+private fun Context.markTourSeen() =
+    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        .edit().putBoolean("tour_seen", true).apply()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

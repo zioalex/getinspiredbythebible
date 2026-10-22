@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.offset
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -288,7 +289,8 @@ private fun ControlsBar(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 32.dp, horizontal = 24.dp),
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp),
     ) {
         Row(
             modifier = Modifier
