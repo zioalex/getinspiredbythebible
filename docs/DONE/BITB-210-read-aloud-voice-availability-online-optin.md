@@ -1,6 +1,6 @@
 # BITB-210: Read Aloud — Explain a Missing Voice and Offer Online Voices per Device (Web)
 
-**Status:** 🚧 In Progress (spec confirmed 2026-10-22)
+**Status:** ✅ Done — PR #1190, merged 2026-10-22
 **Priority:** P1
 **Size:** M
 **Created:** 2026-10-22
@@ -71,13 +71,13 @@ The only signal today is the `tts_unavailable` client event.
 
 ## Acceptance criteria
 
-- [ ] `speech.ts` exposes the availability state (local / online-only / none) plus online-voice selection, unit-tested with the speech mock
-- [ ] Consent dialog: Allow speaks and persists; Not now persists and hides; Esc = Not now (Vitest)
-- [ ] Menu toggle "Allow online voices" shows only when online voices exist, and revoking stops playback (Vitest)
-- [ ] Menu note shown for **none**, naming the UI language (Vitest, cross-language)
-- [ ] An offline voice is preferred over an online one even after consent (test)
-- [ ] Privacy policy "Read aloud" section in all 11 locale files
-- [ ] All new strings in 11 `messages/*.json`; lint, tsc, vitest and build green
+- [x] `speech.ts` exposes the availability state (local / online-only / none) plus online-voice selection, unit-tested with the speech mock
+- [x] Consent dialog: Allow speaks and persists; Not now persists and hides; Esc = Not now (Vitest)
+- [x] Menu toggle "Allow online voices" shows only when online voices exist, and revoking stops playback (Vitest)
+- [x] Menu note shown for **none**, naming the UI language (Vitest, cross-language)
+- [x] An offline voice is preferred over an online one even after consent (test)
+- [x] Privacy policy "Read aloud" section in all 11 locale files
+- [x] All new strings in 11 `messages/*.json`; lint, tsc, vitest and build green
 - [ ] Owner check on Linux Firefox: the note explains the missing voice. Owner check on desktop Chrome: the opt-in flow works
 
 ## Out of scope
@@ -125,3 +125,10 @@ The only signal today is the `tts_unavailable` client event.
    - Extend `src/test/speechMock.ts` for `localService: false` voices.
 
 Verification: `cd frontend && npx vitest run && npm run lint && npx tsc --noEmit && npm run build`.
+
+## Follow-ups
+
+- BITB-212 — Android: offer network voices per device
+- BITB-213 — `tts_unavailable` over-counted when voices load slowly
+- BITB-214 — show the privacy note when online voices are enabled from the menu
+- BITB-215 — help for installing an offline voice
