@@ -1,6 +1,5 @@
 package org.voxquieta.app.presentation.screens
 
-import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -100,16 +99,9 @@ import org.voxquieta.app.presentation.viewmodels.ConversationsViewModel
 import org.voxquieta.app.utils.DonateRef
 import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
 import org.voxquieta.app.utils.donateUrl
+import org.voxquieta.app.hasTourBeenSeen
+import org.voxquieta.app.markTourSeen
 import kotlinx.coroutines.launch
-
-// BITB-054: SharedPreferences helpers for tour_seen flag
-private fun Context.hasTourBeenSeen(): Boolean =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .getBoolean("tour_seen", false)
-
-private fun Context.markTourSeen() =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .edit().putBoolean("tour_seen", true).apply()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -202,7 +194,12 @@ fun ChatScreen(
 
     // Feature Spotlight tour (BITB-054)
     var showTour by remember { mutableStateOf(false) }
-    val tourTargets = remember { mutableStateListOf<SpotlightTarget>() }
+    // One nullable slot per tour step (0 = drawer icon, 1 = translation chip,
+    // 2 = language picker, 3 = message input). Each target writes its own slot,
+    // so layout order can neither scramble the step order nor overflow an
+    // index (the previous add(index, …) pattern could throw
+    // IndexOutOfBoundsException if a later composable reported bounds first).
+    val tourTargetSlots = remember { mutableStateListOf<SpotlightTarget?>(null, null, null, null) }
 
     // Load existing conversation when navigated to a specific one.
     // Guard for the "new" route: only start a fresh conversation when the ViewModel
@@ -228,12 +225,12 @@ fun ChatScreen(
     // ensure target composables are laid out and can report their bounds.
     val context = LocalContext.current
     LaunchedEffect(uiState.messages.isEmpty()) {
-        if (uiState.messages.isEmpty() && !context.hasTourBeenSeen() && !showTour) {
+        if (uiState.messages.isEmpty() && !hasTourBeenSeen() && !showTour) {
             // Targets will be populated via onGloballyPositioned callbacks below.
             // We start the tour once all 4 bounds are captured.
             // Use a small delay to allow layout passes to complete.
             kotlinx.coroutines.delay(100)
-            if (tourTargets.size == 4) {
+            if (tourTargetSlots.all { it != null }) {
                 showTour = true
             }
         }
@@ -385,16 +382,11 @@ fun ChatScreen(
                         onClick = { scope.launch { drawerState.open() } },
                         modifier = Modifier
                             .onGloballyPositioned { coordinates ->
-                                val bounds = coordinates.boundsInWindow()
-                                if (tourTargets.size < 4) {
-                                    tourTargets.add(0, SpotlightTarget(
-                                        bounds = bounds,
-                                        captionRes = R.string.tour_step_1_drawer,
-                                        autoOpenDrawer = { scope.launch { drawerState.open() } },
-                                    ))
-                                } else {
-                                    tourTargets[0] = tourTargets[0].copy(bounds = bounds)
-                                }
+                                tourTargetSlots[0] = SpotlightTarget(
+                                    bounds = coordinates.boundsInWindow(),
+                                    captionRes = R.string.tour_step_1_drawer,
+                                    autoOpenDrawer = { scope.launch { drawerState.open() } },
+                                )
                             }
                     ) {
                         Icon(
@@ -424,15 +416,10 @@ fun ChatScreen(
                         onClick = { showTranslationPicker = true },
                         modifier = Modifier
                             .onGloballyPositioned { coordinates ->
-                                val bounds = coordinates.boundsInWindow()
-                                if (tourTargets.size < 4) {
-                                    tourTargets.add(1, SpotlightTarget(
-                                        bounds = bounds,
-                                        captionRes = R.string.tour_step_2_translation,
-                                    ))
-                                } else if (tourTargets.size > 1) {
-                                    tourTargets[1] = tourTargets[1].copy(bounds = bounds)
-                                }
+                                tourTargetSlots[1] = SpotlightTarget(
+                                    bounds = coordinates.boundsInWindow(),
+                                    captionRes = R.string.tour_step_2_translation,
+                                )
                             }
                     ) {
                         Icon(
@@ -445,15 +432,10 @@ fun ChatScreen(
                         onClick = { showLanguagePicker = true },
                         modifier = Modifier
                             .onGloballyPositioned { coordinates ->
-                                val bounds = coordinates.boundsInWindow()
-                                if (tourTargets.size < 4) {
-                                    tourTargets.add(2, SpotlightTarget(
-                                        bounds = bounds,
-                                        captionRes = R.string.tour_step_3_language,
-                                    ))
-                                } else if (tourTargets.size > 2) {
-                                    tourTargets[2] = tourTargets[2].copy(bounds = bounds)
-                                }
+                                tourTargetSlots[2] = SpotlightTarget(
+                                    bounds = coordinates.boundsInWindow(),
+                                    captionRes = R.string.tour_step_3_language,
+                                )
                             }
                     ) {
                         Icon(
@@ -520,18 +502,7 @@ fun ChatScreen(
                                     )
                                 },
                                 modifier = Modifier
-                                    .padding(24.dp)
-                                    .onGloballyPositioned { coordinates ->
-                                        val bounds = coordinates.boundsInWindow()
-                                        if (tourTargets.size < 4) {
-                                            tourTargets.add(3, SpotlightTarget(
-                                                bounds = bounds,
-                                                captionRes = R.string.tour_step_4_input,
-                                            ))
-                                        } else if (tourTargets.size > 3) {
-                                            tourTargets[3] = tourTargets[3].copy(bounds = bounds)
-                                        }
-                                    },
+                                    .padding(24.dp),
                             )
                         }
                     }
@@ -718,25 +689,20 @@ fun ChatScreen(
                 maxLength = uiState.maxMessageLength,
                 modifier = Modifier
                     .onGloballyPositioned { coordinates ->
-                        val bounds = coordinates.boundsInWindow()
-                        if (tourTargets.size < 4) {
-                            tourTargets.add(3, SpotlightTarget(
-                                bounds = bounds,
-                                captionRes = R.string.tour_step_4_input,
-                            ))
-                        } else if (tourTargets.size > 3) {
-                            tourTargets[3] = tourTargets[3].copy(bounds = bounds)
-                        }
+                        tourTargetSlots[3] = SpotlightTarget(
+                            bounds = coordinates.boundsInWindow(),
+                            captionRes = R.string.tour_step_4_input,
+                        )
                     },
             )
         }
     }
     // Feature Spotlight overlay (BITB-054)
-    if (showTour && tourTargets.size == 4) {
+    if (showTour) {
         FeatureSpotlight(
-            targets = tourTargets.toList(),
+            targets = tourTargetSlots.mapNotNull { it },
             onComplete = {
-                context.markTourSeen()
+                markTourSeen()
                 showTour = false
             },
             onStepChange = { step ->

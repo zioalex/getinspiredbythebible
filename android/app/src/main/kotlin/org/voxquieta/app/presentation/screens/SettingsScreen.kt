@@ -1,6 +1,5 @@
 package org.voxquieta.app.presentation.screens
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Column
@@ -47,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.R
+import org.voxquieta.app.clearTourSeen
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
 import org.voxquieta.app.presentation.components.DiagnosticReportBottomSheet
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
@@ -56,11 +56,6 @@ import org.voxquieta.app.utils.donateUrl
 import org.voxquieta.app.utils.privacyUrl
 import org.voxquieta.app.utils.termsUrl
 import kotlinx.coroutines.launch
-
-// BITB-054: SharedPreferences helper for tour_seen flag
-private fun Context.clearTourSeen() =
-    getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        .edit().putBoolean("tour_seen", false).apply()
 
 /** Theme option shown in the settings section. */
 private data class ThemeOption(
@@ -315,7 +310,7 @@ fun SettingsScreen(
             }
             TextButton(
                 onClick = {
-                    context.clearTourSeen()
+                    clearTourSeen()
                     // Navigate back to chat to trigger the tour
                     onNavigateBack()
                 },
