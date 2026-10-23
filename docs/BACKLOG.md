@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-23 (BITB-219 in progress — mobile web header overflowed and hid the Bible selector and New chat; header language switcher now hidden below sm) — previously 2026-10-23 (BITB-218 in progress — next 16.4.2 for critical RCE advisories GHSA-2464-fhr4-w9xw / GHSA-673q-mjm6-r5xr and DoS GHSA-p3m5-59mp-jv5r, unblocks the npm audit gate) — previously 2026-10-23 (BITB-212 in review — orchestrator delegation discipline: hard no-self-edit rules, edit-permission denials on app-code paths, and CI-red dispatch procedure; PR #1193) — previously 2026-10-22 (BITB-210 and BITB-211 done — PR #1190 merged; BITB-213/214/215/216/217 opened as their follow-ups — Android network-voice opt-in, slow-voice telemetry over-count, menu consent note, voice install help, visible verse list) — previously 2026-10-22 (BITB-211 opened and in progress — read aloud no longer reads the hidden VERSES marker, web + Android) — previously 2026-10-22 (BITB-210 opened and in progress — web Listen hidden silently without an offline voice; menu explanation + per-device online-voice opt-in) — previously 2026-10-22 (BITB-205 done — PR #1188 merged, which also restored the deploy workflows' real Azure resource names; BITB-206/207/208/209 opened as its follow-ups — Android rail fling lag, short-answer rail height, Terraform-based Azure rename, web resume watchdog replay) — previously 2026-10-21 (BITB-205 in progress) — previously 2026-10-21 (BITB-196 in review — murder-suicide / elliptical third-party phrasing routes to the ambiguous safety branch, 11 languages; BITB-201/202/203 opened as its follow-ups; BITB-186 closed — PR #1169) — previously 2026-10-19 (BITB-198 in review — keyword fallback gains conservative, Bible-narrative-aware native violence patterns for ru/zh/hi/ko (checked under any UI language), hard-violence table reconciled incl. ru «напасть на»; BITB-204 filed) — previously 2026-10-14 (BITB-186 in review — keyword fallback gains missed zh/ko/ru/hi crisis phrasings and a ru negation guard) — previously 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-23 (BITB-218 done — PR #1195 merged; BITB-219 done — PR #1191 merged; BITB-221/222/223 opened as their follow-ups — header title at 320px, header below 320px, story ID collisions) — previously 2026-10-23 (BITB-219 in progress — mobile web header overflowed and hid the Bible selector and New chat; header language switcher now hidden below sm) — previously 2026-10-23 (BITB-218 in progress — next 16.4.2 for critical RCE advisories GHSA-2464-fhr4-w9xw / GHSA-673q-mjm6-r5xr and DoS GHSA-p3m5-59mp-jv5r, unblocks the npm audit gate) — previously 2026-10-23 (BITB-212 in review — orchestrator delegation discipline: hard no-self-edit rules, edit-permission denials on app-code paths, and CI-red dispatch procedure; PR #1193) — previously 2026-10-22 (BITB-210 and BITB-211 done — PR #1190 merged; BITB-213/214/215/216/217 opened as their follow-ups — Android network-voice opt-in, slow-voice telemetry over-count, menu consent note, voice install help, visible verse list) — previously 2026-10-22 (BITB-211 opened and in progress — read aloud no longer reads the hidden VERSES marker, web + Android) — previously 2026-10-22 (BITB-210 opened and in progress — web Listen hidden silently without an offline voice; menu explanation + per-device online-voice opt-in) — previously 2026-10-22 (BITB-205 done — PR #1188 merged, which also restored the deploy workflows' real Azure resource names; BITB-206/207/208/209 opened as its follow-ups — Android rail fling lag, short-answer rail height, Terraform-based Azure rename, web resume watchdog replay) — previously 2026-10-21 (BITB-205 in progress) — previously 2026-10-21 (BITB-196 in review — murder-suicide / elliptical third-party phrasing routes to the ambiguous safety branch, 11 languages; BITB-201/202/203 opened as its follow-ups; BITB-186 closed — PR #1169) — previously 2026-10-19 (BITB-198 in review — keyword fallback gains conservative, Bible-narrative-aware native violence patterns for ru/zh/hi/ko (checked under any UI language), hard-violence table reconciled incl. ru «напасть на»; BITB-204 filed) — previously 2026-10-14 (BITB-186 in review — keyword fallback gains missed zh/ko/ru/hi crisis phrasings and a ru negation guard) — previously 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -3555,9 +3555,52 @@ foreground media-playback service with a Stop notification, gated on listen-rate
 
 ---
 
-### 🚧 BITB-219: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
+### 🎯 BITB-221: Header Brand Title Unreadable at 320px
 
-**Status:** 🚧 In Progress
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-10-23
+
+Follow-up of BITB-219: at 320px the truncated title shows only "V…"; free width (e.g. drop the
+icon-only app pill below ~360px) so the brand stays readable while the Bible chip and New chat fit.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-221-header-title-readable-at-320px.md`
+
+---
+
+### 🎯 BITB-222: Header Layout Below 320px Is Unguarded
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-10-23
+
+Follow-up of BITB-219: only 320–412px was verified; below that the `shrink-0` controls and a
+non-`shrink-0` menu wrapper can overflow again. Pick a minimum width and guarantee the controls there.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-222-header-below-320px.md`
+
+---
+
+### 🎯 BITB-223: Story IDs Collide Between Concurrent PRs
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-23
+
+Follow-up of BITB-218/219: "highest ID + 1" only sees `main`, so concurrent PRs pick the same number
+(the header story was renumbered 206 → 212 → 213 → 219; #1195 merged titled with a stale ID). Add a
+CI check or reservation rule.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-223-story-id-collisions.md`
+
+---
+
+### ✅ BITB-219: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
+
+**Status:** ✅ Done — PR #1191, merged 2026-10-23
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-22
@@ -3573,8 +3616,11 @@ shrinks the controls group.
 - [x] Header language switcher hidden below `sm`; menu still switches language
 - [x] Title truncates instead of wrapping; New chat has an `aria-label`
 - [x] Vitest coverage across all 11 locales
+- [ ] Owner check on a phone after deploy
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-219-mobile-web-header-overflow.md`
+**Follow-ups:** BITB-221, BITB-222, BITB-223
+
+**Full Story:** `docs/DONE/BITB-219-mobile-web-header-overflow.md`
 
 ---
 
@@ -5937,13 +5983,13 @@ bookkeeping table.
 
 ## Done (Recent Completions)
 
-### 🚧 BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
+### ✅ BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
 
-**Status:** 🚧 In Progress (2026-10-23)
+**Status:** ✅ Done — PR #1195, merged 2026-10-23 (squash commit titled `(BITB-214)`; see BITB-223)
 **Size:** XS
 Bump `next` / `eslint-config-next` to ^16.4.2 to clear two critical RCE advisories and one high DoS
 advisory against next 16.0.0–16.4.0 that fail the `Security & Dependency Check` job on every PR.
-[Full story](BACKLOG_STORIES/BITB-218-bump-next-16-4-2-security.md)
+Follow-ups: BITB-223. [Full story](DONE/BITB-218-bump-next-16-4-2-security.md)
 
 ### BITB-177: Bump Next.js to clear npm-audit CI gate
 
