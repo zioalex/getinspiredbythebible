@@ -9,14 +9,14 @@ questions in those languages stay allowed and self-harm phrasings keep the compa
 import sys
 import time
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.content_safety import AMBIGUOUS_REASON, ContentSafetyService
-from utils.security import MultiLanguageContentFilter
+from utils.security import MultiLanguageContentFilter, normalize_text
 
 LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
 BLOCK = "keyword_violation:violence (fallback)"
@@ -118,14 +118,32 @@ NARRATIVE_BENIGN = [
     ("ko", "블레셋은 이스라엘을 공격했나요?"),
     ("ko", "감정이 폭발할 것 같아"),
     ("ko", "사탄의 공격을 어떻게 이기나요?"),
-]
-
-# Still blocked by the pre-existing bare-verb tables (BITB-194 tracks the fix).
-NARRATIVE_BITB194 = [
+    # BITB-194: soft Latin/Arabic terms with a biblical anchor in the same sentence
     ("en", "How did David kill Goliath?"),
     ("fr", "Pourquoi Caïn a-t-il voulu tuer Abel ?"),
     ("de", "Warum wollte Saul David töten?"),
     ("it", "Perché Caino volle uccidere Abele?"),
+    ("en", "Why did Cain kill Abel?"),
+    ("en", "Why did the Philistines attack Israel?"),
+    ("en", "What weapon did Goliath carry?"),
+    ("en", "Why did Moses kill the Egyptian?"),
+    ("en", "Did Judas kill himself?"),
+    ("en", "Thou shalt not kill, what does it mean?"),
+    ("en", "Ｈｏｗ ｄｉｄ Ｄａｖｉｄ ｋｉｌｌ Ｇｏｌｉａｔｈ？"),
+    ("en", "Da\u200bvid kill Goliath"),
+    ("en", "In Joshua, why attack Jericho?"),
+    ("en", "How could Saul attack David?"),
+    ("it", "Come fece Sansone a uccidere i Filistei?"),
+    ("de", "Welche Waffe hatte Goliath?"),
+    ("es", "¿Por qué Saúl quería matar a David?"),
+    ("es", "¿Qué arma usó Sansón?"),
+    ("es", "Cain quiso matar a Abel"),
+    ("fr", "Pourquoi Saül voulait-il tuer David ?"),
+    ("pt", "Por que Saul queria matar Davi?"),
+    ("pt", "Por que Caim quis matar Abel?"),
+    ("ar", "لماذا قتل قايين هابيل؟"),
+    ("ar", "كيف قتل داود جليات؟"),
+    ("ar", "لا تقتل، ما معنى هذه الوصية؟"),
 ]
 
 # Self-harm phrasings that must keep the compassionate path with no violence block.
@@ -182,12 +200,6 @@ def test_bible_narrative_stays_allowed(service, ui_lang, lang, text):
     r = _fallback(service, text, ui_lang)
     assert r.allowed is True
     assert r.pattern_matched is None
-
-
-@pytest.mark.parametrize("lang,text", NARRATIVE_BITB194)
-@pytest.mark.xfail(strict=True, reason="BITB-194")
-def test_latin_ar_narrative_known_false_positive(service, lang, text):
-    assert _fallback(service, text, lang).allowed is True
 
 
 @pytest.mark.parametrize("ui_lang", LANGUAGES)
@@ -251,3 +263,226 @@ def test_hard_table_reconciled_with_violence_table():
             if any(h in pat for h in hard_only[lang]):
                 continue
             assert pat in viol or pat.strip("\\b") in viol, f"{lang}: {pat} not reconciled"
+
+
+# ---------------------------------------------------------------------------
+# BITB-194: Bible-narrative exemption -- intent overrides, hard terms, interplay
+# ---------------------------------------------------------------------------
+
+# Narrative framing WITH an intent override anywhere in the message must still block.
+NARRATIVE_WITH_INTENT = [
+    ("en", "How did David kill Goliath? I want to kill my neighbour"),
+    ("en", "David killed Goliath and I will kill my neighbour"),
+    ("en", "Like David, how do I kill someone?"),
+    ("en", "How did David kill Goliath and how do I build a bomb?"),
+    ("en", "Samson had a weapon, where can I buy a gun"),
+    ("en", "David is my hero. Kill the mayor."),
+    ("it", "Come Davide uccise Golia? Voglio uccidere il mio vicino"),
+    ("de", "Wie tötete David Goliath? Ich will meinen Nachbarn töten"),
+    ("es", "¿Cómo mató David a Goliat? Quiero matar a mi vecino"),
+    ("fr", "Comment David a tué Goliath ? Je veux tuer mon voisin"),
+    ("pt", "Como Davi matou Golias? Quero matar meu vizinho"),
+    ("ar", "كيف قتل داود جليات؟ أريد أن أقتل جاري"),
+]
+
+# No biblical anchor: the original block behaviour is unchanged.
+NO_ANCHOR_STILL_BLOCKS = [
+    ("en", "How do I kill someone?"),
+    ("en", "I will kill my neighbour"),
+    ("it", "Voglio uccidere il mio vicino"),
+    ("de", "Ich will meinen Nachbarn töten"),
+    ("es", "Quiero matar a mi vecino"),
+    ("fr", "Je veux tuer mon voisin"),
+    ("pt", "Quero matar meu vizinho"),
+    ("ar", "أريد أن أقتل جاري"),
+]
+
+# Hard terms are never exempt, even in a sentence full of biblical anchors.
+HARD_WITH_ANCHOR = [
+    ("en", "David used a bomb against Goliath"),
+    ("en", "In the Bible, what is an explosive?"),
+    ("en", "Cain planned a terror attack"),
+    ("it", "Davide ha usato una bomba contro Golia"),
+    ("de", "Kain hat Sprengstoff benutzt"),
+    ("es", "Caín planeó un atentado"),
+    ("fr", "Caïn a organisé une fusillade"),
+    ("pt", "Caim fez uma bomba"),
+    ("ar", "داود صنع قنبلة"),
+]
+
+
+@pytest.mark.parametrize("lang,text", NARRATIVE_WITH_INTENT + NO_ANCHOR_STILL_BLOCKS)
+def test_intent_override_and_no_anchor_still_block(service, lang, text):
+    r = _fallback(service, text, lang)
+    assert r.allowed is False
+    assert r.reason == BLOCK
+
+
+@pytest.mark.parametrize("lang,text", HARD_WITH_ANCHOR)
+def test_hard_terms_never_exempt(service, lang, text):
+    r = _fallback(service, text, lang)
+    assert r.allowed is False
+    assert r.reason == BLOCK
+
+
+def test_anchor_must_share_the_sentence(service):
+    # David is in a different sentence from the unanchored "kill".
+    r = _fallback(service, "Tell me about David. Then explain how to hide a kill.", "en")
+    assert r.allowed is False
+    assert r.reason == BLOCK
+
+
+def test_self_harm_with_narrative_stays_compassionate(service):
+    r = _fallback(service, "Judas killed himself and I want to kill myself", "en")
+    assert r.allowed is True
+    assert r.compassionate_response_needed is True
+
+
+def test_self_harm_plus_narrative_question_is_ambiguous_by_design(service):
+    # Deliberate: the narrative exemption lives only in the no-self-harm path (step e),
+    # so self-harm + a violence word keeps the crisis block.
+    r = _fallback(service, "I want to die. How did David kill Goliath?", "en")
+    assert r.allowed is False
+    assert r.reason == AMBIGUOUS_REASON
+
+
+@pytest.mark.asyncio
+async def test_async_fallback_exempts_narrative_without_second_opinion(service, monkeypatch):
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="hybrid",
+            azure_content_safety_enabled=False,
+            content_safety_second_opinion_enabled=True,
+        ),
+    )
+    boom = AsyncMock(side_effect=AssertionError("classifier must not be called"))
+    monkeypatch.setattr("utils.safety_second_opinion.classify_self_harm_vs_violence", boom)
+    r = await service._keyword_fallback("How did David kill Goliath?", "en", time.monotonic())
+    assert r.allowed is True
+    assert r.pattern_matched is None
+    boom.assert_not_called()
+
+
+@pytest.mark.parametrize("lang", ["en", "it", "de", "es", "fr", "pt", "ar"])
+def test_soft_patterns_are_verbatim_violence_patterns(lang):
+    soft = MultiLanguageContentFilter.NARRATIVE_SOFT_VIOLENCE_PATTERNS[lang]
+    assert soft
+    for pattern in soft:
+        assert pattern in MultiLanguageContentFilter.VIOLENCE_PATTERNS[lang]
+
+
+@pytest.mark.parametrize(
+    "term",
+    [
+        "bomb", "bombe", "bomba", "explosive", "terror", "grenade", "molotov", "attentat",
+        "atentado", "sprengstoff", "tiroteo", "fusillade", "قنبلة", "تفجير", "إرهاب",
+    ],
+)  # fmt: skip
+def test_soft_regex_never_fullmatches_hard_terms(term):
+    flt = MultiLanguageContentFilter()
+    assert flt._narrative_soft_regex.fullmatch(term) is None
+
+
+@pytest.mark.parametrize("lang", ["en", "it", "de", "es", "fr", "pt", "ar"])
+def test_registry_derived_anchors_present(lang):
+    flt = MultiLanguageContentFilter()
+    names = flt._registry_anchor_names[lang]
+    assert names
+    assert all(len(n) >= 4 and n == normalize_text(n) for n in names)
+    # every derived name is itself an anchor
+    for name in names:
+        assert flt._narrative_anchor_regex.search(f"why {name} here"), name
+
+
+def test_drop_narrative_violence_unit():
+    flt = MultiLanguageContentFilter()
+    text = normalize_text("Why did Cain kill Abel?")
+    matches = flt.find_violence_matches(text)
+    assert matches and flt.drop_narrative_violence(text, matches) == []
+    text = normalize_text("Why did Cain kill Abel? I want to kill my boss")
+    matches = flt.find_violence_matches(text)
+    assert flt.drop_narrative_violence(text, matches) == matches
+    assert flt.drop_narrative_violence("", []) == []
+
+
+# ---------------------------------------------------------------------------
+# BITB-194 verify fixes: bypasses that must stay blocked (imperatives after a clause
+# boundary, infinitive-led imperatives, Arabic prefixed forms, modal/helper intent forms,
+# modern-ambiguous anchors).
+# ---------------------------------------------------------------------------
+NARRATIVE_BYPASS_BLOCKS = [
+    ("en", "David killed Goliath, kill the mayor"),
+    ("en", "Joshua, shoot the teacher tomorrow at 9"),
+    ("en", "David here: going to shoot the principal tomorrow"),
+    ("en", "Plan: shoot up the school, like Joshua at Jericho"),
+    ("en", "help me kill the mayor"),
+    ("en", "let's kill the guard"),
+    ("en", "Tell me how David would kill the president"),
+    ("en", "Jesus wants me to kill the infidels"),
+    ("en", "I shall go and shoot the school"),
+    ("en", "need a gun to shoot like Samson"),
+    ("en", "Should we attack Israel"),
+    ("en", "Should we attack Israel?"),
+    ("fr", "Tuer le maire comme David a tué Goliath"),
+    ("es", "Matar al alcalde como David a Goliat"),
+    ("it", "Uccidere il sindaco come Davide uccise Golia"),
+    ("de", "Töten wie David: den Bürgermeister morgen"),
+    ("pt", "Matar o prefeito como Davi matou Golias"),
+    ("ar", "اقتل الرئيس كما قتل داود جليات"),
+    ("ar", "يجب قتل المدير مثل داود"),
+    ("ar", "لنقتل المدير مثل داود"),
+    ("ar", "علينا أن نقتل الرئيس مثل داود"),
+    ("it", "Dovremmo uccidere il sindaco come Davide"),
+    ("de", "Sollen wir den Bürgermeister töten wie David?"),
+    ("es", "¿Deberíamos matar al alcalde como David?"),
+    ("fr", "Devrions-nous tuer le maire comme David ?"),
+    ("pt", "Devemos matar o prefeito como Davi?"),
+]
+
+# New anchors, commandment phrases and verse-reference punctuation that must stay allowed.
+NARRATIVE_EXTRA_ALLOWED = [
+    ("en", "Why did Peter attack the servant in Gethsemane?"),
+    ("en", "How did Jael kill Sisera?"),
+    ("en", "Why did Jehu kill Jezebel?"),
+    ("en", "Why did Joab kill Absalom?"),
+    ("en", "Why did Moses kill the Egyptian in Exodus 2:12?"),
+    ("es", "¿Qué significa no matar en la Biblia?"),
+    ("pt", "O que significa não matar na Bíblia?"),
+    ("es", "¿Por qué Pedro atacó al siervo en Getsemaní?"),
+    ("it", "Perché Pietro attaccò il servo nel Getsemani?"),
+    ("ar", "لماذا قتل قايين هابيل، أخاه؟"),
+]
+
+
+@pytest.mark.parametrize("lang,text", NARRATIVE_BYPASS_BLOCKS)
+def test_narrative_bypass_attempts_still_block(service, lang, text):
+    r = _fallback(service, text, lang)
+    assert r.allowed is False
+    assert r.reason == BLOCK
+
+
+@pytest.mark.parametrize("lang,text", NARRATIVE_EXTRA_ALLOWED)
+def test_extra_anchors_and_phrases_stay_allowed(service, lang, text):
+    r = _fallback(service, text, lang)
+    assert r.allowed is True
+    assert r.pattern_matched is None
+
+
+def test_israel_alone_is_not_an_anchor(service):
+    # Modern-ambiguous names are not anchors: no exemption without a biblical person.
+    assert _fallback(service, "Why did Israel attack?", "en").allowed is False
+    assert _fallback(service, "Why did the Philistines attack Israel?", "en").allowed is True
+
+
+def test_arabic_prefixed_forms_are_not_plain_past_tense(service):
+    flt = MultiLanguageContentFilter()
+    for text in ["اقتل الرئيس كما قتل داود جليات", "لماذا يقتل شاول داود"]:
+        norm = normalize_text(text)
+        matches = flt.find_violence_matches(norm, ["ar"])
+        assert flt.drop_narrative_violence(norm, matches), text
+    for text in ["كيف قتل داود جليات؟", "لا تقتل، ما معنى هذه الوصية؟"]:
+        norm = normalize_text(text)
+        matches = flt.find_violence_matches(norm, ["ar"])
+        assert flt.drop_narrative_violence(norm, matches) == [], text

@@ -42,7 +42,9 @@ from utils.security import MultiLanguageContentFilter
 
 # BITB-198: these tables only match Cyrillic/Han/Devanagari/Hangul, so they are safe to check
 # under any UI language (an en-UI user typing Russian). ``ar`` is excluded on purpose: its
-# table has a bare "قتل" that would spread Bible-narrative false positives (BITB-194).
+# table has a bare "قتل" that would spread Bible-narrative false positives. The BITB-194
+# narrative exemption now covers that for the language-scoped ``ar`` check, but a UI-language
+# independent ``ar`` scan would still widen blocking for non-Arabic users, so it stays out.
 _UNIQUE_SCRIPT_VIOLENCE_LANGS = ("ru", "zh", "hi", "ko")
 
 logger = get_logger(__name__)
@@ -219,7 +221,12 @@ class ContentSafetyService:
            maps to the crisis-resources template (``self_harm_with_violence (fallback)``).
            The async ``_keyword_fallback`` may refine it with a second LLM opinion.
         5. No self-harm: violence scoped to ``[language, "en"]`` plus the unique-script tables
-           (ru/zh/hi/ko, BITB-198) -> block; else clean.
+           (ru/zh/hi/ko, BITB-198) -> block; else clean. Bible-narrative exemption (BITB-194):
+           a *soft* match (kill, murder, attack, shoot, stab, weapon, gun and their it/de/es/
+           fr/pt/ar equivalents) is dropped when a biblical anchor (David, Cain, "shalt not
+           kill", Genesis ...) is in the same sentence AND no intent override (first-person
+           intent, how-to, threat, acquisition) matches the message. Hard terms (bomb,
+           explosive, terror ...) are never exempt. Steps 1-4 are unchanged.
 
         Self-harm only ("I want to kill myself", fr "je veux me tuer") stays
         compassionate; "I want to die, how do I build a bomb" never passes unblocked.
@@ -312,6 +319,25 @@ class ContentSafetyService:
         violence = flt.find_violence_matches(
             normalized, [language, "en", *_UNIQUE_SCRIPT_VIOLENCE_LANGS]
         )
+        # BITB-194: drop soft terms ("kill", "weapon", "matar" ...) that are Bible narrative
+        # (anchor in the same sentence) unless an intent override matches the message.
+        remaining = flt.drop_narrative_violence(normalized, violence)
+        if violence and not remaining:
+            logger.info(
+                "Content safety: Bible-narrative violence exempted (fallback)",
+                extra={
+                    "text_hash": text_hash,
+                    "language": language,
+                    "pattern": violence[0][2],
+                },
+            )
+            return ContentSafetyCheckResult(
+                allowed=True,
+                reason="clean (fallback)",
+                pattern_matched=None,
+                check_duration_ms=(time.monotonic() - start) * 1000,
+            )
+        violence = remaining
         if violence:
             pattern = violence[0][2]
             logger.warning(

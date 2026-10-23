@@ -504,6 +504,62 @@ _HI_NOT_SELF = r"(?<!खुद को )(?<!ख़ुद को )(?<!अपने
 _HI_NB = r"(?<![\u0900-\u097f\-])"
 
 
+# ---------------------------------------------------------------------------
+# BITB-194: helpers for the Bible-narrative violence exemption
+# ---------------------------------------------------------------------------
+_ACCENT_CLASSES = {
+    "a": "aàáâãä",
+    "e": "eèéêë",
+    "i": "iìíîï",
+    "o": "oòóôõö",
+    "u": "uùúûü",
+    "c": "cç",
+}
+_ARABIC_SCRIPT = re.compile(r"[\u0600-\u06ff]")
+# Clause boundaries for the narrative exemption: sentence ends, comma, colon, dashes (a colon
+# or comma between digits is a verse reference / decimal, not a boundary).
+_NARRATIVE_CLAUSE_SPLIT = re.compile(
+    r"[.!?;\n。！？؟،؛、—–]|(?<!\d):|:(?!\d)|(?<!\d),|,(?!\d)|\s-\s"
+)
+# Politeness / connective words allowed in front of a clause-initial verb.
+_NARRATIVE_LEAD_FILLER = re.compile(
+    r"\s*(?:(?:please|now|just|then|also|and|so|but|bitte|per favore|por favor|"
+    r"s['’]il (?:vous|te) pla[iî]t|et|y|e|und|dann|poi|entonces|ahora|jetzt|maintenant|"
+    r"agora|ora)\s+)*"
+)
+# Soft terms that are nouns: a clause-initial noun ("Murder in Genesis") is a topic, not an order.
+_NARRATIVE_SOFT_NOUNS = frozenset(
+    {
+        "weapon", "gun", "murder", "arma", "armi", "omicidio", "attacco", "waffe", "waffen",
+        "mord", "angriff", "armas", "asesinato", "ataque", "arme", "armes", "meurtre",
+        "attaque", "assassinato", "سلاح", "أسلحة", "جريمة قتل", "هجوم",
+    }
+)  # fmt: skip
+
+
+def _accent_flex(name: str) -> str:
+    """Regex for a Latin name where every accent is optional ("Caïn" matches cain/caín)."""
+    base = "".join(
+        c for c in unicodedata.normalize("NFD", name.lower()) if not unicodedata.combining(c)
+    )
+    return "".join(
+        f"[{_ACCENT_CLASSES[c]}]" if c in _ACCENT_CLASSES else re.escape(c) for c in base
+    )
+
+
+def _arabic_flex(name: str) -> str:
+    """Regex for an Arabic name tolerant of hamza/alif and alif-maqsura/ya spelling."""
+    out = []
+    for c in name:
+        if c in "اأإآ":
+            out.append("[اأإآ]")
+        elif c in "ىي":
+            out.append("[ىي]")
+        else:
+            out.append(re.escape(c))
+    return "".join(out)
+
+
 class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
@@ -1103,6 +1159,300 @@ class MultiLanguageContentFilter:
         ],
     }
 
+    # ------------------------------------------------------------------
+    # BITB-194: Bible-narrative exemption for the keyword violence fallback.
+    #
+    # Applied ONLY in ``ContentSafetyService._full_keyword_fallback`` step (e) (no self-harm).
+    # A violence match is dropped only when ALL hold: (1) the matched text is a SOFT
+    # narrative-capable term (below), (2) a biblical anchor sits in the same sentence,
+    # (3) NO intent override matches anywhere in the message. Every violence term not listed
+    # in NARRATIVE_SOFT_VIOLENCE_PATTERNS (bomb, explosive, terror, grenade, molotov, IED,
+    # attentat/atentado, tiroteo, fusillade, ar قنبلة/متفجر/إرهاب/تفجير/ناسف ...) is hard:
+    # never exempt (fail closed). ru/zh/hi/ko have no soft bare terms (BITB-198 tables
+    # already require intent), so they need no exemption.
+    # ------------------------------------------------------------------
+
+    # Each entry MUST be a verbatim copy of an entry in VIOLENCE_PATTERNS[lang]
+    # (enforced by a test); fullmatched against the text the violence regex matched.
+    NARRATIVE_SOFT_VIOLENCE_PATTERNS = {
+        "en": [
+            r"\bweapon\b",
+            r"\bgun\b",
+            r"\bkill\b",
+            r"\bmurder\b",
+            r"\battack\b",
+            r"\bshoot\b",
+            r"\bstab\b",
+            r"\bslaughter\b",
+        ],
+        "it": [
+            r"\barma\b",
+            r"\barmi\b",
+            r"\buccidere\b",
+            r"\bomicidio\b",
+            r"\battacco\b",
+            r"\bsparare\b",
+            r"\baccoltellare\b",
+        ],
+        "de": [
+            r"\bwaffe\b",
+            r"\bwaffen\b",
+            r"\btöten\b",
+            r"\bmord\b",
+            r"\bangriff\b",
+            r"\bschießen\b",
+            r"\bstechen\b",
+        ],
+        "es": [
+            r"\barma\b",
+            r"\barmas\b",
+            r"\bmatar\b",
+            r"\basesinato\b",
+            r"\bataque\b",
+            r"\bdisparar\b",
+            r"\bapuñalar\b",
+        ],
+        "fr": [
+            r"\barme\b",
+            r"\barmes\b",
+            r"\btuer\b",
+            r"\bmeurtre\b",
+            r"\battaque\b",
+            r"\btirer\b",
+            r"\bpoignarder\b",
+        ],
+        "pt": [
+            r"\barma\b",
+            r"\barmas\b",
+            r"\bmatar\b",
+            r"\bassassinato\b",
+            r"\bataque\b",
+            r"\batirar\b",
+            r"\besfaquear\b",
+        ],
+        "ar": [
+            r"سلاح",
+            r"أسلحة",
+            r"قتل",
+            r"جريمة قتل",
+            r"هجوم",
+        ],
+    }
+
+    # Biblical anchors: people / places (plain words; accent-optional and, for Arabic,
+    # hamza/alif-flexible; Latin names match on word boundaries, Arabic as substrings).
+    # Matched script-agnostically against normalize_text() output.
+    BIBLE_NARRATIVE_ANCHORS = {
+        "en": [
+            "david", "goliath", "cain", "abel", "saul", "judas", "samson", "moses",
+            "joshua", "pharaoh", "herod", "philistine", "philistines", "amalek",
+            "amalekites", "jericho", "elijah", "gideon", "jesus", "peter", "gethsemane",
+            "absalom", "jael", "sisera", "jehu", "jezebel",
+        ],  # fmt: skip
+        "it": [
+            "davide", "golia", "caino", "abele", "giuda", "sansone", "mosè", "giosuè",
+            "faraone", "erode", "filistei", "gerico", "gedeone", "amalec", "gesù", "pietro",
+            "getsemani", "assalonne", "giaele", "sisara", "gezabele",
+        ],  # fmt: skip
+        "de": [
+            "kain", "simson", "mose", "josua", "pharao", "herodes", "philister", "goliath",
+            "gideon", "petrus", "gethsemane", "absalom", "jael", "sisera", "jehu", "isebel",
+        ],  # fmt: skip
+        "es": [
+            "goliat", "caín", "saúl", "sansón", "moisés", "josué", "faraón", "filisteos",
+            "jericó", "herodes", "gedeón", "amalec", "pedro", "getsemaní", "absalón", "jael",
+            "sísara", "jehú", "jezabel",
+        ],  # fmt: skip
+        "fr": [
+            "caïn", "saül", "moïse", "josué", "pharaon", "hérode", "philistins", "gédéon",
+            "amalec", "gethsémani", "absalom", "jézabel", "sisera",
+        ],  # fmt: skip
+        "pt": [
+            "davi", "golias", "caim", "sansão", "faraó", "filisteus", "gideão", "amaleque", "pedro", "getsêmani",
+            "absalão", "jael", "sísera", "jeú", "jezabel",
+        ],  # fmt: skip
+        "ar": [
+            "داود", "جليات", "قايين", "قابيل", "هابيل", "شاول", "يهوذا", "شمشون", "موسى",
+            "يشوع", "فرعون", "هيرودس", "فلسطيني", "عماليق", "أريحا", "يسوع", "بطرس", "أبشالوم", "سيسرا",
+            "إيزابل",
+        ],  # fmt: skip
+    }
+
+    # Regex phrases: commandment wording and generic Bible framing.
+    BIBLE_NARRATIVE_PHRASES = {
+        "en": [
+            r"\bshalt not kill\b",
+            r"\bshall not (?:kill|murder)\b",
+            r"\bshalt not murder\b",
+            r"\b(?:bible|biblical|old testament|scriptures?)\b",
+        ],
+        "it": [r"\bnon uccidere\b", r"\b(?:bibbia|biblic[oa])\b"],
+        "de": [r"\b(?:du )?sollst nicht töten\b", r"\b(?:bibel|biblisch\w*)\b"],
+        "es": [r"\bno matar\b", r"\b(?:biblia|bíblic[oa])\b"],
+        "fr": [r"\b(?:bible|biblique)\b"],
+        "pt": [r"\bn[ãa]o matar\b", r"\b(?:bíblia|bíblic[oa])\b"],
+        "ar": ["لا تقتل", "الكتاب المقدس"],
+    }
+
+    # English book names (TRANSLATION_REGISTRY keys) whose localized names count as anchors.
+    # Ambiguous names (Numbers, Acts, Mark, John, Kings, Job) are deliberately excluded.
+    NARRATIVE_ANCHOR_BOOKS = (
+        "Genesis",
+        "Exodus",
+        "Joshua",
+        "Judges",
+        "1 Samuel",
+        "2 Samuel",
+        "Esther",
+        "Daniel",
+    )
+
+    # language -> registry translation codes whose book names are borrowed as anchors.
+    _NARRATIVE_ANCHOR_REGISTRY_CODES = {
+        "it": ("ita1927",),
+        "de": ("schlachter", "luther1912"),
+        "es": ("valera",),
+        "fr": ("ls1910",),
+        "pt": ("almeida",),
+        "ar": ("arabicsv",),
+    }
+
+    # Intent overrides: first-person intent, how-to, personal target, acquisition,
+    # imperative. Searched over the WHOLE normalized message in all 7 languages; any hit
+    # voids the exemption. Verbs are matched adjacent to the intent marker (a few filler
+    # words at most) so narrative like "Why did Saul want to kill David" or
+    # "Quiero saber por qué Caín quiso matar a Abel" does not trip them.
+    NARRATIVE_INTENT_OVERRIDE_PATTERNS = {
+        "en": [
+            # first-person intent: "I want to kill", "we're going to attack", "I will kill"
+            r"\b(?:i|we)(?:['’](?:m|re|ll|d))?\s+(?:\w+\s+){0,3}?"
+            r"(?:want|wanna|need|plan|planning|going|gonna|intend|intending|decided|ready|"
+            r"will|shall|would|should|must|have\s+to|got\s+to|ought\s+to|better)\s+"
+            r"(?:to\s+)?(?:(?:go|try|just|really|finally|actually)\s+(?:(?:to|and)\s+)?)*"
+            r"(?:kill|murder|attack|shoot|stab|slaughter)\b",
+            # modal questions about oneself: "should we attack ...", "can I shoot ..."
+            r"\b(?:should|shall|must|can|could|might|ought)\s+(?:we|i|you|one|someone)\s+"
+            r"(?:\w+\s+){0,2}?(?:kill|murder|attack|shoot|stab|slaughter)\b",
+            # "let's kill ...", "help me kill ...", "God told me to kill ..."
+            r"\b(?:let['’]?s|let us)\s+(?:\w+\s+){0,2}?(?:kill|murder|attack|shoot|stab|slaughter)\b",
+            r"\b(?:help|teach|assist)\s+(?:me|us)\s+(?:to\s+)?(?:\w+\s+){0,2}?"
+            r"(?:kill|murder|attack|shoot|stab|slaughter)\b",
+            r"\b(?:wants?|wanted|told|tells|commands?|commanded|orders?|ordered|asks?|asked)\s+"
+            r"(?:me|us)\s+to\s+(?:\w+\s+){0,2}?(?:kill|murder|attack|shoot|stab|slaughter)\b",
+            # modern targets (roles and institutions that never occur as Bible victims)
+            r"\b(?:kill|murder|attack|shoot|stab|slaughter)\s+(?:up\s+)?(?:\w+\s+){0,2}?"
+            r"(?:mayor|president|principal|teachers?|boss|neighbou?rs?|police|cops?|"
+            r"politicians?|senators?|infidels?|unbelievers?|school|embassy)\b",
+            r"\b(?:i|we)['’](?:ll|d)\s+(?:\w+\s+){0,2}?(?:kill|murder|attack|shoot|stab|slaughter)\b",
+            r"\bhow\s+(?:do|can|could|should|would|might|does)\s+"
+            r"(?:i|we|you|one|someone|somebody)\b[^.!?;\n]{0,20}?"
+            r"\b(?:kill|murder|attack|shoot|stab|slaughter)\b",
+            r"\bhow\s+to\s+(?:\w+\s+){0,2}?(?:kill|murder|attack|shoot|stab|slaughter)\b",
+            r"\b(?:kill|murder|attack|shoot|stab|slaughter)\s+"
+            r"(?:my|our|your|you|someone|somebody|anyone|anybody)\b",
+            # imperative at the start of a sentence: "Kill the mayor."
+            r"(?:^|[.!?;:,\n—–]|\s-\s)\s*(?:please\s+)?(?:kill|attack|shoot|stab|slaughter)\b",
+            r"\b(?:buy|get|make|build|obtain|acquire|purchase)\s+(?:me\s+)?(?:a|an)\s+"
+            r"(?:\w+\s+)?(?:gun|weapon)\b",
+            r"\bwhere\s+(?:can|do|could|should)\s+(?:i|we)\s+(?:buy|get|purchase|obtain)\b",
+            r"\b(?:need|needs|want|wanna|get)\s+(?:a|an)\s+(?:\w+\s+)?(?:gun|weapon)\b",
+            r"\b(?:gun|weapon)s?\s+to\s+(?:kill|murder|attack|shoot|stab|slaughter)\b",
+        ],
+        "it": [
+            r"\b(?:voglio|vorrei|devo|sto per|ho intenzione di|penso di|intendo|"
+            r"ho deciso di|vado a|stiamo per|vogliamo|dobbiamo|dovremmo|andiamo a)\s+"
+            r"(?:\w+\s+){0,2}?"
+            r"(?:uccidere|ammazzare|sparare|accoltellare|attaccare|assassinare)\b",
+            r"\bcome\s+(?:posso|possiamo|si può|si puo|potrei|faccio per)\s+(?:\w+\s+){0,1}?"
+            r"(?:uccidere|ammazzare|sparare|accoltellare|attaccare|assassinare)\b",
+            r"\bcome\s+(?:uccidere|ammazzare|accoltellare|assassinare)\b",
+            r"\b(?:uccidere|ammazzare|accoltellare|assassinare)\s+(?:il mio|la mia|i miei|"
+            r"le mie|mio|mia|il tuo|la tua|tuo|tua|il nostro|la nostra|qualcuno|qualcuna|"
+            r"chiunque)\b",
+            r"\b(?:comprare|procurarmi|procurare|costruire|fabbricare)\s+(?:una?|un['’]|delle|dei)"
+            r"\s*(?:\w+\s+)?(?:arma|armi|pistola|fucile)\b",
+            r"\bdove\s+(?:posso|possiamo|si può|si puo)\s+(?:comprare|trovare|procurarmi|"
+            r"acquistare)\b",
+        ],
+        "de": [
+            r"\b(?:ich|wir)\s+(?:\w+\s+){0,2}?(?:will|möchte|werde|muss|plane|wollen|werden|"
+            r"möchten|müssen|planen|beabsichtige)\s+(?:\w+\s+){0,2}?"
+            r"(?:töten|umbringen|erschießen|erstechen|angreifen|ermorden)\b",
+            r"\b(?:soll|sollen|sollten|sollte)\s+(?:ich|wir)\s+(?:\w+\s+){0,2}?"
+            r"(?:töten|umbringen|erschießen|erstechen|angreifen|ermorden)\b",
+            r"\bwie\s+(?:kann|könnte|soll|sollte|muss|würde)\s+(?:ich|man|wir|jemand|du)\b"
+            r"[^.!?;\n]{0,25}?\b(?:töten|umbringen|erschießen|erstechen|angreifen|ermorden)\b",
+            r"\b(?:meinen|meine|meinem|mein|unseren|deinen|jemanden|jemand|irgendjemanden)\s+"
+            r"(?:\w+\s+){0,2}?(?:töten|umbringen|erschießen|erstechen|angreifen|ermorden)\b",
+            r"\b(?:waffe|waffen|pistole|gewehr)\s+(?:kaufen|besorgen|bauen|beschaffen|"
+            r"herstellen)\b",
+            r"\bwo\s+(?:kann|könnte|bekomme|kriege|kaufe)\s+ich\b[^.!?;\n]{0,25}?"
+            r"\b(?:kaufen|bekommen|besorgen)\b",
+        ],
+        "es": [
+            r"\b(?:quiero|quisiera|voy a|vamos a|pienso|planeo|tengo que|necesito|debo|"
+            r"queremos|he decidido|debemos|deberíamos|deberia|hay que)\s+"
+            r"(?:\w+\s+){0,2}?"
+            r"(?:matar|disparar|apuñalar|atacar|asesinar)\b",
+            r"\bc[oó]mo\s+(?:puedo|podemos|podría yo|se puede|debo|hago para)\s+"
+            r"(?:\w+\s+){0,1}?(?:matar|disparar|apuñalar|atacar|asesinar)\b",
+            r"\bc[oó]mo\s+(?:matar|asesinar|apuñalar)\b",
+            r"\b(?:matar|asesinar|apuñalar|atacar)\s+(?:a\s+)?(?:mi|mis|tu|tus|nuestro|nuestra|"
+            r"alguien|cualquiera)\b",
+            r"\b(?:comprar|conseguir|fabricar|hacer|construir)\s+(?:un|una)\s+(?:\w+\s+)?"
+            r"(?:arma|pistola|fusil)\b",
+            r"\bd[oó]nde\s+(?:puedo|podemos|se puede)\s+(?:comprar|conseguir|encontrar)\b",
+        ],
+        "fr": [
+            r"(?:\bje\b|\bj['’]|\bnous\b)\s*(?:\w+\s+){0,2}?"
+            r"(?:veux|voudrais|vais|dois|compte|souhaite|allons|voulons|devons|envisage|"
+            r"devrions|devrais)\s+"
+            r"(?:\w+\s+){0,2}?(?:tuer|poignarder|tirer|attaquer|assassiner|abattre)\b",
+            r"\b(?:devrions-nous|devons-nous|dois-je|devrais-je|faut-il|faudrait-il|"
+            r"allons-nous|il faut)\s+(?:\w+\s+){0,2}?"
+            r"(?:tuer|poignarder|tirer|attaquer|assassiner|abattre)\b",
+            r"\bj['’]ai\s+l['’]intention\s+de\s+(?:\w+\s+){0,2}?"
+            r"(?:tuer|poignarder|tirer|attaquer|assassiner|abattre)\b",
+            r"\bcomment\s+(?:puis-je|je peux|peut-on|on peut|pourrais-je|je pourrais|"
+            r"pourrait-on)\s+(?:\w+\s+){0,1}?(?:tuer|poignarder|tirer|attaquer|assassiner|abattre)\b",
+            r"\bcomment\s+(?:tuer|assassiner|poignarder|abattre)\b",
+            r"\b(?:tuer|poignarder|assassiner|abattre|attaquer|tirer sur)\s+"
+            r"(?:mon|ma|mes|ton|ta|tes|notre|nos|quelqu['’]un|n['’]importe qui)\b",
+            r"\b(?:acheter|obtenir|fabriquer|construire|me procurer)\s+(?:une?|des)\s+"
+            r"(?:\w+\s+)?(?:arme|armes|pistolet|fusil)\b",
+            r"\bo[uù]\s+(?:puis-je|je peux|peut-on|on peut)\s+(?:\w+\s+){0,2}?"
+            r"(?:acheter|trouver|obtenir|me procurer)\b",
+        ],
+        "pt": [
+            r"\b(?:quero|vou|planejo|planeio|tenho que|tenho de|preciso|pretendo|queremos|"
+            r"vamos|decidi|devo|devemos|deveríamos)\s+(?:\w+\s+){0,2}?"
+            r"(?:matar|atirar|esfaquear|atacar|assassinar)\b",
+            r"\bcomo\s+(?:posso|podemos|eu posso|se pode|devo|fazer para)\s+(?:\w+\s+){0,1}?"
+            r"(?:matar|atirar|esfaquear|atacar|assassinar)\b",
+            r"\bcomo\s+(?:pode\s+)?(?:matar|assassinar|esfaquear)\b",
+            r"\b(?:matar|assassinar|esfaquear|atacar)\s+(?:o\s+|a\s+)?(?:meu|minha|meus|"
+            r"minhas|teu|tua|nosso|nossa|alguém|alguem)\b",
+            r"\b(?:comprar|conseguir|fabricar|fazer|construir)\s+(?:uma?)\s+(?:\w+\s+)?"
+            r"(?:arma|pistola|fuzil)\b",
+            r"\bonde\s+(?:posso|podemos|se pode)\s+(?:comprar|conseguir|encontrar)\b",
+        ],
+        "ar": [
+            r"(?:أريد|اريد|أود|اود|أنوي|انوي|أرغب|ارغب|أخطط|اخطط|نريد|نود|ننوي)\s+"
+            r"(?:أن\s+|ان\s+)?(?:أ|ا|ن)قتل",
+            r"(?:سأقتل|ساقتل|سنقتل|سوف\s+(?:أ|ا|ن)قتل|سأهاجم|ساهاجم|سنهاجم)",
+            r"كيف\s+(?:أ|ا|ن)قتل",
+            r"كيف\s+(?:يمكنني|يمكننا|أستطيع|استطيع|أقدر|اقدر)\s+(?:أن\s+|ان\s+)?(?:أ|ا|ن)قتل",
+            r"قتل\s+(?:جاري|جارتي|زوجي|زوجتي|أخي|اخي|أحد|احد)",
+            r"(?:شراء|اشتري|أشتري|أحصل على|احصل على|أصنع|اصنع)\s+(?:ال)?"
+            r"(?:سلاح|مسدس|بندقية|أسلحة)",
+            r"أين\s+(?:يمكنني|أجد|اجد|أشتري|اشتري)",
+            # imperative / first person ("اقتل", "أقتل"), "we must kill", "let's kill"
+            r"(?<![\u0600-\u06ff])[اأإ]قتل",
+            r"لنقتل",
+            r"(?:يجب|ينبغي|علينا|لازم)\s+(?:أن\s+|ان\s+)?(?:ال)?(?:ن)?قتل",
+        ],
+    }
+
     def __init__(self):
         """Initialize compiled regex patterns."""
         self._violence_regex = {}
@@ -1140,6 +1490,9 @@ class MultiLanguageContentFilter:
             self._directed_harm_regex[lang] = re.compile(
                 "|".join(patterns), re.IGNORECASE | re.UNICODE
             )
+
+        # Compile the Bible-narrative exemption tables (BITB-194)
+        self._compile_narrative_exemption()
 
     def find_self_harm(
         self, normalized: str, preferred: str | None = None
@@ -1188,6 +1541,116 @@ class MultiLanguageContentFilter:
             if regex:
                 matches.extend((m.start(), m.end(), m.group(0)) for m in regex.finditer(normalized))
         return matches
+
+    def _compile_narrative_exemption(self) -> None:
+        """Compile the BITB-194 soft-term, anchor and intent-override regexes."""
+        self._narrative_soft_regex = re.compile(
+            "(?:"
+            + "|".join(p for pats in self.NARRATIVE_SOFT_VIOLENCE_PATTERNS.values() for p in pats)
+            + ")",
+            re.IGNORECASE | re.UNICODE,
+        )
+        self._narrative_intent_regex = re.compile(
+            "|".join(
+                f"(?:{p})"
+                for pats in self.NARRATIVE_INTENT_OVERRIDE_PATTERNS.values()
+                for p in pats
+            ),
+            re.IGNORECASE | re.UNICODE,
+        )
+
+        self._registry_anchor_names = self._derive_registry_anchor_names()
+        self._narrative_anchor_regex = self._build_anchor_regex()
+
+    def _derive_registry_anchor_names(self) -> dict[str, list[str]]:
+        """Localized names of the narrative books, per language (normalized, >= 4 chars)."""
+        from utils.translation_registry import EXTRA_REVERSE_MAPPINGS, TRANSLATION_REGISTRY
+
+        books = set(self.NARRATIVE_ANCHOR_BOOKS)
+        derived: dict[str, set[str]] = {"en": set(books)}
+        for lang, codes in self._NARRATIVE_ANCHOR_REGISTRY_CODES.items():
+            derived[lang] = set()
+            for code in codes:
+                mapping = TRANSLATION_REGISTRY.get(code) or {}
+                derived[lang].update(mapping[b] for b in books if b in mapping)
+        for alias, english in EXTRA_REVERSE_MAPPINGS.items():
+            if english not in books:
+                continue
+            if _ARABIC_SCRIPT.search(alias):
+                derived["ar"].add(alias)
+            elif alias.isascii():  # English aliases ("Ester"); ru/zh/hi/ko need no anchors
+                derived["en"].add(alias)
+        result: dict[str, list[str]] = {}
+        for lang, names in derived.items():
+            # normalize_text maps digits to letters, so strip the "1." / "2 " prefix first
+            cleaned = {normalize_text(re.sub(r"^\d+[.\-]?\s*", "", n)).strip() for n in names}
+            result[lang] = sorted(n for n in cleaned if len(n) >= 4)
+        return result
+
+    def _build_anchor_regex(self) -> re.Pattern[str]:
+        """One script-agnostic regex: names (Latin on word boundaries, Arabic as substrings)
+        from the static tables and the registry, plus the phrase patterns."""
+        latin: set[str] = set()
+        arabic: set[str] = set()
+        for lang in {*self.BIBLE_NARRATIVE_ANCHORS, *self._registry_anchor_names}:
+            names = [
+                *self.BIBLE_NARRATIVE_ANCHORS.get(lang, []),
+                *self._registry_anchor_names.get(lang, []),
+            ]
+            for name in names:
+                (arabic if _ARABIC_SCRIPT.search(name) else latin).add(name)
+        parts: list[str] = []
+        if latin:
+            parts.append(r"\b(?:" + "|".join(sorted(map(_accent_flex, latin))) + r")\b")
+        if arabic:
+            parts.append("(?:" + "|".join(sorted(map(_arabic_flex, arabic))) + ")")
+        for pats in self.BIBLE_NARRATIVE_PHRASES.values():
+            parts.extend(_arabic_flex(p) if _ARABIC_SCRIPT.search(p) else p for p in pats)
+        return re.compile("|".join(parts), re.IGNORECASE | re.UNICODE)
+
+    def drop_narrative_violence(
+        self, normalized: str, matches: list[tuple[int, int, str]]
+    ) -> list[tuple[int, int, str]]:
+        """Drop violence matches that are Bible narrative (BITB-194).
+
+        ``matches`` are ``(start, end, text)`` tuples from :meth:`find_violence_matches`;
+        ``normalized`` must already be passed through :func:`normalize_text`.
+
+        A match is dropped only if ALL hold: its text fullmatches a soft narrative-capable
+        term, a biblical anchor lies in the same sentence, and NO intent override (first-person
+        intent, how-to, personal target, acquisition, imperative) matches anywhere in the
+        message. Everything else (every hard term) is kept -- fail closed.
+        """
+        if not matches or self._narrative_intent_regex.search(normalized):
+            return matches
+        bounds: list[tuple[int, int]] = []
+        pos = 0
+        for sep in _NARRATIVE_CLAUSE_SPLIT.finditer(normalized):
+            bounds.append((pos, sep.start()))
+            pos = sep.end()
+        bounds.append((pos, len(normalized)))
+
+        def is_narrative(match: tuple[int, int, str]) -> bool:
+            start, _end, text = match
+            if not self._narrative_soft_regex.fullmatch(text):
+                return False
+            clause = next(((a, b) for a, b in bounds if a <= start <= b), None)
+            if clause is None:
+                return False
+            if _ARABIC_SCRIPT.search(text):
+                # Prefixed forms (اقتل, يقتل, لنقتل ...) are not the plain past-tense "killed";
+                # only a bare word, a conjunction prefix (و/ف) or "لا ت" (commandment) passes.
+                prev = normalized[start - 1] if start else " "
+                if _ARABIC_SCRIPT.match(prev) and prev not in "وف":
+                    if normalized[max(0, start - 4) : start] != "لا ت":
+                        return False
+            elif text not in _NARRATIVE_SOFT_NOUNS and _NARRATIVE_LEAD_FILLER.fullmatch(
+                normalized[clause[0] : start]
+            ):
+                return False  # clause-initial verb = imperative ("Kill the mayor", "Tuer ...")
+            return bool(self._narrative_anchor_regex.search(normalized, *clause))
+
+        return [m for m in matches if not is_narrative(m)]
 
     def find_hard_violence_matches(self, normalized: str) -> list[tuple[int, int, str]]:
         """Return ``(start, end, text)`` for every hard-violence term (bombs, terror, ...).
