@@ -311,4 +311,16 @@
     <string name="settings_tts_title">Leitura em voz alta</string>
     <string name="settings_tts_show_listen">Mostrar o botão Ouvir</string>
     <string name="settings_tts_show_listen_desc">Adiciona um botão Ouvir às respostas. As respostas são lidas pela voz do seu dispositivo; o texto nunca sai do seu dispositivo.</string>
+
+    <!-- Feature Spotlight / Coach Marks (BITB-054) -->
+    <string name="tour_title">Tour do app</string>
+    <string name="tour_step_indicator">Passo %1$d de %2$d</string>
+    <string name="tour_step_1_drawer">Seu histórico de chats, configurações e novos chats estão aqui.</string>
+    <string name="tour_step_2_translation">Alternar versões da Bíblia.</string>
+    <string name="tour_step_3_language">Alterar o idioma do app.</string>
+    <string name="tour_step_4_input">Iniciar uma conversa.</string>
+    <string name="tour_next">Próximo</string>
+    <string name="tour_skip">Pular</string>
+    <string name="tour_done">Concluído</string>
+    <string name="settings_show_app_tour">Mostrar tour do app novamente</string>
 </resources>

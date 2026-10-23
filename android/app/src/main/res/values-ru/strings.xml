@@ -312,4 +312,16 @@
     <string name="settings_tts_title">Чтение вслух</string>
     <string name="settings_tts_show_listen">Показывать кнопку «Слушать»</string>
     <string name="settings_tts_show_listen_desc">Добавляет к ответам кнопку «Слушать». Ответы читает голос вашего устройства; текст никогда не покидает устройство.</string>
+
+    <!-- Feature Spotlight / Coach Marks (BITB-054) -->
+    <string name="tour_title">Обзор приложения</string>
+    <string name="tour_step_indicator">Шаг %1$d из %2$d</string>
+    <string name="tour_step_1_drawer">Здесь находятся ваша история чатов, настройки и новые чаты.</string>
+    <string name="tour_step_2_translation">Сменить версию Библии.</string>
+    <string name="tour_step_3_language">Сменить язык приложения.</string>
+    <string name="tour_step_4_input">Начать беседу.</string>
+    <string name="tour_next">Далее</string>
+    <string name="tour_skip">Пропустить</string>
+    <string name="tour_done">Готово</string>
+    <string name="settings_show_app_tour">Показать обзор приложения снова</string>
 </resources>

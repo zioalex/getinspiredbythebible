@@ -309,4 +309,16 @@
     <string name="settings_tts_title">소리 내어 읽기</string>
     <string name="settings_tts_show_listen">듣기 버튼 표시</string>
     <string name="settings_tts_show_listen_desc">답변에 듣기 버튼을 추가합니다. 답변은 기기의 음성으로 읽어 주며, 텍스트는 기기 밖으로 나가지 않습니다.</string>
+
+    <!-- Feature Spotlight / Coach Marks (BITB-054) -->
+    <string name="tour_title">앱 둘러보기</string>
+    <string name="tour_step_indicator">%1$d/%2$d단계</string>
+    <string name="tour_step_1_drawer">채팅 기록, 설정, 새 채팅이 여기에 있습니다.</string>
+    <string name="tour_step_2_translation">성경 번역본 변경.</string>
+    <string name="tour_step_3_language">앱 언어 변경.</string>
+    <string name="tour_step_4_input">대화 시작하기.</string>
+    <string name="tour_next">다음</string>
+    <string name="tour_skip">건너뛰기</string>
+    <string name="tour_done">완료</string>
+    <string name="settings_show_app_tour">앱 둘러보기 다시 보기</string>
 </resources>

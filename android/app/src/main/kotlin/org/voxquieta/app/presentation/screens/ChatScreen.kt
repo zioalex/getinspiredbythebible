@@ -56,6 +56,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -63,8 +64,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -73,8 +76,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.voxquieta.app.R
-import org.voxquieta.app.utils.DonateRef
-import org.voxquieta.app.utils.donateUrl
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
@@ -83,9 +84,11 @@ import org.voxquieta.app.presentation.components.LocalChatViewportBounds
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
 import org.voxquieta.app.presentation.components.LanguageSwitchBanner
 import org.voxquieta.app.presentation.components.ChurchFinderBottomSheet
+import org.voxquieta.app.presentation.components.FeatureSpotlight
 import org.voxquieta.app.presentation.components.FollowUpChips
 import org.voxquieta.app.presentation.components.LanguagePickerBottomSheet
 import org.voxquieta.app.presentation.components.SessionLimitActions
+import org.voxquieta.app.presentation.components.SpotlightTarget
 import org.voxquieta.app.presentation.components.TranslationPickerBottomSheet
 import org.voxquieta.app.presentation.components.VersesPanel
 import org.voxquieta.app.presentation.components.WelcomeBanner
@@ -93,7 +96,11 @@ import org.voxquieta.app.presentation.components.buildVerseRefRegex
 import org.voxquieta.app.presentation.components.cjkBookNamesFrom
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
 import org.voxquieta.app.presentation.viewmodels.ConversationsViewModel
+import org.voxquieta.app.utils.DonateRef
 import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
+import org.voxquieta.app.utils.donateUrl
+import org.voxquieta.app.hasTourBeenSeen
+import org.voxquieta.app.markTourSeen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -185,6 +192,15 @@ fun ChatScreen(
     // Whether the language picker bottom sheet should be open.
     var showLanguagePicker by rememberSaveable { mutableStateOf(false) }
 
+    // Feature Spotlight tour (BITB-054)
+    var showTour by remember { mutableStateOf(false) }
+    // One nullable slot per tour step (0 = drawer icon, 1 = translation chip,
+    // 2 = language picker, 3 = message input). Each target writes its own slot,
+    // so layout order can neither scramble the step order nor overflow an
+    // index (the previous add(index, …) pattern could throw
+    // IndexOutOfBoundsException if a later composable reported bounds first).
+    val tourTargetSlots = remember { mutableStateListOf<SpotlightTarget?>(null, null, null, null) }
+
     // Load existing conversation when navigated to a specific one.
     // Guard for the "new" route: only start a fresh conversation when the ViewModel
     // has no active in-memory conversation. This prevents rotation (which re-runs
@@ -201,6 +217,22 @@ fun ChatScreen(
                 }
             }
             else -> viewModel.loadConversation(conversationId)
+        }
+    }
+
+    // Feature Spotlight tour trigger (BITB-054): show on first launch when chat is empty
+    // and tour hasn't been seen yet. We wait for the first render (messages empty) to
+    // ensure target composables are laid out and can report their bounds.
+    val context = LocalContext.current
+    LaunchedEffect(uiState.messages.isEmpty()) {
+        if (uiState.messages.isEmpty() && !context.hasTourBeenSeen() && !showTour) {
+            // Targets will be populated via onGloballyPositioned callbacks below.
+            // We start the tour once all 4 bounds are captured.
+            // Use a small delay to allow layout passes to complete.
+            kotlinx.coroutines.delay(100)
+            if (tourTargetSlots.all { it != null }) {
+                showTour = true
+            }
         }
     }
 
@@ -346,7 +378,17 @@ fun ChatScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                    IconButton(
+                        onClick = { scope.launch { drawerState.open() } },
+                        modifier = Modifier
+                            .onGloballyPositioned { coordinates ->
+                                tourTargetSlots[0] = SpotlightTarget(
+                                    bounds = coordinates.boundsInWindow(),
+                                    captionRes = R.string.tour_step_1_drawer,
+                                    autoOpenDrawer = { scope.launch { drawerState.open() } },
+                                )
+                            }
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Menu,
                             contentDescription = stringResource(R.string.action_open_chat_history),
@@ -368,6 +410,38 @@ fun ChatScreen(
                                 )
                             }
                         }
+                    }
+                    // ── Bible translation chip ──────────────────────────────────
+                    IconButton(
+                        onClick = { showTranslationPicker = true },
+                        modifier = Modifier
+                            .onGloballyPositioned { coordinates ->
+                                tourTargetSlots[1] = SpotlightTarget(
+                                    bounds = coordinates.boundsInWindow(),
+                                    captionRes = R.string.tour_step_2_translation,
+                                )
+                            }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = stringResource(R.string.drawer_change_bible_version),
+                        )
+                    }
+                    // ── Language picker chip ────────────────────────────────────
+                    IconButton(
+                        onClick = { showLanguagePicker = true },
+                        modifier = Modifier
+                            .onGloballyPositioned { coordinates ->
+                                tourTargetSlots[2] = SpotlightTarget(
+                                    bounds = coordinates.boundsInWindow(),
+                                    captionRes = R.string.tour_step_3_language,
+                                )
+                            }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = stringResource(R.string.drawer_change_language),
+                        )
                     }
                     // ── New chat ───────────────────────────────────────────────
                     IconButton(onClick = onNewConversation) {
@@ -427,7 +501,8 @@ fun ChatScreen(
                                         sendMessage = viewModel::sendMessage,
                                     )
                                 },
-                                modifier = Modifier.padding(24.dp),
+                                modifier = Modifier
+                                    .padding(24.dp),
                             )
                         }
                     }
@@ -612,8 +687,29 @@ fun ChatScreen(
                 isTurnstileReady = uiState.isTurnstileReady,
                 isSessionLimitReached = uiState.isSessionLimitReached,
                 maxLength = uiState.maxMessageLength,
+                modifier = Modifier
+                    .onGloballyPositioned { coordinates ->
+                        tourTargetSlots[3] = SpotlightTarget(
+                            bounds = coordinates.boundsInWindow(),
+                            captionRes = R.string.tour_step_4_input,
+                        )
+                    },
             )
         }
+    }
+    // Feature Spotlight overlay (BITB-054)
+    if (showTour) {
+        FeatureSpotlight(
+            targets = tourTargetSlots.mapNotNull { it },
+            onComplete = {
+                context.markTourSeen()
+                showTour = false
+            },
+            onStepChange = { step ->
+                // Step 0 (drawer) auto-opens drawer via SpotlightTarget.autoOpenDrawer
+                // Other steps don't need special handling
+            },
+        )
     }
     } // ModalNavigationDrawer
 }
