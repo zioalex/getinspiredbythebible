@@ -578,6 +578,132 @@
       "expected": "",
       "skip": [],
       "skipReason": ""
+    },
+    {
+      "id": "verses_comment_en",
+      "language": "en",
+      "input": "Do not worry about tomorrow, as Matthew 6:34 says.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "Do not worry about tomorrow, as Matthew chapter 6, verse 34 says.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_it",
+      "language": "it",
+      "input": "Non preoccupatevi del domani, come dice Matteo 6:34.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "Non preoccupatevi del domani, come dice Matteo capitolo 6, versetto 34.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_de",
+      "language": "de",
+      "input": "Sorgt euch nicht um morgen, wie es in Matthäus 6:34 heißt.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "Sorgt euch nicht um morgen, wie es in Matthäus Kapitel 6, Vers 34 heißt.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_es",
+      "language": "es",
+      "input": "No os preocupéis por el mañana, como dice Mateo 6:34.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "No os preocupéis por el mañana, como dice Mateo capítulo 6, versículo 34.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_fr",
+      "language": "fr",
+      "input": "Ne vous inquiétez pas du lendemain, comme le dit Matthieu 6:34.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "Ne vous inquiétez pas du lendemain, comme le dit Matthieu chapitre 6, verset 34.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_pt",
+      "language": "pt",
+      "input": "Não se preocupem com o amanhã, como diz Mateus 6:34.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "Não se preocupem com o amanhã, como diz Mateus capítulo 6, versículo 34.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_ar",
+      "language": "ar",
+      "input": "لا تهتموا للغد، كما يقول متى 6:34.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "لا تهتموا للغد، كما يقول متى الإصحاح 6، الآية 34.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_ru",
+      "language": "ru",
+      "input": "Не заботьтесь о завтрашнем дне, как говорит Матфея 6:34.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "Не заботьтесь о завтрашнем дне, как говорит Матфея, глава 6, стих 34.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_zh",
+      "language": "zh",
+      "input": "不要为明天忧虑，正如马太福音6:34所说。\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "不要为明天忧虑，正如马太福音第6章第34节所说。",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_hi",
+      "language": "hi",
+      "input": "कल की चिंता मत करो, जैसा मत्ती 6:34 कहता है।\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "कल की चिंता मत करो, जैसा मत्ती अध्याय 6, पद 34 कहता है।",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "verses_comment_ko",
+      "language": "ko",
+      "input": "내일 일을 염려하지 말라고 마태복음6:34은 말합니다.\n\n<!-- VERSES: Matthew 6:34; Philippians 4:6-7 -->",
+      "origin": "BITB-211: the trailing VERSES citation marker is hidden on screen and must not be read",
+      "expected": "내일 일을 염려하지 말라고 마태복음 6장 34절은 말합니다.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "html_comment_inline_en",
+      "language": "en",
+      "input": "Peace be with you. <!-- note --> Amen.",
+      "origin": "BITB-211: any HTML comment is dropped, mid-line too",
+      "expected": "Peace be with you. Amen.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "html_comment_multiline_it",
+      "language": "it",
+      "input": "La pace sia con voi.\n<!-- VERSES:\nJohn 14:27 -->\nAmen.",
+      "origin": "BITB-211: a comment spanning lines is dropped",
+      "expected": "La pace sia con voi.\nAmen.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "html_comment_unterminated_en",
+      "language": "en",
+      "input": "Peace be with you.\n<!-- VERSES: John 14:27",
+      "origin": "BITB-211: an unterminated comment runs to the end",
+      "expected": "Peace be with you.",
+      "skip": [],
+      "skipReason": ""
     }
   ],
   "chunk_cases": [

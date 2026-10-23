@@ -1,10 +1,10 @@
 ---
-lastUpdated: 2026-07-18
+lastUpdated: 2026-10-22
 ---
 
 # Privacy Policy
 
-Last updated: July 18, 2026
+Last updated: October 22, 2026
 
 ## Who We Are
 
@@ -74,6 +74,12 @@ with a passphrase only you know, so it stays in your hands even in transit.
 | Firebase Analytics (Google)   | Anonymised usage analytics                          | [policies.google.com/privacy](https://policies.google.com/privacy) |
 | OpenRouter                    | AI response generation and content-safety screening | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
 | Azure OpenAI (Microsoft)      | Text embeddings for Scripture search                | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+
+## Read Aloud
+
+The Listen button reads answers aloud with your browser's built-in speech synthesis. By default it uses only offline voices installed on your device, so the text of the answer never leaves your device for this feature.
+
+Some browsers offer only online voices for your language. We use an online voice only if you choose "Allow online voices". In that case your browser sends the text of the answer being read to the browser vendor's speech service (for example Google, Microsoft or Apple), which handles it under its own terms; we do not receive or store it. Your choice is saved only on your device, and you can revoke it at any time with the "Allow online voices" switch in the menu, which also stops any reading in progress.
 
 ## Data Retention
 

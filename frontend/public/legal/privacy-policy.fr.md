@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-07-18
+lastUpdated: 2026-10-22
 ---
 
 # Politique de confidentialité
 
 > _Cette traduction a été générée par intelligence artificielle et est fournie à titre de commodité uniquement. En cas d'omission, d'ambiguïté ou de contradiction avec l'original anglais, la version anglaise fait foi et prévaut._
 
-Dernière mise à jour : 18 juillet 2026
+Dernière mise à jour : 22 octobre 2026
 
 ## Qui nous sommes
 
@@ -57,6 +57,12 @@ Vous pouvez consulter, renommer, supprimer ou effacer cet historique à tout mom
 | Firebase Analytics (Google)   | Analyses d'utilisation anonymisées                           | [policies.google.com/privacy](https://policies.google.com/privacy) |
 | OpenRouter                    | Génération de réponses IA et contrôle de sécurité du contenu | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
 | Azure OpenAI (Microsoft)      | Embeddings de texte pour la recherche de passages bibliques  | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+
+## Lecture à voix haute
+
+Le bouton Écouter lit les réponses à voix haute avec la synthèse vocale intégrée à votre navigateur. Par défaut, il n'utilise que des voix hors ligne installées sur votre appareil ; le texte de la réponse ne quitte donc pas votre appareil pour cette fonction.
+
+Certains navigateurs ne proposent que des voix en ligne pour votre langue. Nous n'utilisons une voix en ligne que si vous choisissez « Autoriser les voix en ligne ». Dans ce cas, votre navigateur envoie le texte de la réponse lue au service vocal de l'éditeur du navigateur (par exemple Google, Microsoft ou Apple), qui le traite selon ses propres conditions ; nous ne le recevons ni ne le conservons. Votre choix est enregistré uniquement sur votre appareil et vous pouvez le révoquer à tout moment avec l'interrupteur « Autoriser les voix en ligne » du menu, ce qui arrête aussi toute lecture en cours.
 
 ## Conservation des données
 

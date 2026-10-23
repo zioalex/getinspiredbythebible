@@ -148,7 +148,12 @@
     "listenAnswer": "朗读回答",
     "pauseListening": "暂停朗读",
     "resumeListening": "继续朗读",
-    "showListenButton": "显示朗读按钮"
+    "showListenButton": "显示朗读按钮",
+    "allowOnlineVoices": "允许在线语音",
+    "onlineVoicesNotNow": "暂不",
+    "onlineVoicesDialogTitle": "使用在线语音？",
+    "onlineVoicesDialogBody": "您的浏览器仅有适用于该语言的在线语音。如果您允许，您所收听的每条回答的文本都会发送到浏览器的语音服务（例如 Google、Microsoft 或 Apple）。离线语音绝不会这样做。您可以随时在菜单中更改。",
+    "noVoiceForLanguage": "此浏览器没有{language}语音。"
   },
   "Verses": {
     "scriptureReferences": "圣经参考",

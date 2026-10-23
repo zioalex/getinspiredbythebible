@@ -148,7 +148,12 @@
     "listenAnswer": "Прослушать ответ",
     "pauseListening": "Приостановить чтение",
     "resumeListening": "Продолжить чтение",
-    "showListenButton": "Показывать кнопку «Слушать»"
+    "showListenButton": "Показывать кнопку «Слушать»",
+    "allowOnlineVoices": "Разрешить онлайн-голоса",
+    "onlineVoicesNotNow": "Не сейчас",
+    "onlineVoicesDialogTitle": "Использовать онлайн-голос?",
+    "onlineVoicesDialogBody": "В вашем браузере для этого языка есть только онлайн-голоса. Если вы их разрешите, текст каждого прослушиваемого ответа будет отправляться в сервис речи вашего браузера (например, Google, Microsoft или Apple). Офлайн-голоса так не делают. Вы можете передумать в любой момент в меню.",
+    "noVoiceForLanguage": "В этом браузере нет голоса для языка «{language}»."
   },
   "Verses": {
     "scriptureReferences": "Ссылки на Писание",

@@ -1,6 +1,6 @@
 # BITB-205: Read Aloud — Pause/Resume and a Sticky Side Rail for Answer Actions (Web + Android)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1188, merged 2026-10-22
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-21
@@ -72,21 +72,22 @@ answer, so I don't have to scroll to control playback.
 
 ## Acceptance criteria
 
-- [ ] Android: Play → Pause → Play resumes at the paused chunk, not chunk 0 (engine unit test with a
+- [x] Android: Play → Pause → Play resumes at the paused chunk, not chunk 0 (engine unit test with a
       fake `TextToSpeech` asserting the re-queued chunks)
-- [ ] Android: playing answer B while A is paused resets A (A shows *idle*)
-- [ ] Android: `ON_STOP` and audio-focus loss pause instead of stop; resume continues
-- [ ] Android: ListenButton shows the right icon / label / state description for idle, playing, paused
+- [x] Android: playing answer B while A is paused resets A (A shows *idle*)
+- [x] Android: `ON_STOP` and audio-focus loss pause instead of stop; resume continues
+- [x] Android: ListenButton shows the right icon / label / state description for idle, playing, paused
       (Compose test)
-- [ ] Android: Listen / Copy / Share render in the side rail, not the bottom row; feedback row still at
+- [x] Android: Listen / Copy / Share render in the side rail, not the bottom row; feedback row still at
       the bottom; pure `stickyRailOffset(...)` function unit-tested (above, inside, below the viewport,
       rail taller than answer)
-- [ ] Web: `speech.ts` pause/resume — native path, Android-UA chunk fallback, and the watchdog fallback
+- [x] Web: `speech.ts` pause/resume — native path, Android-UA chunk fallback, and the watchdog fallback
       tested with the speech mock
-- [ ] Web: ListenButton three states (Vitest)
-- [ ] Web: Listen and Share (incl. Copy) render in a sticky rail beside the answer; feedback row stays
-- [ ] New strings in all 11 locales on both platforms; translation validation passes
-- [ ] Backend untouched; frontend lint/tsc/vitest/build and Android unit + Compose tests green in CI
+- [x] Web: ListenButton three states (Vitest)
+- [x] Web: Listen and Share (incl. Copy) render in a sticky rail beside the answer; feedback row stays
+- [x] New strings in all 11 locales on both platforms; translation validation passes
+- [x] Backend untouched; frontend lint/tsc/vitest/build and Android unit + Compose tests green in CI
+- [ ] Owner check on a phone: play a long answer, scroll, pause, background the app, resume
 
 ## Out of scope
 
@@ -157,3 +158,10 @@ AGP in the sandbox).
   `project_name = "bible-app"` / `resource_suffix = "mb0172"`, so every PR preview and main deploy
   failed at `az acr login`. Restored the real names. `api/tests/test_workflow_azure_resource_names.py`
   derives the names from `deployment/terraform.tfvars` and guards against a repeat.
+
+## Follow-ups
+
+- BITB-206 — Android side rail trails one frame behind during a fast fling
+- BITB-207 — short answers grow to the side rail's height (Android)
+- BITB-208 — rename Azure resources to `voxquieta-*` through Terraform
+- BITB-209 — web resume watchdog can replay a chunk when the voice emits no events
