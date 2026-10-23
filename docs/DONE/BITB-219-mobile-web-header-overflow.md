@@ -1,6 +1,6 @@
 # BITB-219: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1191, merged 2026-10-23
 **Priority:** P1 (user-visible, every mobile web session)
 **Size:** S
 **Created:** 2026-10-22
@@ -66,6 +66,7 @@ chat and app icon stay visible. Considered and rejected: compacting every contro
 - [x] The title does not wrap; it truncates instead of pushing controls off-screen
 - [x] The New chat button has an accessible name (`aria-label`) at all widths
 - [x] Vitest coverage asserts the responsive classes and the accessible name for all 11 locales
+- [ ] Owner check on a phone after deploy: voxquieta.org header shows the Bible chip and New chat
 
 ## Out of Scope
 
@@ -93,3 +94,9 @@ controls sat past the right edge, with the title wrapping to two lines. The head
 hidden below `sm` and shown at 1280; the hamburger menu still offers the 11-locale switcher. Vitest:
 73 files / 1335 tests pass; lint, `tsc --noEmit` and Prettier are clean. Note: the overflow was
 clipped, so `documentElement.scrollWidth` did not reveal it — the header's own `scrollWidth` did.
+
+## Follow-ups
+
+- BITB-221 — brand title unreadable at 320px
+- BITB-222 — header layout below 320px is unguarded
+- BITB-223 — story IDs collide between concurrent PRs
