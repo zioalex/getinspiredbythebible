@@ -1,9 +1,15 @@
 # BITB-227: Purchase 1-Year Reserved Capacity for the B2s Compute
 
-**Status:** 🎯 Todo (owner action — the purchase itself cannot be done from this repo)
+**Status:** ❌ Cancelled (2026-10-23) — reserved capacity is **not purchasable in the
+current billing setup** (owner-confirmed: no EA/MCA/CSP billing relationship that
+supports Flexible Server reservations). The ~13.90 CHF/mo lever is void; the
+compute-cost work shifts to **BITB-231** (B2s→B1ms right-size, ~17 CHF/mo), which
+now carries the biggest single compute saving with no reservation-exchange
+considerations. Nothing in this story is actionable as filed.
 **Priority:** P2
 **Size:** S (verify + document; the buy is a portal/CLI action)
 **Created:** 2026-10-23
+**Cancelled:** 2026-10-23
 **Parent:** BITB-150 (Phase 0 follow-up — Part B lever 1, ranked #1 by saving ÷ risk)
 
 ## User Story

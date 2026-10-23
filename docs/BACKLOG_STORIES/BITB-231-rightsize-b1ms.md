@@ -46,13 +46,11 @@ After halfvec halves the vector+index footprint:
    the `scripture_search_latency_p95` alert for 48h; rollback = one config
    change (B-series restart, minutes)
 
-## Reservation interaction (BITB-227)
+## Reservation interaction
 
-If the B2s reservation is already purchased: PostgreSQL Flexible Server
-reservations allow exchanges within the burstable family — the exchange path
-(and its pro-rating) is confirmed in BITB-227's terms check. Sequence note:
-216 explicitly recommended buying-now-and-exchanging over waiting; this story
-is why that check mattered.
+**BITB-227 was cancelled** (2026-10-23): reserved capacity is not purchasable in the
+current billing setup. There is no reservation to exchange — this story is now the
+single biggest compute lever, with no exchange friction either way.
 
 ## Acceptance Criteria
 
@@ -64,7 +62,6 @@ is why that check mattered.
 - [ ] If GO: SKU change in `deployment/main.tf` (B_Standard_B1ms), applied
       off-peak, 48h probe+alert observation window documented
 - [ ] Post-change evidence pull: compute meter drops to the ~25 CHF class
-- [ ] Reservation reconciled (exchange per BITB-227 terms, or expiry handled)
 
 ## Out of Scope
 
@@ -75,5 +72,5 @@ is why that check mattered.
 
 - BITB-150 — parent; "down-sizing is the last lever considered, not the first"
 - BITB-230 — hard prerequisite (the RAM proof)
-- BITB-227 — reservation exchange mechanics
+- BITB-227 — cancelled (reservation not purchasable); this story inherits the compute lever
 - BITB-062 — the latency class of regression this gate exists to prevent

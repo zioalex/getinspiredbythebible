@@ -23,6 +23,8 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-23: BITB-219 opened — hide header language switcher on mobile (PR #1191)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
 
+- 2026-10-23: BITB-234 created — second-tenant ($50 credit) rehearsal environment for the migration chain; production split and reservation-in-new-tenant declined with reasoning
+- 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
 - 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
 - 2026-10-23: BITB-218 in progress — next 16.4.2 for critical RCE advisories (PR #1195)
 - 2026-10-23: BITB-212 opened — orchestrator delegation discipline enforced (PR #1193)
@@ -3118,6 +3120,26 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-234: Second-Tenant Rehearsal Environment — $50 Credit Buys Migration Rehearsals, Not a Prod Split
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-23
+
+The second tenant (e306deba-…, one-time $50 credit) is best spent as a disposable rehearsal
+environment for the migration chain (BITB-230 halfvec, BITB-229 disk shrink, BITB-231 B1ms
+canary) — exactly what MIGRATION_GUIDELINES requires and what the 2026-08-17 outage retro
+demands. Options analysis in the story declines a permanent production split (one-time $50
+vs permanent cross-tenant complexity), declines reservation-in-new-tenant (reservations
+don't cross billing tenants), and declines hosting the shrink's new server there. Cost
+discipline: B1ms server stopped between rehearsal windows (storage-only billing while
+stopped), budget alert at 80% of credit, teardown checklist when the migration chain ships.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-234-credit-tenant-rehearsal-environment.md`
+
+---
+
 ### 🎯 BITB-223: Alert-Rule Rationalization — Actionability Over Inventory
 
 **Status:** 🎯 Todo
@@ -3171,19 +3193,19 @@ the deliverable; enabling the ratio is the reward.
 
 ---
 
-### 🎯 BITB-227: Purchase 1-Year Reserved Capacity for the B2s Compute
+### ❌ BITB-227: Purchase 1-Year Reserved Capacity for the B2s Compute
 
-**Status:** 🎯 Todo (owner action)
+**Status:** ❌ Cancelled (2026-10-23) — reserved capacity is not purchasable in the current
+billing setup (owner-confirmed). The ~13.90 CHF/mo lever is void; BITB-231 (B1ms right-size)
+inherits the compute saving with no exchange friction.
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-23
 
 The #1 cost meter of the subscription: B2s compute at 42.10 CHF/mo on-demand, CPU p95 8.1%,
 always-on. A 1-year reservation (~33% off) saves ~13.90 CHF/mo with zero engineering risk.
-The one trade: the SKU could move to B1ms (BITB-231) within 12 months — recommendation is
-buy-now-and-exchange (size-flexibility terms verified at purchase) rather than wait months
-of savings for a not-yet-cleared downgrade. Includes before/after meter verification and a
-renewal-reminder trap guard.
+Cancelled the same day it was filed: the billing setup cannot purchase reservations.
+See the story file for the cancellation note.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-227-reserved-capacity-b2s.md`
 
