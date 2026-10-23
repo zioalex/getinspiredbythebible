@@ -1,6 +1,7 @@
 # BITB-142: First-Run Feature Spotlight / Coach-Marks (Android)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
+**PR:** #1192 (branch feature/bitb-054-android-tour)
 **Priority:** P2 (Medium) — discoverability of core features
 **Size:** M (1-2 days incl. localization)
 **Created:** 2026-06-17

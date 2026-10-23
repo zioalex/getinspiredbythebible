@@ -1,6 +1,5 @@
 package org.voxquieta.app.presentation.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,8 +29,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,7 +52,7 @@ import org.voxquieta.app.R
  * @param autoOpenDrawer Optional callback to open the drawer for step 0 (drawer icon).
  */
 data class SpotlightTarget(
-    val bounds: androidx.compose.ui.geometry.Rect,
+    val bounds: Rect,
     val captionRes: Int,
     val autoOpenDrawer: (() -> Unit)? = null
 )
@@ -90,15 +96,48 @@ fun FeatureSpotlight(
     val buttonColor = MaterialTheme.colorScheme.primaryContainer
     val buttonContentColor = MaterialTheme.colorScheme.onPrimaryContainer
 
+    // BITB-142: scrim with a cutout around the current target. The overlay Box
+    // is mounted at the window origin and fills it, so window-coordinate bounds
+    // (reported via onGloballyPositioned/boundsInWindow in ChatScreen) are
+    // valid local coordinates here. drawBehind + Path are compose-ui APIs, so
+    // no extra dependencies are needed.
+    val density = LocalDensity.current
+    val holePaddingPx = with(density) { 8.dp.toPx() }
+    val holeCornerRadiusPx = with(density) { 16.dp.toPx() }
+
+    // Rounded-rect hole around the highlighted target, rebuilt per step.
+    val holePath = remember(currentTarget, holePaddingPx, holeCornerRadiusPx) {
+        val b = currentTarget.bounds
+        Path().apply {
+            addRoundRect(
+                RoundRect(
+                    left = b.left - holePaddingPx,
+                    top = b.top - holePaddingPx,
+                    right = b.right + holePaddingPx,
+                    bottom = b.bottom + holePaddingPx,
+                    cornerRadius = CornerRadius(holeCornerRadiusPx, holeCornerRadiusPx),
+                )
+            )
+        }
+    }
+
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .drawBehind {
+                // Full-screen rect minus the hole = the dimmed scrim
+                // (classic inverted-path coach-mark technique).
+                val screenPath = Path().apply {
+                    addRect(Rect(0f, 0f, size.width, size.height))
+                }
+                val scrimPath = Path()
+                scrimPath.op(screenPath, holePath, PathOperation.Difference)
+                drawPath(
+                    path = scrimPath,
+                    color = scrimColor,
+                )
+            }
     ) {
-        // Full-screen scrim
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(scrimColor)
-        )
 
         // Caption card at bottom center
         CaptionCard(
