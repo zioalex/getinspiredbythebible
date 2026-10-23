@@ -1,6 +1,6 @@
 # BITB-211: Read Aloud Reads the Hidden Verse List at the End of an Answer (Web + Android)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1190, merged 2026-10-22
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-22
@@ -28,10 +28,14 @@ comment (`<!--…-->`, multi-line, or unterminated to the end of the text) befor
 
 - [x] Fixture cases `verses_comment_{en,it,de,es,fr,pt,ar,ru,zh,hi,ko}` plus inline, multi-line and
       unterminated comment cases; the web cross-platform test fails without the rule and passes with it
-- [ ] Android `SpeakableTextParityTest` green in CI on the same fixture
+- [x] Android `SpeakableTextParityTest` green in CI on the same fixture
 - [ ] Owner check: a reading on web and Android ends with the answer's last sentence
 
 ## Out of scope
 
 - A visible "Verses cited:" list the model might write in prose (the prompt asks for flowing prose and
   the hidden marker; none observed). Revisit if one shows up.
+
+## Follow-ups
+
+- BITB-216 — watch for a visible "Verses cited" list being read aloud
