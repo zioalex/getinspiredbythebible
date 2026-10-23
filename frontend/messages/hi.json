@@ -148,7 +148,12 @@
     "listenAnswer": "उत्तर सुनें",
     "pauseListening": "पढ़ना थोड़ी देर रोकें",
     "resumeListening": "पढ़ना फिर शुरू करें",
-    "showListenButton": "सुनें बटन दिखाएँ"
+    "showListenButton": "सुनें बटन दिखाएँ",
+    "allowOnlineVoices": "ऑनलाइन आवाज़ों की अनुमति दें",
+    "onlineVoicesNotNow": "अभी नहीं",
+    "onlineVoicesDialogTitle": "ऑनलाइन आवाज़ का उपयोग करें?",
+    "onlineVoicesDialogBody": "आपके ब्राउज़र में इस भाषा के लिए केवल ऑनलाइन आवाज़ें हैं। यदि आप अनुमति देते हैं, तो आप जो भी उत्तर सुनते हैं उसका पाठ आपके ब्राउज़र की स्पीच सेवा (जैसे Google, Microsoft या Apple) को भेजा जाता है। ऑफ़लाइन आवाज़ें ऐसा कभी नहीं करतीं। आप कभी भी मेनू में अपना निर्णय बदल सकते हैं।",
+    "noVoiceForLanguage": "इस ब्राउज़र में {language} के लिए कोई आवाज़ नहीं है।"
   },
   "Verses": {
     "scriptureReferences": "पवित्रशास्त्र संदर्भ",

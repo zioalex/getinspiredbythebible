@@ -4,20 +4,9 @@ import { useLocale } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { Globe } from "lucide-react";
 import { routing } from "@/i18n/routing";
+import { localeLabels } from "@/i18n/localeLabels";
 
-export const localeLabels: Record<string, string> = {
-  en: "English",
-  it: "Italiano",
-  de: "Deutsch",
-  es: "Español",
-  fr: "Français",
-  pt: "Português",
-  ar: "العربية",
-  ru: "Русский",
-  zh: "中文",
-  hi: "हिन्दी",
-  ko: "한국어",
-};
+export { localeLabels };
 
 export default function LanguageSwitcher() {
   const locale = useLocale();

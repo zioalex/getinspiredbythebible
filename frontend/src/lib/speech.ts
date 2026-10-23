@@ -2,8 +2,9 @@
  * BITB-119: on-device speech synthesis controller (web).
  *
  * A module-level singleton over `window.speechSynthesis`, so exactly one answer is
- * ever spoken at a time. Only voices with `localService === true` are used — no text
- * is ever sent to a network speech service. SSR-safe: every window access is guarded.
+ * ever spoken at a time. Offline voices (`localService === true`) are the default — no text
+ * is sent to a network speech service; online voices are used only after the per-device
+ * opt-in (BITB-210). SSR-safe: every window access is guarded.
  */
 
 type Listener = () => void;
@@ -89,26 +90,58 @@ function primaryTag(lang: string): string {
 }
 
 /**
- * The best on-device voice for `locale`, or null. Remote (cloud) voices are ignored.
+ * Picks the best of `candidates` (already filtered to the locale's language).
  * Preference: exact language-tag match, the locale's regional default (e.g. zh-CN), the
  * engine's default voice, then first.
  */
-export function findLocalVoice(locale: string): SpeechSynthesisVoice | null {
-  if (!isSpeechSupported()) return null;
-  const wanted = primaryTag(locale);
-  const candidates = window.speechSynthesis
-    .getVoices()
-    .filter((v) => v.localService === true && primaryTag(v.lang) === wanted);
+function rankVoice(
+  candidates: SpeechSynthesisVoice[],
+  locale: string,
+): SpeechSynthesisVoice | null {
   if (candidates.length === 0) return null;
   const exact = candidates.find(
     (v) => normalizeTag(v.lang) === normalizeTag(locale),
   );
   if (exact) return exact;
-  const regionDefault = REGION_DEFAULTS[wanted];
+  const regionDefault = REGION_DEFAULTS[primaryTag(locale)];
   const regional = regionDefault
     ? candidates.find((v) => normalizeTag(v.lang) === regionDefault)
     : undefined;
   return regional ?? candidates.find((v) => v.default) ?? candidates[0];
+}
+
+function voicesFor(locale: string, local: boolean): SpeechSynthesisVoice[] {
+  const wanted = primaryTag(locale);
+  return window.speechSynthesis
+    .getVoices()
+    .filter(
+      (v) =>
+        (v.localService === true) === local && primaryTag(v.lang) === wanted,
+    );
+}
+
+/** The best on-device voice for `locale`, or null. Remote (cloud) voices are ignored. */
+export function findLocalVoice(locale: string): SpeechSynthesisVoice | null {
+  if (!isSpeechSupported()) return null;
+  return rankVoice(voicesFor(locale, true), locale);
+}
+
+/**
+ * BITB-210: the best online (`localService === false`) voice for `locale`, or null. Speaking
+ * with it sends the text to the browser vendor's speech service, so callers must only use it
+ * after the user's per-device opt-in (`onlineVoiceConsent.ts`).
+ */
+export function findOnlineVoice(locale: string): SpeechSynthesisVoice | null {
+  if (!isSpeechSupported()) return null;
+  return rankVoice(voicesFor(locale, false), locale);
+}
+
+/** BITB-210: which kind of voice this browser offers for a locale; an offline voice wins. */
+export type VoiceAvailability = "local" | "online" | "none";
+
+export function voiceAvailability(locale: string): VoiceAvailability {
+  if (findLocalVoice(locale)) return "local";
+  return findOnlineVoice(locale) ? "online" : "none";
 }
 
 /**

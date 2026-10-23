@@ -14,7 +14,7 @@ import zhMessages from "../../../messages/zh.json";
 import hiMessages from "../../../messages/hi.json";
 import koMessages from "../../../messages/ko.json";
 
-// BITB-206: the sticky header must not overflow on ~360-412px phones.
+// BITB-212: the sticky header must not overflow on ~360-412px phones.
 Element.prototype.scrollIntoView = vi.fn();
 
 vi.mock("react-markdown", () => ({
@@ -95,7 +95,7 @@ const LOCALES: Record<string, typeof enMessages> = {
   ko: koMessages,
 };
 
-describe("ChatIsland header responsive layout (BITB-206)", () => {
+describe("ChatIsland header responsive layout (BITB-212)", () => {
   it.each(Object.keys(LOCALES))(
     "keeps Bible chip and New chat reachable on mobile (%s)",
     async (locale) => {

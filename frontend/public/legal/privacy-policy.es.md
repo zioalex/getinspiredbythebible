@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-07-18
+lastUpdated: 2026-10-22
 ---
 
 # Política de privacidad
 
 > _Esta traducción ha sido generada por inteligencia artificial y se proporciona únicamente como cortesía. En caso de omisión, ambigüedad o contradicción con el original en inglés, prevalece la versión en inglés, que es la canónica._
 
-Última actualización: 18 de julio de 2026
+Última actualización: 22 de octubre de 2026
 
 ## Quiénes somos
 
@@ -57,6 +57,12 @@ Puedes ver, renombrar, eliminar o borrar este historial en cualquier momento. Ta
 | Firebase Analytics (Google)   | Análisis de uso anonimizado                                              | [policies.google.com/privacy](https://policies.google.com/privacy) |
 | OpenRouter                    | Generación de respuestas de IA y comprobación de seguridad del contenido | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
 | Azure OpenAI (Microsoft)      | Embeddings de texto para la búsqueda de pasajes bíblicos                 | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+
+## Lectura en voz alta
+
+El botón Escuchar lee las respuestas en voz alta con la síntesis de voz integrada en tu navegador. De forma predeterminada solo usa voces sin conexión instaladas en tu dispositivo, por lo que el texto de la respuesta no sale de tu dispositivo para esta función.
+
+Algunos navegadores solo ofrecen voces en línea para tu idioma. Solo usamos una voz en línea si eliges "Permitir voces en línea". En ese caso, tu navegador envía el texto de la respuesta que se lee al servicio de voz del fabricante del navegador (por ejemplo, Google, Microsoft o Apple), que lo trata según sus propios términos; nosotros no lo recibimos ni lo almacenamos. Tu elección se guarda solo en tu dispositivo y puedes revocarla en cualquier momento con el interruptor "Permitir voces en línea" del menú, que además detiene cualquier lectura en curso.
 
 ## Retención de datos
 

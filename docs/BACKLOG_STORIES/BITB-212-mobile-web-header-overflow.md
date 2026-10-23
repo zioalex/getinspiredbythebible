@@ -1,4 +1,4 @@
-# BITB-206: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
+# BITB-212: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
 
 **Status:** 🚧 In Progress
 **Priority:** P1 (user-visible, every mobile web session)

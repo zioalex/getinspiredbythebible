@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   findLocalVoice,
+  findOnlineVoice,
   getPausedId,
   getSpeakingId,
   isSpeechSupported,
@@ -11,6 +12,7 @@ import {
   speak,
   stop,
   subscribe,
+  voiceAvailability,
 } from "./speech";
 import {
   FakeSynth,
@@ -361,5 +363,47 @@ describe("pause / resume (BITB-205)", () => {
     resume();
     expect(listener).toHaveBeenCalledTimes(2);
     unsubscribe();
+  });
+});
+
+// BITB-210
+describe("online voices and availability", () => {
+  const online = (lang: string, extra = {}) =>
+    makeVoice(lang, { localService: false, name: `online-${lang}`, ...extra });
+
+  it("findOnlineVoice ignores local voices and other languages", () => {
+    synth.voices = [makeVoice("en-US"), online("de-DE")];
+    expect(findOnlineVoice("en")).toBeNull();
+    expect(findOnlineVoice("de")?.name).toBe("online-de-DE");
+  });
+
+  it("ranks online voices: exact tag, regional default, default, first", () => {
+    synth.voices = [online("zh-TW"), online("zh-CN"), online("zh-HK")];
+    expect(findOnlineVoice("zh")?.lang).toBe("zh-CN");
+    synth.voices = [online("zh-HK"), online("zh-TW", { default: true })];
+    expect(findOnlineVoice("zh")?.lang).toBe("zh-TW");
+    synth.voices = [online("zh-HK"), online("zh-TW")];
+    expect(findOnlineVoice("zh")?.lang).toBe("zh-HK");
+    synth.voices = [online("en-GB"), online("en-US")];
+    expect(findOnlineVoice("en-GB")?.lang).toBe("en-GB");
+  });
+
+  it("voiceAvailability: local wins, then online, then none", () => {
+    synth.voices = [online("en-US"), makeVoice("en-GB")];
+    expect(voiceAvailability("en")).toBe("local");
+    synth.voices = [online("en-US")];
+    expect(voiceAvailability("en")).toBe("online");
+    synth.voices = [makeVoice("de-DE")];
+    expect(voiceAvailability("en")).toBe("none");
+    removeSpeechMock();
+    expect(voiceAvailability("en")).toBe("none");
+    expect(findOnlineVoice("en")).toBeNull();
+  });
+
+  it("speak() uses an online voice unchanged", () => {
+    const v = online("en-US") as unknown as SpeechSynthesisVoice;
+    speak("m1", ["Hello"], v, "en");
+    expect(synth.spoken[0].voice).toBe(v);
+    expect(getSpeakingId()).toBe("m1");
   });
 });
