@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-07-18
+lastUpdated: 2026-10-22
 ---
 
 # 隐私政策
 
 > _本译文由人工智能生成，仅供参考。如有遗漏、含糊或与英文原文不一致之处，以英文版本为准（英文版本为权威文本）。_
 
-最后更新：2026 年 7 月 18 日
+最后更新：2026 年 10 月 22 日
 
 ## 关于我们
 
@@ -57,6 +57,12 @@ Vox Quieta（以下简称"我们"）是一款免费的圣经灵感应用程序�
 | Firebase Analytics（Google）   | 匿名使用分析               | [policies.google.com/privacy](https://policies.google.com/privacy) |
 | OpenRouter                     | AI 回应生成及内容安全检查  | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
 | Azure OpenAI（Microsoft）      | 用于圣经段落检索的文本嵌入 | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+
+## 朗读
+
+“朗读”按钮使用浏览器内置的语音合成功能朗读回答。默认仅使用安装在您设备上的离线语音，因此该功能不会将回答文本发送出您的设备。
+
+部分浏览器只为您的语言提供在线语音。只有在您选择“允许在线语音”时，我们才会使用在线语音。此时，您的浏览器会将正在朗读的回答文本发送到浏览器厂商的语音服务（例如 Google、Microsoft 或 Apple），由其按照自身条款处理；我们不会接收或存储这些文本。您的选择仅保存在您的设备上，您可以随时通过菜单中的“允许在线语音”开关撤销，这也会停止正在进行的朗读。
 
 ## 数据保留
 

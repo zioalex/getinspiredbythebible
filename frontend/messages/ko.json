@@ -148,7 +148,12 @@
     "listenAnswer": "답변 듣기",
     "pauseListening": "읽기 일시정지",
     "resumeListening": "읽기 재개",
-    "showListenButton": "듣기 버튼 표시"
+    "showListenButton": "듣기 버튼 표시",
+    "allowOnlineVoices": "온라인 음성 허용",
+    "onlineVoicesNotNow": "나중에",
+    "onlineVoicesDialogTitle": "온라인 음성을 사용할까요?",
+    "onlineVoicesDialogBody": "이 언어는 브라우저에 온라인 음성만 있습니다. 허용하면 듣는 각 답변의 텍스트가 브라우저의 음성 서비스(예: Google, Microsoft, Apple)로 전송됩니다. 오프라인 음성은 그렇게 하지 않습니다. 언제든지 메뉴에서 바꿀 수 있습니다.",
+    "noVoiceForLanguage": "이 브라우저에는 {language} 음성이 없습니다."
   },
   "Verses": {
     "scriptureReferences": "성경 참조",

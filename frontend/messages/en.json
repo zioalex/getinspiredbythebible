@@ -148,7 +148,12 @@
     "listenAnswer": "Listen to this answer",
     "pauseListening": "Pause reading",
     "resumeListening": "Resume reading",
-    "showListenButton": "Show Listen button"
+    "showListenButton": "Show Listen button",
+    "allowOnlineVoices": "Allow online voices",
+    "onlineVoicesNotNow": "Not now",
+    "onlineVoicesDialogTitle": "Use an online voice?",
+    "onlineVoicesDialogBody": "Your browser only has online voices for this language. If you allow them, the text of each answer you listen to is sent to your browser's speech service (for example Google, Microsoft or Apple). Offline voices never do this. You can change your mind any time in the menu.",
+    "noVoiceForLanguage": "This browser has no voice for {language}."
   },
   "Verses": {
     "scriptureReferences": "Scripture References",

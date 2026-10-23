@@ -132,6 +132,11 @@ function speakVerseReferences(text: string, locale: string): string {
 export function normalizeForSpeech(markdown: string, locale: string): string {
   let text = markdown.replace(/\r\n?/g, "\n");
 
+  // HTML comments are never shown, so never read: above all the trailing
+  // `<!-- VERSES: John 3:16; ... -->` citation marker (BITB-211). An unterminated one
+  // runs to the end of the text.
+  text = text.replace(/<!--[\s\S]*?(?:-->|$)/g, "");
+
   // Markdown images -> alt text; links -> link text; bare URLs removed.
   text = text.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1");
   text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");

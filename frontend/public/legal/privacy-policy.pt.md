@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-07-18
+lastUpdated: 2026-10-22
 ---
 
 # Política de Privacidade
 
 > _Esta tradução foi gerada por inteligência artificial e é fornecida apenas como conveniência. Em caso de omissão, ambiguidade ou contradição com o original em inglês, prevalece a versão em inglês, que é a canônica._
 
-Última atualização: 18 de julho de 2026
+Última atualização: 22 de outubro de 2026
 
 ## Quem somos
 
@@ -57,6 +57,12 @@ Você pode visualizar, renomear, excluir ou limpar esse histórico a qualquer mo
 | Firebase Analytics (Google)   | Análises de uso anonimizadas                                      | [policies.google.com/privacy](https://policies.google.com/privacy) |
 | OpenRouter                    | Geração de respostas de IA e verificação de segurança de conteúdo | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
 | Azure OpenAI (Microsoft)      | Embeddings de texto para busca de passagens bíblicas              | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+
+## Leitura em voz alta
+
+O botão Ouvir lê as respostas em voz alta com a síntese de voz integrada ao seu navegador. Por padrão, ele usa apenas vozes offline instaladas no seu dispositivo, portanto o texto da resposta não sai do seu dispositivo para este recurso.
+
+Alguns navegadores oferecem apenas vozes online para o seu idioma. Só usamos uma voz online se você escolher "Permitir vozes online". Nesse caso, o seu navegador envia o texto da resposta lida ao serviço de voz do fabricante do navegador (por exemplo, Google, Microsoft ou Apple), que o trata conforme os próprios termos; nós não o recebemos nem o armazenamos. A sua escolha é salva somente no seu dispositivo e você pode revogá-la a qualquer momento com a chave "Permitir vozes online" no menu, o que também interrompe qualquer leitura em andamento.
 
 ## Retenção de dados
 
