@@ -34,6 +34,67 @@ the reason to look; the meter export is the reason to act.
 
 ## Phase 0 — Attribution (blocking, do this first)
 
+### Collector repair specification — 2026-10-22
+
+The owner requested repairs to all collectors after inspecting run
+`cost-evidence-20261022-213914`, and confirmed that `DATABASE_URL` must be
+passed into the container at runtime.
+
+- Fix PostgreSQL targeting: discover the actual resource safely, allow an
+  explicit override, and never silently pick the first of multiple servers.
+- Replace extension-dependent Log Analytics queries with native `az rest`
+  calls; use workspace table/column names for Application Insights.
+- Collect alerts from the correct Azure API with its supported retention
+  window, without claiming unavailable 180-day history.
+- Keep Python and Bash behavior aligned and all artifacts inside the mount.
+- Forward `DATABASE_URL` securely at runtime; warn clearly when absent, never
+  print or bake credentials into the image, and preserve read-only SQL.
+- Record failures and skipped work explicitly; do not report partial evidence
+  as a successful complete collection.
+- Acceptance: offline regression tests cover command construction, resource
+  discovery (zero/one/multiple/override), query failures and pagination,
+  runtime database forwarding, SQL skip/failure handling, and mounted output.
+- Out of scope: permission/firewall changes, production data changes, and
+  recreating history beyond Azure's retention. Live verification requires a
+  credentialed rerun; no secrets should be shared in chat.
+
+Implementation plan: repair the Python collector helpers and commands; align
+the Bash entry point; update Docker/run documentation and workflow checks;
+extend offline tests and the image CI gate; independently run the tests and
+review the diff before reporting completion.
+
+Implementation notes (2026-10-22):
+
+- Logs: `az rest` POST `https://api.loganalytics.io/v1/workspaces/{id}/query`
+  (`--resource https://api.loganalytics.io`, `Prefer: wait=180`, subprocess
+  timeout 240s); HTTP 200 bodies with `error` are failures. Dynamic extension
+  install is disabled for every `az` call.
+- Alerts: `Microsoft.AlertsManagement/alerts` `2019-03-01`, `timeRange=30d`,
+  `targetResourceGroup` filter, `nextLink` followed (ARM host only). The
+  documented operation is subscription-scoped; a resource-group path could not
+  be verified in Learn, so it is not used. Whether the SP's resource-group
+  roles are enough for this subscription-scoped list call is unverified until
+  a live run. Retention is 30 days (Azure), never 180.
+- Discovery: Postgres/workspace via `az resource list` in `AZURE_RESOURCE_GROUP`;
+  exactly one candidate or an override (`POSTGRES_SERVER_NAME`,
+  `LOG_ANALYTICS_WORKSPACE_ID`); zero/several is a recorded failure.
+- SQL: `DATABASE_URL` forwarded at runtime only; split into `PG*` env vars (never
+  on argv), read-only session, statement/connect timeouts.
+- The collector exits non-zero and `MANIFEST.json` is `status: partial` when
+  any collection fails; skipped optional SQL gives `complete_with_skips`.
+- Bash entry point is now a thin wrapper that execs the Python collector.
+
+### Collector output persistence fix — 2026-10-22
+
+- Bug: timestamped output was created beside `/app/cost-evidence`, outside the
+  Docker bind mount, so evidence disappeared with the container.
+- Requirement: Python and Bash collectors write every run to
+  `cost-evidence/cost-evidence-<timestamp>/` relative to the working directory
+  (`/app` in Docker); weekly workflow discovery uses that same parent.
+- Verification: offline regression runs Python `main()` with mocked collection
+  commands and checks evidence, manifest, and all collector destinations remain
+  inside the mounted parent. No production queries are needed for this fix.
+
 Per `AGENTS.md` → *Reproducible Repo Analyses*: these numbers do not live in this repo's history, so
 the exact commands are cited and their output is pasted into the PR.
 
@@ -74,6 +135,69 @@ union requests, dependencies, traces, customMetrics, exceptions, availabilityRes
 **Exit criterion for Phase 0:** a table of resource → meter → 3-month monthly cost that sums to the
 actual invoice, plus the per-`DataType` billable GB. Parts A and B are then re-ranked against that
 table, and anything below ~5% of the bill is dropped rather than worked.
+
+### Firewall helper flag fix — 2026-10-23
+
+- Bug: `make az-pg-list-rules` (DB-access helper for the collector's `DATABASE_URL` run) failed with
+  `--name` as the server; the Makefile comment wrongly claimed `--server-name` was retired.
+- Fix: `az postgres flexible-server firewall-rule` takes `--server-name` (server) and `--name` (rule).
+  `az-pg-add-ip` uses `--server-name "$(PG_FW_SERVER)" --name "$(PG_FW_SERVER)"` (rule name unchanged),
+  `az-pg-list-rules` uses `--server-name`, `az-pg-remove-ip` uses `--server-name` + `--name "$(RULE)"` + `--yes`.
+  Arguments are quoted; no `--rule-name`; only the current CLI dialect is supported.
+- Acceptance: offline `tests/test_makefile_firewall.py` (`make -n` plus fake `az`/`curl` on PATH) covers
+  add/list/delete flags, default server, `SERVER=` override, delete rule name, `--rule-name` absence and the
+  missing-`RULE` guard. No live Azure calls.
+
+### Throttling and alerts pagination fix — 2026-10-23
+
+- Bug 1: `01-cost-by-resource-meter.json` failed with `Too Many Requests` (HTTP 429) from the Cost
+  Management Query API. Fix: `run_cli` retries only 429 (`Too Many Requests`/`"code":"429"`) and
+  503 (`Service Unavailable`) for read/query commands: at most 5 attempts, exponential delay
+  5/10/20/40 s capped at 60 s plus up to 2.5 s jitter, total wait budget 180 s, per-attempt
+  timeout and redaction unchanged. A `Retry-After: N` in the CLI output is honored (N > 60 s is
+  not waited for); `az` normally prints only the status text, so this is best-effort. 400/401/403/
+  404, KQL semantic errors, timeouts and `az login` are never retried. If still throttled the
+  result is a failure reading `... [still failing after 5 attempts, waited 75s]`; evidence files
+  record `attempts` when more than one was needed.
+- Bug 2: `07-alert-firing-history.json` failed with `refusing to follow unexpected nextLink` after
+  page 1 (100 instances). Root cause, verified with one read-only `az rest` page on 2026-10-23: Azure
+  returns the absolute link `https://management.azure.com:443/subscriptions/<sub>/providers/
+  Microsoft.AlertsManagement/alerts?api-version&timeRange&targetResourceGroup&pageCount&ctoken` —
+  the explicit `:443` made the old `netloc == management.azure.com` check fail. Fix:
+  `normalize_next_link` requires https, hostname exactly `management.azure.com`, port absent/443,
+  no userinfo/fragment/control/non-ASCII/backslash characters, path exactly this subscription's
+  alerts list (case-insensitive, no suffix or encoding tricks), only known query names without
+  repeats, `api-version`/`timeRange=30d`/`targetResourceGroup` equal to the first request (scope
+  and retention cannot widen) and a continuation token. Relative `/subscriptions/...` links are
+  accepted. The request is re-issued as a canonical `https://management.azure.com<path>?<query>`;
+  loop detection uses the canonical key; the 50-page cap remains. A rejection records
+  `next_link_rejection` (reason, host, path, query parameter names — never values/tokens).
+- Acceptance: offline tests cover 429→success, exhaustion, budget, 503, Retry-After, no retry of
+  permanent errors/timeouts/login, the live link shape, relative links, ~25 hostile/malformed
+  links, widened scope/retention, canonical repeat detection and the page cap. No live cost
+  query was made.
+
+### 90-day Postgres metrics in three 30-day requests — 2026-10-23
+
+- Bug: `06-{cpu,memory,storage}_percent.json` asked Azure Monitor for one 90-day `PT1H` window but the
+  service returned only ~31 days (`data.timespan`), so the evidence silently covered a third of the window.
+  Microsoft Learn: platform metrics are retained 93 days but a single query returns at most 30 days
+  ([data-platform-metrics#retention-of-metrics](https://learn.microsoft.com/azure/azure-monitor/metrics/data-platform-metrics#retention-of-metrics)).
+- Spec: per metric, split the unchanged `metrics_window()` (now-90d..now) into three contiguous 30-day
+  requests (`start+30d·i`, shared boundary instants, last end = window end) and merge them chronologically into
+  the existing `06-{metric}.json` shape (`data.value[].timeseries[].data[]`). The file also records `chunks[]`
+  (requested start/end, actual `data.timespan`, success, error, point counts) and `coverage`.
+- Rules: every chunk is attempted (retries stay in `run_cli`); the file is `success: false` — and the run
+  fails via MANIFEST — if any chunk fails, returns a malformed/empty body, a different metric/unit/interval,
+  a series set that differs between chunks, or an actual `data.timespan` whose start or end is more than 1 hour
+  (bucket rounding) from the requested one (narrowed/truncated or widened). Failed files keep each returned
+  chunk's raw data (no merged `data`). Shared boundary timestamps are de-duplicated (identical values, or one
+  side unpopulated); two different populated values for one instant fail the file. Timestamps are compared
+  as UTC. Null/empty buckets are never filled in: a chunk with no populated sample fails, other gaps are kept
+  and reported via `coverage.fully_populated: false`.
+- Acceptance: offline tests cover the exact three-chunk windows (incl. a leap day and a year boundary), CLI
+  args, merge/dedup/order, truncation, per-chunk failure, empty/malformed bodies, incompatible series and
+  manifest propagation. No live call made; the next live run should confirm the three timespans.
 
 ---
 
