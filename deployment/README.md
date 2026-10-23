@@ -994,7 +994,7 @@ az containerapp revision list -n bible-app-backend -g bible-app-rg -o table
 # Verify firewall rules
 az postgres flexible-server firewall-rule list \
   --resource-group bible-app-rg \
-  --name bible-app-db-xxx
+  --server-name bible-app-db-xxx
 
 # Test connection
 psql "host=bible-app-db-xxx.postgres.database.azure.com dbname=bibleapp user=bibleadmin sslmode=verify-full"
