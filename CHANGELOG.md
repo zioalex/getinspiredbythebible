@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.58.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.57.0...v1.58.0) (2026-10-23)
+
+
+### Features
+
+* explain a missing read-aloud voice, offer online voices, and stop reading the hidden verse list (BITB-210, BITB-211) ([#1190](https://github.com/zioalex/getinspiredbythebible/issues/1190)) ([89be959](https://github.com/zioalex/getinspiredbythebible/commit/89be9597bbf2ccbd464ca5a8136c934f0c3f1dcd))
+* **opencode:** rework model graph — strongest free primary + cross-provider fallback chain ([#1185](https://github.com/zioalex/getinspiredbythebible/issues/1185)) ([6c79eea](https://github.com/zioalex/getinspiredbythebible/commit/6c79eeaea2f4cd960ce32814a2e204af20956c6c))
+* pause/resume read-aloud and sticky side action rail (BITB-205) ([#1188](https://github.com/zioalex/getinspiredbythebible/issues/1188)) ([77a8dbd](https://github.com/zioalex/getinspiredbythebible/commit/77a8dbd702eb911dbda9f85b1537bb7bdc62040b))
+
+
+### Bug Fixes
+
+* **api:** add native ru/zh/hi/ko violence patterns to keyword fallback (BITB-198) ([#1171](https://github.com/zioalex/getinspiredbythebible/issues/1171)) ([5ea714a](https://github.com/zioalex/getinspiredbythebible/commit/5ea714a18e18f751f0b7bed08369ec39a2e696bf))
+* **api:** cover missed zh/ko/ru/hi crisis phrasings in self-harm fallback (BITB-186) ([#1169](https://github.com/zioalex/getinspiredbythebible/issues/1169)) LP ([c8ca4b8](https://github.com/zioalex/getinspiredbythebible/commit/c8ca4b8501157fa06e7c3d14715a3b8ee98dfb4a))
+* **api:** localize blocked-response templates for ru/zh/hi/ko (BITB-197) ([#1182](https://github.com/zioalex/getinspiredbythebible/issues/1182)) ([6238cbc](https://github.com/zioalex/getinspiredbythebible/commit/6238cbc40b29c016b97f95abaea811f1384075d7))
+* **api:** restore self-harm fallback recall for hi/zh question-form crisis phrasings (BITB-200) ([#1180](https://github.com/zioalex/getinspiredbythebible/issues/1180)) ([f39762b](https://github.com/zioalex/getinspiredbythebible/commit/f39762b6585c88273beb2502105d16fdf4d8edb0))
+* **api:** route murder-suicide phrasing to the ambiguous safety branch (BITB-196) ([#1170](https://github.com/zioalex/getinspiredbythebible/issues/1170)) ([2727f3f](https://github.com/zioalex/getinspiredbythebible/commit/2727f3fc7889ef12fa4e4f5fc4ee5f15e5ff6a19))
+* **api:** second-opinion classifier for ambiguous self-harm vs violence fallback (BITB-185) ([#1166](https://github.com/zioalex/getinspiredbythebible/issues/1166)) ([b7b5160](https://github.com/zioalex/getinspiredbythebible/commit/b7b5160821271ca6daa9d800aa747bf89d2178e7))
+* **deps:** bump next to 16.4.2 for critical rce advisories (BITB-214) ([#1195](https://github.com/zioalex/getinspiredbythebible/issues/1195)) ([f80eb04](https://github.com/zioalex/getinspiredbythebible/commit/f80eb04615b130534db0f6710fa1cd5ebfc2c0e5))
+* **frontend:** update lockfile to resolve vite vulnerabilities (GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw, GHSA-587h-7wmj-h5pm, GHSA-9jrq-w75r-8gcw, GHSA-rq7h-c2jc-7f22) ([#1187](https://github.com/zioalex/getinspiredbythebible/issues/1187)) ([6083869](https://github.com/zioalex/getinspiredbythebible/commit/6083869c81ed68d973d5f73bf35e14e16e358009))
+* **opencode:** enforce orchestrator delegation discipline (BITB-212) ([#1193](https://github.com/zioalex/getinspiredbythebible/issues/1193)) ([01c592d](https://github.com/zioalex/getinspiredbythebible/commit/01c592d74e84745258d94719d48b192b33e04989))
+* **web:** hide header language switcher on mobile (BITB-219) ([#1191](https://github.com/zioalex/getinspiredbythebible/issues/1191)) ([94a659d](https://github.com/zioalex/getinspiredbythebible/commit/94a659dce5ce7bdfbf816af1bffd52a79b443419))
+
+
+### Documentation
+
+* close BITB-185 (PR [#1166](https://github.com/zioalex/getinspiredbythebible/issues/1166) merged) ([#1168](https://github.com/zioalex/getinspiredbythebible/issues/1168)) ([04a339d](https://github.com/zioalex/getinspiredbythebible/commit/04a339d33a6e3a4880c1559b57706936b329d624))
+* close BITB-210/211 and file follow-ups BITB-213 to BITB-217 ([#1194](https://github.com/zioalex/getinspiredbythebible/issues/1194)) ([7edfdee](https://github.com/zioalex/getinspiredbythebible/commit/7edfdee23ba839072281a5a2c3b4b910d32fa3c1))
+
 ## [1.57.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.56.0...v1.57.0) (2026-10-12)
 
 ### Features
