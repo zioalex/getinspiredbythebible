@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.R
-import org.voxquieta.app.clearTourSeen
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
 import org.voxquieta.app.presentation.components.DiagnosticReportBottomSheet
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
@@ -310,7 +309,7 @@ fun SettingsScreen(
             }
             TextButton(
                 onClick = {
-                    clearTourSeen()
+                    context.clearTourSeen()
                     // Navigate back to chat to trigger the tour
                     onNavigateBack()
                 },

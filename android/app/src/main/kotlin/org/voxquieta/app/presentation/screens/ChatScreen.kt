@@ -99,8 +99,6 @@ import org.voxquieta.app.presentation.viewmodels.ConversationsViewModel
 import org.voxquieta.app.utils.DonateRef
 import org.voxquieta.app.utils.LOCALIZED_BOOK_TO_ENGLISH
 import org.voxquieta.app.utils.donateUrl
-import org.voxquieta.app.hasTourBeenSeen
-import org.voxquieta.app.markTourSeen
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -225,7 +223,7 @@ fun ChatScreen(
     // ensure target composables are laid out and can report their bounds.
     val context = LocalContext.current
     LaunchedEffect(uiState.messages.isEmpty()) {
-        if (uiState.messages.isEmpty() && !hasTourBeenSeen() && !showTour) {
+        if (uiState.messages.isEmpty() && !context.hasTourBeenSeen() && !showTour) {
             // Targets will be populated via onGloballyPositioned callbacks below.
             // We start the tour once all 4 bounds are captured.
             // Use a small delay to allow layout passes to complete.
@@ -702,7 +700,7 @@ fun ChatScreen(
         FeatureSpotlight(
             targets = tourTargetSlots.mapNotNull { it },
             onComplete = {
-                markTourSeen()
+                context.markTourSeen()
                 showTour = false
             },
             onStepChange = { step ->
