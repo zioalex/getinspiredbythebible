@@ -1,4 +1,4 @@
-# BITB-214: Bump Next.js to 16.4.2 for Critical RCE Advisories
+# BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
 
 **Status:** 🚧 In Progress
 **Priority:** P0 (critical security advisories; blocks every frontend PR's audit gate)
