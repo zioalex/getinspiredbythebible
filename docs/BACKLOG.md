@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-22 (BITB-211 opened and in progress — read aloud no longer reads the hidden VERSES marker, web + Android) — previously 2026-10-22 (BITB-210 opened and in progress — web Listen hidden silently without an offline voice; menu explanation + per-device online-voice opt-in) — previously 2026-10-22 (BITB-205 done — PR #1188 merged, which also restored the deploy workflows' real Azure resource names; BITB-206/207/208/209 opened as its follow-ups — Android rail fling lag, short-answer rail height, Terraform-based Azure rename, web resume watchdog replay) — previously 2026-10-21 (BITB-205 in progress) — previously 2026-10-21 (BITB-196 in review — murder-suicide / elliptical third-party phrasing routes to the ambiguous safety branch, 11 languages; BITB-201/202/203 opened as its follow-ups; BITB-186 closed — PR #1169) — previously 2026-10-19 (BITB-198 in review — keyword fallback gains conservative, Bible-narrative-aware native violence patterns for ru/zh/hi/ko (checked under any UI language), hard-violence table reconciled incl. ru «напасть на»; BITB-204 filed) — previously 2026-10-14 (BITB-186 in review — keyword fallback gains missed zh/ko/ru/hi crisis phrasings and a ru negation guard) — previously 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
+**Last Updated:** 2026-10-22 (BITB-210 and BITB-211 done — PR #1190 merged; BITB-213/214/215/216/217 opened as their follow-ups — Android network-voice opt-in, slow-voice telemetry over-count, menu consent note, voice install help, visible verse list) — previously 2026-10-22 (BITB-211 opened and in progress — read aloud no longer reads the hidden VERSES marker, web + Android) — previously 2026-10-22 (BITB-210 opened and in progress — web Listen hidden silently without an offline voice; menu explanation + per-device online-voice opt-in) — previously 2026-10-22 (BITB-205 done — PR #1188 merged, which also restored the deploy workflows' real Azure resource names; BITB-206/207/208/209 opened as its follow-ups — Android rail fling lag, short-answer rail height, Terraform-based Azure rename, web resume watchdog replay) — previously 2026-10-21 (BITB-205 in progress) — previously 2026-10-21 (BITB-196 in review — murder-suicide / elliptical third-party phrasing routes to the ambiguous safety branch, 11 languages; BITB-201/202/203 opened as its follow-ups; BITB-186 closed — PR #1169) — previously 2026-10-19 (BITB-198 in review — keyword fallback gains conservative, Bible-narrative-aware native violence patterns for ru/zh/hi/ko (checked under any UI language), hard-violence table reconciled incl. ru «напасть на»; BITB-204 filed) — previously 2026-10-14 (BITB-186 in review — keyword fallback gains missed zh/ko/ru/hi crisis phrasings and a ru negation guard) — previously 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
 What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
 `VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
 valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
@@ -3652,44 +3652,138 @@ BITB-205 follow-up: the 1 s resume watchdog restarts the current chunk if a work
 
 ---
 
-### 🚧 BITB-210: Read Aloud — Explain a Missing Voice and Offer Online Voices per Device (Web)
+### ✅ BITB-210: Read Aloud — Explain a Missing Voice and Offer Online Voices per Device (Web)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1190, merged 2026-10-22
 **Priority:** P1
 **Size:** M
 **Created:** 2026-10-22
 
-Bug: on browsers without an offline voice for the UI language (Linux Firefox, desktop Chrome/Edge), web
-Listen is hidden silently while the menu toggle shows "on". Fix: explain it in the menu, and where the
-browser has online voices, offer a one-time per-device opt-in with a privacy note.
+Web Listen was hidden silently without an offline voice (Linux Firefox and Chrome). It now asks once per
+device to use online voices (with a privacy note and a menu toggle to change it), and explains in the
+menu when there is no voice at all. The privacy policy gains a "Read aloud" section in 11 locales.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Availability local / online / none; offline voice always preferred
-- [ ] Consent dialog (Allow / Not now), revocable menu toggle "Allow online voices"
-- [ ] Menu note "This browser has no voice for {language}" when none
-- [ ] Privacy policy "Read aloud" section in 11 locales; strings in 11 locales; Vitest coverage
+- [x] Availability local / online / none; offline voice always preferred
+- [x] Consent dialog and revocable menu toggle; menu note when there is no voice
+- [x] Privacy policy and strings in 11 locales; Vitest coverage
+- [ ] Owner check on Linux Firefox and desktop Chrome
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-210-read-aloud-voice-availability-online-optin.md`
+**Follow-ups:** BITB-213, BITB-214, BITB-215, BITB-217
+
+**Full Story:** `docs/DONE/BITB-210-read-aloud-voice-availability-online-optin.md`
 
 ---
 
-### 🚧 BITB-211: Read Aloud Reads the Hidden Verse List at the End of an Answer (Web + Android)
+### ✅ BITB-211: Read Aloud Reads the Hidden Verse List at the End of an Answer (Web + Android)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1190, merged 2026-10-22
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-22
 
-The trailing `<!-- VERSES: … -->` citation marker is never shown on screen but was read aloud on both
-platforms. Both speakable-text normalizers now drop HTML comments (shared fixture rule).
+Both speakable-text normalizers now drop HTML comments, so the hidden `<!-- VERSES: … -->` marker is no
+longer read. The rule is in the shared fixture, with cases in all 11 languages.
 
 **Acceptance Criteria (summary):**
 
 - [x] Fixture cases in all 11 languages + inline / multi-line / unterminated comments
-- [ ] Android parity test green in CI; owner check on both platforms
+- [x] Android parity test green in CI
+- [ ] Owner check on both platforms
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-211-read-aloud-skip-verses-marker.md`
+**Follow-ups:** BITB-216
+
+**Full Story:** `docs/DONE/BITB-211-read-aloud-skip-verses-marker.md`
+
+---
+
+### 🎯 BITB-217: Android — Offer Network Voices per Device When No Offline Voice Exists
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-22
+
+BITB-210 follow-up: the Android app still hides Listen silently without an offline voice. Mirror the web opt-in and "no voice" explanation.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Local / network-only / none states; consent dialog with the same privacy wording
+- [ ] Settings explanation with a link to the system TTS settings; 11 locales; tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-217-android-network-voice-optin.md`
+
+---
+
+### 🎯 BITB-213: `tts_unavailable` Over-Counted When the Browser Loads Voices Slowly (Web)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-210 follow-up: voices filled after the 1.5 s load timeout briefly read as "none", which sends `tts_unavailable` and flashes the menu note.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Report only after a settle period; no note flash
+- [ ] Vitest with a voice list that is filled late
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-213-tts-unavailable-slow-voice-load.md`
+
+---
+
+### 🎯 BITB-214: Show the Privacy Note When Online Voices Are Enabled From the Menu (Web)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-210 follow-up: the menu toggle grants online-voice consent without the dialog's privacy note. Needs a product decision.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Decision: open the dialog or add a caption
+- [ ] 11 locales; Vitest
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-214-online-voices-menu-consent-copy.md`
+
+---
+
+### 🎯 BITB-215: Help for Installing an Offline Voice When the Browser Has None (Web)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-210 follow-up: the "no voice" note says what is wrong but not how to fix it (speech-dispatcher, Windows speech packs, macOS voices).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Per-OS help linked from the note, 11 locales
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-215-help-installing-a-voice.md`
+
+---
+
+### 🎯 BITB-216: Watch for a Visible "Verses Cited" List Being Read Aloud (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-211 follow-up: a visible trailing reference list (not seen so far) would still be read.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Check production answers in 11 languages
+- [ ] If found: shared fixture rule + parity test + prompt fix; else close
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-216-read-aloud-visible-verse-list.md`
 
 ---
 
