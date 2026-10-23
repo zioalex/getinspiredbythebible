@@ -4,13 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [1.58.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.57.0...v1.58.0) (2026-10-23)
 
-
 ### Features
 
 * explain a missing read-aloud voice, offer online voices, and stop reading the hidden verse list (BITB-210, BITB-211) ([#1190](https://github.com/zioalex/getinspiredbythebible/issues/1190)) ([89be959](https://github.com/zioalex/getinspiredbythebible/commit/89be9597bbf2ccbd464ca5a8136c934f0c3f1dcd))
 * **opencode:** rework model graph — strongest free primary + cross-provider fallback chain ([#1185](https://github.com/zioalex/getinspiredbythebible/issues/1185)) ([6c79eea](https://github.com/zioalex/getinspiredbythebible/commit/6c79eeaea2f4cd960ce32814a2e204af20956c6c))
 * pause/resume read-aloud and sticky side action rail (BITB-205) ([#1188](https://github.com/zioalex/getinspiredbythebible/issues/1188)) ([77a8dbd](https://github.com/zioalex/getinspiredbythebible/commit/77a8dbd702eb911dbda9f85b1537bb7bdc62040b))
-
 
 ### Bug Fixes
 
@@ -24,7 +22,6 @@ All notable changes to this project will be documented in this file.
 * **frontend:** update lockfile to resolve vite vulnerabilities (GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw, GHSA-587h-7wmj-h5pm, GHSA-9jrq-w75r-8gcw, GHSA-rq7h-c2jc-7f22) ([#1187](https://github.com/zioalex/getinspiredbythebible/issues/1187)) ([6083869](https://github.com/zioalex/getinspiredbythebible/commit/6083869c81ed68d973d5f73bf35e14e16e358009))
 * **opencode:** enforce orchestrator delegation discipline (BITB-212) ([#1193](https://github.com/zioalex/getinspiredbythebible/issues/1193)) ([01c592d](https://github.com/zioalex/getinspiredbythebible/commit/01c592d74e84745258d94719d48b192b33e04989))
 * **web:** hide header language switcher on mobile (BITB-219) ([#1191](https://github.com/zioalex/getinspiredbythebible/issues/1191)) ([94a659d](https://github.com/zioalex/getinspiredbythebible/commit/94a659dce5ce7bdfbf816af1bffd52a79b443419))
-
 
 ### Documentation
 
