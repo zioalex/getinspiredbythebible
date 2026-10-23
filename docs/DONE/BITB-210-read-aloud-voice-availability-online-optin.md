@@ -128,7 +128,7 @@ Verification: `cd frontend && npx vitest run && npm run lint && npx tsc --noEmit
 
 ## Follow-ups
 
-- BITB-212 — Android: offer network voices per device
+- BITB-217 — Android: offer network voices per device
 - BITB-213 — `tts_unavailable` over-counted when voices load slowly
 - BITB-214 — show the privacy note when online voices are enabled from the menu
 - BITB-215 — help for installing an offline voice
