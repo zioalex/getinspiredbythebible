@@ -24,6 +24,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-24: BITB-193 done — Stage-1 directed harm checked in every language (PR #1199)
 - 2026-10-24: BITB-224 opened — English "kill yourself" in help-seeking/theological questions blocked under every code (PR #1199)
 - 2026-10-24: BITB-225 opened — recall lost by directed-harm tightening (PR #1199)
+- 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
 
 - 2026-10-23: BITB-234 created — second-tenant ($50 credit) rehearsal environment for the migration chain; production split and reservation-in-new-tenant declined with reasoning
