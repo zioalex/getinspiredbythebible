@@ -23,6 +23,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-24: BITB-235 opened — story IDs collide between concurrent PRs; header story renumbered 206 → 219, #1195 merged with stale BITB-214 (PR #1197)
 - 2026-10-24: BITB-222 opened — header layout below 320px is unguarded (PR #1197)
 - 2026-10-24: BITB-221 opened — header brand title truncates to "V…" at 320px (PR #1197)
+- 2026-10-23: BITB-212 done — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-219 done — hide header language switcher on mobile (PR #1191)
 - 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
@@ -31,7 +32,6 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
 - 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
 - 2026-10-23: BITB-218 done — bump Next.js to 16.4.2 for critical RCE advisories (PR #1195)
-- 2026-10-23: BITB-212 opened — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-210 done + BITB-211 done — read-aloud voice availability, hidden verse list; follow-ups BITB-213/214/215/216/217 opened (PR #1190, #1194)
 
 - 2026-10-23: BITB-150 collector metrics fixed — 90-day Postgres CPU/memory/storage evidence is now three contiguous 30-day Azure Monitor requests per metric (Azure truncated one 90-day request to ~31 days), merged and validated; any failed/truncated chunk fails the file and the run (PR #1189)
