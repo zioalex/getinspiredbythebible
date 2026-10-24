@@ -2,7 +2,8 @@
 Hybrid Content Safety Service.
 
 Implements a multi-stage content safety pipeline:
-1. Fast keyword filter (multi-language, <5ms) — blocks obvious directed harm and hate speech
+1. Fast keyword filter (multi-language, <5ms) — blocks obvious directed harm and hate speech,
+   checked in every language regardless of the detected/selected language (BITB-193)
 2. OpenAI Moderation API (~100-150ms, FREE) — context-aware, used in keyword_only and hybrid modes
    OR Llama Guard 3 via OpenRouter (~200-300ms) — used in ml_only mode
 3. Azure Content Safety API (optional, ~200ms) — additional layer for hybrid mode only
@@ -101,7 +102,7 @@ class ContentSafetyService:
 
     Decision flow:
     1. Keyword filter (instant, <5ms) — ALL modes:
-       Checks ONLY directed harm and hate speech patterns.
+       Checks ONLY directed harm and hate speech patterns, in any language.
        HIGH confidence match → BLOCK immediately.
        Clean → pass to Stage 2.
 
@@ -231,10 +232,9 @@ class ContentSafetyService:
         flt = self.keyword_filter
 
         # (a) Directed harm / hate speech in any language -> block
-        directed = flt.find_directed_harm(normalized)
-        if directed:
-            is_directed = any(r.search(normalized) for r in flt._directed_harm_regex.values())
-            violation = "directed_harm" if is_directed else "hate_speech"
+        harm = flt.find_directed_harm_violation(normalized, preferred=language)
+        if harm:
+            violation, _matched_lang, directed = harm
             logger.warning(
                 "Content safety: %s detected (fallback)",
                 violation,
@@ -395,7 +395,7 @@ class ContentSafetyService:
         self, text: str, language: str, start: float
     ) -> ContentSafetyCheckResult | None:
         """
-        Stage 1: Fast keyword check (directed harm + hate speech only).
+        Stage 1: Fast keyword check (directed harm + hate speech only, any language).
 
         Returns ContentSafetyCheckResult if blocked, None if should continue to Stage 2.
         """
