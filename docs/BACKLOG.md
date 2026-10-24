@@ -23,6 +23,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-24: BITB-235 opened — story IDs collide between concurrent PRs; header story renumbered 206 → 219, #1195 merged with stale BITB-214 (PR #1197)
 - 2026-10-24: BITB-222 opened — header layout below 320px is unguarded (PR #1197)
 - 2026-10-24: BITB-221 opened — header brand title truncates to "V…" at 320px (PR #1197)
+- 2026-10-23: BITB-212 done — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-219 done — hide header language switcher on mobile (PR #1191)
 - 2026-10-24: BITB-193 done — Stage-1 directed harm checked in every language (PR #1199)
 - 2026-10-24: BITB-237 opened — native ar/ru/zh/hi/ko directed-harm patterns (PR #1199)
@@ -35,7 +36,6 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
 - 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
 - 2026-10-23: BITB-218 done — bump Next.js to 16.4.2 for critical RCE advisories (PR #1195)
-- 2026-10-23: BITB-212 opened — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-210 done + BITB-211 done — read-aloud voice availability, hidden verse list; follow-ups BITB-213/214/215/216/217 opened (PR #1190, #1194)
 
 - 2026-10-23: BITB-150 collector metrics fixed — 90-day Postgres CPU/memory/storage evidence is now three contiguous 30-day Azure Monitor requests per metric (Azure truncated one 90-day request to ~31 days), merged and validated; any failed/truncated chunk fails the file and the run (PR #1189)
@@ -5519,12 +5519,13 @@ fallback columns).
 
 ---
 
-### 🎯 BITB-212: Orchestrator Delegation Discipline — Never Edit Application Code Directly
+### ✅ BITB-212: Orchestrator Delegation Discipline — Never Edit Application Code Directly
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-22
+**Completed:** 2026-10-23 (PR #1193)
 
 The orchestrator prompt described delegation but never enforced it: on BITB-054 (PR #1192) the
 feature was delegated to android-expert, yet the ~10-round CI-fix loop was run directly by the
@@ -5537,10 +5538,10 @@ of self-fixing.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Delegation Discipline section in the orchestrator prompt (allowlist, CI-red dispatch
+- [x] Delegation Discipline section in the orchestrator prompt (allowlist, CI-red dispatch
       procedure, stop-and-dispatch triggers, report contract)
-- [ ] `permission.edit` denies in frontmatter + generated `opencode.json`; `make verify-opencode-config` green
-- [ ] Rollout: merge → `make sync-opencode-configmap` → pod restart (config is not hot-reloaded)
+- [x] `permission.edit` denies in frontmatter + generated `opencode.json`; `make verify-opencode-config` green
+- [x] Rollout: merge → `make sync-opencode-configmap` → pod restart (config is not hot-reloaded)
 - [ ] Live validation (owner-observed): next CI-red event handled by a fix-brief dispatch with a
       registry token — no orchestrator commits on application code
 

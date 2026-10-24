@@ -33,6 +33,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
     streamMessage: vi.fn(),
     getChapter: vi.fn(),
     getTranslations: vi.fn().mockResolvedValue([]),
+    getBookNames: vi.fn().mockResolvedValue({}),
     submitFeedback: vi.fn(),
     generateSessionId: vi.fn().mockReturnValue("test-session-id"),
     getOrCreateSessionId: vi.fn().mockReturnValue("test-session-id"),
