@@ -6222,6 +6222,13 @@ bookkeeping table.
 
 ## Done (Recent Completions)
 
+### ✅ BITB-220: Independent Audit of Every Makefile Target
+
+**Status:** ✅ Done — PR #1196, merged 2026-10-23
+**Size:** L
+Audited all 128 `make` targets by blast radius, fixed 13 defects and added regression tests.
+[Full story](BACKLOG_STORIES/BITB-220-makefile-target-audit.md)
+
 ### 🚧 BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
 
 **Status:** 🚧 In Progress (2026-10-23)
