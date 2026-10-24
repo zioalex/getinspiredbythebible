@@ -1,0 +1,42 @@
+# BITB-150 Cost Evidence Collector
+#
+# Base: python:3.12-slim (Debian) with the Azure CLI installed via pip —
+# Microsoft's documented pip install method. Deliberately NOT based on
+# mcr.microsoft.com/azure-cli: that image is Azure Linux (no apt-get, uses
+# tdnf/dnf), which broke the first build of this image. Building on
+# python:slim makes every line below verifiable, and
+# .github/workflows/cost-collector-build.yml builds + smoke-tests the image
+# on every PR touching these files, so base/package breakage fails CI
+# instead of the user's machine.
+#
+# Deliberately ZERO Azure CLI extensions: every command the collector uses is
+# core (az rest for the Cost Management, Log Analytics and Alerts APIs,
+# az monitor metrics/diagnostic-settings, az postgres flexible-server show,
+# az resource), and the collector sets AZURE_EXTENSION_USE_DYNAMIC_INSTALL=no
+# so `az` can never auto-install one. The only extra binary is psql
+# (in-database evidence queries). The bash entry point is a thin wrapper that
+# execs the Python collector, so python3 is the only runtime prerequisite.
+#
+# DATABASE_URL is a runtime secret: never add it as ARG/ENV here. Pass it with
+# `docker run -e DATABASE_URL` (see scripts/README_COST_COLLECTION.md).
+
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      postgresql-client \
+    && pip install --no-cache-dir azure-cli==2.68.0 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Copy collection scripts
+COPY scripts/collect_cost_evidence.py .
+COPY scripts/collect_cost_evidence.sh .
+RUN chmod +x collect_cost_evidence.sh \
+    && python3 -m py_compile collect_cost_evidence.py \
+    && bash -n collect_cost_evidence.sh
+
+# The Python collector is the single implementation (the .sh wrapper execs it)
+ENTRYPOINT ["python3", "collect_cost_evidence.py"]

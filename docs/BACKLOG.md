@@ -2,49 +2,69 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-23 (BITB-142 in progress — first-run feature spotlight coach-marks with scrim cutout, PR #1192) — previously 2026-10-22 (BITB-211 opened and in progress — read aloud no longer reads the hidden VERSES marker, web + Android) — previously 2026-10-22 (BITB-210 opened and in progress — web Listen hidden silently without an offline voice; menu explanation + per-device online-voice opt-in) — previously 2026-10-22 (BITB-205 done — PR #1188 merged, which also restored the deploy workflows' real Azure resource names; BITB-206/207/208/209 opened as its follow-ups — Android rail fling lag, short-answer rail height, Terraform-based Azure rename, web resume watchdog replay) — previously 2026-10-21 (BITB-205 in progress) — previously 2026-10-21 (BITB-196 in review — murder-suicide / elliptical third-party phrasing routes to the ambiguous safety branch, 11 languages; BITB-201/202/203 opened as its follow-ups; BITB-186 closed — PR #1169) — previously 2026-10-19 (BITB-198 in review — keyword fallback gains conservative, Bible-narrative-aware native violence patterns for ru/zh/hi/ko (checked under any UI language), hard-violence table reconciled incl. ru «напасть на»; BITB-204 filed) — previously 2026-10-14 (BITB-186 in review — keyword fallback gains missed zh/ko/ru/hi crisis phrasings and a ru negation guard) — previously 2026-10-13 (BITB-185 in review, PR #1166 — v2 hardened — hard-violence terms (bomb, terror, attack ...) always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as its follow-ups — murder-suicide phrasing, blocked templates ru/zh/hi/ko, native violence patterns, classifier model) — previously 2026-10-13 (BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence in the keyword fallback, crisis message in all 11 languages; BITB-195 cancelled, decided by it) — previously 2026-10-13 (BITB-185 in review — keyword fallback is script-agnostic and self-harm wins over plain violence, PR pending; BITB-193/194/195 opened as its follow-ups — stage-1 directed harm in any language, Bible-narrative violence false positives, mixed self-harm and third-party violence decision) — previously 2026-10-12 (BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as its follow-ups — citation after a closing bracket, spaced-range parity, Android range book fallback, Android CJK link label space) — previously 2026-10-11 (BITB-182 done — PR #1147 merged; BITB-187/188 opened as its follow-ups — live run and chip enablement decision, follow-up runner sessions out of the weekly report; BITB-183 done — PR #1148 merged; BITB-186 opened as a follow-up for uncovered crisis phrasings; BITB-183 in review — keyword self-harm fallback gains ru/zh/hi/ko patterns so the compassionate path triggers when ML moderation is down, PR #1148; BITB-185 opened as its follow-up — script-agnostic matching and self-harm-over-violence precedence; BITB-182 in progress — follow-up chips golden set, live runner and flag plumbing, PR #1147; BITB-183/184 opened as its follow-ups — self-harm keyword fallback for ru/zh/hi/ko, bracketed chapter:verse after the book name; BITB-178 done — PR #1145 merged, AC12 live run pending; BITB-179/180/181 opened as its follow-ups — fullwidth colon in all three parsers, topic-aware passage carry-over, probe sessions out of the weekly report; BITB-163 done — KubeOpenCode README fallback table synced to agents.md, PR #1140; BITB-177 npm-audit gate fix via next 16.4.0 + sharp 0.35.5; BITB-157 in progress — `NEXT_PUBLIC_DONATE_URL` wired through Dockerfile, compose and azure-deploy, PR pending; BITB-168 in progress — Support-Us entry points surfaced on web + Android, PR #1133; BITB-119 in review — read-aloud, PR #1132; BITB-175/176 opened — localized
-What's New, background read-aloud; BITB-166 done — Android versesCited exact book/chapter/verse matching via shared parseCitedRef/filterByCitations, inclusive ranges, PR #1127; BITB-167 in progress — `parseVerseLink` splits on
-`VerseGrammar.RANGE_SEPARATORS`, PR pending; BITB-174 done — Android tablet chat bubbles now adaptive: 85% of width, 320–840dp, PR #1129; BITB-173 done — runtime fallback chain rebuilt with
-valid model IDs: tier 1 free nemotron-3-super via OpenRouter (Zen serves no
-Super variant), tier 2 paid gpt-oss-120b (no :free variant exists — the old
-chain never once fired and agents died on primary 503s), broken
-mimo-v2.5-free primaries (verse-parity-keeper, i18n-qa) moved to
-mimo-v2.6-flash-free, agents.md table parity test extended to fallback
-columns, PR #1128; BITB-172 done — repo-vs-live drift fixed: custom
-agentImage + ghcr-pull committed into all Agent manifests (was cluster-only),
-server-password made opt-in so pods don't crashloop on the missing
-opencode-server-auth secret, validated agent-default-wf3.yaml committed, T7
-parity tests, PR #1126; BITB-171 done — k8s agent-default-wf2.yaml made
-self-contained: configRef + persistence + full credentials, parity-tested against
-deployment/agent.yaml so applying it converges instead of stripping fields from the
-live Agent, PR #1125; BITB-170 done — kubeopencode README documents all 14 files,
-strict-tier egress apply order, RBAC, security-doc cross-link, opencode config-sync
-make targets (`gen/verify/sync-opencode-configmap`), PR #1124; BITB-169 in progress — task-reliability plugin L0+L1, PR #1123
-implementation under way; L2 mailbox deferred to a follow-up PR;
-BITB-169 created — reliable orchestrator↔subagent comms:
-task-reliability plugin + durable registry, from the live 503/cancelled-task diagnosis;
-Ko-fi page confirmed live — Stripe **and** PayPal checkout verified on
-ko-fi.com/voxquieta, $80/month infrastructure-cost goal; BITB-074 placeholder caveat resolved and
-BITB-168 unblocked; BITB-168 created — surface Support-Us entry points without nagging,
-product-owner feedback + BITB-074's deferred drawer fast-follow; BITB-164 done — VersesPanel Cited-tab parser migrated onto shared
-VerseGrammar/DEFAULT_VERSE_REF_REGEX, PR #1117; BITB-166 created — server versesCited startsWith
-prefix match; BITB-167 created — tapped verse-link en-dash ranges fall back to verse 1;
-2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165
-created — auto-update opted-in PR branches; 2026-09-27: backlog-vs-`main` audit: 10 stories marked
-done that were stale Todo/In-Progress despite being merged — BITB-125, BITB-152, BITB-122, BITB-067,
-BITB-057, BITB-126, BITB-123, BITB-129, BITB-138, BITB-042; 3 more corrected in place without a full
-flip to Done — BITB-121, BITB-128, BITB-046 — where one acceptance criterion still needs live
-production/cluster confirmation this audit couldn't get from source alone; 2026-09-26: BITB-113
-done, PR #1105 — verse-parser grammar unification; BITB-164 created — VersesPanel.kt fourth grammar
-copy, found by BITB-113's Verify stage; 2026-09-25: BITB-158 v2 rewrite — corrected base image
-(`executorImage`/`kubeopencode-agent-devbox`, not `agentImage`/`kubeopencode-agent-opencode`) and
-pre-commit cache design; still In Progress, PR pending. BITB-163 filed as a follow-up for the
-deferred fallback-table sync; 2026-09-24: BITB-156 in progress — PR #1103 open, Android Part A:
-server-driven session limit + "Continue this conversation"; 2026-09-22: BITB-074 done — Support Us
-funding entry points, PR #1084; BITB-158 created — KubeOpenCode dev image; BITB-094 in progress —
-column-type audit tooling built; BITB-127 created — translations.created_at timezone-aware; BITB-153
-guard extended; BITB-161 created — KubeOpenCode agent file-mount for Copilot auth; BITB-084 Part C
-done via BITB-102; BITB-155 created — OpenRouter paid Llama primary + Gemma 4 31B fallback)
+**Last Updated:** 2026-10-23
+
+## Changelog
+
+> **Convention (enforced since 2026-10-22): one entry per line, newest first, append-only.**
+>
+> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#PR)`
+>
+> - Add your entry **directly below this blockquote**, at the top of the list.
+> - **Never edit, reword, or reorder existing entries** — a status change gets a
+>   *new* line (e.g. "BITB-NNN done — PR #123 merged").
+> - Rationale: the previous format was a single giant narrative line that every
+>   PR rewrote, so nearly every PR conflicted on this file. One entry per line
+>   means only same-day same-position additions can collide, and those conflicts
+>   are two trivial lines instead of a 2000-character paragraph.
+> - History before 2026-09-22 is preserved in git history (this section was
+>   condensed once, at the 2026-10-22 restructuring).
+
+- 2026-10-23: BITB-219 done — hide header language switcher on mobile (PR #1191)
+- 2026-10-23: BITB-142 done — first-run feature spotlight coach-marks with RTL support (PR #1192)
+- 2026-10-23: release v1.58.0 — release-please (#1167)
+
+- 2026-10-23: BITB-234 created — second-tenant ($50 credit) rehearsal environment for the migration chain; production split and reservation-in-new-tenant declined with reasoning
+- 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
+- 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
+- 2026-10-23: BITB-218 done — bump Next.js to 16.4.2 for critical RCE advisories (PR #1195)
+- 2026-10-23: BITB-212 opened — orchestrator delegation discipline enforced (PR #1193)
+- 2026-10-23: BITB-210 done + BITB-211 done — read-aloud voice availability, hidden verse list; follow-ups BITB-213/214/215/216/217 opened (PR #1190, #1194)
+
+- 2026-10-23: BITB-150 collector metrics fixed — 90-day Postgres CPU/memory/storage evidence is now three contiguous 30-day Azure Monitor requests per metric (Azure truncated one 90-day request to ~31 days), merged and validated; any failed/truncated chunk fails the file and the run (PR #1189)
+- 2026-10-23: BITB-150 collector throttling and alerts pagination fixed — bounded 429/503 retry with backoff in `run_cli`; Alerts `nextLink` (live shape `https://management.azure.com:443/...&ctoken=`) now validated by strict normalization instead of exact-host match; offline tests added (PR #1189)
+- 2026-10-23: BITB-150 firewall helpers fixed — `az-pg-add-ip`/`list-rules`/`remove-ip` use `--server-name` for the server and `--name` for the rule; offline Makefile tests added (PR #1189)
+- 2026-10-22: BITB-150 collectors repaired — native `az rest` Logs/Alerts queries (no auto-installing extension), Postgres/workspace discovery instead of a hard-coded server, runtime-only DATABASE_URL via PG* env, failures recorded in MANIFEST + non-zero exit, Bash entry point is a thin python3 wrapper, expanded offline regression tests in the PR gate (PR #1189)
+- 2026-10-22: BITB-150 collector output fixed — timestamped evidence stays inside the cost-evidence/ Docker bind mount; Bash/workflow paths aligned and offline regression coverage added
+- 2026-10-23: BITB-150 Phase 0 analysis COMPLETE — 25/50 estimate confirmed (monitoring 27.2%, DB 50.6%, 92.73 CHF/mo avg); 11 follow-up stories filed: BITB-223/213/214/215/216/217/218/219/220/221/222 (alert rationalization, disabled web tests, LA cap, sampling audit, reservation, dead indexes, disk shrink, halfvec, B1ms, auto-grow warning, log hygiene) (PR #1189)
+- 2026-10-22: BITB-150 collector image fixed again — base image moved to python:3.12-slim (the azure-cli image is Azure Linux, no apt-get); new cost-collector-build.yml CI gate builds + smoke-tests the image on every PR touching it (PR #1189)
+- 2026-10-22: BITB-150 collector fixed — zero-extension commands (`az rest` for the non-existent `az costmanagement query`), `--metrics` flag, dynamic 3-month windows; fixes the docker-image build failure (PR #1189)
+- 2026-10-22: next 16.4.0 → 16.4.2 — fixes critical RCE (GHSA-2464-fhr4-w9xw) + high DoS (GHSA-p3m5-59mp-jv5r); unblocks npm-audit gate for all PRs (PR #1189)
+- 2026-10-22: BITB-150 in progress — phase 0 started: cost-evidence collection scripts, SPN creator, weekly workflow (PR #1189)
+- 2026-10-22: BITB-211 in progress — read aloud no longer reads the hidden VERSES marker, web + Android
+- 2026-10-22: BITB-210 in progress — web Listen hidden silently without an offline voice; menu explanation + per-device online-voice opt-in
+- 2026-10-22: BITB-205 done — PR #1188 merged; restored deploy workflows' real Azure resource names; BITB-206/207/208/209 opened as follow-ups
+- 2026-10-21: BITB-196 in review — murder-suicide / elliptical third-party phrasing routes to the ambiguous safety branch, 11 languages; BITB-201/202/203 opened; BITB-186 closed — PR #1169
+- 2026-10-19: BITB-198 in review — native ru/zh/hi/ko violence patterns, Bible-narrative-aware; BITB-204 filed
+- 2026-10-14: BITB-186 in review — missed zh/ko/ru/hi crisis phrasings + a ru negation guard
+- 2026-10-13: BITB-185 in review, PR #1166 — v2 hardened; hard-violence terms always block, nonce-delimited classifier prompt; BITB-196/197/198/199 opened as follow-ups
+- 2026-10-13: BITB-185 v2 — second-opinion LLM classifier for ambiguous self-harm + violence; crisis message in all 11 languages; BITB-195 cancelled, decided by it
+- 2026-10-13: BITB-185 in review — keyword fallback is script-agnostic, self-harm wins over plain violence; BITB-193/194/195 opened as follow-ups
+- 2026-10-12: BITB-179 done — PR #1163 merged; BITB-189/190/191/192 opened as follow-ups (bracket citation, spaced-range parity, Android range fallback, CJK link label)
+- 2026-10-11: BITB-183 done — PR #1148; BITB-186 opened as follow-up; BITB-185 opened; BITB-182 in progress — PR #1147; BITB-183/184 opened; BITB-178 done — PR #1145; BITB-179/180/181 opened; BITB-163 done — PR #1140; BITB-177 npm-audit gate fix; BITB-157 in progress; BITB-168 in progress — PR #1133; BITB-119 in review — PR #1132; BITB-175/176 opened — localized What's New, background read-aloud
+- 2026-10-11: BITB-182 done — PR #1147 merged; BITB-187/188 opened as follow-ups
+- 2026-10-04: BITB-174 done — Android tablet chat bubbles adaptive, PR #1129
+- 2026-10-04: BITB-173 done — runtime fallback chain rebuilt with valid model IDs, PR #1128
+- 2026-10-03: BITB-172 done — repo-vs-live drift fixed, PR #1126; BITB-171 done — agent-default-wf2 self-contained, PR #1125; BITB-170 done — kubeopencode README, PR #1124
+- 2026-09-30: BITB-169 in progress — task-reliability plugin L0+L1, PR #1123; BITB-169 created; Ko-fi page confirmed live, $80/month infra-cost goal; BITB-168 created — Support-Us discoverability
+- 2026-09-29: BITB-149 done — Android follow-up-question chips, PR #1109; BITB-165 created — auto-update opted-in PR branches; BITB-164 done — VersesPanel Cited-tab parser on shared grammar, PR #1117
+- 2026-09-27: backlog-vs-main audit — 10 stale stories marked done (BITB-125/152/122/067/057/126/123/129/138/042); BITB-121/128/046 corrected in place
+- 2026-09-26: BITB-113 done — verse-parser grammar unification, PR #1105; BITB-164 created — VersesPanel.kt fourth grammar copy
+- 2026-09-25: BITB-158 v2 rewrite — corrected base image + pre-commit cache design; BITB-163 filed as follow-up
+- 2026-09-24: BITB-156 in progress — PR #1103 open, Android Part A
+- 2026-09-22: BITB-074 done — Support Us funding entry points, PR #1084; BITB-158 created; BITB-094 in progress; BITB-127 created; BITB-161 created; BITB-084 Part C done via BITB-102; BITB-155 created — OpenRouter paid Llama primary + Gemma 4 31B fallback
+- 2026-09-18: BITB-152 done — KubeOpenCode strict-tier sandbox hardening, PR #1045
+
 **Verification Note (2026-04-20):** PR status reconciliation pass completed against GitHub.
 Confirmed merged PRs: #68, #171, #182, #191, #193, #194, #195, #196, #197, #208, #225, #226,
 \#227. Confirmed closed-unmerged: #309.
@@ -227,6 +247,26 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-224: Availability Web Tests Are Silently Disabled in Production
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-23
+
+BITB-150's evidence collection caught both availability web tests (`backend_availability`,
+`backend_preflight`) showing `"Enabled": false` in production while Terraform defines them
+as active — and `azurerm_application_insights_standard_web_test` does not manage the ARM
+`Enabled` flag, so neither Terraform nor `prod-deploy-drift.yml` can see or fix this drift.
+The BITB-064 safety net (built after the 2026-07-05 browser-only outage fired no monitor)
+is currently off. Verify when/how they were disabled, decide keep-or-retire deliberately
+(re-enable cost is immaterial), and add a drift guard on the `Enabled` property so a
+future silent disablement pages.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-224-availability-webtests-disabled.md`
+
+---
 
 > **Search-relevance epic (BITB-018 → 043/044):** Phase-1 retrieval improvements
 > (query expansion, hybrid search, topic boosting) are **built but dark** — merged in
@@ -3081,6 +3121,204 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-234: Second-Tenant Rehearsal Environment — $50 Credit Buys Migration Rehearsals, Not a Prod Split
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-23
+
+The second tenant (e306deba-…, one-time $50 credit) is best spent as a disposable rehearsal
+environment for the migration chain (BITB-230 halfvec, BITB-229 disk shrink, BITB-231 B1ms
+canary) — exactly what MIGRATION_GUIDELINES requires and what the 2026-08-17 outage retro
+demands. Options analysis in the story declines a permanent production split (one-time $50
+vs permanent cross-tenant complexity), declines reservation-in-new-tenant (reservations
+don't cross billing tenants), and declines hosting the shrink's new server there. Cost
+discipline: B1ms server stopped between rehearsal windows (storage-only billing while
+stopped), budget alert at 80% of credit, teardown checklist when the migration chain ships.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-234-credit-tenant-rehearsal-environment.md`
+
+---
+
+### 🎯 BITB-223: Alert-Rule Rationalization — Actionability Over Inventory
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-23
+
+Scheduled query rules are the #2 cost driver: 20.04 CHF/mo, 21.6% of the bill. In 30 days
+9 of 32 rules fired — and two are in alert-fatigue territory (`content_safety_fallback_rate`
+99×, `backend_5xx_rate` 42×) — while 23 never fired. Owner criterion: remove or slow every
+rule with no 3am action. Matrix: ~6 removals (redundant with ASGI/errors rules or the
+5-min `prod-monitor.yml` probes; safety controls like `rate_limiter_fail_closed` stay
+untouched), ~6 demotions to PT1H/daily, recalibration + deploy-window suppression for the
+two noisy ones. Expected ~8-12 CHF/mo (~40-60% of the line), verified against the meter.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-223-alert-rule-rationalization.md`
+
+---
+
+### 🎯 BITB-225: Log Analytics Daily Ingestion Cap as Bounded-Downside Insurance
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-23
+
+The workspace has no ingestion ceiling but measured usage is tiny (~0.10 GB/day avg,
+p99 ≈0.2, whole line 4.31 CHF/mo). Set `daily_quota_gb = 1` (5× p99) so a future log-spewing
+regression costs a bounded ~2.3 CHF/day instead of an open bill. The cap-trip trade-off
+(blind-but-capped day; GitHub probes + metric alerts keep Telegram alive) is recorded
+deliberately, per BITB-150's framing. Insurance, not savings.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-225-log-analytics-daily-quota-cap.md`
+
+---
+
+### 🎯 BITB-226: App Insights Sampling — Only After the Percentile-Reweighting Audit
+
+**Status:** 🎯 Todo (gated on the audit)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-23
+
+BITB-150's gate passed: `requests` IS a top-2 itemType (82K records/7d; AppDependencies
+250K dominates ingestion at 57% of workspace volume). Adding `sampling_ratio` saves ~2.90
+CHF/mo — but only after every KQL consumer is audited and reweighted for `itemCount`, or
+percentile alerts and the performance dashboard quietly go wrong. The audit inventory is
+the deliverable; enabling the ratio is the reward.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-226-app-insights-sampling-and-reweight-audit.md`
+
+---
+
+### ❌ BITB-227: Purchase 1-Year Reserved Capacity for the B2s Compute
+
+**Status:** ❌ Cancelled (2026-10-23) — reserved capacity is not purchasable in the current
+billing setup (owner-confirmed). The ~13.90 CHF/mo lever is void; BITB-231 (B1ms right-size)
+inherits the compute saving with no exchange friction.
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-23
+
+The #1 cost meter of the subscription: B2s compute at 42.10 CHF/mo on-demand, CPU p95 8.1%,
+always-on. A 1-year reservation (~33% off) saves ~13.90 CHF/mo with zero engineering risk.
+Cancelled the same day it was filed: the billing setup cannot purchase reservations.
+See the story file for the cancellation note.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-227-reserved-capacity-b2s.md`
+
+---
+
+### 🎯 BITB-228: Drop the Dead Indexes — 6.8 GB of Lifetime-Zero-Scan Weight
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S–M
+**Created:** 2026-10-23
+
+The 16 GB database is 12 GB indexes — and lifetime stats (`stats_reset` NULL) show 6.8 GB
+of that has no readers: two legacy IVFFlat indexes (3.4 GB each, 0 and 377 scans) the story
+never knew existed, plus all four FTS GIN indexes (0 scans — BITB-098's pair and the
+`simple` pair). `DROP INDEX CONCURRENTLY` off-peak with a day-of scan re-check. Direct
+saving is honest-small (~0.5 CHF/mo storage) — the value is write amplification, faster
+maintenance, and unblocking BITB-229's shrink. Supersedes BITB-098.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-228-drop-dead-indexes.md`
+
+---
+
+### 🎯 BITB-229: Shrink the PG Disk 64 → 32 GB via Dump/Restore
+
+**Status:** 🎯 Todo (blocked by BITB-228)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-23
+
+The disk auto-grew 32 → 64 GB (Terraform still declares 32 — fiction since) while the DB
+is 16 GB; the storage meter climbs 3.17 → 4.67 → 6.55 CHF/mo. Flexible Server disks never
+shrink in place: dump → new 32 GB server → restore → repoint → **delete the old server**
+(the step that saves). Honest math: ~2.4 CHF/mo direct + halved backup storage + the
+128 GB ratchet step (+4.7 CHF/mo) pushed from months away to years. Builds on the existing
+`db-backup-restore.sh` runbook; staged in a quiet window with probe-based rollback.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-229-shrink-disk-dump-restore.md`
+
+---
+
+### 🎯 BITB-230: Halve the Vector Footprint — `verses.embedding` to `halfvec(1536)`
+
+**Status:** 🎯 Todo (blocked by BITB-228)
+**Priority:** P2
+**Size:** L
+**Created:** 2026-10-23
+
+~7.7 GB of float32 vectors + HNSW indexes halves to ~3.8 GB. Memory p95 58.1% on the 4 GB
+B2s is the pressure point — this is the one change that attacks storage *and* the partial-
+index working set at once, and it is what makes BITB-231 decidable. Migration-shaped per
+MIGRATION_GUIDELINES + the 2026-08-17 retro: staged column add → batched backfill →
+CONCURRENTLY-built full + per-translation partial indexes → **golden-set recall gate
+(all 11 languages, agreed tolerance, recorded here)** → flag cutover → old column dropped
+in a follow-up. Direct saving small; the payoff is RAM headroom and the B1ms path.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-230-halfvec-migration.md`
+
+---
+
+### 🎯 BITB-231: Right-Size the Server B2s → B1ms — Gated on halfvec's RAM Proof
+
+**Status:** 🎯 Todo (blocked by BITB-230)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-23
+
+CPU p95 8.1% says the B2s is 10× oversized on compute; memory p95 58.1% — 1.9 points from
+the 60% gate — is the entire reason it exists (partial-index caching, migration 007).
+Downsizing today would trade ~17 CHF/mo for the exact latency regression BITB-062 fixed.
+Gate: post-halfvec memory p95 must sit < 45% on B2s for ≥2 weeks before the B1ms canary;
+a NO with evidence is a valid outcome. Reconciles with BITB-227's reservation exchange.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-231-rightsize-b1ms.md`
+
+---
+
+### 🎯 BITB-232: Storage Auto-Grow Early Warning — the Alert That Catches the Ratchet
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-23
+
+The existing `db_storage` alert (>85%) provably cannot catch the failure mode: the 32→64 GB
+doubling happened with it green, and post-grow utilization *drops*. Two signals: a 70%/15-min
+`storage_percent` pre-grow warning (tuned so p95 63.6% doesn't page), and a weekly provisioned-
+size tripwire comparing actual `storageSizeGb` vs Terraform's 32 GB — the only check that
+catches the event itself. Closes the drift gap `prod-deploy-drift.yml` leaves open.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-232-storage-autogrow-early-warning.md`
+
+---
+
+### 🎯 BITB-233: PostgreSQL Server-Log Hygiene — Dead Parameters and the Unmade Diagnostic Decision
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-23
+
+Phase 0 resolved BITB-150's "highest information-per-minute check": `04` evidence = `[]`,
+**no diagnostic setting exists** — so `log_connections`, `log_checkpoints` and
+`log_min_duration_statement` write server-local logs nobody reads, costing zero but deciding
+nothing. Recommendation: turn `log_connections`/`log_checkpoints` off, keep the slow-query
+threshold, and record the decision — so a future hand-added diagnostic setting can't
+silently max ingestion. (Option B: wire the sink deliberately with cost written down.)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-233-pg-server-log-hygiene.md`
+
+---
+
 ### 🎯 BITB-197: Blocked-Response Templates Missing ru/zh/hi/ko
 
 **Status:** 🎯 Todo
@@ -3555,6 +3793,29 @@ foreground media-playback service with a Stop notification, gated on listen-rate
 
 ---
 
+### 🚧 BITB-219: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-22
+
+Bug: on a ~412px Android browser the chat header was wider than the screen, so the Bible chip and
+New chat button sat past the right edge. Below `sm`, the header now hides its duplicate language
+switcher (still in the hamburger menu) and the book icon, keeps the title on one line, and never
+shrinks the controls group.
+
+**Acceptance Criteria (summary):**
+
+- [x] Bible chip and New chat fully visible at 360px and 412px
+- [x] Header language switcher hidden below `sm`; menu still switches language
+- [x] Title truncates instead of wrapping; New chat has an `aria-label`
+- [x] Vitest coverage across all 11 locales
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-219-mobile-web-header-overflow.md`
+
+---
+
 ### ✅ BITB-205: Read Aloud — Pause/Resume and a Sticky Side Rail for Answer Actions (Web + Android)
 
 **Status:** ✅ Done — PR #1188, merged 2026-10-22 (also restored the real Azure resource names in the
@@ -3652,44 +3913,138 @@ BITB-205 follow-up: the 1 s resume watchdog restarts the current chunk if a work
 
 ---
 
-### 🚧 BITB-210: Read Aloud — Explain a Missing Voice and Offer Online Voices per Device (Web)
+### ✅ BITB-210: Read Aloud — Explain a Missing Voice and Offer Online Voices per Device (Web)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1190, merged 2026-10-22
 **Priority:** P1
 **Size:** M
 **Created:** 2026-10-22
 
-Bug: on browsers without an offline voice for the UI language (Linux Firefox, desktop Chrome/Edge), web
-Listen is hidden silently while the menu toggle shows "on". Fix: explain it in the menu, and where the
-browser has online voices, offer a one-time per-device opt-in with a privacy note.
+Web Listen was hidden silently without an offline voice (Linux Firefox and Chrome). It now asks once per
+device to use online voices (with a privacy note and a menu toggle to change it), and explains in the
+menu when there is no voice at all. The privacy policy gains a "Read aloud" section in 11 locales.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Availability local / online / none; offline voice always preferred
-- [ ] Consent dialog (Allow / Not now), revocable menu toggle "Allow online voices"
-- [ ] Menu note "This browser has no voice for {language}" when none
-- [ ] Privacy policy "Read aloud" section in 11 locales; strings in 11 locales; Vitest coverage
+- [x] Availability local / online / none; offline voice always preferred
+- [x] Consent dialog and revocable menu toggle; menu note when there is no voice
+- [x] Privacy policy and strings in 11 locales; Vitest coverage
+- [ ] Owner check on Linux Firefox and desktop Chrome
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-210-read-aloud-voice-availability-online-optin.md`
+**Follow-ups:** BITB-213, BITB-214, BITB-215, BITB-217
+
+**Full Story:** `docs/DONE/BITB-210-read-aloud-voice-availability-online-optin.md`
 
 ---
 
-### 🚧 BITB-211: Read Aloud Reads the Hidden Verse List at the End of an Answer (Web + Android)
+### ✅ BITB-211: Read Aloud Reads the Hidden Verse List at the End of an Answer (Web + Android)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1190, merged 2026-10-22
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-22
 
-The trailing `<!-- VERSES: … -->` citation marker is never shown on screen but was read aloud on both
-platforms. Both speakable-text normalizers now drop HTML comments (shared fixture rule).
+Both speakable-text normalizers now drop HTML comments, so the hidden `<!-- VERSES: … -->` marker is no
+longer read. The rule is in the shared fixture, with cases in all 11 languages.
 
 **Acceptance Criteria (summary):**
 
 - [x] Fixture cases in all 11 languages + inline / multi-line / unterminated comments
-- [ ] Android parity test green in CI; owner check on both platforms
+- [x] Android parity test green in CI
+- [ ] Owner check on both platforms
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-211-read-aloud-skip-verses-marker.md`
+**Follow-ups:** BITB-216
+
+**Full Story:** `docs/DONE/BITB-211-read-aloud-skip-verses-marker.md`
+
+---
+
+### 🎯 BITB-217: Android — Offer Network Voices per Device When No Offline Voice Exists
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-22
+
+BITB-210 follow-up: the Android app still hides Listen silently without an offline voice. Mirror the web opt-in and "no voice" explanation.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Local / network-only / none states; consent dialog with the same privacy wording
+- [ ] Settings explanation with a link to the system TTS settings; 11 locales; tests
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-217-android-network-voice-optin.md`
+
+---
+
+### 🎯 BITB-213: `tts_unavailable` Over-Counted When the Browser Loads Voices Slowly (Web)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-210 follow-up: voices filled after the 1.5 s load timeout briefly read as "none", which sends `tts_unavailable` and flashes the menu note.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Report only after a settle period; no note flash
+- [ ] Vitest with a voice list that is filled late
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-213-tts-unavailable-slow-voice-load.md`
+
+---
+
+### 🎯 BITB-214: Show the Privacy Note When Online Voices Are Enabled From the Menu (Web)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-210 follow-up: the menu toggle grants online-voice consent without the dialog's privacy note. Needs a product decision.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Decision: open the dialog or add a caption
+- [ ] 11 locales; Vitest
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-214-online-voices-menu-consent-copy.md`
+
+---
+
+### 🎯 BITB-215: Help for Installing an Offline Voice When the Browser Has None (Web)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-210 follow-up: the "no voice" note says what is wrong but not how to fix it (speech-dispatcher, Windows speech packs, macOS voices).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Per-OS help linked from the note, 11 locales
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-215-help-installing-a-voice.md`
+
+---
+
+### 🎯 BITB-216: Watch for a Visible "Verses Cited" List Being Read Aloud (Web + Android)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
+
+BITB-211 follow-up: a visible trailing reference list (not seen so far) would still be read.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Check production answers in 11 languages
+- [ ] If found: shared fixture rule + parity test + prompt fix; else close
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-216-read-aloud-visible-verse-list.md`
 
 ---
 
@@ -4750,9 +5105,9 @@ next app boot with no revision and no `alembic_version` change — Alembic then 
 
 ---
 
-### 🚧 BITB-142: First-Run Feature Spotlight / Coach-Marks (Android)
+### 🎯 BITB-142: First-Run Feature Spotlight / Coach-Marks (Android)
 
-**Status:** 🚧 In Progress (PR #1192)
+**Status:** 🎯 Todo
 **Priority:** P2 (Medium) — discoverability of core features
 **Size:** M (1-2 days incl. localization)
 **Created:** 2026-06-17
@@ -5065,6 +5420,35 @@ fallback columns).
 - [x] Operator follow-up after merge: `make sync-opencode-configmap` + pod restart (live ConfigMap still carries the broken IDs)
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-173-opencode-fallback-model-ids.md`
+
+---
+
+### 🎯 BITB-212: Orchestrator Delegation Discipline — Never Edit Application Code Directly
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-22
+
+The orchestrator prompt described delegation but never enforced it: on BITB-054 (PR #1192) the
+feature was delegated to android-expert, yet the ~10-round CI-fix loop was run directly by the
+orchestrator, each round ingesting full CI logs, until the session outgrew its context and could
+no longer be compacted. Fix: a hard **Delegation Discipline** contract in the orchestrator prompt
+(edit allowlist, stop-and-dispatch triggers, CI-red → dispatch procedure with a ~40-line log
+budget, report contract) plus `permission.edit` denials on `api/`, `frontend/`, `android/`,
+`deployment/`, `scripts/`, `data/` so a denied edit reminds the orchestrator to dispatch instead
+of self-fixing.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Delegation Discipline section in the orchestrator prompt (allowlist, CI-red dispatch
+      procedure, stop-and-dispatch triggers, report contract)
+- [ ] `permission.edit` denies in frontmatter + generated `opencode.json`; `make verify-opencode-config` green
+- [ ] Rollout: merge → `make sync-opencode-configmap` → pod restart (config is not hot-reloaded)
+- [ ] Live validation (owner-observed): next CI-red event handled by a fix-brief dispatch with a
+      registry token — no orchestrator commits on application code
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-212-orchestrator-delegation-discipline.md`
 
 ---
 
@@ -5790,6 +6174,14 @@ bookkeeping table.
 ---
 
 ## Done (Recent Completions)
+
+### 🚧 BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
+
+**Status:** 🚧 In Progress (2026-10-23)
+**Size:** XS
+Bump `next` / `eslint-config-next` to ^16.4.2 to clear two critical RCE advisories and one high DoS
+advisory against next 16.0.0–16.4.0 that fail the `Security & Dependency Check` job on every PR.
+[Full story](BACKLOG_STORIES/BITB-218-bump-next-16-4-2-security.md)
 
 ### BITB-177: Bump Next.js to clear npm-audit CI gate
 
