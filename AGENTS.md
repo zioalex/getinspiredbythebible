@@ -433,7 +433,14 @@ avoid stale entries accumulating in `.git/worktrees/`.
   run against production) stay as unticked acceptance criteria on the original story instead of
   becoming stories. Example: BITB-178 → BITB-179/180/181.
 - **When cancelling a story:** mark it `❌ Cancelled` in `docs/BACKLOG.md` with a short reason.
-- **Always update `Last Updated`** at the top of `docs/BACKLOG.md` whenever you touch the file.
+- **Changelog entries are append-only, one per line.** When you touch
+  `docs/BACKLOG.md`, add a *single new line* to the `## Changelog` section at
+  the top: `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#PR)`, and
+  update the `**Last Updated:**` date. **Never edit, reword, or reorder
+  existing entries** — a status change (e.g. story done) gets its own new line.
+  The previous format (one giant narrative line that every PR rewrote) made
+  this file conflict on nearly every PR; one-entry-per-line keeps each PR's
+  change on its own line so git merges cleanly.
 - **Story IDs are sequential.** Before creating a new story, check the highest existing `BITB-NNN` number in `docs/BACKLOG_STORIES/` and increment by one.
 
 ### Branch & PR Hygiene
@@ -458,6 +465,26 @@ conflicts that must be resolved." Resolution: rebase or merge `main`
 into the branch (`git fetch origin && git merge origin/main`), resolve
 conflicts, push — CI will start. Don't sit waiting for a CI signal that
 will never arrive.
+
+### Documentation Completeness
+
+**A new script, tool, or workflow is not "done" until its usage is documented —
+in the same commit.** Writing the script and updating the docs are one task,
+not two. Before committing a new `scripts/*` file or workflow:
+
+- **The zero-to-running test:** could someone with repo access but *none* of
+  your session context go from nothing to a successful run using only the
+  README? Every prerequisite (credentials, RBAC roles, extensions), every run
+  method, and every reference to the new file must be in place.
+- **When you touch the README at all, re-scan it for the thing you just
+  added.** Point-fixes to one section while a new artifact stays undocumented
+  elsewhere in the same file is the classic failure (observed 2026-10-22: the
+  SPN creation script shipped with only a passing mention in a secrets table,
+  its 6 RBAC roles undocumented, and the section that *did* exist still
+  listed only 4 roles).
+- **A file rename requires a repo-wide reference grep** (`grep -rn "<old-name>"
+  --exclude-dir=.git .`), not a grep of the file you just edited. Markdown
+  links, comments, and cross-references live in files you weren't touching.
 
 ### Reproducible Repo Analyses
 

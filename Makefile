@@ -918,11 +918,9 @@ db-delete-server: ## DESTRUCTIVE — delete a restored Azure server (usage: make
 # the same commands work against a PITR copy (make db-restore-new-server).
 PG_FW_SERVER = $(or $(SERVER),$(PG_SERVER))
 
-# NOTE on the flag names below. For `az postgres flexible-server firewall-rule`,
-# --name/-n is the SERVER and --rule-name/-r is the firewall rule. (--server-name
-# belongs to the retired `az postgres server` single-server command group; passing
-# it here fails with "unrecognized arguments".) These targets carried --server-name
-# and used --name for the rule, which is two mistakes that happen to look right.
+# Flag contract for `az postgres flexible-server firewall-rule`: --server-name/-s
+# is the SERVER and --name/-n is the firewall rule; there is no --rule-name.
+# Covered offline by tests/test_makefile_firewall.py.
 # The echoes use `echo -e` because this Makefile sets SHELL := /bin/bash, whose
 # builtin echo prints \033 literally without it.
 
@@ -931,18 +929,18 @@ az-pg-add-ip: ## Add your current IP to PostgreSQL firewall (usage: make az-pg-a
 	@MY_IP=$$(curl -4 -s ifconfig.me) && \
 	echo -e "$(YELLOW)Your IP: $$MY_IP$(NC)" && \
 	az postgres flexible-server firewall-rule create \
-		--resource-group $(PG_RG) \
-		--name $(PG_FW_SERVER) \
-		--rule-name $(PG_FW_SERVER) \
-		--start-ip-address $$MY_IP \
-		--end-ip-address $$MY_IP && \
+		--resource-group "$(PG_RG)" \
+		--server-name "$(PG_FW_SERVER)" \
+		--name "$(PG_FW_SERVER)" \
+		--start-ip-address "$$MY_IP" \
+		--end-ip-address "$$MY_IP" && \
 	echo -e "$(GREEN)✓ Firewall rule added for IP: $$MY_IP on $(PG_FW_SERVER)$(NC)"
 
 az-pg-list-rules: ## List PostgreSQL firewall rules (usage: make az-pg-list-rules [SERVER=restored-copy])
 	@echo -e "$(BLUE)Listing firewall rules on $(PG_FW_SERVER)...$(NC)"
 	@az postgres flexible-server firewall-rule list \
-		--resource-group $(PG_RG) \
-		--name $(PG_FW_SERVER) \
+		--resource-group "$(PG_RG)" \
+		--server-name "$(PG_FW_SERVER)" \
 		--output table
 
 az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip RULE=rule-name [SERVER=restored-copy])
@@ -953,9 +951,9 @@ az-pg-remove-ip: ## Remove a firewall rule by name (usage: make az-pg-remove-ip 
 	fi
 	@echo -e "$(BLUE)Removing firewall rule $(RULE) from $(PG_FW_SERVER)...$(NC)"
 	@az postgres flexible-server firewall-rule delete \
-		--resource-group $(PG_RG) \
-		--name $(PG_FW_SERVER) \
-		--rule-name $(RULE) \
+		--resource-group "$(PG_RG)" \
+		--server-name "$(PG_FW_SERVER)" \
+		--name "$(RULE)" \
 		--yes && \
 	echo -e "$(GREEN)✓ Firewall rule removed: $(RULE)$(NC)"
 

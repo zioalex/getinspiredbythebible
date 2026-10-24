@@ -109,9 +109,13 @@ enable_application_insights = true
 # -----------------------------------------------------------------------------
 # Budget Alerts
 # -----------------------------------------------------------------------------
+# BITB-150: measured average spend Jul-Sep 2026 was ~93 CHF/mo (2 vCPU B2s,
+# 64 GB storage, 32 alert rules, always-on container apps). The old budget of
+# 50 made the 80% alert fire continuously. Set to the measured run rate; the
+# accepted optimization levers (BITB-223…234) bring it down from here.
 
 create_budget_alert = true
-monthly_budget      = 50
+monthly_budget      = 100
 # budget_alert_emails is sourced from repo secret TF_VAR_BUDGET_ALERT_EMAILS
 # (JSON array, e.g. '["alerts@example.com"]'). Defaults to [] if unset.
 
