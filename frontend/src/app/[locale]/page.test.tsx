@@ -48,6 +48,10 @@ vi.mock("@/lib/api", async (importOriginal) => {
     searchChurches: vi.fn(),
     submitContactForm: vi.fn(),
     InvalidContactEmailError: class InvalidContactEmailError extends Error {},
+    getBookNames: vi.fn().mockResolvedValue({
+      localized_to_english: {},
+      multi_word_names: [],
+    }),
   };
 });
 
@@ -65,6 +69,8 @@ vi.mock("@/lib/verseExtraction", async (importOriginal) => {
     // linkifyVerses()/handleTextClick() normalize non-ASCII (Devanagari,
     // Eastern Arabic) digits before parsing chapter/verse numbers.
     normalizeDigits: actual.normalizeDigits,
+    // updateBookNames is called by ChatIsland when localized book names are loaded
+    updateBookNames: actual.updateBookNames,
   };
 });
 

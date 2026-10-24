@@ -5472,12 +5472,13 @@ fallback columns).
 
 ---
 
-### 🎯 BITB-212: Orchestrator Delegation Discipline — Never Edit Application Code Directly
+### ✅ BITB-212: Orchestrator Delegation Discipline — Never Edit Application Code Directly
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-22
+**Completed:** 2026-10-23 (PR #1193)
 
 The orchestrator prompt described delegation but never enforced it: on BITB-054 (PR #1192) the
 feature was delegated to android-expert, yet the ~10-round CI-fix loop was run directly by the
@@ -5490,10 +5491,10 @@ of self-fixing.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Delegation Discipline section in the orchestrator prompt (allowlist, CI-red dispatch
+- [x] Delegation Discipline section in the orchestrator prompt (allowlist, CI-red dispatch
       procedure, stop-and-dispatch triggers, report contract)
-- [ ] `permission.edit` denies in frontmatter + generated `opencode.json`; `make verify-opencode-config` green
-- [ ] Rollout: merge → `make sync-opencode-configmap` → pod restart (config is not hot-reloaded)
+- [x] `permission.edit` denies in frontmatter + generated `opencode.json`; `make verify-opencode-config` green
+- [x] Rollout: merge → `make sync-opencode-configmap` → pod restart (config is not hot-reloaded)
 - [ ] Live validation (owner-observed): next CI-red event handled by a fix-brief dispatch with a
       registry token — no orchestrator commits on application code
 
@@ -6231,6 +6232,23 @@ bookkeeping table.
 Bump `next` / `eslint-config-next` to ^16.4.2 to clear two critical RCE advisories and one high DoS
 advisory against next 16.0.0–16.4.0 that fail the `Security & Dependency Check` job on every PR.
 Follow-ups: BITB-235. [Full story](DONE/BITB-218-bump-next-16-4-2-security.md)
+
+### ✅ BITB-220: Independent Audit of Every Makefile Target
+
+**Status:** ✅ Done (PR #1196 merged 2026-10-23)
+**Priority:** P2
+**Size:** L
+**Created:** 2026-10-23
+**Completed:** 2026-10-23
+
+**As a** maintainer, **I want** every `make` target audited, classified by blast radius and
+exercised against recording fakes,
+**so that** the Makefile's documented behaviour matches what the targets do, and no target
+silently reports success on failure or touches live systems unexpectedly.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-220-makefile-target-audit.md`
+
+---
 
 ### BITB-177: Bump Next.js to clear npm-audit CI gate
 
