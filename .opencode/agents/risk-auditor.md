@@ -1,10 +1,10 @@
 ---
 description: Adversarial architecture and risk audit across backend, frontend, Android, and infra. Severity-ranked, evidence-backed report. Read-only.
 mode: subagent
-model: opencode/nemotron-3-ultra-free
+model: openrouter/deepseek/deepseek-v3.2-exp
 fallback_models:
-  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
-  - openrouter/openai/gpt-oss-120b
+  - opencode/nemotron-3-ultra-free
+  - openrouter/z-ai/glm-5.3
 permission:
   edit: deny
   bash:

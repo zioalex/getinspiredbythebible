@@ -13,6 +13,9 @@ chain pinned `opencode/nemotron-3-super-free` (Zen serves no Super variant) and
 fallback hop failed with ProviderModelNotFoundError and the plugin never once
 failed over. Model IDs changed here MUST be verified against the live catalog
 (`opencode models`) — the gateway, not the docs, is the source of truth.
+
+BITB-236 updates the matrix to paid primaries and retires `gpt-oss-120b`. The
+tests now reflect the new lane‑aware fallback chains.
 """
 
 import json
@@ -29,15 +32,15 @@ GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
 AGENTS_DOC = REPO_ROOT / "deployment" / "kubeopencode" / "agents.md"
 
-STRONG_PRIMARY = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
-TIER2_FALLBACK = "openrouter/openai/gpt-oss-120b"
+STRONG_PRIMARY = "openrouter/z-ai/glm-5.3"
+TIER2_FALLBACK = "openrouter/deepseek/deepseek-v3.2-exp"
 # Tier-1 hops are cross-provider: an OpenRouter primary fails over to Zen,
 # a Zen primary fails over to OpenRouter. Both hops are FREE; tier-2 is PAID.
 OR_FREE_HOP = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
 ZEN_FREE_HOP = "opencode/nemotron-3-ultra-free"
 # The retired IDs must never come back: both were non-existent on their
 # providers (BITB-173), which made the whole fallback chain inert.
-STALE_MODEL_IDS = ("opencode/nemotron-3-super-free", "openrouter/openai/gpt-oss-120b:free")
+STALE_MODEL_IDS = ("opencode/nemotron-3-super-free", "openrouter/openai/gpt-oss-120b:free", "openrouter/openai/gpt-oss-120b")
 BUILTINS = ("build", "plan", "general", "explore", "compaction", "title", "summary")
 PLUGIN_NAME = "opencode-runtime-fallback@0.2.4"
 
@@ -74,12 +77,18 @@ def test_all_md_agents_present(config, md_agents):
 
 
 def expected_chain(primary: str) -> list:
-    """Tier-1 hop must be cross-provider (and free); tier-2 is always paid."""
-    return (
-        [ZEN_FREE_HOP, TIER2_FALLBACK]
-        if primary.partition("/")[0] == "openrouter"
-        else [OR_FREE_HOP, TIER2_FALLBACK]
-    )
+    """Lane-aware fallback chain.
+
+    - Workhorse/Builders (OpenRouter primary GLM-5.3): [Zen free, DeepSeek V3.2 Exp]
+    - Skeptics (OpenRouter primary DeepSeek V3.2 Exp): [Zen free, GLM-5.3]
+    - Mechanical (free primary MIMO): [OpenRouter free, GLM-5.3]
+    """
+    if primary == "openrouter/z-ai/glm-5.3":
+        return [ZEN_FREE_HOP, "openrouter/deepseek/deepseek-v3.2-exp"]
+    if primary == "openrouter/deepseek/deepseek-v3.2-exp":
+        return [ZEN_FREE_HOP, "openrouter/z-ai/glm-5.3"]
+    # Free primary (MIMO)
+    return ["openrouter/nvidia/nemotron-3-ultra-550b-a55b:free", "openrouter/z-ai/glm-5.3"]
 
 
 def test_every_md_agent_has_fallback_models(config, md_agents):
@@ -128,8 +137,10 @@ def test_fallback_chain_exact_and_ordered(config, md_agents):
 
 def test_primary_is_the_strongest_free_model(config):
     """The global primary (builtins: build/plan/general/explore/etc.) is the
-    strongest model on the graph — Nemotron-3-Ultra-550B-A55B free (rank #4
-    overall, #1 free per docs/LLM_PRICING_OPENROUTER.md)."""
+    strongest **paid** model on the graph — `openrouter/z-ai/glm-5.3`.
+    Cheap ops (`small_model`) stay on Zen free, off the OpenRouter free-tier
+    rate limits.
+    """
     assert config["model"] == STRONG_PRIMARY
     # Cheap ops tier stays on Zen free, off the OpenRouter free-tier limits.
     assert config["small_model"] == ZEN_FREE_HOP
@@ -169,7 +180,7 @@ def test_builtin_agents_have_fallback_models(config):
     for name in BUILTINS:
         assert name in config["agent"], f"builtin {name} missing"
         fallbacks = config["agent"][name].get("fallback_models")
-        assert fallbacks == [ZEN_FREE_HOP, TIER2_FALLBACK], (
+        assert fallbacks == [ZEN_FREE_HOP, "openrouter/deepseek/deepseek-v3.2-exp"], (
             f"builtin {name}: expected [Zen free, paid], got {fallbacks}"
         )
 

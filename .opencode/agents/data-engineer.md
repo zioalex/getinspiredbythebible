@@ -1,10 +1,10 @@
 ---
 description: Data engineer for pgvector embeddings, Alembic migrations, semantic search, and verse_topic population
 mode: subagent
-model: opencode/nemotron-3-ultra-free
+model: openrouter/z-ai/glm-5.3
 fallback_models:
-  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
-  - openrouter/openai/gpt-oss-120b
+  - opencode/nemotron-3-ultra-free
+  - openrouter/deepseek/deepseek-v3.2-exp
 tools:
   bash: true
   read: true
