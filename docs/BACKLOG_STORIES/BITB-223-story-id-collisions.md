@@ -17,7 +17,7 @@ add one. That only sees `main`, so PRs open at the same time pick the same numbe
 - the Next.js security story went BITB-214 → 218 for the same reason;
 - each renumber touched the story file, `docs/BACKLOG.md`, test names and the PR title, and the
   squash commit of #1195 on `main` still reads `(BITB-214)` — a different story (online-voices menu
-  copy) — so the 1.58.x changelog will cite the wrong ID for the security fix.
+  copy) — and the released `CHANGELOG.md` for 1.58.0 (#1167) cites BITB-214 for the security fix.
 
 ## Options
 
@@ -31,4 +31,4 @@ add one. That only sees `main`, so PRs open at the same time pick the same numbe
 
 - [ ] Two PRs can no longer merge stories with the same ID unnoticed
 - [ ] `AGENTS.md` Backlog Hygiene describes the chosen rule
-- [ ] Decide whether to correct the #1195 changelog line by hand in the next release PR
+- [ ] Decide whether to correct the 1.58.0 `CHANGELOG.md` line for #1195 (BITB-214 → BITB-218) by hand
