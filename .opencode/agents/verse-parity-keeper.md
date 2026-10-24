@@ -4,7 +4,7 @@ mode: subagent
 model: opencode/mimo-v2.6-flash-free
 fallback_models:
   - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
-  - openrouter/openai/gpt-oss-120b
+  - openrouter/z-ai/glm-5.3
 tools:
   bash: true
   read: true

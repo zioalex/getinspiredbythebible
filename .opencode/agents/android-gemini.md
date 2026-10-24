@@ -1,10 +1,10 @@
 ---
 description: Android engineer with first-class familiarity with Google/Jetpack APIs, Firebase, Play Services, and the latest Android Studio tooling
 mode: subagent
-model: openrouter/qwen/qwen3-coder
+model: openrouter/z-ai/glm-5.3
 fallback_models:
   - opencode/nemotron-3-ultra-free
-  - openrouter/openai/gpt-oss-120b
+  - openrouter/deepseek/deepseek-v3.2-exp
 tools:
   bash: true
   read: true

@@ -6,20 +6,20 @@ containers via the `opencode-config` ConfigMap (`spec.configRef`). This file
 documents the model tiering held in that generated `agent` section (primary
 `model` + `fallback_models`); the `.md` frontmatter is the source of truth.
 
-| Agent | Primary model | Fallback 1 | Fallback 2 (cross-provider) | Notes |
-|---|---|---|---|---|---|
-| orchestrator | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `opencode/nemotron-3-ultra-free` | `openrouter/openai/gpt-oss-120b` | Primary planner; 2-hop fallback |
-| android-expert | `opencode/nemotron-3-ultra-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Kotlin/Compose builder; cross-provider resilient |
-| fullstack-engineer | `opencode/nemotron-3-ultra-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | FastAPI/Next.js/PG builder; cross-provider resilient |
-| infra-engineer | `opencode/nemotron-3-ultra-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Azure/Terraform/CI builder; cross-provider resilient |
-| android-gemini | `openrouter/qwen/qwen3-coder` | `opencode/nemotron-3-ultra-free` | `openrouter/openai/gpt-oss-120b` | Paid-tier coder (BITB-023); needs `OPENROUTER_API_KEY` |
-| data-engineer | `opencode/nemotron-3-ultra-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | pgvector/Alembic/embeddings; cross-provider resilient |
-| verse-parity-keeper | `opencode/mimo-v2.6-flash-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | 3 parsers in sync, 11 languages; cross-provider resilient |
-| i18n-qa | `opencode/mimo-v2.6-flash-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Locales/translations QA; cross-provider resilient |
-| verifier | `opencode/nemotron-3-ultra-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Read-only test runner; 2-hop fallback |
-| risk-auditor | `opencode/nemotron-3-ultra-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Read-only audit; 2-hop fallback |
-| failure-forecaster | `opencode/nemotron-3-ultra-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Read-only 12-month forecast; cross-provider resilient |
-| seo-auditor | `opencode/nemotron-3-ultra-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Read-only SEO audit; cross-provider resilient |
+| Agent | Primary model | Fallback 1 | Fallback 2 | Notes |
+|---|---|---|---|---|
+| orchestrator | `openrouter/z-ai/glm-5.3` | `opencode/nemotron-3-ultra-free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, cross‑provider free tier‑1, paid tier‑2 (retired gpt‑oss‑120b) |
+| android-expert | `openrouter/z-ai/glm-5.3` | `opencode/nemotron-3-ultra-free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, free‑first‑paid‑last |
+| fullstack-engineer | `openrouter/z-ai/glm-5.3` | `opencode/nemotron-3-ultra-free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, free‑first‑paid‑last |
+| infra-engineer | `openrouter/z-ai/glm-5.3` | `opencode/nemotron-3-ultra-free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, free‑first‑paid‑last |
+| android-gemini | `openrouter/z-ai/glm-5.3` | `opencode/nemotron-3-ultra-free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, free‑first‑paid‑last |
+| data-engineer | `openrouter/z-ai/glm-5.3` | `opencode/nemotron-3-ultra-free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, free‑first‑paid‑last |
+| verse-parity-keeper | `opencode/mimo-v2.6-flash-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/z-ai/glm-5.3` | Free primary, cross‑provider tier‑1, PAID tier‑2 |
+| i18n-qa | `opencode/mimo-v2.6-flash-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/z-ai/glm-5.3` | Free primary, cross‑provider tier‑1, PAID tier‑2 |
+| verifier | `openrouter/deepseek/deepseek-v3.2-exp` | `opencode/nemotron-3-ultra-free` | `openrouter/z-ai/glm-5.3` | PAID primary, free‑first‑paid‑last |
+| risk-auditor | `openrouter/deepseek/deepseek-v3.2-exp` | `opencode/nemotron-3-ultra-free` | `openrouter/z-ai/glm-5.3` | PAID primary, free‑first‑paid‑last |
+| failure-forecaster | `openrouter/deepseek/deepseek-v3.2-exp` | `opencode/nemotron-3-ultra-free` | `openrouter/z-ai/glm-5.3` | PAID primary, free‑first‑paid‑last |
+| seo-auditor | `openrouter/deepseek/deepseek-v3.2-exp` | `opencode/nemotron-3-ultra-free` | `openrouter/z-ai/glm-5.3` | PAID primary, free‑first‑paid‑last |
 
 Fallbacks are served by the `opencode-runtime-fallback@0.2.4` plugin, configured
 in the generated `opencode.json` (retry on
@@ -33,21 +33,20 @@ Every agent has a **2-hop fallback chain — free first, paid last** (BITB-173)
 so routine failovers cost nothing and a provider outage degrades instead of
 killing the agent graph:
 
-1. **Primary**: the strongest model on the graph —
-   `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` (rank #4 overall, #1
-   free per `docs/LLM_PRICING_OPENROUTER.md`; 550B-A55B MoE, 1M context) —
+1. **Primary**: the strongest **paid** model on the graph —
+   `openrouter/z-ai/glm-5.3` (high‑performance paid tier) —
    powers the global model (builtins: build/plan/general/explore/compaction/
    title/summary) and the orchestrator. Cheap ops (`small_model`: titles,
-   compaction) stay on Zen free, off the OpenRouter free-tier rate limits.
-2. **Tier 1 (free, cross-provider)**: the hop is always on the OTHER provider
+   compaction) stay on Zen free, off the OpenRouter free‑tier rate limits.
+2. **Tier 1 (free, cross‑provider)**: the hop is always on the OTHER provider
    than the primary — OpenRouter primaries (global builtins, orchestrator,
-   android-gemini) fail over to `opencode/nemotron-3-ultra-free` (Zen); Zen
+   android‑gemini) fail over to `opencode/nemotron-3-ultra-free` (Zen); Zen
    primaries (the specialist subagents) fail over to
    `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` (OpenRouter). A full
    outage of either provider never kills the chain.
-3. **Tier 2 (paid)**: `openrouter/openai/gpt-oss-120b` (OpenRouter,
-   ~$0.10/$0.40 per 1M tokens) — the paid safety net that engages only when
-   both free hops fail, so cost is bounded to double-failure events.
+3. **Tier 2 (paid)**: the alternative paid OpenRouter model for the lane —
+   `openrouter/deepseek/deepseek-v3.2-exp` (paid, other OpenRouter model) —
+   engages only when both free hops fail, so cost is bounded to double‑failure events.
 
 The 3-tier coverage matrix:
 

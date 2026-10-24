@@ -1,10 +1,10 @@
 ---
 description: Forward-looking 12-month failure forecast — dependency rot, EOL calendars, time bombs, vendor risk. Prioritized register plus detailed report. Read-only.
 mode: subagent
-model: opencode/nemotron-3-ultra-free
+model: openrouter/deepseek/deepseek-v3.2-exp
 fallback_models:
-  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
-  - openrouter/openai/gpt-oss-120b
+  - opencode/nemotron-3-ultra-free
+  - openrouter/z-ai/glm-5.3
 permission:
   edit: deny
   bash:
