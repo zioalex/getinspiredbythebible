@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-23
+**Last Updated:** 2026-10-24
 
 ## Changelog
 
@@ -23,6 +23,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-23: BITB-219 opened — hide header language switcher on mobile (PR #1191)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
 
+- 2026-10-24: BITB-235 created — email the weekly cost analysis to the owner via SMTP2Go; resolves the privacy decision (no raw evidence in the public repo)
 - 2026-10-23: BITB-234 created — second-tenant ($50 credit) rehearsal environment for the migration chain; production split and reservation-in-new-tenant declined with reasoning
 - 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
 - 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
@@ -3137,6 +3138,25 @@ discipline: B1ms server stopped between rehearsal windows (storage-only billing 
 stopped), budget alert at 80% of credit, teardown checklist when the migration chain ships.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-234-credit-tenant-rehearsal-environment.md`
+
+---
+
+### 🎯 BITB-235: Email the Cost Analysis to the Owner — Private Delivery Instead of Public-Repo Evidence
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-24
+
+Resolves BITB-150's deferred privacy decision: the weekly cost-evidence workflow currently
+commits raw Azure billing data (spend per meter, alert inventory, capacity, index names) to
+a public repo. Replace with email delivery to [EMAIL] via the existing SMTP2Go setup
+(same pattern as weekly-report.yml): report generator produces a human-readable weekly
+summary, workflow emails it, raw evidence stays as a 1-day workflow artifact (never in
+git), no commit step. Strictest privacy: zero financial data in the repo — tooling and
+stories stay public, output is private email.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-235-email-cost-analysis-to-owner.md`
 
 ---
 
