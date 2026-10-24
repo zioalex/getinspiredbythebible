@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.R
+import org.voxquieta.app.clearTourSeen
 import org.voxquieta.app.presentation.components.ContactFormBottomSheet
 import org.voxquieta.app.presentation.components.DiagnosticReportBottomSheet
 import org.voxquieta.app.presentation.viewmodels.ChatViewModel
@@ -54,6 +55,7 @@ import org.voxquieta.app.utils.aboutUrl
 import org.voxquieta.app.utils.donateUrl
 import org.voxquieta.app.utils.privacyUrl
 import org.voxquieta.app.utils.termsUrl
+import kotlinx.coroutines.launch
 
 /** Theme option shown in the settings section. */
 private data class ThemeOption(
@@ -303,6 +305,19 @@ fun SettingsScreen(
             ) {
                 Text(
                     text = stringResource(R.string.settings_changelog_link),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            TextButton(
+                onClick = {
+                    context.clearTourSeen()
+                    // Navigate back to chat to trigger the tour
+                    onNavigateBack()
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_show_app_tour),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
