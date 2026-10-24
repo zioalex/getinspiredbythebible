@@ -289,7 +289,11 @@ def test_task_reliability_plugin_file():
 
 
 def test_task_reliability_plugin_helpers_run():
-    """BITB-169 L1: the helper unit tests must pass under node --experimental-strip-types."""
+    """BITB-169 L1: the helper unit tests must pass under node --experimental-strip-types.
+
+    Node changed the test-runner spec-reporter summary prefix from `#` to `ℹ`
+    (caught on CI 2026-10-24, PR #1202); assertions must accept both formats.
+    """
     assert PLUGIN_TEST_FILE.is_file(), (
         f"{PLUGIN_TEST_FILE.relative_to(REPO_ROOT)} is missing -- the plugin helpers "
         "must be covered by the node:test suite"
@@ -312,7 +316,9 @@ def test_task_reliability_plugin_helpers_run():
         "task-reliability helper tests failed:\n"
         f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
     )
-    assert "# fail 0" in result.stdout, (
+    # Accept both old (`# fail 0`) and new (`ℹ fail 0`) spec-reporter prefixes.
+    # Must still fail when fail count is non-zero (e.g. `fail 1`, `fail 17`).
+    assert re.search(r"[#ℹ]\s*fail\s+0\b", result.stdout), (
         f"task-reliability helper tests reported failures:\n{result.stdout}"
     )
 # --- T6: BITB-171 k8s/kubeopencode parity ----------------------------------
