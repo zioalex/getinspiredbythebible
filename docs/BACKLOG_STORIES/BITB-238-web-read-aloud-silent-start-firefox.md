@@ -6,7 +6,7 @@
 **Created:** 2026-10-24
 **Prompted by:** bug report 2026-10-24 — "The voice over doesn't work on web/linux/firefox. The play button is
 displayed and if I press it, it shows me the pause one but no audio is produced. … Nothing is played and no
-network activity."
+network activity." Then: "On android/firefox it works properly" — so the app code path works and the failure is specific to Linux Firefox's speech-dispatcher backend.
 
 Follow-up to BITB-205 / BITB-210.
 
