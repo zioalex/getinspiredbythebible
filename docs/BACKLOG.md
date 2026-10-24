@@ -22,7 +22,7 @@ Prioritized list of user stories and features for Vox Quieta.
 
 - 2026-10-23: BITB-219 done — hide header language switcher on mobile (PR #1191)
 - 2026-10-24: BITB-193 done — Stage-1 directed harm checked in every language (PR #1199)
-- 2026-10-24: BITB-220 opened — native ar/ru/zh/hi/ko directed-harm patterns (PR #1199)
+- 2026-10-24: BITB-237 opened — native ar/ru/zh/hi/ko directed-harm patterns (PR #1199)
 - 2026-10-24: BITB-235 opened — English "kill yourself" in help-seeking/theological questions blocked under every code (PR #1199)
 - 2026-10-24: BITB-236 opened — recall lost by directed-harm tightening (PR #1199)
 - 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
@@ -297,9 +297,9 @@ are anchored to remove cross-language false positives, and pt "Quero que eu morr
 - [x] Stage 1 checks directed harm in every language, independent of detected language
 - [x] Cross-language parametrized tests (11 languages, mismatched codes)
 - [x] Cross-language single-word false positives no longer fire
-- [x] ru/zh/hi/ko/ar tables decision recorded: deferred to BITB-220
+- [x] ru/zh/hi/ko/ar tables decision recorded: deferred to BITB-237
 
-**Follow-ups:** BITB-220, BITB-235, BITB-236.
+**Follow-ups:** BITB-237, BITB-235, BITB-236.
 
 Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
 
@@ -326,7 +326,7 @@ Follow-up to BITB-193: "adesso muori!", "Crève charogne", "morra seu idiota" no
 
 Full story: [`BITB-236-directed-harm-recall-after-tightening.md`](BACKLOG_STORIES/BITB-236-directed-harm-recall-after-tightening.md)
 
-### 🎯 BITB-220: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
+### 🎯 BITB-237: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
 
 **Status:** 🎯 Todo
 **Priority:** P3
@@ -342,7 +342,7 @@ Add conservative, Bible-narrative-aware ar/ru/zh/hi/ko tables.
 - [ ] ar/ru/zh/hi/ko directed-harm tables added; native-script threats blocked under all 11 codes
 - [ ] Bible-narrative and self-harm phrasings stay unblocked (parametrized across 11 languages)
 
-Full story: [`BITB-220-native-directed-harm-patterns.md`](BACKLOG_STORIES/BITB-220-native-directed-harm-patterns.md)
+Full story: [`BITB-237-native-directed-harm-patterns.md`](BACKLOG_STORIES/BITB-237-native-directed-harm-patterns.md)
 
 ### 🎯 BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
 
