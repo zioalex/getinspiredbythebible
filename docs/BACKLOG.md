@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-23
+**Last Updated:** 2026-10-24
 
 ## Changelog
 
@@ -20,16 +20,18 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-10-23: BITB-219 done — hide header language switcher on mobile (PR #1191)
-- 2026-10-23: BITB-221 opened — header brand title truncates to "V…" at 320px (PR #1197)
-- 2026-10-23: BITB-222 opened — header layout below 320px is unguarded (PR #1197)
-- 2026-10-23: BITB-223 opened — story ID collisions across concurrent PRs (PR #1197)
+- 2026-10-24: BITB-235 opened — story IDs collide between concurrent PRs; header story renumbered 206 → 219, #1195 merged with stale BITB-214 (PR #1197)
+- 2026-10-24: BITB-222 opened — header layout below 320px is unguarded (PR #1197)
+- 2026-10-24: BITB-221 opened — header brand title truncates to "V…" at 320px (PR #1197)
+- 2026-10-24: BITB-219 done — hide header language switcher on mobile (PR #1191, merged 2026-10-23)
+- 2026-10-24: BITB-218 done — bump Next.js to 16.4.2 for critical RCE advisories (PR #1195, merged 2026-10-23; its squash commit and the 1.58.0 changelog say BITB-214)
+- 2026-10-23: BITB-219 opened — hide header language switcher on mobile (PR #1191)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
 
 - 2026-10-23: BITB-234 created — second-tenant ($50 credit) rehearsal environment for the migration chain; production split and reservation-in-new-tenant declined with reasoning
 - 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
 - 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
-- 2026-10-23: BITB-218 done — bump Next.js to 16.4.2 for critical RCE advisories (PR #1195)
+- 2026-10-23: BITB-218 in progress — next 16.4.2 for critical RCE advisories (PR #1195)
 - 2026-10-23: BITB-212 opened — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-210 done + BITB-211 done — read-aloud voice availability, hidden verse list; follow-ups BITB-213/214/215/216/217 opened (PR #1190, #1194)
 
@@ -3795,9 +3797,52 @@ foreground media-playback service with a Stop notification, gated on listen-rate
 
 ---
 
-### 🚧 BITB-219: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
+### 🎯 BITB-221: Header Brand Title Unreadable at 320px
 
-**Status:** 🚧 In Progress
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-10-23
+
+Follow-up of BITB-219: at 320px the truncated title shows only "V…"; free width (e.g. drop the
+icon-only app pill below ~360px) so the brand stays readable while the Bible chip and New chat fit.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-221-header-title-readable-at-320px.md`
+
+---
+
+### 🎯 BITB-222: Header Layout Below 320px Is Unguarded
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-10-23
+
+Follow-up of BITB-219: only 320–412px was verified; below that the `shrink-0` controls and a
+non-`shrink-0` menu wrapper can overflow again. Pick a minimum width and guarantee the controls there.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-222-header-below-320px.md`
+
+---
+
+### 🎯 BITB-235: Story IDs Collide Between Concurrent PRs
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-23
+
+Follow-up of BITB-218/219: "highest ID + 1" only sees `main`, so concurrent PRs pick the same number
+(the header story went 206 → 212 → 213 → 219; this story itself went 223 → 235; #1195 merged titled
+with a stale ID that the 1.58.0 changelog repeats). Add a CI check or reservation rule.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-235-story-id-collisions.md`
+
+---
+
+### ✅ BITB-219: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
+
+**Status:** ✅ Done — PR #1191, merged 2026-10-23
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-22
@@ -3813,8 +3858,11 @@ shrinks the controls group.
 - [x] Header language switcher hidden below `sm`; menu still switches language
 - [x] Title truncates instead of wrapping; New chat has an `aria-label`
 - [x] Vitest coverage across all 11 locales
+- [ ] Owner check on a phone after deploy
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-219-mobile-web-header-overflow.md`
+**Follow-ups:** BITB-221, BITB-222, BITB-235
+
+**Full Story:** `docs/DONE/BITB-219-mobile-web-header-overflow.md`
 
 ---
 
@@ -6177,13 +6225,13 @@ bookkeeping table.
 
 ## Done (Recent Completions)
 
-### 🚧 BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
+### ✅ BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
 
-**Status:** 🚧 In Progress (2026-10-23)
+**Status:** ✅ Done — PR #1195, merged 2026-10-23 (squash commit and 1.58.0 changelog say `BITB-214`; see BITB-235)
 **Size:** XS
 Bump `next` / `eslint-config-next` to ^16.4.2 to clear two critical RCE advisories and one high DoS
 advisory against next 16.0.0–16.4.0 that fail the `Security & Dependency Check` job on every PR.
-[Full story](BACKLOG_STORIES/BITB-218-bump-next-16-4-2-security.md)
+Follow-ups: BITB-235. [Full story](DONE/BITB-218-bump-next-16-4-2-security.md)
 
 ### BITB-177: Bump Next.js to clear npm-audit CI gate
 

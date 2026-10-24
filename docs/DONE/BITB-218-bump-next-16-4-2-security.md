@@ -30,8 +30,8 @@ No allowlist entries added; existing overrides unchanged.
 - [ ] Owner check: production deploy after merge runs next 16.4.2
 
 **Note:** the squash commit on `main` (f80eb04) is titled `(BITB-214)` — the story's earlier
-number; BITB-214 on `main` is a different story. See BITB-223.
+number; BITB-214 on `main` is a different story. See BITB-235.
 
 ## Follow-ups
 
-- BITB-223 — story IDs collide between concurrent PRs
+- BITB-235 — story IDs collide between concurrent PRs

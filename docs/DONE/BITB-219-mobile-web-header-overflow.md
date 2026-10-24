@@ -99,4 +99,4 @@ clipped, so `documentElement.scrollWidth` did not reveal it — the header's own
 
 - BITB-221 — brand title unreadable at 320px
 - BITB-222 — header layout below 320px is unguarded
-- BITB-223 — story IDs collide between concurrent PRs
+- BITB-235 — story IDs collide between concurrent PRs
