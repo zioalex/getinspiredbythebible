@@ -43,6 +43,10 @@ vi.mock("@/lib/api", async (importOriginal) => {
     searchChurches: vi.fn(),
     submitContactForm: vi.fn(),
     InvalidContactEmailError: class InvalidContactEmailError extends Error {},
+    getBookNames: vi.fn().mockResolvedValue({
+      localized_to_english: {},
+      multi_word_names: [],
+    }),
   };
 });
 
@@ -54,6 +58,7 @@ vi.mock("@/lib/verseExtraction", async (importOriginal) => {
     LOCALIZED_BOOK_TO_ENGLISH: actual.LOCALIZED_BOOK_TO_ENGLISH,
     isKnownBook: actual.isKnownBook,
     normalizeDigits: actual.normalizeDigits,
+    updateBookNames: actual.updateBookNames,
   };
 });
 
