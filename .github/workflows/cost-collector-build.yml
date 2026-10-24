@@ -1,0 +1,74 @@
+# Cost Collector Image Build — BITB-150
+#
+# Builds the cost-evidence collector Docker image and smoke-tests its
+# dependencies on every PR that touches it, so base-image, package-manager
+# and toolchain breakage fails CI instead of the user's machine.
+# (Added 2026-10-22 after two build breakages shipped unverified: a
+# non-existent `az extension add` and a base image without apt-get.)
+#
+# No Azure secrets required — this only builds and checks binaries.
+
+name: Cost Collector Build
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  pull_request:
+    paths:
+      - "scripts/Dockerfile.cost-collector"
+      - "scripts/collect_cost_evidence.py"
+      - "scripts/collect_cost_evidence.sh"
+      - "scripts/README_COST_COLLECTION.md"
+      - "tests/test_collect_cost_evidence.py"
+      - ".github/workflows/cost-evidence-weekly.yml"
+      - ".github/workflows/cost-collector-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and smoke-test collector image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      # Offline: no Azure, no database, standard library only.
+      - name: Run collector regression tests
+        run: python3 -m unittest discover -s tests -p 'test_collect_cost*.py' -v
+
+      - name: Build image
+        run: docker build -t bitb150-cost-collector -f scripts/Dockerfile.cost-collector .
+
+      - name: Smoke test — az / psql present and runnable
+        run: |
+          docker run --rm --entrypoint az bitb150-cost-collector --version | grep -q "azure-cli"
+          docker run --rm --entrypoint psql bitb150-cost-collector --version
+
+      - name: Smoke test — collector scripts still parse
+        run: |
+          docker run --rm --entrypoint python3 bitb150-cost-collector -m py_compile /app/collect_cost_evidence.py
+          docker run --rm --entrypoint bash bitb150-cost-collector -n /app/collect_cost_evidence.sh
+
+      - name: Smoke test — missing-credentials guard fires (Python and wrapper)
+        run: |
+          out=$(docker run --rm bitb150-cost-collector 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -q "AZURE_CLIENT_ID"
+          out=$(docker run --rm --entrypoint bash bitb150-cost-collector /app/collect_cost_evidence.sh 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -q "AZURE_CLIENT_ID"
+
+      - name: Smoke test — DATABASE_URL is forwarded at runtime and not baked in
+        run: |
+          docker run --rm --entrypoint python3 bitb150-cost-collector \
+            -c "import os; assert 'DATABASE_URL' not in os.environ"
+          export DATABASE_URL='postgresql://u:p@h/db'  # pragma: allowlist secret
+          docker run --rm -e DATABASE_URL --entrypoint python3 bitb150-cost-collector \
+            -c "import os; assert os.environ['DATABASE_URL'] == 'postgresql://u:p@h/db'"  # pragma: allowlist secret
+          if docker history --no-trunc bitb150-cost-collector | grep -q DATABASE_URL; then
+            echo "::error::DATABASE_URL must not be baked into the image"
+            exit 1
+          fi

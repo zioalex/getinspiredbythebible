@@ -1,0 +1,115 @@
+# Weekly Cost Evidence Collection — BITB-150 Phase 0
+#
+# Collects Azure cost evidence weekly and commits to the repo.
+# Requires these repository secrets:
+#   AZURE_CLIENT_ID
+#   AZURE_CLIENT_SECRET
+#   AZURE_TENANT_ID
+#   AZURE_SUBSCRIPTION_ID
+#   DATABASE_URL (optional, for PostgreSQL SQL queries)
+
+name: Weekly Cost Evidence Collection
+
+"on":
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday 06:00 UTC
+  workflow_dispatch: {} # Manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    name: Collect cost evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # Need full history for commit
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build collector image
+        run: |
+          docker build -t bitb150-cost-collector -f scripts/Dockerfile.cost-collector .
+
+      - name: Run cost evidence collection
+        id: collect
+        # A failed collection still leaves partial evidence: keep going so it is
+        # uploaded, then the final step fails the job.
+        continue-on-error: true
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          docker run --rm \
+            -e AZURE_CLIENT_ID \
+            -e AZURE_CLIENT_SECRET \
+            -e AZURE_TENANT_ID \
+            -e AZURE_SUBSCRIPTION_ID \
+            -e DATABASE_URL \
+            -v $(pwd)/cost-evidence:/app/cost-evidence \
+            bitb150-cost-collector
+
+      - name: Verify evidence collected
+        if: always()
+        run: |
+          EVIDENCE_DIR=$(find ./cost-evidence -mindepth 1 -maxdepth 1 \
+            -type d -name "cost-evidence-*" | sort -r | head -1)
+          if [[ -z "$EVIDENCE_DIR" ]]; then
+            echo "::error::No cost-evidence-* directory found"
+            exit 1
+          fi
+          echo "Found evidence in: $EVIDENCE_DIR"
+          ls -la "$EVIDENCE_DIR"
+          echo ""
+          echo "Manifest:"
+          cat "$EVIDENCE_DIR/MANIFEST.json" | jq .
+
+      - name: Upload evidence artifact (complete or partial)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cost-evidence-${{ github.run_id }}
+          path: cost-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Commit evidence
+        if: steps.collect.outcome == 'success'
+        run: |
+          EVIDENCE_DIR=$(find ./cost-evidence -mindepth 1 -maxdepth 1 \
+            -type d -name "cost-evidence-*" | sort -r | head -1)
+          if [[ -z "$EVIDENCE_DIR" ]]; then
+            echo "No evidence to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$EVIDENCE_DIR"
+          # Only commit if there are changes
+          if git diff --cached --quiet; then
+            echo "No new evidence to commit"
+          else
+            git commit -m "chore(cost): weekly evidence collection $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Cleanup old evidence (keep last 4 weeks)
+        run: |
+          # Keep only the 4 most recent evidence directories
+          find ./cost-evidence -mindepth 1 -maxdepth 1 -type d -name "cost-evidence-*" \
+            | sort -r | tail -n +5 | xargs -r rm -rf
+          echo "Cleaned up old evidence directories"
+
+      - name: Fail when collection failed
+        if: steps.collect.outcome != 'success'
+        run: |
+          echo "::error::Cost evidence collection failed or was partial; see MANIFEST.json in the uploaded artifact"
+          exit 1

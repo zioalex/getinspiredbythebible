@@ -21,6 +21,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-10-23: BITB-212 done — orchestrator delegation discipline enforced (PR #1193)
+
 - 2026-10-23: BITB-219 opened — hide header language switcher on mobile (PR #1191)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
 
