@@ -33,7 +33,8 @@ Follow-up to BITB-205 / BITB-210.
      up the same way.
 3. **The message:** visible and announced (`role="status"`), it disappears on the next Listen tap or
    after a few seconds, and it is in all 11 locales.
-4. The resume watchdog from BITB-205 and the online-voice consent from BITB-210 are unchanged.
+4. If a BITB-205 resume restart is also silent, the same give-up applies: the paused position is dropped and the next tap starts from the beginning, which is better than a stuck Pause.
+5. The resume watchdog from BITB-205 and the online-voice consent from BITB-210 are unchanged.
 
 ## Acceptance criteria
 
@@ -44,6 +45,10 @@ Follow-up to BITB-205 / BITB-210.
 - [ ] A first-chunk `onerror` gives up the same way
 - [ ] Message strings in 11 `messages/*.json`; lint, tsc, vitest and build green
 - [ ] Owner check on Linux Firefox: audio plays, or the message shows instead of a stuck "Pause"
+
+## Notes
+
+- On Linux Firefox the stuck utterance stays queued (`pending`), so the retry still has to cancel before speaking. The retry helps if the problem is a timing race. If speech-dispatcher is missing or blocked, the protection is the give-up path and its notice.
 
 ## Out of scope
 
