@@ -28,6 +28,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-24: BITB-221 opened — header brand title truncates to "V…" at 320px (PR #1197)
 - 2026-10-23: BITB-212 done — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-219 done — hide header language switcher on mobile (PR #1191)
+- 2026-10-23: BITB-142 done — first-run feature spotlight coach-marks with RTL support (PR #1192)
 - 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
 
@@ -6282,6 +6283,23 @@ bookkeeping table.
 Bump `next` / `eslint-config-next` to ^16.4.2 to clear two critical RCE advisories and one high DoS
 advisory against next 16.0.0–16.4.0 that fail the `Security & Dependency Check` job on every PR.
 Follow-ups: BITB-235. [Full story](DONE/BITB-218-bump-next-16-4-2-security.md)
+
+### ✅ BITB-220: Independent Audit of Every Makefile Target
+
+**Status:** ✅ Done (PR #1196 merged 2026-10-23)
+**Priority:** P2
+**Size:** L
+**Created:** 2026-10-23
+**Completed:** 2026-10-23
+
+**As a** maintainer, **I want** every `make` target audited, classified by blast radius and
+exercised against recording fakes,
+**so that** the Makefile's documented behaviour matches what the targets do, and no target
+silently reports success on failure or touches live systems unexpectedly.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-220-makefile-target-audit.md`
+
+---
 
 ### ✅ BITB-220: Independent Audit of Every Makefile Target
 

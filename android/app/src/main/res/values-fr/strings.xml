@@ -311,4 +311,16 @@
     <string name="settings_tts_title">Lecture à voix haute</string>
     <string name="settings_tts_show_listen">Afficher le bouton Écouter</string>
     <string name="settings_tts_show_listen_desc">Ajoute un bouton Écouter aux réponses. Les réponses sont lues par la voix de votre appareil ; le texte ne quitte jamais votre appareil.</string>
+
+    <!-- Feature Spotlight / Coach Marks (BITB-054) -->
+    <string name="tour_title">Visite de l\'app</string>
+    <string name="tour_step_indicator">Étape %1$d sur %2$d</string>
+    <string name="tour_step_1_drawer">Votre historique de discussions, paramètres et nouvelles discussions sont ici.</string>
+    <string name="tour_step_2_translation">Changer de version de la Bible.</string>
+    <string name="tour_step_3_language">Changer la langue de l\'app.</string>
+    <string name="tour_step_4_input">Commencer une conversation.</string>
+    <string name="tour_next">Suivant</string>
+    <string name="tour_skip">Ignorer</string>
+    <string name="tour_done">Terminé</string>
+    <string name="settings_show_app_tour">Afficher la visite de l\'app à nouveau</string>
 </resources>
