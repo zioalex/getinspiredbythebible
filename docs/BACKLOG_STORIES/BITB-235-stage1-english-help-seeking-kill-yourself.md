@@ -1,4 +1,4 @@
-# BITB-224: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
+# BITB-235: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 
 **Status:** 🎯 Todo
 **Priority:** P2
