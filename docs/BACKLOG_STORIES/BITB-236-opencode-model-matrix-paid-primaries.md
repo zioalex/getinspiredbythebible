@@ -1,9 +1,10 @@
 # BITB-236: Agent Model Matrix 2.0 — Paid Primaries (GLM-5.3 Workhorse + DeepSeek-V3.2-Exp Skeptic)
 
 **Priority:** P2 (Medium)
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1202)
 **Size:** M
 **Created:** 2026-10-24
+**Completed:** 2026-10-24
 
 ---
 
@@ -85,25 +86,25 @@ OpenRouter only** (`enforce_openrouter_for_paid`). The only rule change: the
 - [x] orchestrator.md prompt updated: "Delegation Reliability" section now
       documents the paid-primary posture instead of claiming all subagent
       primaries are free-tier
-- [ ] `scripts/generate-opencode-config.py`: `DEFAULT_MODEL` → GLM-5.3;
+- [x] `scripts/generate-opencode-config.py`: `DEFAULT_MODEL` → GLM-5.3;
       `TIER2_FALLBACK` → `openrouter/deepseek/deepseek-v3.2-exp`; builtin
       chains updated; chain-design comments rewritten for the new posture
-- [ ] `scripts/test_generate_opencode_config.py`: chain expectations updated to
+- [x] `scripts/test_generate_opencode_config.py`: chain expectations updated to
       the per-lane matrix (tier-2 is the *other* paid model of the pair);
       `openrouter/openai/gpt-oss-120b` added to `STALE_MODEL_IDS` tripwire;
       global-model test repurposed (GLM-5.3 primary, small_model unchanged)
-- [ ] `deployment/kubeopencode/agents.md` model table rewritten to match
+- [x] `deployment/kubeopencode/agents.md` model table rewritten to match
       (guarded by `test_models_match_agents_doc`)
-- [ ] `opencode.json` regenerated (`make gen-opencode-config`)
+- [x] `opencode.json` regenerated (`make gen-opencode-config`)
 
 ## Non-Functional Requirements
 
-- [ ] `make verify-opencode-config` green (valid JSON, 12 agents, every agent
+- [x] `make verify-opencode-config` green (valid JSON, 12 agents, every agent
       has fallback_models, fallback routing not silently vanished)
-- [ ] `pytest scripts/test_generate_opencode_config.py` green
-- [ ] Every model ID in the generated config exists in the live catalog
-- [ ] `make pre-commit` passes; no secrets in committed files
-- [ ] PR title is a valid conventional commit (squash-merge + release-please)
+- [x] `pytest scripts/test_generate_opencode_config.py` green
+- [x] Every model ID in the generated config exists in the live catalog
+- [x] `make pre-commit` passes; no secrets in committed files
+- [x] PR title is a valid conventional commit (squash-merge + release-please)
 
 ## Out of Scope
 

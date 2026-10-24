@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
 - 2026-10-24: BITB-236 in progress — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired, nemotron free kept as tier-1 rescue hop
 - 2026-10-24: BITB-235 opened — story IDs collide between concurrent PRs; header story renumbered 206 → 219, #1195 merged with stale BITB-214 (PR #1197)
 - 2026-10-24: BITB-222 opened — header layout below 320px is unguarded (PR #1197)
@@ -3125,9 +3126,9 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
-### 🚧 BITB-236: Agent Model Matrix 2.0 — Paid Primaries (GLM-5.3 + DeepSeek-V3.2-Exp), gpt-oss-120b Retired
+### ✅ BITB-236: Agent Model Matrix 2.0 — Paid Primaries (GLM-5.3 + DeepSeek-V3.2-Exp), gpt-oss-120b Retired
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (PR #1202)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-24
