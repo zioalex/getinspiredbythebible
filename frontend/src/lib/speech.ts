@@ -258,7 +258,10 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
   const mine = generation;
   clearWatchdog();
   clearStartWatchdog();
-  cancelQueue(synth, true); // one voice at a time, but never cancel an idle engine
+  // One voice at a time: switching answers always cancels; the first speak and a same-call
+  // retry skip the cancel on an idle engine (it can swallow the next utterance, BITB-238).
+  const switching = current !== null && current !== call;
+  cancelQueue(synth, !switching);
   call.index = fromIndex;
   current = call;
   setState(call.id, null);
@@ -277,12 +280,23 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     current = null;
     nativePaused = false;
     startFailedId = call.id;
+    const stateChanged = speakingId !== null || pausedId !== null;
     setState(null, null);
-    notify();
+    if (!stateChanged) notify(); // otherwise setState already notified
+  };
+  const markStarted = () => {
+    started = true;
+    clearWatchdog();
+    clearStartWatchdog();
   };
   startWatchdog = setTimeout(() => {
     startWatchdog = null;
     if (generation !== mine || current !== call || started) return;
+    // Firefox only sets `speaking` after a real start, so it proves audio began.
+    if (synth.speaking) {
+      started = true;
+      return;
+    }
     if (attempt < 2) startQueue(call, fromIndex, attempt + 1);
     else giveUp();
   }, START_WATCHDOG_MS);
@@ -291,6 +305,7 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     if (generation !== mine) return; // superseded by stop() / pause() / another speak()
     generation += 1;
     clearWatchdog();
+    clearStartWatchdog();
     try {
       synth.cancel(); // drop whatever is still queued after an error
     } catch {
@@ -308,21 +323,22 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     utterance.onstart = () => {
       if (generation !== mine) return;
       call.index = index;
-      started = true;
-      clearWatchdog();
-      clearStartWatchdog();
+      markStarted();
     };
     // A silent native resume is detected by the absence of any of these.
     utterance.onresume = () => {
       if (generation === mine) clearWatchdog();
     };
     utterance.onboundary = () => {
-      if (generation !== mine) return;
-      started = true;
-      clearWatchdog();
-      clearStartWatchdog();
+      if (generation === mine) markStarted();
     };
-    if (index === call.chunks.length - 1) utterance.onend = finish;
+    // Any chunk ending proves the engine ran.
+    utterance.onend =
+      index === call.chunks.length - 1
+        ? finish
+        : () => {
+            if (generation === mine) markStarted();
+          };
     utterance.onerror = () => {
       if (generation !== mine) return;
       if (started) finish();

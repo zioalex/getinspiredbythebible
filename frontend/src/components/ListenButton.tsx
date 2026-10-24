@@ -202,12 +202,13 @@ export default function ListenButton({
           <Volume2 className="w-4 h-4" aria-hidden="true" />
         )}
       </button>
-      {/* Always mounted (sr-only when empty) so the live region announces the change. */}
+      {/* Always mounted (sr-only when empty) so the live region announces the change. Absolutely
+          positioned against the sticky rail so the rail's width (and the answer) never reflows. */}
       <span
         role="status"
         className={
           startFailed
-            ? "max-w-[7rem] text-center text-[11px] leading-tight text-amber-700 dark:text-amber-400"
+            ? "pointer-events-none absolute top-0 end-full me-1 z-10 w-28 rounded-md bg-white/95 p-1.5 text-center text-[11px] leading-tight text-amber-700 shadow dark:bg-gray-800/95 dark:text-amber-400"
             : "sr-only"
         }
       >

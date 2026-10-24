@@ -174,7 +174,9 @@ describe("speak / stop", () => {
   it("one voice at a time: a second speak() replaces the first", () => {
     speak("m1", ["a"], voice, "en");
     const first = synth.spoken[0];
-    speak("m2", ["b"], voice, "en");
+    expect(synth.cancel).not.toHaveBeenCalled();
+    speak("m2", ["b"], voice, "en"); // engine flags stay false: switching must still cancel
+    expect(synth.cancel).toHaveBeenCalledTimes(1);
     expect(getSpeakingId()).toBe("m2");
     // The first message's late end/error events must not clobber the new speaker.
     first.onend?.();
@@ -576,5 +578,25 @@ describe("start watchdog (BITB-238)", () => {
     // ...which arms a fresh start watchdog that gives up if that restart is silent too.
     vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
     expect(getStartFailedId()).toBe("m1");
+  });
+
+  it("engine reporting speaking=true at timeout counts as started (no retry, no failure)", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.speaking = true; // never fired onstart/onboundary
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(synth.spoken).toHaveLength(2);
+    expect(getSpeakingId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
+  });
+
+  it("a non-final chunk's onend counts as a start signal", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.lastQueue(2)[0].onend?.();
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(synth.spoken).toHaveLength(2);
+    expect(getSpeakingId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
   });
 });
