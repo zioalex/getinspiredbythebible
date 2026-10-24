@@ -69,5 +69,5 @@ and tracked in BITB-237. Single-word imperatives are anchored rather than remove
 ## Follow-ups
 
 - BITB-237: native directed-harm patterns for ar/ru/zh/hi/ko.
-- BITB-235: English "kill yourself" help-seeking/theological questions blocked under every code.
+- BITB-238: English "kill yourself" help-seeking/theological questions blocked under every code.
 - BITB-236: directed-harm recall lost by the tightening (it/fr/pt).
