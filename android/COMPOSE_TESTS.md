@@ -19,23 +19,24 @@ The Android test suite has three tiers:
 make android-test-compose
 
 # Or directly with Gradle
-cd android && ./gradlew testDebugCompose --no-daemon
+cd android && ./gradlew :app:testDebugUnitTest -PcomposeTestsOnly --tests "*ComposeTest" --no-daemon
 
 # Run the standard JVM unit tests (unchanged)
 make android-test
 ```
 
-HTML report after a run: `android/app/build/reports/tests/testDebugCompose/index.html`
+HTML report after a run: `android/app/build/reports/tests/testDebugUnitTest/index.html`
 
 ## Filename Convention
 
 | Filename pattern | Runs in | Description |
 |---|---|---|
 | `*Test.kt` | `testDebugUnitTest` | Existing JVM unit tests — pure logic, no Android/Compose runtime |
-| `*ComposeTest.kt` | `testDebugCompose` | Robolectric Compose UI tests — mounts composables and asserts semantics |
+| `*ComposeTest.kt` | `testDebugUnitTest -PcomposeTestsOnly` | Robolectric Compose UI tests — mounts composables and asserts semantics |
 
 Both live under `android/app/src/test/kotlin/`. The Gradle `testDebugUnitTest` task explicitly
-excludes `**/*ComposeTest.class`; `testDebugCompose` includes only `**/*ComposeTest.class`.
+excludes `**/*ComposeTest.class`; passing `-PcomposeTestsOnly` lifts that exclusion and `--tests "*ComposeTest"`
+selects only those classes. (There is no separate `testDebugCompose` Gradle task.)
 
 ## Writing a New Compose Test
 

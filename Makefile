@@ -1,30 +1,56 @@
-.PHONY: follow-up-eval follow-up-checklist help venv install-hooks setup-dev lint test format check-all clean \
-	tf-check-version tf-init tf-plan tf-apply tf-destroy tf-fmt tf-validate tf-output tf-refresh \
-	validate-env validate-env-strict export-blocked-samples \
-	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
-	az-pg-add-ip az-pg-list-rules az-pg-remove-ip \
-	db-backup-info db-backup db-backup-schema db-restore-verify db-restore-local \
-	db-restore-new-server db-restore-same-server \
-	db-server-url db-rehearse-alembic db-delete-server \
-	android-test android-test-compose android-build android-build-prod android-lint android-clean android-security-check \
+# Every target except the two env-file rules (.env.local, .env.dev) is phony: none of them
+# produces a file of its own name, so a stray file called `test` or `lint` must never make
+# them silently "up to date". scripts/test_make_targets.py (make test-makefile) enforces this.
+.PHONY: help venv install-hooks setup-dev lint format type-check security install-deps \
+	test-backend test-frontend test check-all pre-commit alembic-roundtrip db-upgrade \
+	android-test android-test-compose android-build android-build-prod android-lint android-clean \
+	android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
-	alembic-roundtrip db-upgrade \
-	repo-metrics audit-metrics \
-	check-env-production \
-	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-down docker-down-dev \
-	docker-up-prod docker-up-prod-gpu \
+	follow-up-eval follow-up-checklist golden-test golden-live \
+	gen-opencode-config verify-opencode-config sync-opencode-configmap \
+	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
+	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
+	validate-env validate-env-strict export-blocked-samples \
+	clean clean-all fix-permissions update-baseline \
+	check-env-production check-local-api-url \
+	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-up-prod docker-up-prod-gpu \
 	docker-up-local-prod docker-up-local-prod-build docker-up-local-prod-acr-be \
-	docker-down-local-prod docker-logs-local-prod docker-restart-local-prod-api \
-	lint-kubeopencode-dev-image build-kubeopencode-dev-image
+	docker-down docker-down-dev docker-down-local-prod \
+	docker-logs docker-logs-dev docker-logs-dev-init docker-logs-local-prod \
+	docker-restart docker-restart-frontend docker-restart-api docker-restart-dev \
+	docker-restart-dev-api docker-restart-dev-frontend docker-restart-local-prod-api \
+	docker-reinit-dev-db docker-build docker-test docker-reset-db docker-reset-db-dev \
+	functional-test functional-test-dev \
+	docker-build-prod docker-build-prod-backend docker-build-prod-frontend docker-verify-frontend \
+	docker-update-tfvars docker-deploy-prod docker-deploy-prod-quick docker-build-deploy-prod \
+	docker-get-backend-url update-env-backend-url \
+	az-acr-list-images az-acr-list-tags az-deployed-images az-image-info \
+	db-backup-info db-backup db-backup-schema db-restore-verify db-restore-local \
+	db-restore-new-server db-restore-same-server db-server-url db-rehearse-alembic db-delete-server \
+	az-pg-add-ip az-pg-list-rules az-pg-remove-ip \
+	az-logs-backend az-logs-frontend az-logs-backend-system az-logs-frontend-system \
+	tf-check-version tf-init tf-plan tf-apply tf-apply-auto tf-destroy tf-fmt tf-validate \
+	tf-output tf-refresh tf-state-list \
+	repo-metrics audit-metrics test-makefile
+
+# `make` with no target prints the help, never the first recipe that happens to follow.
+.DEFAULT_GOAL := help
 
 # Use bash for better compatibility
 SHELL := /bin/bash
 
 # Virtual environment
 VENV := .venv
-PYTHON := $(VENV)/bin/python
-PIP := $(VENV)/bin/pip
+# Absolute, so VENV=/some/shared/venv (or a relative path) works from any `cd` in a recipe.
+VENV_DIR := $(abspath $(VENV))
+PYTHON := $(VENV_DIR)/bin/python
+PIP := $(VENV_DIR)/bin/pip
 PYTHON_VERSION := python3
+
+# Interpreter for the repo-level scripts/ tooling (pytest/pyyaml). Prefer the project venv so
+# the targets work on a laptop whose system python3 has neither; fall back to python3 on the
+# KubeOpenCode dev-image pod, which has no venv but ships both.
+SCRIPT_PYTHON := $(if $(wildcard $(PYTHON)),$(PYTHON),$(PYTHON_VERSION))
 
 # Colors for output — use $(shell printf) so the actual ESC byte is captured,
 # avoiding the literal "\033" text that echo leaves uninterpreted.
@@ -35,7 +61,7 @@ NC := $(shell printf '\033[0m') # No Color
 
 help: ## Show this help message
 	@echo '$(BLUE)Available commands:$(NC)'
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-32s$(NC) %s\n", $$1, $$2}'
 
 venv: ## Create virtual environment
 	@# Recreate if: python missing, pip missing, or venv owned by a different uid
@@ -57,9 +83,9 @@ venv: ## Create virtual environment
 
 install-hooks: venv ## Install pre-commit hooks
 	@echo "$(BLUE)Installing pre-commit hooks...$(NC)"
-	@$(CURDIR)/$(PIP) install -q pre-commit
-	@$(CURDIR)/$(VENV)/bin/pre-commit install
-	@$(CURDIR)/$(VENV)/bin/pre-commit install --hook-type commit-msg
+	@$(PIP) install -q pre-commit
+	@$(VENV_DIR)/bin/pre-commit install
+	@$(VENV_DIR)/bin/pre-commit install --hook-type commit-msg
 	@echo "$(GREEN)✓ Pre-commit hooks installed$(NC)"
 
 setup-dev: venv install-hooks ## Setup development environment
@@ -71,7 +97,7 @@ setup-dev: venv install-hooks ## Setup development environment
 	@if [ -d "frontend/node_modules" ]; then \
 		if [ "$$(stat -c '%U' frontend/node_modules 2>/dev/null || stat -f '%Su' frontend/node_modules 2>/dev/null)" != "$$(whoami)" ]; then \
 			echo "$(YELLOW)Detected root-owned node_modules, fixing...$(NC)"; \
-			sudo chown -R $$(whoami):$$(whoami) frontend/node_modules frontend/.next 2>/dev/null || true; \
+			sudo -n chown -R $$(whoami):$$(whoami) frontend/node_modules frontend/.next 2>/dev/null || true; \
 		fi \
 	fi
 	@echo "$(YELLOW)Installing Node.js dependencies...$(NC)"
@@ -84,9 +110,9 @@ setup-dev: venv install-hooks ## Setup development environment
 lint: install-deps ## Run all linters
 	@echo "$(BLUE)Running linters...$(NC)"
 	@echo "$(YELLOW)Python - Ruff$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m ruff check .
+	@cd api && $(PYTHON) -m ruff check .
 	@echo "$(YELLOW)Python - Black$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m black --check .
+	@cd api && $(PYTHON) -m black --check .
 	@echo "$(YELLOW)Frontend - ESLint$(NC)"
 	@cd frontend && npm run lint
 	@echo "$(GREEN)✓ Linting complete$(NC)"
@@ -94,11 +120,11 @@ lint: install-deps ## Run all linters
 format: install-deps ## Auto-format all code
 	@echo "$(BLUE)Formatting code...$(NC)"
 	@echo "$(YELLOW)Python - Black$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m black .
+	@cd api && $(PYTHON) -m black .
 	@echo "$(YELLOW)Python - isort$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m isort . --profile black
+	@cd api && $(PYTHON) -m isort . --profile black
 	@echo "$(YELLOW)Python - Ruff (auto-fix)$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m ruff check . --fix
+	@cd api && $(PYTHON) -m ruff check . --fix
 	@echo "$(YELLOW)Frontend - Prettier$(NC)"
 	@cd frontend && npx prettier --write "src/**/*.{ts,tsx,js,jsx,json,css,md}"
 	@echo "$(GREEN)✓ Formatting complete$(NC)"
@@ -106,7 +132,7 @@ format: install-deps ## Auto-format all code
 type-check: install-deps ## Run type checkers
 	@echo "$(BLUE)Running type checkers...$(NC)"
 	@echo "$(YELLOW)Python - MyPy$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m mypy . --ignore-missing-imports
+	@cd api && $(PYTHON) -m mypy . --ignore-missing-imports
 	@echo "$(YELLOW)TypeScript$(NC)"
 	@cd frontend && npx tsc --noEmit
 	@echo "$(GREEN)✓ Type checking complete$(NC)"
@@ -114,13 +140,13 @@ type-check: install-deps ## Run type checkers
 security: install-deps ## Run security checks
 	@echo "$(BLUE)Running security checks...$(NC)"
 	@echo "$(YELLOW)Python - Bandit$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m bandit -r . -ll -i
+	@cd api && $(PYTHON) -m bandit -r . -ll -i
 	@echo "$(YELLOW)Python - Safety$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m safety check -r requirements.txt --ignore 70612 || true
+	@cd api && $(PYTHON) -m safety check -r requirements.txt --ignore 70612 || true
 	@echo "$(YELLOW)Node - npm audit$(NC)"
 	@cd frontend && npm audit --audit-level=high || true
 	@echo "$(YELLOW)Secrets detection$(NC)"
-	@$(CURDIR)/$(VENV)/bin/detect-secrets scan --baseline .secrets.baseline
+	@$(VENV_DIR)/bin/detect-secrets scan --baseline .secrets.baseline
 	@echo "$(GREEN)✓ Security checks complete$(NC)"
 
 install-deps: venv ## Install Python dependencies
@@ -128,30 +154,34 @@ install-deps: venv ## Install Python dependencies
 	@# satisfies an older sentinel, so install-deps no-ops and the new package
 	@# is never installed. Add a sentinel here whenever a target starts
 	@# depending on a dependency that isn't reachable from the existing ones.
-	@if ! $(CURDIR)/$(PYTHON) -c "import pytest, alembic" 2>/dev/null; then \
+	@if ! $(PYTHON) -c "import pytest, alembic" 2>/dev/null; then \
 		echo "$(YELLOW)Installing Python dependencies...$(NC)"; \
-		$(CURDIR)/$(PIP) install -q -r api/requirements-dev.txt; \
-		$(CURDIR)/$(PIP) install -q ruff black mypy bandit isort safety detect-secrets; \
+		$(PIP) install -q -r api/requirements-dev.txt; \
+		$(PIP) install -q ruff black mypy bandit isort safety detect-secrets; \
 		echo "$(GREEN)✓ Dependencies installed$(NC)"; \
 	fi
 
 test-backend: install-deps ## Run backend tests
 	@echo "$(BLUE)Running backend tests...$(NC)"
 	@echo "$(YELLOW)Linting with Ruff...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m ruff check . --select E,F,W,C90,I,N --ignore E501 || true
+	@cd api && $(PYTHON) -m ruff check . --select E,F,W,C90,I,N --ignore E501 || true
 	@echo "$(YELLOW)Format check with Black...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m black --check --diff . || true
+	@cd api && $(PYTHON) -m black --check --diff . || true
 	@echo "$(YELLOW)Type check with MyPy...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m mypy . --ignore-missing-imports --no-strict-optional || true
+	@cd api && $(PYTHON) -m mypy . --ignore-missing-imports --no-strict-optional || true
+	@# pytest failures must fail the target (they used to be `|| true`, so `make test` and
+	@# `make check-all` reported success over a red suite, and with no DATABASE_URL the whole
+	@# api suite died at collection unnoticed). The env defaults mirror test_update.yml; ruff,
+	@# black and mypy above stay advisory because `make lint` / `make type-check` enforce them.
 	@echo "$(YELLOW)Running pytest (api tests)...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m pytest -v --tb=short || true
+	@cd api && DATABASE_URL="$${DATABASE_URL:-postgresql://test:test@localhost/test}" RATE_LIMIT_BACKEND="$${RATE_LIMIT_BACKEND:-memory}" LLM_PROVIDER="$${LLM_PROVIDER:-ollama}" $(PYTHON) -m pytest -v --tb=short  # pragma: allowlist secret
 	@echo "$(YELLOW)Running pytest (migration tests)...$(NC)"
-	@cd scripts/migrations && DATABASE_URL="postgresql://test:test@localhost/test" $(CURDIR)/$(PYTHON) -m pytest test_run_migrations.py -v --tb=short || true  # pragma: allowlist secret
+	@cd scripts/migrations && DATABASE_URL="postgresql://test:test@localhost/test" $(PYTHON) -m pytest test_run_migrations.py -v --tb=short  # pragma: allowlist secret
 	@echo "$(YELLOW)Testing API syntax and imports...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -c "import main; import config; print('✓ Core modules import successfully')"
-	@cd api && $(CURDIR)/$(PYTHON) -c "from routes import chat, scripture; print('✓ Route modules import successfully')"
-	@cd api && $(CURDIR)/$(PYTHON) -c "from providers import factory; print('✓ Provider modules import successfully')"
-	@cd api && $(CURDIR)/$(PYTHON) -c "from scripture import repository, search; print('✓ Scripture modules import successfully')"
+	@cd api && $(PYTHON) -c "import main; import config; print('✓ Core modules import successfully')"
+	@cd api && $(PYTHON) -c "from routes import chat, scripture; print('✓ Route modules import successfully')"
+	@cd api && $(PYTHON) -c "from providers import factory; print('✓ Provider modules import successfully')"
+	@cd api && $(PYTHON) -c "from scripture import repository, search; print('✓ Scripture modules import successfully')"
 	@echo "$(GREEN)✓ Backend tests complete$(NC)"
 
 test-frontend: ## Run frontend tests
@@ -166,6 +196,10 @@ test-frontend: ## Run frontend tests
 
 test: test-backend test-frontend ## Run all tests
 
+test-makefile: ## Audit the Makefile itself: unit tests + doc freshness (no docker/cloud/network)
+	@$(SCRIPT_PYTHON) -m unittest scripts.test_make_targets -v
+	@$(SCRIPT_PYTHON) scripts/audit_make_targets.py --check
+
 alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrade against $DATABASE_URL (BITB-004). MUTATES the target database -- local/CI only, NEVER point DATABASE_URL at prod.
 	@echo "$(BLUE)Running Alembic migration roundtrip...$(NC)"
 	@if [ -z "$$DATABASE_URL" ]; then \
@@ -176,8 +210,10 @@ alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrad
 	fi
 	@# Fail closed on a non-local host, mirroring the _SAFE_HOSTS allowlist in
 	@# api/tests/test_alembic_migrations.py. Strips scheme, then userinfo, then
-	@# port/path/query to leave the bare host.
+	@# port/path/query to leave the bare host. A `host=`/`hostaddr=` query parameter
+	@# overrides the authority in libpq and asyncpg, so it is treated as a non-default host.
 	@DB_HOST=$$(printf '%s' "$$DATABASE_URL" | sed -e 's|^[a-zA-Z0-9+.-]*://||' -e 's|^[^@/]*@||' -e 's|[:/?].*||'); \
+	case "$$DATABASE_URL" in *host=*|*hostaddr=*) DB_HOST="$$DB_HOST (host= query override)" ;; esac; \
 	case "$$DB_HOST" in \
 		localhost|127.0.0.1|postgres|db) ;; \
 		*) \
@@ -193,19 +229,19 @@ alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrad
 			;; \
 	esac
 	@echo "$(YELLOW)alembic upgrade head$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
+	@cd api && $(PYTHON) -m alembic upgrade head
 	@echo "$(YELLOW)alembic check$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m alembic check
+	@cd api && $(PYTHON) -m alembic check
 	@echo "$(YELLOW)alembic downgrade base$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m alembic downgrade base
+	@cd api && $(PYTHON) -m alembic downgrade base
 	@echo "$(YELLOW)alembic upgrade head$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
+	@cd api && $(PYTHON) -m alembic upgrade head
 	@echo "$(GREEN)✓ Alembic roundtrip complete$(NC)"
 
 db-upgrade: install-deps ## Apply Alembic migrations to $DATABASE_URL (safe: upgrade only, no downgrade -- BITB-090)
 	@echo "$(BLUE)Running alembic upgrade head...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m alembic upgrade head
-	@cd api && $(CURDIR)/$(PYTHON) -m alembic current
+	@cd api && $(PYTHON) -m alembic upgrade head
+	@cd api && $(PYTHON) -m alembic current
 	@echo "$(GREEN)✓ Database schema is up to date$(NC)"
 
 # ==================== Android ====================
@@ -215,11 +251,14 @@ android-test: ## Run Android unit tests (requires JDK 17)
 	@cd android && ./gradlew testDebugUnitTest --no-daemon
 	@echo "$(GREEN)✓ Android unit tests complete$(NC)"
 
+# There is no `testDebugCompose` Gradle task: the Compose tier is testDebugUnitTest with the
+# *ComposeTest exclusion lifted (-PcomposeTestsOnly) and a class filter, exactly as
+# .github/workflows/android-compose-tests.yml runs it.
 android-test-compose: ## Run Android Compose UI tests via Robolectric — separate from android-test (requires JDK 17)
 	@echo "$(BLUE)Running Android Compose UI tests...$(NC)"
-	@cd android && ./gradlew testDebugCompose --no-daemon
+	@cd android && ./gradlew :app:testDebugUnitTest -PcomposeTestsOnly --tests "*ComposeTest" --no-daemon
 	@echo "$(GREEN)✓ Android Compose UI tests complete$(NC)"
-	@echo "$(YELLOW)Report: android/app/build/reports/tests/testDebugCompose/index.html$(NC)"
+	@echo "$(YELLOW)Report: android/app/build/reports/tests/testDebugUnitTest/index.html$(NC)"
 
 android-build: ## Build Android debug APK pointing at local dev backend (requires JDK 17)
 	@echo "$(BLUE)Building Android debug APK (local backend: http://10.0.2.2:8000/)...$(NC)"
@@ -258,24 +297,24 @@ android-security-check: ## Run OWASP dependency vulnerability scan (uses CLI, no
 
 test-functional: install-deps ## Run functional tests against the backend API (requires BACKEND_API_URL)
 	@echo "$(BLUE)Running functional tests against backend API...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
+	@cd api && $(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
 	@echo "$(GREEN)✓ Functional tests complete$(NC)"
 
 # ==================== E2e and Functional tests ====================
 
 test-functional-local: install-deps ## Run functional tests against local backend API (localhost:8000)
 	@echo "$(BLUE)Running functional tests against local API...$(NC)"
-	@cd api && BACKEND_API_URL=http://localhost:8000 $(CURDIR)/$(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
+	@cd api && BACKEND_API_URL=http://localhost:8000 $(PYTHON) -m pytest tests/functional/ -m functional -v --tb=short
 	@echo "$(GREEN)✓ Local functional tests complete$(NC)"
 
 test-e2e: install-deps ## Run e2e tests simulating real users via the frontend URL
 	@echo "$(BLUE)Running e2e tests against production frontend...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/e2e/ -m e2e -v --tb=short
+	@cd api && $(PYTHON) -m pytest tests/e2e/ -m e2e -v --tb=short
 	@echo "$(GREEN)✓ E2E tests complete$(NC)"
 
 test-e2e-local: install-deps ## Run e2e tests against local frontend (localhost:3000)
 	@echo "$(BLUE)Running e2e tests against local frontend...$(NC)"
-	@cd api && FRONTEND_URL=http://localhost:3000 $(CURDIR)/$(PYTHON) -m pytest tests/e2e/ -m e2e -v --tb=short
+	@cd api && FRONTEND_URL=http://localhost:3000 $(PYTHON) -m pytest tests/e2e/ -m e2e -v --tb=short
 	@echo "$(GREEN)✓ Local e2e tests complete$(NC)"
 
 # ==================== Golden Set Testing ====================
@@ -288,12 +327,13 @@ follow-up-checklist: install-deps ## Print the manual on-device follow-up chip c
 
 golden-test: install-deps ## Run golden set tests (mock mode, CI-safe)
 	@echo "$(BLUE)Running golden set tests (mock mode)...$(NC)"
-	@cd api && $(CURDIR)/$(PYTHON) -m pytest tests/test_golden_set.py -v -m golden_set
+	@# Settings() refuses the placeholder DATABASE_URL at import, so mock mode needs *a* value (never connected to).
+	@cd api && DATABASE_URL="$${DATABASE_URL:-postgresql://test:test@localhost/test}" $(PYTHON) -m pytest tests/test_golden_set.py -v -m golden_set  # pragma: allowlist secret
 	@echo "$(GREEN)✓ Golden set tests complete$(NC)"
 
 golden-live: install-deps ## Run the interpretation golden cases against a running API (manual; BASE_URL=http://localhost:8000 CATEGORY=interpretation)
 	@echo "$(BLUE)Running golden set against $(or $(BASE_URL),http://localhost:8000) (live)...$(NC)"
-	@$(PYTHON) scripts/run_golden_set.py --base-url $(or $(BASE_URL),http://localhost:8000) --category $(or $(CATEGORY),interpretation) $(ARGS)
+	@$(PYTHON) scripts/run_golden_set.py --base-url "$${BASE_URL:-http://localhost:8000}" --category "$${CATEGORY:-interpretation}" $(ARGS)
 	@echo "$(GREEN)✓ Live golden set run complete$(NC)"
 
 check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
@@ -310,16 +350,20 @@ pre-commit: install-hooks ## Run pre-commit on all files
 	@# seeding step needed here; on a normal laptop or CI runner that ENV var
 	@# is unset and pre-commit uses its own default cache location.
 	@echo "$(BLUE)Running pre-commit hooks on all files...$(NC)"
-	@$(CURDIR)/$(VENV)/bin/pre-commit run --all-files
+	@$(VENV_DIR)/bin/pre-commit run --all-files
 	@echo "$(GREEN)✓ Pre-commit checks complete$(NC)"
 
 # ==================== OpenCode Agent Config (BITB-123) ====================
 # Single source of truth: .opencode/agents/*.md
 # Generated artifact: opencode.json (committed) → ConfigMap opencode-config
 
+# Generate into a temp file and rename: `> opencode.json` truncated the committed artifact
+# before the generator ran, so any generator failure left it empty.
 gen-opencode-config: ## Generate opencode.json from .opencode/agents/*.md
 	@echo "$(BLUE)Generating opencode.json from agent definitions...$(NC)"
-	@$(PYTHON_VERSION) scripts/generate-opencode-config.py > opencode.json
+	@TMP=$$(mktemp opencode.json.XXXXXX) && trap 'rm -f "$$TMP"' EXIT && \
+	$(SCRIPT_PYTHON) scripts/generate-opencode-config.py > "$$TMP" && \
+	chmod 644 "$$TMP" && mv "$$TMP" opencode.json
 	@echo "$(GREEN)✓ opencode.json generated$(NC)"
 
 verify-opencode-config: gen-opencode-config ## Verify generated opencode.json
@@ -347,22 +391,22 @@ sync-opencode-configmap: verify-opencode-config ## Update KubeOpenCode ConfigMap
 	@echo "$(GREEN)✓ ConfigMap updated$(NC)"
 
 test-kubeopencode-netpol: ## Static checks on the strict-tier NetworkPolicies (no cluster needed)
-	@$(PYTHON_VERSION) -m pytest scripts/test_kubeopencode_netpol.py -q
+	@$(SCRIPT_PYTHON) -m pytest scripts/test_kubeopencode_netpol.py -q
 
 verify-kubeopencode-netpol: ## Verify strict-tier NetworkPolicies against the LIVE cluster (BITB-152)
 	@echo "$(BLUE)Verifying KubeOpenCode strict-tier NetworkPolicies...$(NC)"
 	@bash scripts/verify-kubeopencode-netpol.sh
 
 test-cluster-triage: ## Static checks on the cluster triage tooling (no cluster needed)
-	@$(PYTHON_VERSION) -m pytest scripts/test_cluster_triage.py -q
+	@$(SCRIPT_PYTHON) -m pytest scripts/test_cluster_triage.py -q
 
 collect-k8s-diagnostics: ## Collect cluster state for incident triage (usage: NAMESPACE=ns POD_IP=10.42.0.9)
 	@bash scripts/collect-k8s-diagnostics.sh \
-		$(if $(NAMESPACE),--namespace $(NAMESPACE)) \
-		$(if $(POD_IP),--pod-ip $(POD_IP))
+		$${NAMESPACE:+--namespace "$$NAMESPACE"} \
+		$${POD_IP:+--pod-ip "$$POD_IP"}
 
 test-dns-watchdog: ## Static checks on the CoreDNS watchdog RBAC/script/deployment (no cluster needed, BITB-159)
-	@$(PYTHON_VERSION) -m pytest scripts/test_dns_watchdog.py -q
+	@$(SCRIPT_PYTHON) -m pytest scripts/test_dns_watchdog.py -q
 
 deploy-dns-watchdog: ## Deploy the CoreDNS watchdog to the LIVE cluster (BITB-159)
 	@echo "$(BLUE)Deploying CoreDNS watchdog...$(NC)"
@@ -379,21 +423,21 @@ lint-kubeopencode-dev-image: ## Lint the dev-toolchain agent Dockerfile (BITB-15
 
 build-kubeopencode-dev-image: ## Build the dev-toolchain agent image (BITB-158). Usage: make build-kubeopencode-dev-image TAG=kubeopencode-agent-dev:local
 	@echo "$(BLUE)Building KubeOpenCode dev-toolchain image...$(NC)"
-	@docker build -f k8s/kubeopencode/dev-image/Dockerfile -t $(or $(TAG),kubeopencode-agent-dev:local) .
-	@echo "$(GREEN)✓ Image built: $(or $(TAG),kubeopencode-agent-dev:local)$(NC)"
+	@docker build -f k8s/kubeopencode/dev-image/Dockerfile -t "$${TAG:-kubeopencode-agent-dev:local}" .
+	@echo "$(GREEN)✓ Image built: $${TAG:-kubeopencode-agent-dev:local}$(NC)"
 
 validate-env: install-deps ## Validate env vars between docker-compose and Terraform
 	@echo "$(BLUE)Validating environment variable consistency...$(NC)"
-	@$(CURDIR)/$(PYTHON) scripts/validate-env.py
+	@$(PYTHON) scripts/validate-env.py
 	@echo "$(GREEN)✓ Environment validation complete$(NC)"
 
 validate-env-strict: install-deps ## Validate env vars (strict mode - warnings are errors)
 	@echo "$(BLUE)Validating environment variables (strict mode)...$(NC)"
-	@$(CURDIR)/$(PYTHON) scripts/validate-env.py --strict
+	@$(PYTHON) scripts/validate-env.py --strict
 	@echo "$(GREEN)✓ Environment validation complete$(NC)"
 
 export-blocked-samples: install-deps ## Export captured blocked-message samples (read-only). Usage: make export-blocked-samples ARGS="--format csv --since 2026-05-01". Requires DATABASE_URL.
-	@$(CURDIR)/$(PYTHON) scripts/export_blocked_samples.py $(ARGS)
+	@$(PYTHON) scripts/export_blocked_samples.py $(ARGS)
 
 clean: ## Clean build artifacts and caches
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
@@ -402,13 +446,14 @@ clean: ## Clean build artifacts and caches
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-	@if [ -d "frontend/.next" ]; then sudo rm -rf frontend/.next 2>/dev/null || rm -rf frontend/.next; fi
-	@if [ -d "frontend/node_modules" ]; then sudo rm -rf frontend/node_modules 2>/dev/null || rm -rf frontend/node_modules; fi
+	@if [ -d "frontend/.next" ]; then sudo -n rm -rf frontend/.next 2>/dev/null || rm -rf frontend/.next; fi
+	@if [ -d "frontend/node_modules" ]; then sudo -n rm -rf frontend/node_modules 2>/dev/null || rm -rf frontend/node_modules; fi
 	@echo "$(GREEN)✓ Cleanup complete$(NC)"
 
 clean-all: clean ## Clean everything including virtual environment
 	@echo "$(BLUE)Removing virtual environment...$(NC)"
 	@rm -rf $(VENV)
+	@echo "$(GREEN)✓ Full cleanup complete$(NC)"
 
 fix-permissions: ## Fix ownership of Docker-created files
 	@echo "$(BLUE)Fixing file permissions...$(NC)"
@@ -421,11 +466,11 @@ fix-permissions: ## Fix ownership of Docker-created files
 		sudo chown -R $$(whoami):$$(whoami) frontend/.next; \
 	fi
 	@echo "$(GREEN)✓ Permissions fixed$(NC)"
-	@echo "$(GREEN)✓ Full cleanup complete$(NC)"
 
 update-baseline: install-deps ## Update secrets baseline
 	@echo "$(BLUE)Updating secrets baseline...$(NC)"
-	@$(CURDIR)/$(VENV)/bin/detect-secrets scan --baseline .secrets.baseline --update
+	@# detect-secrets >= 1.0 has no `scan --update`; `scan --baseline FILE` is the in-place update.
+	@$(VENV_DIR)/bin/detect-secrets scan --baseline .secrets.baseline
 	@echo "$(GREEN)✓ Baseline updated$(NC)"
 
 # ==================== Docker Commands ====================
@@ -485,6 +530,7 @@ LOCAL_PROD_PROJECT := getinspired-local-prod
 # production Turnstile site key start rejecting requests from localhost.
 check-local-api-url: check-env-production
 	@API_URL=$$(grep -E '^NEXT_PUBLIC_API_URL=' .env.production | tail -1 | cut -d= -f2-); \
+	API_URL=$${API_URL#[\"\']}; API_URL=$${API_URL%[\"\']}; \
 	if [ -n "$$API_URL" ] && ! echo "$$API_URL" | grep -qE '^https?://localhost(:[0-9]+)?/?$$'; then \
 		echo "$(YELLOW)⚠ .env.production NEXT_PUBLIC_API_URL=$$API_URL$(NC)"; \
 		echo "$(YELLOW)  This stack expects http://localhost:8000 — the frontend will bypass your local API and talk to that host instead.$(NC)"; \
@@ -505,9 +551,9 @@ docker-up-local-prod-build: check-local-api-url ## Same as docker-up-local-prod 
 	@echo "$(YELLOW)⚠ This stack talks to the REAL production database$(NC)"
 
 docker-up-local-prod-acr-be: check-local-api-url ## Prod backend image from ACR + local frontend (usage: TAG=abc1234, default latest)
-	@echo "$(BLUE)Starting ACR backend ($(if $(TAG),$(TAG),latest)) + local frontend...$(NC)"
+	@echo "$(BLUE)Starting ACR backend ($${TAG:-latest}) + local frontend...$(NC)"
 	@echo "$(YELLOW)Note: requires 'az acr login --name <ACR_NAME>' beforehand$(NC)"
-	@TAG=$(TAG) docker compose -p $(LOCAL_PROD_PROJECT) --env-file .env.production -f docker-compose.local-prod-acr-be.yml up -d
+	@TAG="$$TAG" docker compose -p $(LOCAL_PROD_PROJECT) --env-file .env.production -f docker-compose.local-prod-acr-be.yml up -d
 	@echo "$(GREEN)✓ Services started$(NC)"
 	@echo "$(YELLOW)⚠ This stack talks to the REAL production database$(NC)"
 
@@ -624,19 +670,25 @@ docker-test: ## Run tests in Docker
 	@docker compose run --rm api pytest -v
 	@echo "$(GREEN)✓ Docker tests complete$(NC)"
 
+# Compose names the default project after the checkout directory (lower-cased, anything
+# outside [a-z0-9_-] dropped), so the volume is <dir>_postgres_data, not a fixed string --
+# a worktree or renamed clone would otherwise "reset" a volume that does not exist.
+COMPOSE_PROJECT := $(or $(COMPOSE_PROJECT_NAME),$(shell basename "$(CURDIR)" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-'))
+
 docker-reset-db: ## Reset database (removes volume and reinitializes)
 	@echo "$(BLUE)Resetting database...$(NC)"
 	@echo "$(YELLOW)Stopping services...$(NC)"
 	@docker compose down
-	@echo "$(YELLOW)Removing database volume...$(NC)"
-	@docker volume rm getinspiredbythebible_postgres_data 2>/dev/null || echo "$(YELLOW)Volume not found or already removed$(NC)"
+	@echo "$(YELLOW)Removing database volume $(COMPOSE_PROJECT)_postgres_data...$(NC)"
+	@docker volume rm $(COMPOSE_PROJECT)_postgres_data 2>/dev/null || echo "$(YELLOW)Volume not found or already removed$(NC)"
 	@echo "$(GREEN)✓ Database reset complete$(NC)"
 	@echo "$(YELLOW)Run 'make docker-up' or 'make docker-up-gpu' to start fresh$(NC)"
 
+# The dev compose file declares the volume as postgres_data_dev (it must differ from prod's).
 docker-reset-db-dev: ## Reset dev database (removes volume and reinitializes)
 	@echo "$(BLUE)Resetting dev database...$(NC)"
-	@docker compose -p getinspired-dev down
-	@docker volume rm getinspired-dev_postgres_data 2>/dev/null || echo "$(YELLOW)Volume not found$(NC)"
+	@docker compose -p getinspired-dev -f docker-compose.dev.yml down
+	@docker volume rm getinspired-dev_postgres_data_dev 2>/dev/null || echo "$(YELLOW)Volume not found$(NC)"
 	@echo "$(GREEN)✓ Dev database reset complete$(NC)"
 
 functional-test: ## Run functional tests (requires running services)
@@ -707,7 +759,7 @@ docker-build-prod-frontend: ## Build and push frontend image to ACR (tagged with
 	docker build --no-cache -t $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA) \
 		-t $$ACR_NAME.azurecr.io/bible-frontend:latest \
 		--target production \
-		--build-arg NEXT_PUBLIC_API_URL=$$NEXT_PUBLIC_API_URL ./frontend && \
+		--build-arg NEXT_PUBLIC_API_URL="$$NEXT_PUBLIC_API_URL" ./frontend && \
 	docker push $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA) && \
 	docker push $$ACR_NAME.azurecr.io/bible-frontend:latest
 	@$(MAKE) docker-verify-frontend
@@ -748,24 +800,26 @@ docker-deploy-prod-quick: ## Deploy images directly via az CLI (faster, no Terra
 	@echo "$(BLUE)Deploying to Azure Container Apps (quick mode)...$(NC)"
 	@source .env.production && \
 	az containerapp update \
-		--name bible-app-backend \
-		--resource-group bible-app-rg \
+		--name $(CA_BACKEND) \
+		--resource-group $(CA_RG) \
 		--image $$ACR_NAME.azurecr.io/bible-backend:$(GIT_SHA) && \
 	az containerapp update \
-		--name bible-app-frontend \
-		--resource-group bible-app-rg \
+		--name $(CA_FRONTEND) \
+		--resource-group $(CA_RG) \
 		--image $$ACR_NAME.azurecr.io/bible-frontend:$(GIT_SHA)
 	@echo "$(GREEN)✓ Deployment complete (tag: $(GIT_SHA))$(NC)"
 
 docker-build-deploy-prod: docker-build-prod docker-deploy-prod ## Build, push, and deploy all images
 	@echo "$(GREEN)✓ Full production deployment complete (tag: $(GIT_SHA))$(NC)"
 
+# Capture first: in `az ... | xargs` the pipeline status is xargs's, so a failed `az` (not
+# logged in, wrong subscription) used to print nothing and exit 0.
 docker-get-backend-url: ## Get the backend URL from Azure
-	@az containerapp show \
-		--name bible-app-backend \
-		--resource-group bible-app-rg \
-		--query "properties.configuration.ingress.fqdn" -o tsv | \
-		xargs -I {} echo "https://{}"
+	@FQDN=$$(az containerapp show \
+		--name $(CA_BACKEND) \
+		--resource-group $(CA_RG) \
+		--query "properties.configuration.ingress.fqdn" -o tsv) && \
+	[ -n "$$FQDN" ] && echo "https://$$FQDN"
 
 update-env-backend-url: ## Update .env.production with current Azure backend URL
 	@./scripts/update-env-backend-url.sh
@@ -778,41 +832,35 @@ RESOURCE_SUFFIX := mb0172
 # ACR name built from suffix
 ACR_NAME := bibleappacr$(RESOURCE_SUFFIX)
 
+# `az ... 2>/dev/null | head || echo` never fell through to the echo (the pipeline status is
+# head's) and swallowed auth errors, so a logged-out run printed nothing and exited 0.
+# Capture into a variable so a failed az fails the target and its stderr stays visible.
 az-acr-list-images: ## List all image tags with creation dates from ACR
 	@echo "$(BLUE)Listing images in ACR...$(NC)"
-	@echo ""
-	@echo "$(YELLOW)=== Backend Images (bible-backend) ===$(NC)"
-	@az acr repository show-tags \
-		--name $(ACR_NAME) \
-		--repository bible-backend \
-		--orderby time_desc \
-		--detail \
-		--output table 2>/dev/null | head -20 || echo "$(YELLOW)No backend images found$(NC)"
-	@echo ""
-	@echo "$(YELLOW)=== Frontend Images (bible-frontend) ===$(NC)"
-	@az acr repository show-tags \
-		--name $(ACR_NAME) \
-		--repository bible-frontend \
-		--orderby time_desc \
-		--detail \
-		--output table 2>/dev/null | head -20 || echo "$(YELLOW)No frontend images found$(NC)"
+	@for REPO in bible-backend bible-frontend; do \
+		echo ""; \
+		echo "$(YELLOW)=== Images ($$REPO) ===$(NC)"; \
+		OUT=$$(az acr repository show-tags \
+			--name $(ACR_NAME) \
+			--repository $$REPO \
+			--orderby time_desc \
+			--detail \
+			--output table) || exit 1; \
+		printf '%s\n' "$$OUT" | head -20; \
+	done
 
 az-acr-list-tags: ## List image tags for backend and frontend (quick view)
 	@echo "$(BLUE)Listing image tags in ACR...$(NC)"
-	@echo ""
-	@echo "$(YELLOW)=== Backend Tags ===$(NC)"
-	@az acr repository show-tags \
-		--name $(ACR_NAME) \
-		--repository bible-backend \
-		--orderby time_desc \
-		--output tsv 2>/dev/null | head -15 || echo "$(YELLOW)No tags found$(NC)"
-	@echo ""
-	@echo "$(YELLOW)=== Frontend Tags ===$(NC)"
-	@az acr repository show-tags \
-		--name $(ACR_NAME) \
-		--repository bible-frontend \
-		--orderby time_desc \
-		--output tsv 2>/dev/null | head -15 || echo "$(YELLOW)No tags found$(NC)"
+	@for REPO in bible-backend bible-frontend; do \
+		echo ""; \
+		echo "$(YELLOW)=== Tags ($$REPO) ===$(NC)"; \
+		OUT=$$(az acr repository show-tags \
+			--name $(ACR_NAME) \
+			--repository $$REPO \
+			--orderby time_desc \
+			--output tsv) || exit 1; \
+		printf '%s\n' "$$OUT" | head -15; \
+	done
 
 az-deployed-images: ## Show currently deployed images with digest info
 	@echo "$(BLUE)Checking deployed images in Azure Container Apps...$(NC)"
@@ -821,7 +869,7 @@ az-deployed-images: ## Show currently deployed images with digest info
 	@BACKEND_IMAGE=$$(az containerapp show \
 		--name $(CA_BACKEND) \
 		--resource-group $(CA_RG) \
-		--query "properties.template.containers[0].image" -o tsv 2>/dev/null) && \
+		--query "properties.template.containers[0].image" -o tsv) || BACKEND_IMAGE=""; \
 	if [ -n "$$BACKEND_IMAGE" ]; then \
 		echo "  Image: $$BACKEND_IMAGE"; \
 		TAG=$$(echo "$$BACKEND_IMAGE" | sed 's/.*://'); \
@@ -834,13 +882,14 @@ az-deployed-images: ## Show currently deployed images with digest info
 			--output table 2>/dev/null || echo "  $(YELLOW)Could not resolve digest$(NC)"; \
 	else \
 		echo "  $(YELLOW)Could not retrieve backend image$(NC)"; \
+		exit 1; \
 	fi
 	@echo ""
 	@echo "$(YELLOW)=== Frontend ($(CA_FRONTEND)) ===$(NC)"
 	@FRONTEND_IMAGE=$$(az containerapp show \
 		--name $(CA_FRONTEND) \
 		--resource-group $(CA_RG) \
-		--query "properties.template.containers[0].image" -o tsv 2>/dev/null) && \
+		--query "properties.template.containers[0].image" -o tsv) || FRONTEND_IMAGE=""; \
 	if [ -n "$$FRONTEND_IMAGE" ]; then \
 		echo "  Image: $$FRONTEND_IMAGE"; \
 		TAG=$$(echo "$$FRONTEND_IMAGE" | sed 's/.*://'); \
@@ -853,6 +902,7 @@ az-deployed-images: ## Show currently deployed images with digest info
 			--output table 2>/dev/null || echo "  $(YELLOW)Could not resolve digest$(NC)"; \
 	else \
 		echo "  $(YELLOW)Could not retrieve frontend image$(NC)"; \
+		exit 1; \
 	fi
 	@echo ""
 	@echo "$(GREEN)✓ Deployment check complete$(NC)"
@@ -918,15 +968,17 @@ db-delete-server: ## DESTRUCTIVE — delete a restored Azure server (usage: make
 # the same commands work against a PITR copy (make db-restore-new-server).
 PG_FW_SERVER = $(or $(SERVER),$(PG_SERVER))
 
-# Flag contract for `az postgres flexible-server firewall-rule`: --server-name/-s
-# is the SERVER and --name/-n is the firewall rule; there is no --rule-name.
-# Covered offline by tests/test_makefile_firewall.py.
+# Flag contract for `az postgres flexible-server firewall-rule` (azure-cli 2.89, `-h`):
+# --server-name/-s is the SERVER and --name/-n is the firewall rule; there is no
+# --rule-name. (Learn pages for older CLIs show --name = server / --rule-name = rule;
+# those are stale.) Pinned offline by scripts/test_make_targets.py.
+# Also covered offline by tests/test_makefile_firewall.py.
 # The echoes use `echo -e` because this Makefile sets SHELL := /bin/bash, whose
 # builtin echo prints \033 literally without it.
 
 az-pg-add-ip: ## Add your current IP to PostgreSQL firewall (usage: make az-pg-add-ip [SERVER=restored-copy])
 	@echo -e "$(BLUE)Adding your IP to the firewall on $(PG_FW_SERVER)...$(NC)"
-	@MY_IP=$$(curl -4 -s ifconfig.me) && \
+	@MY_IP=$$(curl -4 -fsS ifconfig.me) && [ -n "$$MY_IP" ] && \
 	echo -e "$(YELLOW)Your IP: $$MY_IP$(NC)" && \
 	az postgres flexible-server firewall-rule create \
 		--resource-group "$(PG_RG)" \
