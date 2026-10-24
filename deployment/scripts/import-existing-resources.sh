@@ -163,8 +163,8 @@ import_resource \
 log_info "Checking for client firewall rule..."
 if az postgres flexible-server firewall-rule show \
     --resource-group "$RG_NAME" \
-    --name "$POSTGRES_NAME" \
-    --rule-name "AllowClientIP" &>/dev/null; then
+    --server-name "$POSTGRES_NAME" \
+    --name "AllowClientIP" &>/dev/null; then
     import_resource \
         "azurerm_postgresql_flexible_server_firewall_rule.allow_client[0]" \
         "${BASE}/providers/Microsoft.DBforPostgreSQL/flexibleServers/${POSTGRES_NAME}/firewallRules/AllowClientIP" \
