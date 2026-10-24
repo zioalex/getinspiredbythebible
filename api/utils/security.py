@@ -377,6 +377,13 @@ def normalize_text(text: str) -> str:
 _MS_PUNCT = "[.,;:!?)\\]}\"'…。、」』）،؛؟।\n]"
 
 
+# BITB-193: single-word imperatives ("muori", "crève", "morra") are also ordinary words in other
+# languages ("morra" = Italian game / Portuguese subjunctive). They only count as directed harm
+# when they open a clause and close it, or are followed by an insult.
+_DH_START = r"(?:^|[.!;:\n]\s*|[¡¿]\s*)"
+_DH_END = r"(?=\s*(?:[!.,;]|$))"
+
+
 def _ms_end(extra: str = "") -> str:
     """Clause-end guard: optional filler words, then punctuation or end of text."""
     words = "too|also|as well|first" if not extra else extra
@@ -948,6 +955,7 @@ class MultiLanguageContentFilter:
             r"\bme matar\b",
             r"\bautomutilação\b",
             r"\bquero morrer\b",
+            r"\bquero que eu morra\b",
         ],
         "ar": [
             r"انتحار",
@@ -1079,7 +1087,9 @@ class MultiLanguageContentFilter:
         "it": [
             r"\bvattene a fanculo\b",
             r"\bti ammazzo\b",
-            r"\bmuori\b",
+            _DH_START + r"muori" + _DH_END,
+            r"\bmuori,?\s+(?:bastard|stronz|maledett|schifos)\w*",
+            r"\bspero che tu muoia\b",
         ],
         "de": [
             r"\bgeh sterben\b",
@@ -1089,17 +1099,25 @@ class MultiLanguageContentFilter:
         "es": [
             r"\bvete a la mierda\b",
             r"\bte mato\b",
-            r"\bmuérete\b",
+            (
+                r"\bmu[ée]rete\b(?!\s+de\s+(?:la\s+)?"
+                r"(?:risa|envidia|amor|ganas|hambre|fr[ií]o|calor|miedo|sueño|celos|vergüenza)\b)"
+            ),
         ],
         "fr": [
             r"\bva te faire foutre\b",
             r"\bje vais te tuer\b",
-            r"\bcrève\b",
+            _DH_START + r"crève" + _DH_END,
+            r"\bcrève,?\s+(?:connard|salaud|salope|ordure)\w*",
+            r"\bva\s+crever\b",
+            r"\bque tu crèves\b",
         ],
         "pt": [
             r"\bvá se foder\b",
             r"\bvou te matar\b",
-            r"\bmorra\b",
+            _DH_START + r"morra" + _DH_END,
+            r"\bmorra,?\s+(?:desgraçad|maldit|vagabund|idiota)\w*",
+            r"\bque\s+(?:voc[êe]|tu)\s+morra\b",
         ],
     }
 
@@ -1221,6 +1239,31 @@ class MultiLanguageContentFilter:
             for m in self._murder_suicide_regex.finditer(normalized)
         ]
 
+    def find_directed_harm_violation(
+        self, normalized: str, preferred: str | None = None
+    ) -> tuple[str, str, str] | None:
+        """Search directed-harm patterns of EVERY language, then hate speech (BITB-193).
+
+        The ``preferred`` language is tried first. ``normalized`` must already be passed
+        through :func:`normalize_text`.
+
+        Returns:
+            ``(violation_type, language, matched_text)`` or ``None``. Hate speech reports
+            language ``"all"``.
+        """
+        langs = list(self._directed_harm_regex)
+        if preferred in self._directed_harm_regex:
+            langs.remove(preferred)
+            langs.insert(0, preferred)
+        for lang in langs:
+            m = self._directed_harm_regex[lang].search(normalized)
+            if m:
+                return ViolationType.DIRECTED_HARM.value, lang, m.group(0)
+        m = self._hate_speech_regex.search(normalized)
+        if m:
+            return ViolationType.HATE_SPEECH.value, "all", m.group(0)
+        return None
+
     def find_directed_harm(self, normalized: str) -> str | None:
         """Search directed-harm patterns (every language) and hate speech (BITB-185).
 
@@ -1229,20 +1272,20 @@ class MultiLanguageContentFilter:
         Returns:
             The matched text, or ``None``.
         """
-        for regex in (*self._directed_harm_regex.values(), self._hate_speech_regex):
-            match = regex.search(normalized)
-            if match:
-                return match.group(0)
-        return None
+        result = self.find_directed_harm_violation(normalized)
+        return result[2] if result else None
 
     def check_multilingual(
         self, text: str, language: str = "en"
     ) -> tuple[bool, str, str | None, str | None]:
         """
-        Check text for harmful content in the specified language.
+        Check text for harmful content.
 
         Stage 1 filter: Checks ONLY directed harm and hate speech patterns.
         Violence and self-harm patterns are now handled by OpenAI Moderation (Stage 2).
+        Directed harm is checked in every language regardless of ``language`` (BITB-193),
+        so a French threat sent from an English UI is still blocked; ``language`` only sets
+        which table is tried first.
 
         Args:
             text: The message to check
@@ -1258,40 +1301,22 @@ class MultiLanguageContentFilter:
         # Normalize text to catch evasion attempts
         normalized = normalize_text(text)
 
-        # Check directed harm first (highest priority - always block)
-        directed_patterns = self._directed_harm_regex.get(
-            language
-        ) or self._directed_harm_regex.get("en")
-        if directed_patterns and directed_patterns.search(normalized):
-            match = directed_patterns.search(normalized)
-            pattern = match.group(0) if match else "directed_harm"
+        violation = self.find_directed_harm_violation(normalized, preferred=language)
+        if violation:
+            vtype, matched_language, pattern = violation
             text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
             logger.warning(
-                "Content safety: directed harm detected",
+                "Content safety: %s detected",
+                vtype.replace("_", " "),
                 extra={
                     "text_hash": text_hash,
                     "language": language,
+                    "matched_language": matched_language,
                     "pattern": pattern,
-                    "violation_type": "directed_harm",
+                    "violation_type": vtype,
                 },
             )
-            return True, "high", ViolationType.DIRECTED_HARM.value, pattern
-
-        # Check hate speech (always block, high confidence)
-        if self._hate_speech_regex.search(normalized):
-            match = self._hate_speech_regex.search(normalized)
-            pattern = match.group(0) if match else "hate_speech"
-            text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
-            logger.warning(
-                "Content safety: hate speech detected",
-                extra={
-                    "text_hash": text_hash,
-                    "language": language,
-                    "pattern": pattern,
-                    "violation_type": "hate_speech",
-                },
-            )
-            return True, "high", ViolationType.HATE_SPEECH.value, pattern
+            return True, "high", vtype, pattern
 
         # Violence and self-harm patterns are retained as class attributes
         # for fallback use, but are NOT checked in Stage 1.
