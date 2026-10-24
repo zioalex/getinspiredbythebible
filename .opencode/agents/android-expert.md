@@ -1,10 +1,10 @@
 ---
 description: Expert Android engineer specializing in Kotlin, Jetpack Compose, MVVM Clean Architecture, Hilt, Room, and Coroutines
 mode: subagent
-model: opencode/nemotron-3-ultra-free
+model: openrouter/z-ai/glm-5.3
 fallback_models:
-  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
-  - openrouter/openai/gpt-oss-120b
+  - opencode/nemotron-3-ultra-free
+  - openrouter/deepseek/deepseek-v3.2-exp
 tools:
   bash: true
   read: true

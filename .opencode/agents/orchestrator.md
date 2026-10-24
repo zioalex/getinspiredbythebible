@@ -1,10 +1,10 @@
 ---
 description: High-level planner and coordinator. Plans, decomposes, and delegates ALL implementation — features, refactors, and CI fixes alike — to specialist subagents; verifies via the verifier agent and cheap CI status polls; reports to the user naming which agent did what. Never edits application code directly. Can self-improve by updating AGENTS.md and opencode config.
 mode: primary
-model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+model: openrouter/z-ai/glm-5.3
 fallback_models:
   - opencode/nemotron-3-ultra-free
-  - openrouter/openai/gpt-oss-120b
+  - openrouter/deepseek/deepseek-v3.2-exp
 tools:
   bash: true
   read: true
@@ -150,11 +150,15 @@ yourself.
 
 ## Delegation Reliability — `Task cancelled` ≠ dead
 
-Subagent primary models are free-tier endpoints that intermittently return 503
-("Service temporarily overloaded"). When that happens at dispatch time, the
-runtime-fallback plugin recovers the session on a fallback model and it keeps
-working — but the parent's task call is already cancelled, so the subagent
-runs on **detached** and its result never arrives on the original call.
+Model posture (BITB-236, 2026-10-24): high-stakes lanes (this orchestrator, the
+builders, the verifier and the auditors) run on PAID primaries — GLM-5.3 for
+planning/build, DeepSeek-V3.2-Exp for verification/audit. The mechanical lanes
+(i18n-qa, verse-parity-keeper) and every tier-1 fallback hop remain FREE-tier
+endpoints, which still intermittently return 503 ("Service temporarily
+overloaded"). When that happens at dispatch time, the runtime-fallback plugin
+recovers the session on a fallback model and it keeps working — but the
+parent's task call is already cancelled, so the subagent runs on **detached**
+and its result never arrives on the original call.
 
 **Unique task tokens (BITB-169 L0):** prefix every task dispatch description
 with a short unique token, e.g. `[T-169A] verify PR 1120`. Registry and log
