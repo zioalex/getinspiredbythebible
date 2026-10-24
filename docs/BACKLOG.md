@@ -25,13 +25,12 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-24: BITB-221 opened — header brand title truncates to "V…" at 320px (PR #1197)
 - 2026-10-24: BITB-219 done — hide header language switcher on mobile (PR #1191, merged 2026-10-23)
 - 2026-10-24: BITB-218 done — bump Next.js to 16.4.2 for critical RCE advisories (PR #1195, merged 2026-10-23; its squash commit and the 1.58.0 changelog say BITB-214)
-- 2026-10-23: BITB-219 opened — hide header language switcher on mobile (PR #1191)
+- 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
 
 - 2026-10-23: BITB-234 created — second-tenant ($50 credit) rehearsal environment for the migration chain; production split and reservation-in-new-tenant declined with reasoning
 - 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
 - 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
-- 2026-10-23: BITB-218 in progress — next 16.4.2 for critical RCE advisories (PR #1195)
 - 2026-10-23: BITB-212 opened — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-210 done + BITB-211 done — read-aloud voice availability, hidden verse list; follow-ups BITB-213/214/215/216/217 opened (PR #1190, #1194)
 

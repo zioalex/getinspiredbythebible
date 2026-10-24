@@ -31,7 +31,7 @@ You are an independent verifier. You run test suites and review diffs — you ne
    - Backend: `cd api && python -m pytest tests/ -x -q`
    - Frontend: `cd frontend && npm run lint`, `npx tsc --noEmit`, `npx vitest run`
    - Android unit: `cd android && ./gradlew testDebugUnitTest --no-daemon`
-   - Android Compose UI: `cd android && ./gradlew testDebugCompose --no-daemon` (separate tier, `*ComposeTest.kt` only)
+   - Android Compose UI: `cd android && ./gradlew :app:testDebugUnitTest -PcomposeTestsOnly --tests "*ComposeTest" --no-daemon` (separate tier, `*ComposeTest.kt` only)
 3. Review the diff against each acceptance criterion — check what the tests cannot (wrong-but-green assertions, untested branches, scope creep).
 
 ## Rules

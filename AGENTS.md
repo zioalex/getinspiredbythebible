@@ -224,12 +224,13 @@ cd frontend && npm run build           # Build check
 
 ```bash
 cd android && ./gradlew testDebugUnitTest --no-daemon
-cd android && ./gradlew testDebugCompose --no-daemon   # Robolectric Compose UI tests (BITB-034)
+cd android && ./gradlew :app:testDebugUnitTest -PcomposeTestsOnly --tests "*ComposeTest" --no-daemon   # Robolectric Compose UI tests (BITB-034)
 cd android && ./gradlew lint
 ```
 
-Compose UI tests follow the `*ComposeTest.kt` filename convention and run via the dedicated
-`testDebugCompose` Gradle task. They are isolated from the standard `testDebugUnitTest` job.
+Compose UI tests follow the `*ComposeTest.kt` filename convention and run as `testDebugUnitTest` with
+`-PcomposeTestsOnly` (there is no separate Gradle task). They are excluded from the standard
+`testDebugUnitTest` job.
 See `android/COMPOSE_TESTS.md` for the full tier description and rollout plan.
 
 ### All at once
@@ -296,7 +297,7 @@ Independent workflow — **not a required check** while the tier stabilises.
 
 | Job | What it does |
 | ----- | ------------- |
-| `compose-ui-tests` | Robolectric `testDebugCompose` — `*ComposeTest.kt` classes only |
+| `compose-ui-tests` | Robolectric `testDebugUnitTest -PcomposeTestsOnly` — `*ComposeTest.kt` classes only |
 
 Artifacts uploaded on every run: HTML report + JUnit XML (14-day retention).
 See `android/COMPOSE_TESTS.md` for the tier design and promotion checklist.
