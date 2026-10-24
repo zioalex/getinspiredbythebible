@@ -18,41 +18,43 @@ import yaml
 AGENTS_DIR = pathlib.Path(".opencode/agents")
 SCHEMA = "https://opencode.ai/config.json"
 
-# Primary: the strongest model on the graph — Nemotron-3-Ultra-550B-A55B
-# (rank #4 overall, #1 free; docs/LLM_PRICING_OPENROUTER.md) — 550B-A55B MoE,
-# 1M context, served FREE by OpenRouter. Powers the global model (builtins:
-# build/plan/general/explore/compaction/title/summary) and orchestrator.
-DEFAULT_MODEL = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
-# Cheap tier for title/compaction ops. Zen free is plenty for trivial work and
-# keeps small ops off the OpenRouter free-tier rate limits.
-DEFAULT_SMALL_MODEL = "opencode/nemotron-3-ultra-free"
-# BITB-173: every model ID here must exist in `opencode models` (the live
-# gateway catalog). The pre-BITB-173 chain pinned two non-existent IDs —
-# `opencode/nemotron-3-super-free` (Zen serves no Super variant; its Nemotron
-# lineup is ultra + 3.5-lightning only) and `openrouter/openai/gpt-oss-120b:free`
-# (no ":free" variant of gpt-oss-120b exists on OpenRouter) — so the
-# runtime-fallback plugin's hops never once fired, and agents died on the
-# primary's 503s (the 2026-09-30/10-01 verifier losses).
+# BITB-236: new paid-primary matrix (replaces free-tier primaries).
+# High-stakes lanes on PAID primaries; free-first-paid-last + cross-provider
+# tier-1 preserved; gpt-oss-120b RETIRED (41.8% Aider, weakest on ranking).
+# The stale `deepseek/deepseek-reasoner` ID no longer exists in the live
+# catalog (the exact BITB-173 trap); its live successor is
+# `deepseek/deepseek-v3.2-exp`.
 #
-# Chain design — powerful FREE model first, PAID model last, with a
-# cross-provider hop at tier 1 so a full provider outage never kills the chain:
-#   - OpenRouter-primary agents (global builtins + orchestrator):
-#     tier 1 — `opencode/nemotron-3-ultra-free` (Zen; survives an OpenRouter
-#     outage), tier 2 — paid `openrouter/openai/gpt-oss-120b`.
-#   - Zen-primary subagents (.md frontmatter): tier 1 — the same 550B free
-#     OpenRouter ID (survives a Zen outage), tier 2 — paid gpt-oss-120b.
-#     (Supersedes `nvidia/nemotron-3-super-120b-a12b:free`, which Nvidia's
-#     upstream began 404ing — "Function not found for account" — while the
-#     Ultra 550B endpoint verified live on 2026-10-21.)
-#   - tier 2 everywhere — gpt-oss-120b, the PAID OpenRouter ID
-#     (~$0.10/$0.40 per 1M tokens; no free variant exists). Engages only when
-#     both free hops fail, so cost is bounded to double-failure events.
-OR_STRONG_FREE = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
+# Chain design — paid primary on workhorse/skeptic lanes, tier-1 always FREE
+# and on a DIFFERENT provider, tier-2 always PAID (the OTHER paid model of
+# the pair for OpenRouter primaries; GLM-5.3 for non-OpenRouter primaries):
+#   - Workhorse/Builders (6 agents + global builtins + orchestrator):
+#     primary — `openrouter/z-ai/glm-5.3` (paid), tier 1 —
+#     `opencode/nemotron-3-ultra-free` (Zen; cross-provider), tier 2 —
+#     `openrouter/deepseek/deepseek-v3.2-exp` (paid, other OpenRouter model).
+#   - Skeptics (4 agents):
+#     primary — `openrouter/deepseek/deepseek-v3.2-exp` (paid), tier 1 —
+#     `opencode/nemotron-3-ultra-free` (Zen; cross-provider), tier 2 —
+#     `openrouter/z-ai/glm-5.3` (paid, other OpenRouter model).
+#   - Mechanical (2 agents, free primary):
+#     primary — `opencode/mimo-v2.6-flash-free` (Zen), tier 1 —
+#     `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` (OpenRouter;
+#     cross-provider), tier 2 — `openrouter/z-ai/glm-5.3` (paid).
+#   - tier 2 is ALWAYS paid and always OpenRouter (enforce_openrouter_for_paid).
+#   - gpt-oss-120b removed entirely — retired per BITB-236 owner decision.
+DEFAULT_MODEL = "openrouter/z-ai/glm-5.3"
+DEFAULT_SMALL_MODEL = "opencode/nemotron-3-ultra-free"
+# Live-catalog-verified IDs (all confirmed via `opencode models` on 2026-10-24):
+GLM_5_3 = "openrouter/z-ai/glm-5.3"
+DEEPSEEK_V3_2_EXP = "openrouter/deepseek/deepseek-v3.2-exp"
 ZEN_FREE_FALLBACK = "opencode/nemotron-3-ultra-free"
-TIER2_FALLBACK = "openrouter/openai/gpt-oss-120b"
+OR_STRONG_FREE = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
+MIMO_FREE = "opencode/mimo-v2.6-flash-free"
 
 # Built-in (non-.md) agents still need a fallback so they degrade instead of
 # hard-failing when the primary provider returns 429/5xx.
+# Builtins inherit the global model (GLM-5.3, OpenRouter), so their tier-1
+# hop must be cross-provider: Zen free first, paid DeepSeek-V3.2-Exp last.
 BUILTIN_AGENTS = {
     "build": {"mode": "primary"},
     "plan": {"mode": "primary"},
@@ -169,7 +171,7 @@ def parse_agent_md(path: pathlib.Path):
         "prompt": body,
     }
 
-    fallback = fm.get("fallback_models") or [OR_STRONG_FREE, TIER2_FALLBACK]
+    fallback = fm.get("fallback_models") or [ZEN_FREE_FALLBACK, DEEPSEEK_V3_2_EXP]
     agent["fallback_models"] = fallback
 
     # Only forwarded when declared, so the generated config stays minimal.
@@ -219,10 +221,10 @@ def main():
     for agent in agents.values():
         agent["prompt"] = agent["prompt"] + shared
 
-    # Builtins inherit the global model (an OpenRouter ID), so their tier-1
-    # hop must be cross-provider: Zen free first, paid OpenRouter last.
+    # Builtins inherit the global model (GLM-5.3, OpenRouter), so their tier-1
+    # hop must be cross-provider: Zen free first, paid DeepSeek-V3.2-Exp last.
     builtins = {
-        name: {**spec, "fallback_models": [ZEN_FREE_FALLBACK, TIER2_FALLBACK]}
+        name: {**spec, "fallback_models": [ZEN_FREE_FALLBACK, DEEPSEEK_V3_2_EXP]}
         for name, spec in BUILTIN_AGENTS.items()
     }
 
