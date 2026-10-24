@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
 - 2026-10-24: BITB-236 in progress — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired, nemotron free kept as tier-1 rescue hop
 - 2026-10-24: BITB-235 opened — story IDs collide between concurrent PRs; header story renumbered 206 → 219, #1195 merged with stale BITB-214 (PR #1197)
@@ -3126,6 +3127,28 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-237: Free-Fleet Expansion — Pre-Gate Verifier for Nemotron, Family-Matched Tier-1 Failovers
+
+**Status:** 🎯 Todo (blocked by PR #1202 merge — same files)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-24
+
+Follow-up to BITB-236. Gives the free tier real workload instead of idle
+reserve seats: (1) a new `pre-verifier` agent — Nemotron primary — runs
+lint/typecheck/fast tests before every paid DeepSeek verifier dispatch, with
+fail-open semantics, so trivially-red rounds bounce back to the builder at
+zero paid cost (the AGENTS.md "cheap pre-gating" pattern finally seated);
+(2) family-matched tier-1 failovers — GLM lanes hop to `glm-5.3-flash-free`,
+skeptic lanes to `deepseek-v4.1-flash-free` — so failovers keep near-primary
+quality instead of dropping to the unbenchmarked 550B; (3) truth-fix the
+generator comment that conflates the 550B's OpenRouter *usage* rank (#4)
+with a quality ranking. Includes the 12→13 agent-count invariant updates.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-237-free-fleet-expansion.md`
+
+---
+
 ### ✅ BITB-236: Agent Model Matrix 2.0 — Paid Primaries (GLM-5.3 + DeepSeek-V3.2-Exp), gpt-oss-120b Retired
 
 **Status:** ✅ Done (PR #1202)
@@ -3144,6 +3167,8 @@ rescue hop for the whole paid fleet, `small_model`, and the mechanical lanes
 Aider, weakest on the sheet) is retired everywhere and joins the BITB-173
 stale-ID tripwire. Chain rules preserved: free-first paid-last, tier-1
 cross-provider, paid models ride OpenRouter only.
+
+Follow-up: **BITB-237** — free-fleet expansion (pre-gate verifier, family-matched tier-1 hops, usage-rank comment fix); blocked by this PR's merge.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-236-opencode-model-matrix-paid-primaries.md`
 

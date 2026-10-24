@@ -112,3 +112,13 @@ OpenRouter only** (`enforce_openrouter_for_paid`). The only rule change: the
 - `small_model` changes (stays `opencode/nemotron-3-ultra-free`)
 - Cost telemetry/dashboards for the paid models (candidate follow-up)
 - `deepseek-r1-0528` as skeptic primary (kept as a documented swap choice)
+
+## Follow-ups
+
+- **BITB-237** — free-fleet expansion, filed per the follow-up convention:
+  a `pre-verifier` agent (Nemotron primary) cheap-gating every paid verifier
+  dispatch; family-matched tier-1 failover hops (`glm-5.3-flash-free` /
+  `deepseek-v4.1-flash-free`) so failovers keep near-primary quality; and a
+  truth-fix for the generator comment that reads the 550B's OpenRouter usage
+  rank as a quality ranking. Blocked by this PR's merge (same files).
+  Full story: `docs/BACKLOG_STORIES/BITB-237-free-fleet-expansion.md`.
