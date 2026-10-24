@@ -48,7 +48,10 @@ vi.mock("@/lib/api", async (importOriginal) => {
     searchChurches: vi.fn(),
     submitContactForm: vi.fn(),
     InvalidContactEmailError: class InvalidContactEmailError extends Error {},
-    getBookNames: vi.fn().mockResolvedValue({}),
+    getBookNames: vi.fn().mockResolvedValue({
+      localized_to_english: {},
+      multi_word_names: [],
+    }),
   };
 });
 
