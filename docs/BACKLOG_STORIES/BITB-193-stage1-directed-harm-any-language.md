@@ -30,13 +30,13 @@ fires on it before the self-harm check. The same tightening fixes it; add it as 
 - [x] Stage 1 checks directed harm in every language (`find_directed_harm_violation`)
 - [x] Parametrized tests across the 11 language codes, including mismatched code/text
 - [x] Cross-language single-word false positives above no longer fire
-- [x] Decide whether ru/zh/hi/ko/ar directed-harm tables are needed (separate pattern work) — yes, filed as BITB-237
+- [x] Decide whether ru/zh/hi/ko/ar directed-harm tables are needed (separate pattern work) — yes, filed as BITB-240
 
 ## Decision
 
 Directed harm is checked in every language regardless of the detected/selected language; the
 detected language only sets which table is tried first. Native ar/ru/zh/hi/ko tables are out of scope
-and tracked in BITB-237. Single-word imperatives are anchored rather than removed, so real threats
+and tracked in BITB-240. Single-word imperatives are anchored rather than removed, so real threats
 ("Muori!", "Crève, connard") still block.
 
 ## Implementation
@@ -64,10 +64,10 @@ and tracked in BITB-237. Single-word imperatives are anchored rather than remove
 
 - Mid-sentence bare imperatives ("adesso muori", "e ora crève") are not matched by the anchored
   patterns; they are left to Stage 2 ML moderation.
-- ar/ru/zh/hi/ko have no native directed-harm table (BITB-237).
+- ar/ru/zh/hi/ko have no native directed-harm table (BITB-240).
 
 ## Follow-ups
 
-- BITB-237: native directed-harm patterns for ar/ru/zh/hi/ko.
+- BITB-240: native directed-harm patterns for ar/ru/zh/hi/ko.
 - BITB-238: English "kill yourself" help-seeking/theological questions blocked under every code.
-- BITB-236: directed-harm recall lost by the tightening (it/fr/pt).
+- BITB-239: directed-harm recall lost by the tightening (it/fr/pt).

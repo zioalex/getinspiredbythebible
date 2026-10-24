@@ -1,4 +1,4 @@
-# BITB-236: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
+# BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
 
 **Status:** 🎯 Todo
 **Priority:** P2

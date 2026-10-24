@@ -1,4 +1,4 @@
-# BITB-237: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
+# BITB-240: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
 
 **Status:** 🎯 Todo
 **Priority:** P3

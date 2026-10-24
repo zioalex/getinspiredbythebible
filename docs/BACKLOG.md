@@ -29,9 +29,9 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-23: BITB-212 done — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-219 done — hide header language switcher on mobile (PR #1191)
 - 2026-10-24: BITB-193 done — Stage-1 directed harm checked in every language (PR #1199)
-- 2026-10-24: BITB-237 opened — native ar/ru/zh/hi/ko directed-harm patterns (PR #1199)
+- 2026-10-24: BITB-240 opened — native ar/ru/zh/hi/ko directed-harm patterns (PR #1199)
 - 2026-10-24: BITB-238 opened — English "kill yourself" in help-seeking/theological questions blocked under every code (PR #1199)
-- 2026-10-24: BITB-236 opened — recall lost by directed-harm tightening (PR #1199)
+- 2026-10-24: BITB-239 opened — recall lost by directed-harm tightening (PR #1199)
 - 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
 
@@ -303,9 +303,9 @@ are anchored to remove cross-language false positives, and pt "Quero que eu morr
 - [x] Stage 1 checks directed harm in every language, independent of detected language
 - [x] Cross-language parametrized tests (11 languages, mismatched codes)
 - [x] Cross-language single-word false positives no longer fire
-- [x] ru/zh/hi/ko/ar tables decision recorded: deferred to BITB-237
+- [x] ru/zh/hi/ko/ar tables decision recorded: deferred to BITB-240
 
-**Follow-ups:** BITB-237, BITB-238, BITB-236.
+**Follow-ups:** BITB-240, BITB-238, BITB-239.
 
 Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
 
@@ -321,7 +321,7 @@ and "Why did Jesus have to go die on the cross?" are blocked as threats.
 
 Full story: [`BITB-238-stage1-english-help-seeking-kill-yourself.md`](BACKLOG_STORIES/BITB-238-stage1-english-help-seeking-kill-yourself.md)
 
-### 🎯 BITB-236: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
+### 🎯 BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
 
 **Status:** 🎯 Todo
 **Priority:** P2
@@ -330,9 +330,9 @@ Full story: [`BITB-238-stage1-english-help-seeking-kill-yourself.md`](BACKLOG_ST
 
 Follow-up to BITB-193: "adesso muori!", "Crève charogne", "morra seu idiota" no longer block in Stage 1 / fallback.
 
-Full story: [`BITB-236-directed-harm-recall-after-tightening.md`](BACKLOG_STORIES/BITB-236-directed-harm-recall-after-tightening.md)
+Full story: [`BITB-239-directed-harm-recall-after-tightening.md`](BACKLOG_STORIES/BITB-239-directed-harm-recall-after-tightening.md)
 
-### 🎯 BITB-237: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
+### 🎯 BITB-240: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
 
 **Status:** 🎯 Todo
 **Priority:** P3
@@ -348,7 +348,7 @@ Add conservative, Bible-narrative-aware ar/ru/zh/hi/ko tables.
 - [ ] ar/ru/zh/hi/ko directed-harm tables added; native-script threats blocked under all 11 codes
 - [ ] Bible-narrative and self-harm phrasings stay unblocked (parametrized across 11 languages)
 
-Full story: [`BITB-237-native-directed-harm-patterns.md`](BACKLOG_STORIES/BITB-237-native-directed-harm-patterns.md)
+Full story: [`BITB-240-native-directed-harm-patterns.md`](BACKLOG_STORIES/BITB-240-native-directed-harm-patterns.md)
 
 ### 🎯 BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
 
