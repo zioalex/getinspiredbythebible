@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-24
+**Last Updated:** 2026-10-24 (BITB-238 opened and in progress — web read aloud stuck on Pause with no audio on Linux Firefox) — previously 2026-10-24
 
 ## Changelog
 
@@ -4145,6 +4145,26 @@ BITB-211 follow-up: a visible trailing reference list (not seen so far) would st
 - [ ] If found: shared fixture rule + parity test + prompt fix; else close
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-216-read-aloud-visible-verse-list.md`
+
+---
+
+### 🚧 BITB-238: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-24
+
+Linux Firefox lists speech-dispatcher voices, so Listen appears, but its engine can stay silent. The app
+then sits on "Pause" forever. Fix: no `cancel()` before `speak()` when idle (a speech-dispatcher race),
+and a start watchdog that retries once, then resets and explains.
+
+**Acceptance Criteria (summary):**
+
+- [ ] No cancel when idle; start watchdog with one retry, then reset and message; first-chunk error handled
+- [ ] Message in 11 locales; Vitest coverage; owner check on Linux Firefox
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-238-web-read-aloud-silent-start-firefox.md`
 
 ---
 
