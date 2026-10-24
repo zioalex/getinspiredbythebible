@@ -3,17 +3,23 @@
 
 Deploy the **Vox Quieta** application on Azure using Container Apps with scale-to-zero capability.
 
-## 💰 Cost Breakdown (~$25-40/month)
+## 💰 Cost
 
-| Service | SKU | Monthly Cost |
-|---------|-----|--------------|
-| PostgreSQL Flexible | B1ms (1 vCore, 2GB) | ~$13-16 |
-| Container Registry | Basic | ~$5 |
-| Container Apps | Consumption (scale-to-zero) | ~$5-15* |
-| Log Analytics | Per GB | ~$2-3 |
-| **Total** | | **~$25-40** |
+| Service | Actual Configuration |
+|---------|---------------------|
+| PostgreSQL Flexible | `Standard_B2s` (2 vCore, 4 GB), 64 GB storage (auto-grow ratchet; Terraform declares 32 GB — see BITB-150) |
+| Container Registry | Basic |
+| Container Apps | Consumption, `min_replicas = 1` on both (always-on; scale-to-zero NOT in use — cold starts on a chat UI) |
+| Log Analytics | PerGB2018, 30-day retention |
+| Monitoring | App Insights (workspace-based), 2 availability web tests, 32 alert rules |
 
-*Container Apps includes generous free tier: 180,000 vCPU-seconds + 360,000 GiB-seconds/month
+Actual spend is measured and tracked by the Phase 0 cost-evidence tooling
+(`scripts/collect_cost_evidence.py`, weekly via `.github/workflows/cost-evidence-weekly.yml`).
+The historical estimate table that was here (B1ms, "~$25-40/month") was stale and
+removed — see `docs/BACKLOG_STORIES/BITB-150-azure-cost-analysis-monitoring-and-database.md`
+and its follow-up stories (BITB-223…234) for the evidence-based analysis and the
+accepted optimization levers. `monthly_budget` in `terraform.tfvars` is set from
+the measured run rate, not from this README.
 
 ## 🏗️ Architecture
 

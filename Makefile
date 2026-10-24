@@ -972,6 +972,7 @@ PG_FW_SERVER = $(or $(SERVER),$(PG_SERVER))
 # --server-name/-s is the SERVER and --name/-n is the firewall rule; there is no
 # --rule-name. (Learn pages for older CLIs show --name = server / --rule-name = rule;
 # those are stale.) Pinned offline by scripts/test_make_targets.py.
+# Also covered offline by tests/test_makefile_firewall.py.
 # The echoes use `echo -e` because this Makefile sets SHELL := /bin/bash, whose
 # builtin echo prints \033 literally without it.
 
