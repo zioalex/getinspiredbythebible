@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
 - 2026-10-24: BITB-236 in progress — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired, nemotron free kept as tier-1 rescue hop
@@ -28,6 +29,10 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-24: BITB-221 opened — header brand title truncates to "V…" at 320px (PR #1197)
 - 2026-10-23: BITB-212 done — orchestrator delegation discipline enforced (PR #1193)
 - 2026-10-23: BITB-219 done — hide header language switcher on mobile (PR #1191)
+- 2026-10-24: BITB-193 in review — Stage-1 directed harm checked in every language (PR #1199)
+- 2026-10-24: BITB-240 opened — native ar/ru/zh/hi/ko directed-harm patterns (PR #1199)
+- 2026-10-24: BITB-238 opened — English "kill yourself" in help-seeking/theological questions blocked under every code (PR #1199)
+- 2026-10-24: BITB-239 opened — recall lost by directed-harm tightening (PR #1199)
 - 2026-10-23: BITB-142 done — first-run feature spotlight coach-marks with RTL support (PR #1192)
 - 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
@@ -283,26 +288,69 @@ future silent disablement pages.
 > `docs/TURBOVEC_EVALUATION.md` (turbovec evaluated and rejected — relevance, not infra,
 > is the lever).
 
-### 🎯 BITB-193: Stage-1 Directed-Harm Check Is Limited to the Detected Language
+### 🔍 BITB-193: Stage-1 Directed-Harm Check Is Limited to the Detected Language
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (PR #1199)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-13
 
-Follow-up to BITB-185: `check_multilingual` uses `_directed_harm_regex.get(language) or .get("en")`,
-so directed harm in another language (e.g. "Je vais te tuer" detected as `en`, or any ru/zh/hi/ko/ar
-text, which has no directed-harm table) skips Stage 1. The fallback now checks every language;
-Stage 1 should too. Note: the fallback's all-language `find_directed_harm` already yields
-single-word cross-language false positives (it "Gioco della morra", pt `\bmorra\b`, it `\bmuori\b`,
-fr `\bcrève\b`, es `\bmuérete\b`); tighten these here.
+Follow-up to BITB-185: `check_multilingual` used only the detected language's directed-harm table, so a threat
+in another language skipped Stage 1. It now checks every language (detected first) via
+`find_directed_harm_violation`; the single-word it/es/fr/pt patterns (`muori`, `muérete`, `crève`, `morra`)
+are anchored to remove cross-language false positives, and pt "Quero que eu morra" now takes the compassionate path.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Stage 1 checks directed harm in every language, independent of detected language
-- [ ] Cross-language parametrized tests (11 languages, mismatched codes)
+- [x] Stage 1 checks directed harm in every language, independent of detected language
+- [x] Cross-language parametrized tests (11 languages, mismatched codes)
+- [x] Cross-language single-word false positives no longer fire
+- [x] ru/zh/hi/ko/ar tables decision recorded: deferred to BITB-240
+
+**Follow-ups:** BITB-240, BITB-238, BITB-239.
 
 Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
+
+### 🎯 BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-24
+
+Follow-up to BITB-193: English directed-harm patterns now apply under every code, so "Is it a sin to kill yourself?"
+and "Why did Jesus have to go die on the cross?" are blocked as threats.
+
+Full story: [`BITB-238-stage1-english-help-seeking-kill-yourself.md`](BACKLOG_STORIES/BITB-238-stage1-english-help-seeking-kill-yourself.md)
+
+### 🎯 BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-24
+
+Follow-up to BITB-193: "adesso muori!", "Crève charogne", "morra seu idiota" no longer block in Stage 1 / fallback.
+
+Full story: [`BITB-239-directed-harm-recall-after-tightening.md`](BACKLOG_STORIES/BITB-239-directed-harm-recall-after-tightening.md)
+
+### 🎯 BITB-240: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-24
+
+Follow-up to BITB-193: Stage 1 checks every language's directed-harm table, but only en/it/de/es/fr/pt have one.
+A native-script threat ("убей себя", "去死", "मर जाओ", "죽어", "اقتل نفسك") is only caught by Stage 2.
+Add conservative, Bible-narrative-aware ar/ru/zh/hi/ko tables.
+
+**Acceptance Criteria (summary):**
+
+- [ ] ar/ru/zh/hi/ko directed-harm tables added; native-script threats blocked under all 11 codes
+- [ ] Bible-narrative and self-harm phrasings stay unblocked (parametrized across 11 languages)
+
+Full story: [`BITB-240-native-directed-harm-patterns.md`](BACKLOG_STORIES/BITB-240-native-directed-harm-patterns.md)
 
 ### 🎯 BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
 
@@ -6275,6 +6323,13 @@ bookkeeping table.
 ---
 
 ## Done (Recent Completions)
+
+### ✅ BITB-220: Independent Audit of Every Makefile Target
+
+**Status:** ✅ Done — PR #1196, merged 2026-10-23
+**Size:** L
+Audited all 128 `make` targets by blast radius, fixed 13 defects and added regression tests.
+[Full story](BACKLOG_STORIES/BITB-220-makefile-target-audit.md)
 
 ### ✅ BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
 

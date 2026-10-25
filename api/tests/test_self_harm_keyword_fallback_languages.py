@@ -60,6 +60,7 @@ CRISIS = [
     ("fr", "J'ai des pensées de suicide"),
     ("pt", "Quero morrer"),
     ("pt", "Penso em suicídio"),
+    ("pt", "Quero que eu morra"),
     ("ar", "أريد أن أموت"),
     ("ar", "أفكر في الانتحار"),
     ("ru", "Я хочу умереть"),
