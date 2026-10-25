@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-24
+**Last Updated:** 2026-10-25
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-25: BITB-182 done — KubeOpenCode controller RBAC missing (leader election + CRD access); agents not starting (PR #1204)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
