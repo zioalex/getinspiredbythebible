@@ -35,3 +35,7 @@ rules:
         "registries/status",
       ]
     verbs: ["*"]
+  # Kubernetes events (for controller event recording)
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["create", "patch"]
