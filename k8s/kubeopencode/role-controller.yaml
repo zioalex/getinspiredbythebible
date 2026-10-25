@@ -1,0 +1,37 @@
+# Least-privilege Role for the KubeOpenCode controller service account.
+#
+# The controller (kubeopencode-controller) requires leader election via
+# coordination.k8s.io/leases and full CRUD on its CRDs (agents, agenttemplates,
+# tasks, crontasks, registries). This Role is scoped to the kubeopencode-system
+# namespace. Bound to SA `kubeopencode-controller` by rolebinding-controller.yaml.
+#
+# NOTE: The controller ServiceAccount is created by the KubeOpenCode Helm chart
+# installation. This repo manages only the RBAC bindings.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubeopencode-controller-lease
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: kubeopencode
+rules:
+  # Leader election lease
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "create", "update", "patch"]
+  # KubeOpenCode CRDs
+  - apiGroups: ["kubeopencode.io"]
+    resources:
+      [
+        "agents",
+        "agents/status",
+        "agenttemplates",
+        "agenttemplates/status",
+        "tasks",
+        "tasks/status",
+        "crontasks",
+        "crontasks/status",
+        "registries",
+        "registries/status",
+      ]
+    verbs: ["*"]
