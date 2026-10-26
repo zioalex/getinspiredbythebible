@@ -38,7 +38,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.4.2",
-    "fake-indexeddb": "^6.2.5",
+    "fake-indexeddb": "^6.2.6",
     "jsdom": "^25.0.1",
     "postcss": "^8.5.30",
     "tailwindcss": "^4.3.3",
