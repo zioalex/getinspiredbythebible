@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-24
+**Last Updated:** 2026-10-26
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
@@ -3245,7 +3246,7 @@ stopped), budget alert at 80% of credit, teardown checklist when the migration c
 
 ### 🎯 BITB-223: Alert-Rule Rationalization — Actionability Over Inventory
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-23
