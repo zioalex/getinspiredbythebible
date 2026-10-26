@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-24
+**Last Updated:** 2026-10-26
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-26: BITB-242 created — platform-selective feature flags: server-driven per-platform (web/android) flag registry on GET /config, explicit per-flag fail policies, parity fixture, follow-ups pilot (PR pending)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
@@ -3175,6 +3176,46 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-242: Platform-Selective Feature Flags — Server-Driven Per-Platform (Web/Android) Flag Registry
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M (cross-cutting: api + frontend + android + deployment)
+**Created:** 2026-10-26
+
+No way exists to enable a client-facing feature on Web but not Android (or vice versa):
+backend flags (`api/config.py`) are global for all clients, web flags
+(`frontend/src/lib/featureFlags.ts`, `NEXT_PUBLIC_*`) are build-time (flip = rebuild),
+and Android has only compile-time `BuildConfig` fields plus one runtime server flag
+(`features.tts_enabled`, BITB-119). The live case is BITB-080 follow-up chips (PR #1216,
+web-only behind a build-arg) whose contract parks Android behind "its own default-off
+flag" — a fourth ad-hoc mechanism. Fix: generalize the proven `GET /config` pattern into
+a declarative client-flag registry with per-platform maps (`features.web` / `features.android`),
+explicit per-flag fail policies (today folklore: tts fails open, follow-ups fail closed),
+and a shared parity fixture on the verse-grammar model so a server flag without its client
+legs fails CI. Flip = Terraform apply → next `/config` fetch — no web rebuild, no Play
+release. `GET /config` stays additive-only (shipped APKs read it for months; legacy flat
+`features.tts_enabled` untouched). Pilot: follow-ups (generation stays behind global
+`chat_follow_ups_enabled`; rendering becomes per-platform).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Registry (single source of truth) drives `/config` `features.web`/`features.android`;
+      legacy `features.tts_enabled` bit-identical (contract test)
+- [ ] Every flag declares fail policy; shared fixture + generated web artifact + Android
+      parity test + api fixture test (verse-grammar model)
+- [ ] Web `featureEnabled(key)`: server map authoritative, `NEXT_PUBLIC_FOLLOW_UPS_ENABLED`
+      demoted to compiled fallback; unreachable-config case tested
+- [ ] Android `FeatureFlags` holder from `ConfigResponseDto`: offline-safe compiled
+      defaults, unknown/missing keys tolerated
+- [ ] Pilot: follow-up chips resolve per-platform; Android runtime-controllable, no APK release
+- [ ] Old-shaped and future-shaped `/config` both parse on all three clients
+- [ ] Terraform vars + `env-manifest.yaml` rows per flag × platform; flags are public booleans only
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-242-platform-selective-feature-flags.md`
+
+---
 
 ### 🎯 BITB-237: Free-Fleet Expansion — Pre-Gate Verifier for Nemotron, Family-Matched Tier-1 Failovers
 
