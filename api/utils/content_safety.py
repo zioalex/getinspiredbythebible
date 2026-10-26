@@ -42,8 +42,8 @@ from utils.metrics import (
 from utils.security import MultiLanguageContentFilter
 
 # BITB-198: these tables only match Cyrillic/Han/Devanagari/Hangul, so they are safe to check
-# under any UI language (an en-UI user typing Russian). ``ar`` is excluded on purpose: its
-# table has a bare "قتل" that would spread Bible-narrative false positives (BITB-194).
+# under any UI language (an en-UI user typing Russian). ``ar`` is excluded on purpose (its
+# intent patterns apply to the Arabic UI language only; widening is a follow-up story).
 _UNIQUE_SCRIPT_VIOLENCE_LANGS = ("ru", "zh", "hi", "ko")
 
 logger = get_logger(__name__)
@@ -308,8 +308,10 @@ class ContentSafetyService:
                 check_duration_ms=(time.monotonic() - start) * 1000,
             )
 
-        # (e) Violence scoped to detected language + English (high confidence -> block)
-        violence = flt.find_violence_matches(
+        # (e) Violence scoped to detected language + English (high confidence -> block).
+        # BITB-194: uses the intent-gated table, so Bible-narrative questions ("How did David
+        # kill Goliath?") pass while "how do I kill someone" / "I want to build a bomb" block.
+        violence = flt.find_fallback_violence_matches(
             normalized, [language, "en", *_UNIQUE_SCRIPT_VIOLENCE_LANGS]
         )
         if violence:

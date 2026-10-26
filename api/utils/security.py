@@ -511,6 +511,61 @@ _HI_NOT_SELF = r"(?<!खुद को )(?<!ख़ुद को )(?<!अपने
 _HI_NB = r"(?<![\u0900-\u097f\-])"
 
 
+# ---------------------------------------------------------------------------
+# BITB-194: intent-gated violence for the keyword fallback (Latin scripts + Arabic)
+# ---------------------------------------------------------------------------
+# The bare verb/noun words in VIOLENCE_PATTERNS (kill, weapon, matar, tuer, ...) are also
+# ordinary Bible vocabulary ("How did David kill Goliath?", "the weapons of our warfare").
+# When ML moderation is down the fallback therefore only blocks them in first-person intent,
+# how-to or acquisition phrasing (INTENT_VIOLENCE_PATTERNS below). A verb that targets a
+# spiritual object ("kill my sin", "mortify the flesh") is never violence.
+_ADV_EN = r"(?:\w+ly\s+)*"
+_ADV_ROM = r"(?:\w+mente\s+)*"
+_ADV_FR = r"(?:\w+ment\s+)*"
+
+# Negative lookahead placed right after a violence verb (verb-final German gates the words
+# in between instead, see _DE_GAP).
+_SPIRITUAL_OBJECT_EXCLUDE = {
+    "en": (
+        r"(?!\s+(?:\w+\s+){0,2}?(?:sins?\b|pride\b|flesh\b|old\s+(?:man|self)\b|ego\b"
+        r"|temptations?\b|lust\b|time\b|giants?\b))"
+    ),
+    "es": (
+        r"(?!\s+(?:\w+\s+){0,2}?(?:pecad|orgullo\b|carne\b|viejo\s+hombre\b|ego\b"
+        r"|tentaci|lujuria\b|tiempo\b|gigante))"
+    ),
+    "pt": (
+        r"(?!\s+(?:\w+\s+){0,2}?(?:pecad|orgulho\b|carne\b|velho\s+homem\b|ego\b"
+        r"|tenta[çc]|luxúria\b|tempo\b|gigante))"
+    ),
+    "it": (
+        r"(?!\s+(?:\w+\s+){0,2}?(?:peccat|orgoglio\b|carne\b|vecchio\s+(?:uomo|io)\b|ego\b"
+        r"|tentazion|lussuria\b|tempo\b|gigant))"
+    ),
+    "fr": (
+        r"(?!\s+(?:\w+\s+){0,2}?(?:péché|orgueil\b|chair\b|vieil\s+homme\b|ego\b"
+        r"|tentation|luxure\b|temps\b|géant))"
+    ),
+    "ar": r"(?!\s+(?:\w+\s+){0,2}?(?:الخطي|الكبرياء|الجسد|الأنا|التجربة|الشهوة|الوقت))",
+}
+# German puts the object BEFORE the verb: every word of the gap must be non-spiritual.
+_DE_GAP = (
+    r"(?:(?!mich\b|dich\b|sünd|stolz|fleisch|ego\b|versuchung|lust\b|zeit\b|riesen"
+    r"|alten?\s+menschen)\w+\s+){0,3}?"
+)
+
+_EN_VERB = r"(?:kill|murder|shoot|stab|attack|slaughter|poison)\b"
+_EN_GUN = r"(?:guns?|handguns?|firearms?|pistols?|rifles?|weapons?(?!\s+of\b))\b"
+_EN_X = _SPIRITUAL_OBJECT_EXCLUDE["en"]
+
+_ES_VERB = r"(?:matar|asesinar|apuñalar|disparar(?:\s+a)?|atacar|envenenar)\b"
+_PT_VERB = r"(?:matar|assassinar|esfaquear|atirar\s+(?:em|n[oa]s?)|atacar|envenenar)\b"
+_IT_VERB = r"(?:uccidere|ammazzare|accoltellare|sparare\s+a|attaccare|avvelenare)\b"
+_FR_VERB = r"(?:tuer|assassiner|poignarder|attaquer|empoisonner)\b"
+_DE_VERB = r"(?:töten|umbringen|ermorden|erschießen|erstechen|angreifen|vergiften)\b"
+_AR_VERB = r"(?:أقتل|اقتل|أهاجم|اهاجم|أذبح|اذبح|أطعن|أسمم)"
+
+
 class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
@@ -727,6 +782,196 @@ class MultiLanguageContentFilter:
             r"죽여\s?버(?:리겠|릴|리고\s?싶)",
             r"(?:죽일|공격할)\s?(?:거|겁니다|거야|거예요|거에요)(?:야|예요|에요|다)?(?![라고])",
             r"(?:사람|누군가|남|상대)(?:을|를)?\s?죽이는\s?(?:법|방법)",
+        ],
+    }
+
+    # BITB-194: the "soft" words of VIOLENCE_PATTERNS (exact pattern strings). They are
+    # ordinary Bible vocabulary, so the KEYWORD FALLBACK no longer blocks them alone; it
+    # requires INTENT_VIOLENCE_PATTERNS instead. Step (b) of the fallback (self-harm
+    # ambiguity) still uses the full VIOLENCE_PATTERNS via find_violence_matches, so
+    # "kill myself with a gun" keeps its method word. Everything not listed here (bomb,
+    # explosives, grenades, molotov, CBRN agents, attentat/Anschlag, mass shootings,
+    # إرهاب, قنبلة ...) remains standalone-blocking.
+    SOFT_VIOLENCE_TERMS: dict[str, set[str]] = {
+        "en": {
+            r"\bweapon\b",
+            r"\bgun\b",
+            r"\bkill\b",
+            r"\bmurder\b",
+            r"\battack\b",
+            r"\bshoot\b",
+            r"\bstab\b",
+            r"\bslaughter\b",
+            r"\bterror",
+        },
+        "it": {
+            r"\barma\b",
+            r"\barmi\b",
+            r"\buccidere\b",
+            r"\bomicidio\b",
+            r"\battacco\b",
+            r"\bterror",
+            r"\bsparare\b",
+            r"\baccoltellare\b",
+        },
+        "de": {
+            r"\bwaffe\b",
+            r"\bwaffen\b",
+            r"\btöten\b",
+            r"\bmord\b",
+            r"\bangriff\b",
+            r"\bterror",
+            r"\bschießen\b",
+            r"\bstechen\b",
+        },
+        "es": {
+            r"\barma\b",
+            r"\barmas\b",
+            r"\bmatar\b",
+            r"\basesinato\b",
+            r"\bataque\b",
+            r"\bterror",
+            r"\bdisparar\b",
+            r"\bapuñalar\b",
+        },
+        "fr": {
+            r"\barme\b",
+            r"\barmes\b",
+            r"\btuer\b",
+            r"\bmeurtre\b",
+            r"\battaque\b",
+            r"\bterror",
+            r"\btirer\b",
+            r"\bpoignarder\b",
+        },
+        "pt": {
+            r"\barma\b",
+            r"\barmas\b",
+            r"\bmatar\b",
+            r"\bassassinato\b",
+            r"\bataque\b",
+            r"\bterror",
+            r"\batirar\b",
+            r"\besfaquear\b",
+        },
+        "ar": {r"سلاح", r"أسلحة", r"قتل", r"جريمة قتل", r"هجوم"},
+    }
+
+    # Replaces the dropped bare ``\bterror`` with the unambiguous "terrorism/terrorist" stems.
+    STANDALONE_TERRORIS = {
+        "en": r"\bterroris",
+        "it": r"\bterroris",
+        "de": r"\bterroris",
+        "es": r"\bterroris",
+        "fr": r"\bterroris",
+        "pt": r"\bterroris",
+    }
+
+    # First-person intent, how-to and acquisition phrasing. Third-person / past / question
+    # forms about Bible events ("How did David kill", "Why did Cain murder", "Warum wollte
+    # Saul David töten?", "لا تقتل", "No matarás") deliberately do NOT match. Self-harm
+    # ("kill myself", "me tuer") is handled earlier by the fallback's step (b).
+    INTENT_VIOLENCE_PATTERNS: dict[str, list[str]] = {
+        "en": [
+            r"\bi(?:'m|’m|\s+am)?\s+"
+            + _ADV_EN
+            + r"(?:want\s+to|wanna|need\s+to|plan(?:ning)?\s+to|going\s+to|gonna|intend\s+to"
+            r"|have\s+to|(?:would|'d)\s+like\s+to)\s+" + _ADV_EN + _EN_VERB + _EN_X,
+            r"\b(?:let'?s|let\s+us|help\s+me|teach\s+me(?:\s+how)?\s+to|show\s+me\s+how\s+to)\s+"
+            + _ADV_EN
+            + _EN_VERB
+            + _EN_X,
+            r"\bhow\s+(?:do|can|could|would|should|might)\s+(?:i|we|you|someone|one)\s+"
+            + _ADV_EN
+            + _EN_VERB
+            + _EN_X,
+            r"\bhow\s+to\s+" + _ADV_EN + _EN_VERB + _EN_X,
+            r"\b(?:best|easiest|quickest|fastest|easy)\s+ways?\s+to\s+" + _EN_VERB + _EN_X,
+            r"\b(?:where|how)\s+(?:can|could|do|would|should)\s+(?:i|we|you)\s+"
+            r"(?:buy|get|make|build|purchase|obtain|find|acquire)\s+(?:(?:an?|the|some)\s+)?"
+            r"(?:\w+\s+){0,2}?" + _EN_GUN,
+            r"\bi\s+(?:want|need)\s+to\s+(?:buy|get|make|build)\s+(?:(?:an?|some)\s+)?" + _EN_GUN,
+        ],
+        "es": [
+            r"\b(?:quiero|quisiera|voy\s+a|pienso|necesito|planeo|planifico|tengo\s+que|debo)\s+"
+            + _ADV_ROM
+            + _ES_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["es"],
+            r"\b(?:matar|asesinar|apuñalar|envenenar)[eé]\b" + _SPIRITUAL_OBJECT_EXCLUDE["es"],
+            r"\bc[oó]mo\s+(?:puedo\s+|podemos\s+|podr[ií]a\s+|se\s+puede\s+|debo\s+|hay\s+que\s+)?"
+            + _ES_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["es"],
+            r"\bd[oó]nde\s+(?:(?:puedo|podemos|se\s+puede)\s+)?(?:comprar|conseguir|obtener)\s+"
+            r"(?:(?:un[ao]?|el|la)\s+)?(?:\w+\s+)?"
+            r"(?:armas?(?!\s+de\s+(?!fuego))|pistolas?|rifles?|fusil(?:es)?)\b",
+        ],
+        "pt": [
+            r"\b(?:quero|vou|pretendo|preciso|planejo|planeio|tenho\s+que|devo)\s+"
+            + _ADV_ROM
+            + _PT_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["pt"],
+            r"\b(?:matarei|assassinarei|esfaquearei|envenenarei)\b"
+            + _SPIRITUAL_OBJECT_EXCLUDE["pt"],
+            r"\bcomo\s+(?:posso\s+|podemos\s+|poderia\s+|se\s+pode\s+|devo\s+)?"
+            + _PT_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["pt"],
+            r"\bonde\s+(?:(?:posso|podemos|se\s+pode)\s+)?(?:comprar|conseguir|obter)\s+"
+            r"(?:(?:um[a]?|uma|a|o)\s+)?(?:\w+\s+)?"
+            r"(?:armas?(?!\s+de\s+(?!fogo))|pistolas?|rifles?|espingardas?)\b",
+        ],
+        "it": [
+            r"\b(?:voglio|vorrei|devo|sto\s+per|intendo|ho\s+intenzione\s+di|andr[oò]\s+a"
+            r"|ho\s+bisogno\s+di|penso\s+di|pianifico\s+di)\s+"
+            + _ADV_ROM
+            + _IT_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["it"],
+            r"\b(?:ucciderò|ammazzerò|accoltellerò|avvelenerò)\b" + _SPIRITUAL_OBJECT_EXCLUDE["it"],
+            r"\bcome\s+(?:posso\s+|possiamo\s+|si\s+pu[oò]\s+|potrei\s+|devo\s+)?"
+            + _IT_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["it"],
+            r"\bdove\s+(?:(?:posso|possiamo|si\s+pu[oò])\s+)?"
+            r"(?:comprare|trovare|ottenere|procurarmi)\s+"
+            r"(?:(?:un|una|l)['’]\s*|(?:un|una|la|le|delle)\s+)?(?:\w+\s+)?"
+            r"(?:arma(?!\s+di\s+(?!fuoco))|armi|pistola|fucile)\b",
+        ],
+        "fr": [
+            r"\bje\s+(?:veux|voudrais|vais|compte|dois|pense|projette)\s+"
+            + _ADV_FR
+            + r"(?:(?:le|la|les)\s+|l['’]\s*)?"
+            + _FR_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["fr"],
+            r"\bje\s+(?:(?:le|la|les|te|vous)\s+|l['’]\s*)?"
+            r"(?:tuerai|assassinerai|poignarderai|attaquerai|empoisonnerai)\b"
+            + _SPIRITUAL_OBJECT_EXCLUDE["fr"],
+            r"\bcomment\s+(?:(?:puis-je|peut-on|pourrais-je|faut-il|je\s+peux|on\s+peut"
+            r"|peut\s+on)\s+)?" + _FR_VERB + _SPIRITUAL_OBJECT_EXCLUDE["fr"],
+            r"\boù\s+(?:(?:puis-je|peut-on|pouvons-nous|je\s+peux|on\s+peut)\s+)?"
+            r"(?:acheter|trouver|obtenir|se\s+procurer)\s+(?:(?:une?|des)\s+|l['’]\s*)?(?:\w+\s+)?"
+            r"armes?(?!\s+(?:de|du)\s+(?!feu|poing))\b",
+        ],
+        "de": [
+            r"\bich\s+(?:will|möchte|werde|muss|plane|habe\s+vor|beabsichtige)\s+"
+            + _DE_GAP
+            + _DE_VERB,
+            r"\bwie\s+(?:kann|könnte|soll|muss|darf)\s+(?:ich|man|wir)\s+" + _DE_GAP + _DE_VERB,
+            r"\bwie\s+(?:tötet|ermordet|vergiftet|erschießt|ersticht)\s+man\b",
+            r"\bwie\s+bringt\s+man\s+(?:\w+\s+){0,2}?um\b",
+            r"\bwo\s+(?:kann|könnte|soll)\s+(?:ich|man|wir)\s+(?:(?:eine?|die|das|den)\s+)?"
+            r"(?:\w+\s+)?(?:waffen?|pistole|gewehr|schusswaffe)\w*\s+"
+            r"(?:kaufen|bekommen|besorgen|herbekommen|kriegen)\b",
+            r"\bwo\s+(?:bekomme|kriege|finde|kaufe)\s+ich\s+(?:(?:eine?|die|das|den)\s+)?"
+            r"(?:\w+\s+)?(?:waffen?|pistole|gewehr|schusswaffe)\b",
+        ],
+        "ar": [
+            r"(?:أريد|اريد|أود|أنوي|انوي|ناوي|أخطط|اخطط)\s+(?:(?:أن|ان)\s+)?"
+            + _AR_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["ar"],
+            r"(?:سأ|سوف\s+أ|سوف\s+ا)(?:قتل|هاجم|ذبح|طعن|سمم)" + _SPIRITUAL_OBJECT_EXCLUDE["ar"],
+            r"كيف\s+(?:(?:يمكنني|أستطيع|استطيع|ممكن)\s+)?"
+            + _AR_VERB
+            + _SPIRITUAL_OBJECT_EXCLUDE["ar"],
+            r"أين\s+(?:(?:يمكنني|أستطيع|استطيع)\s+)?(?:أشتري|اشتري|أجد|أحصل\s+على)\s+"
+            r"(?:\w+\s+)?(?:سلاح|مسدس|بندقية)",
         ],
     }
 
@@ -1132,6 +1377,23 @@ class MultiLanguageContentFilter:
         for lang, patterns in self.VIOLENCE_PATTERNS.items():
             self._violence_regex[lang] = re.compile("|".join(patterns), re.IGNORECASE | re.UNICODE)
 
+        # BITB-194: intent-gated violence table for the keyword fallback. Languages with
+        # intent patterns drop their "soft" words and add intent phrasing; ru/zh/hi/ko
+        # already gate their verbs, so they reuse the same table.
+        self._fallback_violence_regex = {}
+        for lang, patterns in self.VIOLENCE_PATTERNS.items():
+            if lang in self.INTENT_VIOLENCE_PATTERNS:
+                soft = self.SOFT_VIOLENCE_TERMS.get(lang, set())
+                fallback = [p for p in patterns if p not in soft]
+                if lang in self.STANDALONE_TERRORIS:
+                    fallback.append(self.STANDALONE_TERRORIS[lang])
+                fallback.extend(self.INTENT_VIOLENCE_PATTERNS[lang])
+            else:
+                fallback = list(patterns)
+            self._fallback_violence_regex[lang] = re.compile(
+                "|".join(fallback), re.IGNORECASE | re.UNICODE
+            )
+
         # Compile hard-violence patterns into ONE script-agnostic regex (BITB-185 v2)
         self._hard_violence_regex = re.compile(
             "|".join(p for pats in self.HARD_VIOLENCE_PATTERNS.values() for p in pats),
@@ -1203,6 +1465,24 @@ class MultiLanguageContentFilter:
         matches: list[tuple[int, int, str]] = []
         for lang in dict.fromkeys(langs):
             regex = self._violence_regex.get(lang)
+            if regex:
+                matches.extend((m.start(), m.end(), m.group(0)) for m in regex.finditer(normalized))
+        return matches
+
+    def find_fallback_violence_matches(
+        self, normalized: str, languages: list[str] | None = None
+    ) -> list[tuple[int, int, str]]:
+        """Intent-gated variant of :meth:`find_violence_matches` for the keyword fallback.
+
+        BITB-194: bare Bible-vocabulary words (kill, weapon, matar, tuer ...) do not match
+        alone; first-person intent / how-to / acquisition phrasing and the unambiguous
+        hard terms (bomb, explosive, ...) do. Same shape and normalization contract as
+        :meth:`find_violence_matches`.
+        """
+        langs = list(self._fallback_violence_regex) if languages is None else languages
+        matches: list[tuple[int, int, str]] = []
+        for lang in dict.fromkeys(langs):
+            regex = self._fallback_violence_regex.get(lang)
             if regex:
                 matches.extend((m.start(), m.end(), m.group(0)) for m in regex.finditer(normalized))
         return matches

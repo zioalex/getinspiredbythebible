@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-24
+**Last Updated:** 2026-10-26
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-26: BITB-194 in review — keyword-fallback violence gated on intent so Bible-narrative questions pass; follow-ups BITB-242/243 filed
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
@@ -352,22 +353,59 @@ Add conservative, Bible-narrative-aware ar/ru/zh/hi/ko tables.
 
 Full story: [`BITB-240-native-directed-harm-patterns.md`](BACKLOG_STORIES/BITB-240-native-directed-harm-patterns.md)
 
-### 🎯 BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
+### 🔍 BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-13
 
 Follow-up to BITB-185: when ML moderation is down, the fallback violence patterns (`\bkill\b`,
 `\battack\b`, `\bweapon\b`...) block ordinary Bible questions such as "How did David kill Goliath?".
+Fixed by gating the soft words on first-person intent / how-to / acquisition phrasing in step (e)
+of the fallback only (en/it/de/es/fr/pt/ar); hard terms (bomb, explosive, ...) still block alone.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Bible-narrative questions about killing/battle are allowed in the fallback (all 11 languages)
-- [ ] Genuine violent-intent phrasings still block
+- [x] Bible-narrative questions about killing/battle are allowed in the fallback (all 11 languages)
+- [x] Genuine violent-intent phrasings still block
+
+**Follow-ups:** BITB-242, BITB-243.
 
 Full story: [`BITB-194-fallback-violence-bible-narrative-false-positives.md`](BACKLOG_STORIES/BITB-194-fallback-violence-bible-narrative-false-positives.md)
+
+### 🎯 BITB-242: Stage-1 Hate-Speech Patterns Block Scripture Even With ML Up
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-26
+
+Follow-up to BITB-194: `HATE_SPEECH_PATTERNS` `\bdeath to\b` and `\bkill all\b` block "He passed from
+death to life" and "Did God tell Israel to kill all the Canaanites?" in Stage 1, regardless of ML health.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Scripture/narrative phrasings are allowed; genuine hate speech still blocks
+- [ ] Cross-language regression tests
+
+Full story: [`BITB-242-hate-speech-patterns-block-scripture.md`](BACKLOG_STORIES/BITB-242-hate-speech-patterns-block-scripture.md)
+
+### 🎯 BITB-243: Widen Keyword-Fallback Violence Scope to Every Language
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-26
+
+Follow-up to BITB-194 (optional): fallback step (e) only checks the UI language, English and
+ru/zh/hi/ko; with the Latin/Arabic tables now intent-gated, widen it to every language incl. `ar`.
+
+**Acceptance Criteria (summary):**
+
+- [ ] False-positive review across 11 languages, then widen scope with tests
+
+Full story: [`BITB-243-widen-fallback-violence-scope-all-languages.md`](BACKLOG_STORIES/BITB-243-widen-fallback-violence-scope-all-languages.md)
 
 ### ❌ BITB-195: Decision — Mixed Self-Harm and Third-Party Violence Messages
 
