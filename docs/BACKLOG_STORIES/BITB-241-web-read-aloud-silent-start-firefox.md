@@ -1,4 +1,4 @@
-# BITB-238: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
+# BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
 
 **Status:** 🚧 In Progress
 **Priority:** P1
