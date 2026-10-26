@@ -258,11 +258,20 @@ make android-test-compose  # Android Compose UI tests (Robolectric — separate 
 
 ### Pre-commit Hooks
 
-Configured in `.pre-commit-config.yaml`. Install with `make install-hooks`.
+Configured in `.pre-commit-config.yaml`. Install with `make install-hooks`
+(installs the `pre-commit`, `commit-msg` and `pre-push` hook types).
 
-Hooks: trailing-whitespace, end-of-file-fixer, check-yaml/json, Black,
-Ruff, MyPy, Bandit, hadolint (Dockerfiles), Prettier (YAML + frontend),
-yamllint, detect-secrets, shellcheck, markdownlint, ESLint.
+Hooks are split into stages (BITB-241):
+
+- **Commit stage (fast):** trailing-whitespace, end-of-file-fixer,
+  check-yaml/json, check-added-large-files, check-merge-conflict,
+  check-case-conflict, mixed-line-ending, detect-private-key, Black, Ruff.
+- **Pre-push stage (slow — they also run in CI on every PR):** MyPy, Bandit,
+  hadolint (Dockerfiles), Prettier (YAML + frontend), yamllint, detect-secrets,
+  shellcheck, markdownlint, ESLint.
+
+`make pre-commit` (`pre-commit run --all-files`) still runs every hook
+regardless of stage.
 
 Format commands: `make format` (auto-fix Python + frontend)
 
