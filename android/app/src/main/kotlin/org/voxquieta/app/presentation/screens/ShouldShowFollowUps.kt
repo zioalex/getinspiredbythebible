@@ -1,5 +1,6 @@
 package org.voxquieta.app.presentation.screens
 
+import org.voxquieta.app.BuildConfig
 import org.voxquieta.app.domain.models.Message
 
 /**
@@ -14,6 +15,14 @@ import org.voxquieta.app.domain.models.Message
  * Chips render only under the LATEST assistant message, and only when the
  * app isn't mid-response, the session hasn't hit its limit, and the backend
  * actually sent suggestions for this turn.
+ *
+ * [enabled] is the default-off Android rollout gate for the parent story
+ * BITB-080 (the backend now streams `follow_ups` to all clients, but Android
+ * stays dark until its own later rollout). It mirrors the same compile-time
+ * [BuildConfig.CHAT_FOLLOW_UPS_ENABLED] flag the ViewModel gates state
+ * exposure on — defense in depth so the chips cannot render while dark even
+ * if state ever leaked. Flipping the flag on later resumes this behavior
+ * unchanged (last-message-only, tap-to-send).
  */
 internal fun shouldShowFollowUps(
     index: Int,
@@ -22,7 +31,9 @@ internal fun shouldShowFollowUps(
     isLoading: Boolean,
     isSessionLimitReached: Boolean,
     followUps: List<String>,
-): Boolean = index == lastIndex &&
+    enabled: Boolean = BuildConfig.CHAT_FOLLOW_UPS_ENABLED,
+): Boolean = enabled &&
+    index == lastIndex &&
     role == Message.Role.ASSISTANT &&
     !isLoading &&
     !isSessionLimitReached &&
