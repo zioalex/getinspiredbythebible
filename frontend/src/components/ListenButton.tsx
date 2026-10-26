@@ -29,7 +29,7 @@ import {
   subscribe,
 } from "@/lib/speech";
 
-/** BITB-238: how long the "speech engine didn't respond" message stays visible. */
+/** BITB-241: how long the "speech engine didn't respond" message stays visible. */
 export const START_FAILED_NOTICE_MS = 6000;
 
 interface ListenButtonProps {

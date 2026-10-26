@@ -519,7 +519,7 @@ describe("ListenButton online voices (BITB-210)", () => {
   });
 });
 
-describe("ListenButton silent engine (BITB-238)", () => {
+describe("ListenButton silent engine (BITB-241)", () => {
   const NOTICE = /speech engine didn't respond/i;
 
   afterEach(() => vi.useRealTimers());

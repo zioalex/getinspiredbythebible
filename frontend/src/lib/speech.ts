@@ -28,15 +28,15 @@ let current: CurrentCall | null = null;
 /** True while the browser's own synthesis queue is paused via synth.pause(). */
 let nativePaused = false;
 let resumeWatchdog: ReturnType<typeof setTimeout> | null = null;
-/** BITB-238: separate timer detecting an engine that never starts a freshly queued reading. */
+/** BITB-241: separate timer detecting an engine that never starts a freshly queued reading. */
 let startWatchdog: ReturnType<typeof setTimeout> | null = null;
-/** BITB-238: id of the answer whose reading never started (engine silent / errored), or null. */
+/** BITB-241: id of the answer whose reading never started (engine silent / errored), or null. */
 let startFailedId: string | null = null;
 
 /** How long a native resume may stay silent before falling back to chunk restart. */
 export const RESUME_WATCHDOG_MS = 1000;
 
-/** BITB-238: how long a fresh reading may stay silent (no start/boundary) before one retry. */
+/** BITB-241: how long a fresh reading may stay silent (no start/boundary) before one retry. */
 export const START_WATCHDOG_MS = 3000;
 
 function notify(): void {
@@ -203,7 +203,7 @@ export function getPausedId(): string | null {
   return pausedId;
 }
 
-/** Id of the message whose reading never started (BITB-238), or null. */
+/** Id of the message whose reading never started (BITB-241), or null. */
 export function getStartFailedId(): string | null {
   return startFailedId;
 }
@@ -216,7 +216,7 @@ function isEngineBusy(synth: SpeechSynthesis): boolean {
 /**
  * Cancels the browser queue; a paused queue must also be resumed or it stays paused.
  * With `onlyIfBusy`, an idle engine is left alone: on Linux Firefox (speech-dispatcher) the
- * asynchronous cancel can swallow the utterance queued right after it (BITB-238).
+ * asynchronous cancel can swallow the utterance queued right after it (BITB-241).
  */
 function cancelQueue(synth: SpeechSynthesis, onlyIfBusy = false): void {
   if (onlyIfBusy && !isEngineBusy(synth)) {
@@ -259,7 +259,7 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
   clearWatchdog();
   clearStartWatchdog();
   // One voice at a time: switching answers always cancels; the first speak and a same-call
-  // retry skip the cancel on an idle engine (it can swallow the next utterance, BITB-238).
+  // retry skip the cancel on an idle engine (it can swallow the next utterance, BITB-241).
   const switching = current !== null && current !== call;
   cancelQueue(synth, !switching);
   call.index = fromIndex;
@@ -267,7 +267,7 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
   setState(call.id, null);
   let started = false;
 
-  // BITB-238: the engine never started (no start/boundary/error): retry once, then give up.
+  // BITB-241: the engine never started (no start/boundary/error): retry once, then give up.
   const giveUp = () => {
     generation += 1;
     clearWatchdog();

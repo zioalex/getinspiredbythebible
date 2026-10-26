@@ -417,7 +417,7 @@ describe("online voices and availability", () => {
   });
 });
 
-describe("start watchdog (BITB-238)", () => {
+describe("start watchdog (BITB-241)", () => {
   const voice = makeVoice("en-US") as unknown as SpeechSynthesisVoice;
   const chunks = ["one", "two"];
 
