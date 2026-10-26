@@ -91,6 +91,24 @@ content_filter_enabled = true
 max_message_length     = 500
 
 # -----------------------------------------------------------------------------
+# Follow-Up Suggestions Rollout (BITB-080) — WEB ONLY
+# -----------------------------------------------------------------------------
+# Latency eval returned latency-GO (PR #1214). The backend flag makes the API
+# emit `follow_ups` on chat completions for ALL clients; each client gates its
+# own rendering:
+#   - web:  NEXT_PUBLIC_FOLLOW_UPS_ENABLED is BAKED into the frontend image at
+#           build time — azure-deploy.yml reads web_follow_ups_enabled from
+#           this file and passes it as a docker build-arg (frontend/Dockerfile).
+#   - Android: stays dark — its gate is compile-time (PR #1217), default off.
+# Code defaults stay false (variables.tf / api/config.py / featureFlags.ts);
+# only this production tfvars turns them on (BITB-187 FR5).
+# Rollback: flip either flag to false and redeploy; the web flag additionally
+# needs a frontend image rebuild (it is baked, not runtime).
+
+chat_follow_ups_enabled = true
+web_follow_ups_enabled  = true
+
+# -----------------------------------------------------------------------------
 # Azure OpenAI for Embeddings
 # -----------------------------------------------------------------------------
 

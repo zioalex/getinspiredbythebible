@@ -44,6 +44,14 @@ ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
 ARG NEXT_PUBLIC_DONATE_URL=
 ENV NEXT_PUBLIC_DONATE_URL=${NEXT_PUBLIC_DONATE_URL}
 
+# BITB-080 follow-up chips, web-only rollout. Next.js inlines NEXT_PUBLIC_* at
+# build time, so the flag must arrive as a build arg: azure-deploy.yml reads
+# web_follow_ups_enabled from deployment/terraform.tfvars and passes it here.
+# Anything other than "true" (or unset) keeps the chips hidden
+# (frontend/src/lib/featureFlags.ts -> followUpsEnabled()).
+ARG NEXT_PUBLIC_FOLLOW_UPS_ENABLED=
+ENV NEXT_PUBLIC_FOLLOW_UPS_ENABLED=${NEXT_PUBLIC_FOLLOW_UPS_ENABLED}
+
 # Per-build cache-busting id (BITB-102). Consumed by scripts/generate-build-info.mjs
 # at prebuild and written to public/build-info.json, which the client reads to
 # register /sw.js?v=<id>. A changed id renames the service worker's shell cache,
