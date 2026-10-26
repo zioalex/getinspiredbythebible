@@ -50,8 +50,18 @@ Only step (e) of `ContentSafetyService._full_keyword_fallback` changed. It now c
   "let's kill him" still block (the how-to / let's patterns do not know who speaks).
 - Arabic intent patterns apply only when the UI language is `ar` (ar is not in the any-UI scope);
   see BITB-243.
+- Verifier round 2 extended the intent tables (will/'ll, optional-subject gonna, "my plan is to",
+  "shoot up", how-to/steps/methods, "how much ... to kill", "need a gun to kill", es/pt/it "ways
+  to kill", fr "tirer sur", de "schießen", ar noun form `قتل` / `طرق لقتل`) and the spiritual
+  exclusions (fear, anger, addiction, envy, ... per language, elided fr/it articles). Residual
+  risks accepted and filed as BITB-244: attached-pronoun verbs (matarlo, ucciderlo, matá-lo,
+  tuez-le), German separable verbs ("Ich bringe ihn um"), model-name weapons ("AR-15"), and
+  phrasings that already passed on main ("strangle", "beat to death", "want him dead").
+  Emotion exclusions require a determiner ("kill my anger" passes, "kill him in anger" blocks);
+  "kill my anger at him" therefore also passes.
 
 ## Follow-ups
 
 - BITB-242: Stage-1 `HATE_SPEECH_PATTERNS` block scripture even with ML up
 - BITB-243: widen fallback step (e) to every language incl. ar
+- BITB-244: close residual fallback-violence intent gaps (attached pronouns, German separable verbs, model-name weapons)

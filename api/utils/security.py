@@ -523,46 +523,84 @@ _ADV_EN = r"(?:\w+ly\s+)*"
 _ADV_ROM = r"(?:\w+mente\s+)*"
 _ADV_FR = r"(?:\w+ment\s+)*"
 
+
 # Negative lookahead placed right after a violence verb (verb-final German gates the words
-# in between instead, see _DE_GAP).
+# in between instead, see _DE_GAP). Two kinds of spiritual object are excluded: the "base"
+# words may sit up to two words after the verb; the emotion/habit words ("kill my fear",
+# "mata la envidia") must follow a determiner so "kill him in anger" still blocks.
+def _spiritual_exclude(
+    base: str,
+    emotions: str,
+    determiners: str,
+    spirit_of: str,
+    filler: str = r"(?:\w+\s+){0,2}?",
+) -> str:
+    return (
+        rf"(?!\s+(?:{filler}(?:{base})"
+        rf"|(?:{determiners}(?:{spirit_of}\s+)?|{spirit_of}\s+)(?:\w+\s+)?(?:{emotions})))"
+    )
+
+
 _SPIRITUAL_OBJECT_EXCLUDE = {
-    "en": (
-        r"(?!\s+(?:\w+\s+){0,2}?(?:sins?\b|pride\b|flesh\b|old\s+(?:man|self)\b|ego\b"
-        r"|temptations?\b|lust\b|time\b|giants?\b))"
+    "en": _spiritual_exclude(
+        r"sins?\b|pride\b|flesh\b|old\s+(?:man|self)\b|ego\b|temptations?\b|lust\b|time\b"
+        r"|giants?\b",
+        r"fears?\b|anger\b|habits?\b|addictions?\b|bitterness\b|envy\b|worr(?:y|ies)\b"
+        r"|doubts?\b|anxiety\b|jealousy\b|rage\b",
+        r"(?:my|the|this|that|our|your|its|all|any)\s+",
+        r"spirits?\s+of",
     ),
-    "es": (
-        r"(?!\s+(?:\w+\s+){0,2}?(?:pecad|orgullo\b|carne\b|viejo\s+hombre\b|ego\b"
-        r"|tentaci|lujuria\b|tiempo\b|gigante))"
+    "es": _spiritual_exclude(
+        r"pecad|orgullo\b|carne\b|viejo\s+hombre\b|ego\b|tentaci|lujuria\b|tiempo\b|gigante",
+        r"envidia|ira\b|miedo|rabia|ansiedad|adicci|h[aá]bito|amargura|duda|celos|inveja|raiva",
+        r"(?:mi|mis|a|la|el|las|los|tu|su|nuestr[ao]|toda|esta|esa)\s+",
+        r"esp[ií]ritu\s+de",
     ),
-    "pt": (
-        r"(?!\s+(?:\w+\s+){0,2}?(?:pecad|orgulho\b|carne\b|velho\s+homem\b|ego\b"
-        r"|tenta[çc]|luxúria\b|tempo\b|gigante))"
+    "pt": _spiritual_exclude(
+        r"pecad|orgulho\b|carne\b|velho\s+homem\b|ego\b|tenta[çc]|luxúria\b|tempo\b|gigante",
+        r"inveja|raiva|medo|ira\b|ansiedade|v[ií]cio|amargura|d[uú]vida|h[aá]bito|ci[uú]me",
+        r"(?:minha|meu|minhas|meus|a|o|as|os|sua|seu|nossa|nosso|toda|esta|esse|essa)\s+",
+        r"esp[ií]rito\s+de",
     ),
-    "it": (
-        r"(?!\s+(?:\w+\s+){0,2}?(?:peccat|orgoglio\b|carne\b|vecchio\s+(?:uomo|io)\b|ego\b"
-        r"|tentazion|lussuria\b|tempo\b|gigant))"
+    "it": _spiritual_exclude(
+        r"peccat|orgoglio\b|carne\b|vecchio\s+(?:uomo|io)\b|ego\b|tentazion|lussuria\b"
+        r"|tempo\b|gigant",
+        r"rabbia|paura|ira\b|invidia|ansia|dipendenza|amarezza|dubbi?o|abitudine|collera|gelosia",
+        r"(?:(?:la|le|il|lo|mia|mio|mie|miei|tua|sua|nostra|questa|questo|ogni|tutta)\s+|l['’])",
+        r"spirito\s+di",
+        r"(?:\w+(?:\s+|['’])){0,2}?",
     ),
-    "fr": (
-        r"(?!\s+(?:\w+\s+){0,2}?(?:péché|orgueil\b|chair\b|vieil\s+homme\b|ego\b"
-        r"|tentation|luxure\b|temps\b|géant))"
+    "fr": _spiritual_exclude(
+        r"péché|orgueil\b|chair\b|vieil\s+homme\b|ego\b|tentation|luxure\b|temps\b|géant",
+        r"col[eè]re|peur|orgueil|envie\b|jalousie|angoisse|addiction|amertume|doute|habitude|rage\b",
+        r"(?:(?:mon|ma|mes|la|le|les|ton|ta|cette|ce|notre|votre|toute|tout)\s+|l['’])",
+        r"esprit\s+de",
+        r"(?:\w+(?:\s+|['’])){0,2}?",
     ),
-    "ar": r"(?!\s+(?:\w+\s+){0,2}?(?:الخطي|الكبرياء|الجسد|الأنا|التجربة|الشهوة|الوقت))",
+    "ar": r"(?!\s+(?:\w+\s+){0,2}?(?:الخطي|الكبرياء|الجسد|الأنا|التجربة|الشهوة|الوقت|الغضب|الخوف"
+    r"|القلق|الحسد|الإدمان|المرارة|الشك|العادة))",
 }
 # German puts the object BEFORE the verb: every word of the gap must be non-spiritual.
 _DE_GAP = (
     r"(?:(?!mich\b|dich\b|sünd|stolz|fleisch|ego\b|versuchung|lust\b|zeit\b|riesen"
-    r"|alten?\s+menschen)\w+\s+){0,3}?"
+    r"|alten?\s+menschen|zorn|angst\b|neid\b|sucht\b|bitterkeit|gewohnheit|furcht\b)"
+    r"\w+\s+){0,3}?"
 )
 
 _EN_VERB = r"(?:kill|murder|shoot|stab|attack|slaughter|poison)\b"
+_EN_HARD_VERB = r"(?:kill|murder|shoot|stab|slaughter|poison)\b"
+_EN_KILL = r"(?:kill|murder)\b"
 _EN_GUN = r"(?:guns?|handguns?|firearms?|pistols?|rifles?|weapons?(?!\s+of\b))\b"
 _EN_X = _SPIRITUAL_OBJECT_EXCLUDE["en"]
 
 _ES_VERB = r"(?:matar|asesinar|apuñalar|disparar(?:\s+a)?|atacar|envenenar)\b"
 _PT_VERB = r"(?:matar|assassinar|esfaquear|atirar\s+(?:em|n[oa]s?)|atacar|envenenar)\b"
 _IT_VERB = r"(?:uccidere|ammazzare|accoltellare|sparare\s+a|attaccare|avvelenare)\b"
-_FR_VERB = r"(?:tuer|assassiner|poignarder|attaquer|empoisonner)\b"
-_DE_VERB = r"(?:töten|umbringen|ermorden|erschießen|erstechen|angreifen|vergiften)\b"
+_FR_VERB = r"(?:tuer|assassiner|poignarder|attaquer|empoisonner|tirer\s+sur)\b"
+_DE_VERB = (
+    r"(?:töten|umbringen|ermorden|erschießen|erstechen|angreifen|vergiften"
+    r"|schießen(?!\s+lernen))\b"
+)
 _AR_VERB = r"(?:أقتل|اقتل|أهاجم|اهاجم|أذبح|اذبح|أطعن|أسمم)"
 
 
@@ -873,20 +911,33 @@ class MultiLanguageContentFilter:
     # ("kill myself", "me tuer") is handled earlier by the fallback's step (b).
     INTENT_VIOLENCE_PATTERNS: dict[str, list[str]] = {
         "en": [
-            r"\bi(?:'m|’m|\s+am)?\s+"
+            r"\b(?:i(?:'m|’m|\s+am)?|im)\s+"
             + _ADV_EN
             + r"(?:want\s+to|wanna|need\s+to|plan(?:ning)?\s+to|going\s+to|gonna|intend\s+to"
             r"|have\s+to|(?:would|'d)\s+like\s+to)\s+" + _ADV_EN + _EN_VERB + _EN_X,
-            r"\b(?:let'?s|let\s+us|help\s+me|teach\s+me(?:\s+how)?\s+to|show\s+me\s+how\s+to)\s+"
+            r"\b(?:i\s+will|i['’]ll|i\s+shall)\s+" + _ADV_EN + _EN_HARD_VERB + _EN_X,
+            r"(?:^|[.!?;,]\s*|\b(?:and|but|so|just|now)\s+)(?:going\s+to|gonna)\s+"
             + _ADV_EN
             + _EN_VERB
             + _EN_X,
+            r"\bmy\s+(?:plan|goal|intention|intent|aim)\s+is\s+to\s+" + _ADV_EN + _EN_VERB + _EN_X,
+            r"\b(?:let'?s|let\s+us|help\s+me(?:\s+(?:to|plan\s+(?:to|on)))?"
+            r"|teach\s+me(?:\s+how)?\s+to|show\s+me\s+how\s+to)\s+" + _ADV_EN + _EN_VERB + _EN_X,
             r"\bhow\s+(?:do|can|could|would|should|might)\s+(?:i|we|you|someone|one)\s+"
             + _ADV_EN
             + _EN_VERB
             + _EN_X,
             r"\bhow\s+to\s+" + _ADV_EN + _EN_VERB + _EN_X,
             r"\b(?:best|easiest|quickest|fastest|easy)\s+ways?\s+to\s+" + _EN_VERB + _EN_X,
+            r"\b(?:ways?|steps?|methods?)\s+(?:to|for)\s+" + _ADV_EN + _EN_KILL + _EN_X,
+            r"\bhow\s+much\b[^.?!]{0,40}?\bto\s+" + _EN_KILL + _EN_X,
+            r"\b(?:where|how)\s+to\s+(?:buy|get|make|build|purchase|obtain|find|acquire)\s+"
+            r"(?:(?:an?|the|some)\s+)?(?:\w+\s+){0,2}?" + _EN_GUN,
+            r"\bi\s+(?:just\s+)?(?:need|want)\s+(?:an?|some)\s+(?:\w+\s+)?"
+            + _EN_GUN
+            + r"\s+(?:to|for)\s+"
+            + _EN_VERB
+            + _EN_X,
             r"\b(?:where|how)\s+(?:can|could|do|would|should)\s+(?:i|we|you)\s+"
             r"(?:buy|get|make|build|purchase|obtain|find|acquire)\s+(?:(?:an?|the|some)\s+)?"
             r"(?:\w+\s+){0,2}?" + _EN_GUN,
@@ -898,6 +949,10 @@ class MultiLanguageContentFilter:
             + _ES_VERB
             + _SPIRITUAL_OBJECT_EXCLUDE["es"],
             r"\b(?:matar|asesinar|apuñalar|envenenar)[eé]\b" + _SPIRITUAL_OBJECT_EXCLUDE["es"],
+            r"\b(?:formas?|maneras?|modos?)\s+de\s+(?:matar|asesinar|envenenar)\b"
+            + _SPIRITUAL_OBJECT_EXCLUDE["es"],
+            r"\b(?:necesito|quiero|busco)\s+(?:un[ao]?|el|la)\s+(?:\w+\s+)?"
+            r"(?:armas?|pistolas?|rifles?)\s+para\s+" + _ES_VERB + _SPIRITUAL_OBJECT_EXCLUDE["es"],
             r"\bc[oó]mo\s+(?:puedo\s+|podemos\s+|podr[ií]a\s+|se\s+puede\s+|debo\s+|hay\s+que\s+)?"
             + _ES_VERB
             + _SPIRITUAL_OBJECT_EXCLUDE["es"],
@@ -912,6 +967,10 @@ class MultiLanguageContentFilter:
             + _SPIRITUAL_OBJECT_EXCLUDE["pt"],
             r"\b(?:matarei|assassinarei|esfaquearei|envenenarei)\b"
             + _SPIRITUAL_OBJECT_EXCLUDE["pt"],
+            r"\b(?:formas?|maneiras?|modos?)\s+de\s+(?:matar|assassinar|envenenar)\b"
+            + _SPIRITUAL_OBJECT_EXCLUDE["pt"],
+            r"\b(?:preciso|quero|procuro)\s+(?:um[a]?|uma|a|o)\s+(?:\w+\s+)?"
+            r"(?:armas?|pistolas?|rifles?)\s+para\s+" + _PT_VERB + _SPIRITUAL_OBJECT_EXCLUDE["pt"],
             r"\bcomo\s+(?:posso\s+|podemos\s+|poderia\s+|se\s+pode\s+|devo\s+)?"
             + _PT_VERB
             + _SPIRITUAL_OBJECT_EXCLUDE["pt"],
@@ -926,6 +985,8 @@ class MultiLanguageContentFilter:
             + _IT_VERB
             + _SPIRITUAL_OBJECT_EXCLUDE["it"],
             r"\b(?:ucciderò|ammazzerò|accoltellerò|avvelenerò)\b" + _SPIRITUAL_OBJECT_EXCLUDE["it"],
+            r"\b(?:modi|metodi|maniere)\s+per\s+(?:uccidere|ammazzare|avvelenare)\b"
+            + _SPIRITUAL_OBJECT_EXCLUDE["it"],
             r"\bcome\s+(?:posso\s+|possiamo\s+|si\s+pu[oò]\s+|potrei\s+|devo\s+)?"
             + _IT_VERB
             + _SPIRITUAL_OBJECT_EXCLUDE["it"],
@@ -943,6 +1004,8 @@ class MultiLanguageContentFilter:
             r"\bje\s+(?:(?:le|la|les|te|vous)\s+|l['’]\s*)?"
             r"(?:tuerai|assassinerai|poignarderai|attaquerai|empoisonnerai)\b"
             + _SPIRITUAL_OBJECT_EXCLUDE["fr"],
+            r"\b(?:fa[cç]ons?|mani[eè]res?|moyens?|m[ée]thodes?)\s+(?:de|pour)\s+"
+            r"(?:tuer|assassiner|empoisonner)\b" + _SPIRITUAL_OBJECT_EXCLUDE["fr"],
             r"\bcomment\s+(?:(?:puis-je|peut-on|pourrais-je|faut-il|je\s+peux|on\s+peut"
             r"|peut\s+on)\s+)?" + _FR_VERB + _SPIRITUAL_OBJECT_EXCLUDE["fr"],
             r"\boù\s+(?:(?:puis-je|peut-on|pouvons-nous|je\s+peux|on\s+peut)\s+)?"
@@ -967,6 +1030,9 @@ class MultiLanguageContentFilter:
             + _AR_VERB
             + _SPIRITUAL_OBJECT_EXCLUDE["ar"],
             r"(?:سأ|سوف\s+أ|سوف\s+ا)(?:قتل|هاجم|ذبح|طعن|سمم)" + _SPIRITUAL_OBJECT_EXCLUDE["ar"],
+            r"(?:أريد|اريد|أود|أنوي|انوي|ناوي|أخطط|اخطط)\s+(?:(?:أن|ان)\s+)?قتل"
+            r"(?:ه|ها|هم|هما|هن|ك|كم)?(?![\u0621-\u064a])" + _SPIRITUAL_OBJECT_EXCLUDE["ar"],
+            r"(?:طرق|طريقة)\s+لقتل(?![\u0621-\u064a])" + _SPIRITUAL_OBJECT_EXCLUDE["ar"],
             r"كيف\s+(?:(?:يمكنني|أستطيع|استطيع|ممكن)\s+)?"
             + _AR_VERB
             + _SPIRITUAL_OBJECT_EXCLUDE["ar"],

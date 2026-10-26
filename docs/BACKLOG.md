@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-26: BITB-244 created — residual fallback-violence intent gaps (attached pronouns, German separable verbs, model-name weapons); follow-up to BITB-194
 - 2026-10-26: BITB-194 in review — keyword-fallback violence gated on intent so Bible-narrative questions pass; follow-ups BITB-242/243 filed
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
@@ -406,6 +407,22 @@ ru/zh/hi/ko; with the Latin/Arabic tables now intent-gated, widen it to every la
 - [ ] False-positive review across 11 languages, then widen scope with tests
 
 Full story: [`BITB-243-widen-fallback-violence-scope-all-languages.md`](BACKLOG_STORIES/BITB-243-widen-fallback-violence-scope-all-languages.md)
+
+### 🎯 BITB-244: Close Residual Fallback-Violence Intent Gaps
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-26
+
+Follow-up to BITB-194: attached-pronoun verbs (matarlo/ucciderlo/matá-lo), German separable verbs,
+model-name weapons (AR-15) and strangle/beat to death/want him dead still pass the keyword fallback.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Each phrasing blocks in the fallback, with cross-language tests; narrative cases still pass
+
+Full story: [`BITB-244-fallback-violence-residual-intent-gaps.md`](BACKLOG_STORIES/BITB-244-fallback-violence-residual-intent-gaps.md)
 
 ### ❌ BITB-195: Decision — Mixed Self-Harm and Third-Party Violence Messages
 
