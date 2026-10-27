@@ -148,6 +148,7 @@
     "listenAnswer": "Listen to this answer",
     "pauseListening": "Pause reading",
     "resumeListening": "Resume reading",
+    "speechEngineNoResponse": "Your browser's speech engine didn't respond.",
     "showListenButton": "Show Listen button",
     "allowOnlineVoices": "Allow online voices",
     "onlineVoicesNotNow": "Not now",
