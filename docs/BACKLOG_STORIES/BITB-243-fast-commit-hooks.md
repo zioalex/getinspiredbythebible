@@ -1,4 +1,4 @@
-# BITB-241: Fast pre-commit commit stage (move slow hooks to pre-push/manual)
+# BITB-243: Fast pre-commit commit stage (move slow hooks to pre-push/manual)
 
 **Status:** 🚧 In Progress
 **Opened:** 2026-10-26

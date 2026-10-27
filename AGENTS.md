@@ -261,7 +261,7 @@ make android-test-compose  # Android Compose UI tests (Robolectric — separate 
 Configured in `.pre-commit-config.yaml`. Install with `make install-hooks`
 (installs the `pre-commit`, `commit-msg` and `pre-push` hook types).
 
-Hooks are split into stages (BITB-241):
+Hooks are split into stages (BITB-243):
 
 - **Commit stage (fast):** trailing-whitespace, end-of-file-fixer,
   check-yaml/json, check-added-large-files, check-merge-conflict,

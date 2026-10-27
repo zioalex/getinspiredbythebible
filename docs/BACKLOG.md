@@ -20,7 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-10-26: BITB-241 opened — fast pre-commit commit stage (slow hooks moved to pre-push) (PR pending)
+- 2026-10-27: BITB-243 renumbered from BITB-241 — that ID was claimed two days earlier by open PR #1203 (web read-aloud, Linux Firefox); content unchanged (PR #1215)
+- 2026-10-26: BITB-243 opened — fast pre-commit commit stage (slow hooks moved to pre-push) (PR #1215)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
@@ -261,7 +262,7 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🎯 BITB-241: Fast Pre-commit Commit Stage (Slow Hooks → pre-push)
+### 🎯 BITB-243: Fast Pre-commit Commit Stage (Slow Hooks → pre-push)
 
 **Status:** 🚧 In Progress · **Size:** M · **Opened:** 2026-10-26
 
@@ -273,7 +274,7 @@ seconds-fast; CI and `make pre-commit` behavior unchanged.
 **Acceptance:** same hook set in `--all-files`, `install-hooks` installs the
 pre-push hook type, docs updated, timing before/after in the PR description.
 
-Full story: [`BITB-241-fast-commit-hooks.md`](BACKLOG_STORIES/BITB-241-fast-commit-hooks.md)
+Full story: [`BITB-243-fast-commit-hooks.md`](BACKLOG_STORIES/BITB-243-fast-commit-hooks.md)
 
 ### 🎯 BITB-224: Availability Web Tests Are Silently Disabled in Production
 
