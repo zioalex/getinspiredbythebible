@@ -16,6 +16,7 @@ import {
   speak,
   stop,
   subscribe,
+  subscribeOutcomes,
   voiceAvailability,
 } from "./speech";
 import {
@@ -705,10 +706,40 @@ describe("start watchdog (BITB-241)", () => {
     expect(getPausedId()).toBe("m1");
     expect(getStartFailedId()).toBeNull();
     expect(synth.cancel).not.toHaveBeenCalled();
-    resume();
-    synth.spoken.length = 0;
-    vi.advanceTimersByTime(RESUME_WATCHDOG_MS);
-    expect(synth.spoken.map((u) => u.text)).toEqual(["two"]);
+    resume(); // the chunk ended while paused: restart at once, no 1 s wait
+    expect(synth.spoken.map((u) => u.text)).toEqual(["one", "two"]);
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS * 2);
+    expect(synth.spoken.map((u) => u.text)).toEqual(["one", "two"]); // no second restart
+    expect(getSpeakingId()).toBe("m1");
+  });
+
+  it("pause, resume, then a late onend: watchdog cleared, next chunk spoken once", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.spoken[0].onstart?.();
+    pause();
+    resume(); // resume watchdog armed
+    synth.spoken[0].onend?.(); // late onend after resume
+    expect(synth.spoken.map((u) => u.text)).toEqual(["one", "two"]);
+    synth.spoken[1].onstart?.();
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS * 3);
+    expect(synth.spoken.map((u) => u.text)).toEqual(["one", "two"]);
+    expect(getSpeakingId()).toBe("m1");
+  });
+
+  it("an error after an earlier chunk played is an error outcome, not a start failure", () => {
+    vi.useFakeTimers();
+    const outcomes: string[] = [];
+    const off = subscribeOutcomes((id, o) => outcomes.push(`${id}:${o}`));
+    speak("m1", chunks, voice, "en");
+    synth.spoken[0].onstart?.();
+    synth.spoken[0].onend?.();
+    vi.advanceTimersByTime(START_WATCHDOG_MS); // "two" silent -> retried (started reset)
+    synth.spoken[synth.spoken.length - 1].onerror?.();
+    off();
+    expect(getStartFailedId()).toBeNull();
+    expect(getSpeakingId()).toBeNull();
+    expect(outcomes).toEqual(["m1:error"]);
   });
 
   it("each chunk gets a fresh retry budget", () => {
@@ -751,5 +782,68 @@ describe("start watchdog (BITB-241)", () => {
     vi.advanceTimersByTime(START_WATCHDOG_MS);
     expect(getSpeakingId()).toBeNull();
     expect(getStartFailedId()).toBe("m1");
+  });
+});
+
+describe("outcomes (BITB-247)", () => {
+  const voice = makeVoice("en-US") as unknown as SpeechSynthesisVoice;
+  let outcomes: string[];
+  let off: () => void;
+  beforeEach(() => {
+    outcomes = [];
+    off = subscribeOutcomes((id, o) => outcomes.push(`${id}:${o}`));
+  });
+  afterEach(() => off());
+
+  it("completed once when the last chunk ends", () => {
+    speak("m1", ["one", "two"], voice, "en");
+    synth.spoken[0].onstart?.();
+    synth.spoken[0].onend?.();
+    expect(outcomes).toEqual([]);
+    synth.spoken[1].onend?.();
+    synth.spoken[1].onend?.(); // duplicate callback is ignored
+    expect(outcomes).toEqual(["m1:completed"]);
+  });
+
+  it("start_failed once when the watchdog gives up", () => {
+    vi.useFakeTimers();
+    speak("m1", ["one"], voice, "en");
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(outcomes).toEqual(["m1:start_failed"]);
+  });
+
+  it("error once for onerror after the reading started", () => {
+    speak("m1", ["one"], voice, "en");
+    synth.spoken[0].onstart?.();
+    synth.spoken[0].onerror?.();
+    synth.spoken[0].onerror?.();
+    expect(outcomes).toEqual(["m1:error"]);
+  });
+
+  it("onerror before anything played is a start failure", () => {
+    speak("m1", ["one"], voice, "en");
+    synth.spoken[0].onerror?.();
+    expect(outcomes).toEqual(["m1:start_failed"]);
+  });
+
+  it("stop() and a superseding speak() emit nothing; a re-listen emits again", () => {
+    speak("m1", ["one"], voice, "en");
+    stop();
+    expect(outcomes).toEqual([]);
+    speak("m1", ["one"], voice, "en");
+    synth.spoken[synth.spoken.length - 1].onend?.();
+    speak("m1", ["one"], voice, "en");
+    synth.spoken[synth.spoken.length - 1].onend?.();
+    expect(outcomes).toEqual(["m1:completed", "m1:completed"]);
+  });
+
+  it("a throwing listener never breaks playback", () => {
+    const off2 = subscribeOutcomes(() => {
+      throw new Error("boom");
+    });
+    speak("m1", ["one"], voice, "en");
+    expect(() => synth.spoken[0].onend?.()).not.toThrow();
+    off2();
+    expect(getSpeakingId()).toBeNull();
   });
 });

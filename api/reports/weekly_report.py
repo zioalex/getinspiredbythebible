@@ -20,7 +20,7 @@ integration.
 import html
 from datetime import UTC, datetime, timedelta
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -82,6 +82,83 @@ class EngagementStats(BaseModel):
     top_languages: list[LanguageCount]
 
 
+TTS_EVENTS = (
+    "tts_started",
+    "tts_completed",
+    "tts_start_failed",
+    "tts_error",
+    "tts_unavailable",
+)
+# How many browser/OS pairs to list in the read-aloud failure breakdown.
+MAX_TTS_FAILURE_PAIRS = 3
+
+
+class TtsFailurePair(BaseModel):
+    browser: str
+    os: str
+    failures: int
+
+
+class TtsStats(BaseModel):
+    """Read-aloud funnel over the window (BITB-247), from ``tts_event_daily``."""
+
+    available: bool = True
+    # event name -> total count (every event in TTS_EVENTS is present).
+    totals: dict[str, int]
+    completion_rate: float | None  # completed / started
+    failure_rate: float | None  # (start_failed + error) / started
+    top_failures: list[TtsFailurePair]
+
+
+def _empty_tts(available: bool = False) -> TtsStats:
+    return TtsStats(
+        available=available,
+        totals={event: 0 for event in TTS_EVENTS},
+        completion_rate=None,
+        failure_rate=None,
+        top_failures=[],
+    )
+
+
+def _build_tts_stats(rows: list) -> TtsStats:
+    """Fold ``(event, browser, os, total)`` rows into funnel totals and rates."""
+    totals = {event: 0 for event in TTS_EVENTS}
+    failures: dict[tuple[str, str], int] = {}
+    for event, browser, os_family, total in rows:
+        total = int(total or 0)
+        if event not in totals:
+            continue
+        totals[event] += total
+        if event in ("tts_start_failed", "tts_error"):
+            key = (browser, os_family)
+            failures[key] = failures.get(key, 0) + total
+    started = totals["tts_started"]
+    failed = totals["tts_start_failed"] + totals["tts_error"]
+    ranked = sorted(failures.items(), key=lambda kv: (-kv[1], kv[0]))
+    return TtsStats(
+        totals=totals,
+        completion_rate=(totals["tts_completed"] / started) if started else None,
+        failure_rate=(failed / started) if started else None,
+        top_failures=[
+            TtsFailurePair(browser=b, os=o, failures=n)
+            for (b, o), n in ranked[:MAX_TTS_FAILURE_PAIRS]
+            if n > 0
+        ],
+    )
+
+
+def _is_missing_tts_table(error: ProgrammingError) -> bool:
+    orig = getattr(error, "orig", None)
+    sqlstate = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
+    if sqlstate == "42P01":
+        return True
+    message = str(error).lower()
+    normalized = message.replace(" ", "").replace("_", "")
+    return "ttseventdaily" in normalized and (
+        "doesnotexist" in normalized or "undefinedtable" in normalized
+    )
+
+
 class WeeklyReport(BaseModel):
     window_start: datetime
     window_end: datetime
@@ -92,6 +169,7 @@ class WeeklyReport(BaseModel):
     # Week-over-week comparison points (previous window of equal length).
     feedback_total_prev: int
     new_sessions_prev: int
+    tts: TtsStats = Field(default_factory=_empty_tts)
 
 
 def _empty_engagement() -> EngagementStats:
@@ -143,6 +221,7 @@ async def build_weekly_report(
     5. top languages among active sessions
     6. feedback total in the previous window (delta)
     7. new sessions in the previous window (delta)
+    8. read-aloud funnel from ``tts_event_daily`` (BITB-247; tolerant of a missing table)
     """
     end = now or datetime.now(UTC)
     start = end - timedelta(days=window_days)
@@ -301,6 +380,32 @@ async def build_weekly_report(
     else:
         new_sessions_prev = 0
 
+    # 8. Read-aloud funnel (BITB-247). Tolerant of the table not existing yet
+    # (migration r0008 not applied): fall back to an "unavailable" empty section.
+    tts_first_day = end.date() - timedelta(days=window_days - 1)
+    try:
+        tts_rows = (
+            await db.execute(
+                text("""
+                    SELECT event, browser, os, SUM(count)
+                    FROM tts_event_daily
+                    WHERE day >= :first_day AND day <= :last_day
+                    GROUP BY event, browser, os
+                """),
+                {"first_day": tts_first_day, "last_day": end.date()},
+            )
+        ).all()
+        tts = _build_tts_stats(list(tts_rows))
+    except ProgrammingError as exc:
+        if not _is_missing_tts_table(exc):
+            raise
+        await db.rollback()
+        logger.warning(
+            "Weekly report read-aloud stats unavailable; tts_event_daily missing",
+            extra={"error": str(exc)},
+        )
+        tts = _empty_tts(available=False)
+
     return WeeklyReport(
         window_start=start,
         window_end=end,
@@ -310,6 +415,7 @@ async def build_weekly_report(
         engagement=engagement,
         feedback_total_prev=feedback_total_prev,
         new_sessions_prev=new_sessions_prev,
+        tts=tts,
     )
 
 
@@ -373,12 +479,74 @@ def render_text(report: WeeklyReport) -> str:
             lines.append(f"    {lc.language}: {lc.count}")
     lines.append("")
 
+    lines.extend(_tts_text_lines(r.tts))
+    lines.append("")
+
     return "\n".join(lines).strip()
+
+
+_TTS_LABELS = {
+    "tts_started": "Started",
+    "tts_completed": "Completed",
+    "tts_start_failed": "Start failed",
+    "tts_error": "Error mid-reading",
+    "tts_unavailable": "Unavailable (no voice)",
+}
+
+
+def _tts_text_lines(tts: TtsStats) -> list[str]:
+    lines = ["READ ALOUD (web + Android)"]
+    if not tts.available:
+        lines.append("  Not available (tts_event_daily table not found)")
+        return lines
+    for event in TTS_EVENTS:
+        lines.append(f"  {_TTS_LABELS[event]}: {tts.totals[event]}")
+    lines.append(f"  Completion rate (completed / started): {_pct(tts.completion_rate)}")
+    lines.append(f"  Failure rate ((start failed + error) / started): {_pct(tts.failure_rate)}")
+    if tts.top_failures:
+        lines.append("  Top browser/OS pairs by failures:")
+        for pair in tts.top_failures:
+            lines.append(f"    {pair.browser} / {pair.os}: {pair.failures}")
+    else:
+        lines.append("  Top browser/OS pairs by failures: none")
+    return lines
 
 
 def _esc(value: str) -> str:
     """HTML-escape free text, then turn newlines into <br>."""
     return html.escape(value).replace("\n", "<br>")
+
+
+def _tts_html(tts: TtsStats) -> str:
+    cell = 'style="padding: 8px; font-weight: bold; background: #f5f5f5;"'
+    if not tts.available:
+        return (
+            "<h3>Read aloud</h3>"
+            '<p style="color: #888;"><em>Not available (tts_event_daily table not found).</em></p>'
+        )
+    rows = "".join(
+        f'<tr><td {cell}>{_TTS_LABELS[event]}</td><td style="padding: 8px;">{tts.totals[event]}</td></tr>'
+        for event in TTS_EVENTS
+    )
+    rows += (
+        f'<tr><td {cell}>Completion rate</td><td style="padding: 8px;">{_pct(tts.completion_rate)}</td></tr>'
+        f'<tr><td {cell}>Failure rate</td><td style="padding: 8px;">{_pct(tts.failure_rate)}</td></tr>'
+    )
+    fail_rows = (
+        "".join(
+            f'<tr><td style="padding: 8px; background: #f5f5f5;">'
+            f"{_esc(p.browser)} / {_esc(p.os)}</td>"
+            f'<td style="padding: 8px;">{p.failures}</td></tr>'
+            for p in tts.top_failures
+        )
+        or '<tr><td style="padding: 8px;" colspan="2"><em>None</em></td></tr>'
+    )
+    return (
+        "<h3>Read aloud</h3>"
+        f'<table style="border-collapse: collapse; margin: 10px 0;">{rows}</table>'
+        '<h4 style="margin-bottom: 4px;">Top browser/OS pairs by failures</h4>'
+        f'<table style="border-collapse: collapse; margin: 10px 0;">{fail_rows}</table>'
+    )
 
 
 def render_html(report: WeeklyReport) -> str:
@@ -469,6 +637,8 @@ def render_html(report: WeeklyReport) -> str:
     </table>
     <h4 style="margin-bottom: 4px;">Top languages</h4>
     <table style="border-collapse: collapse; margin: 10px 0;">{lang_rows}</table>
+
+    {_tts_html(r.tts)}
 
     <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
     <p style="font-size: 12px; color: #888;">

@@ -330,7 +330,9 @@ client_tts_events_counter = meter.create_counter(
     name="client.tts_events_total",
     description="Read-aloud client events received at /api/v1/client-events (BITB-119)",
     unit="1",
-)  # attributes: event (tts_started|tts_unavailable), locale (11 supported locales|other)
+)  # attributes: event (tts_started|tts_completed|tts_start_failed|tts_error|tts_unavailable),
+# locale (11 supported locales|other), platform (web|android),
+# browser (chrome|firefox|safari|edge|samsung|app|other), os (android|ios|linux|windows|macos|other)  (BITB-247)
 
 preflight_errors_counter = meter.create_counter(
     name="api.preflight_errors_total",

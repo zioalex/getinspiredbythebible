@@ -25,6 +25,10 @@ interface CurrentCall {
   index: number;
   /** BITB-249: strong references to this call's utterances (WebKit drops unreferenced ones). */
   utterances: SpeechSynthesisUtterance[];
+  /** BITB-247: true once any chunk of this call has started (survives retry/resume restarts). */
+  anyStarted: boolean;
+  /** A chunk ended while natively paused: resume() restarts at `index` at once. */
+  endedWhilePaused: boolean;
 }
 let current: CurrentCall | null = null;
 /** True while the browser's own synthesis queue is paused via synth.pause(). */
@@ -40,6 +44,32 @@ export const RESUME_WATCHDOG_MS = 1000;
 
 /** BITB-241: how long a fresh reading may stay silent (no start/boundary) before one retry. */
 export const START_WATCHDOG_MS = 3000;
+
+/**
+ * BITB-247: how a reading ended. Exactly one outcome is emitted per `speak()` call (completed,
+ * start_failed or error are mutually exclusive), so a fresh Listen of the same answer counts again.
+ */
+export type SpeechOutcome = "completed" | "start_failed" | "error";
+type OutcomeListener = (id: string, outcome: SpeechOutcome) => void;
+const outcomeListeners = new Set<OutcomeListener>();
+
+/** Subscribe to reading outcomes (telemetry). Listeners must never throw into playback. */
+export function subscribeOutcomes(listener: OutcomeListener): () => void {
+  outcomeListeners.add(listener);
+  return () => {
+    outcomeListeners.delete(listener);
+  };
+}
+
+function emitOutcome(id: string, outcome: SpeechOutcome): void {
+  outcomeListeners.forEach((l) => {
+    try {
+      l(id, outcome);
+    } catch {
+      // telemetry must never affect playback
+    }
+  });
+}
 
 function notify(): void {
   listeners.forEach((l) => l());
@@ -278,7 +308,6 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
   call.utterances = [];
   current = call;
   setState(call.id, null);
-  let started = false;
 
   // BITB-241: the engine never started (no start/boundary/error): retry once, then give up.
   const giveUp = () => {
@@ -296,9 +325,10 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     const stateChanged = speakingId !== null || pausedId !== null;
     setState(null, null);
     if (!stateChanged) notify(); // otherwise setState already notified
+    emitOutcome(call.id, "start_failed");
   };
 
-  const finish = () => {
+  const finish = (outcome: SpeechOutcome) => {
     if (generation !== mine) return; // superseded by stop() / pause() / another speak()
     generation += 1;
     clearWatchdog();
@@ -310,13 +340,14 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     }
     current = null;
     setState(null, null);
+    emitOutcome(call.id, outcome);
   };
 
   const speakChunk = (index: number, chunkAttempt: number) => {
     if (generation !== mine || current !== call) return;
     let chunkStarted = false;
     const markStarted = () => {
-      started = true;
+      call.anyStarted = true;
       chunkStarted = true;
       clearWatchdog();
       clearStartWatchdog();
@@ -351,18 +382,22 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
       if (generation !== mine) return;
       markStarted(); // any chunk ending proves the engine ran
       if (index >= call.chunks.length - 1) {
-        finish();
+        finish("completed");
         return;
       }
       call.index = index + 1; // a pause before the next start resumes at the next chunk
       // A native pause() does not bump the generation: don't speak into the paused engine;
-      // resume()'s watchdog restarts at call.index.
-      if (nativePaused) return;
+      // resume() restarts at call.index straight away.
+      if (nativePaused) {
+        call.endedWhilePaused = true;
+        return;
+      }
       speakChunk(index + 1, 1); // each chunk gets a fresh retry budget
     };
     utterance.onerror = () => {
       if (generation !== mine) return;
-      if (started) finish();
+      // Any earlier chunk that played means a mid-reading error, not a start failure.
+      if (call.anyStarted) finish("error");
       else giveUp(); // errored before anything played
     };
     call.utterances.push(utterance); // keep a reference: WebKit GCs unreferenced utterances
@@ -384,7 +419,19 @@ export function speak(
 ): void {
   if (!isSpeechSupported() || chunks.length === 0) return;
   clearStartFailed();
-  startQueue({ id, chunks, voice, lang, index: 0, utterances: [] }, 0);
+  startQueue(
+    {
+      id,
+      chunks,
+      voice,
+      lang,
+      index: 0,
+      utterances: [],
+      anyStarted: false,
+      endedWhilePaused: false,
+    },
+    0,
+  );
 }
 
 /**
@@ -423,6 +470,12 @@ export function resume(): boolean {
   }
   const call = current;
   if (!nativePaused) {
+    startQueue(call, call.index);
+    return true;
+  }
+  if (call.endedWhilePaused) {
+    // The chunk finished while paused: nothing is left to resume natively.
+    call.endedWhilePaused = false;
     startQueue(call, call.index);
     return true;
   }

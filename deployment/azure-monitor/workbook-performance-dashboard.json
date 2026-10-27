@@ -432,6 +432,60 @@
           }
         ]
       }
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "🔊 Read Aloud",
+        "expandable": true,
+        "expanded": true,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Read Aloud\n\nCounts of the `client.tts_events_total` metric (BITB-119 / BITB-247), sent by the web and Android clients.\n\n- **Started / Completed / Start failed / Error mid-reading / Unavailable**: the read-aloud funnel for the selected time range.\n- **Completion rate %**: completed / started. **Failure rate %**: (start failed + error) / started.\n- The failure table breaks failures down by platform, browser family and OS family (enums only; no user agent, IP or text)."
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"client.tts_events_total\"\n| extend Event = tostring(customDimensions[\"event\"])\n| summarize Started = sumif(value, Event == \"tts_started\"), Completed = sumif(value, Event == \"tts_completed\"), StartFailed = sumif(value, Event == \"tts_start_failed\"), Errors = sumif(value, Event == \"tts_error\"), Unavailable = sumif(value, Event == \"tts_unavailable\")\n| union (print Started = real(0), Completed = real(0), StartFailed = real(0), Errors = real(0), Unavailable = real(0))\n| summarize Started = max(Started), Completed = max(Completed), StartFailed = max(StartFailed), Errors = max(Errors), Unavailable = max(Unavailable)\n| project [\"Started\"] = toint(Started), [\"Completed\"] = toint(Completed), [\"Start failed\"] = toint(StartFailed), [\"Error mid-reading\"] = toint(Errors), [\"Unavailable\"] = toint(Unavailable), [\"Completion rate %\"] = iff(Started > 0, round((Completed * 100.0) / Started, 1), 0.0), [\"Failure rate %\"] = iff(Started > 0, round(((StartFailed + Errors) * 100.0) / Started, 1), 0.0)",
+              "size": 4,
+              "title": "Read-Aloud Funnel",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true
+              },
+              "conditionalVisibility": null
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"client.tts_events_total\"\n| extend Event = tostring(customDimensions[\"event\"]), Browser = tostring(customDimensions[\"browser\"]), OS = tostring(customDimensions[\"os\"]), Platform = tostring(customDimensions[\"platform\"])\n| where Event in (\"tts_start_failed\", \"tts_error\")\n| summarize Failures = toint(sum(value)) by Event, Platform, Browser, OS\n| order by Failures desc\n| project [\"Event\"] = Event, [\"Platform\"] = Platform, [\"Browser\"] = Browser, [\"OS\"] = OS, [\"Failures\"] = Failures",
+              "size": 0,
+              "title": "Read-Aloud Failures by Browser / OS",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table"
+            }
+          }
+        ]
+      }
     }
   ],
   "styleSettings": {},
