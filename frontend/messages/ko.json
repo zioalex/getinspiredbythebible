@@ -148,6 +148,7 @@
     "listenAnswer": "답변 듣기",
     "pauseListening": "읽기 일시정지",
     "resumeListening": "읽기 재개",
+    "speechEngineNoResponse": "브라우저의 음성 엔진이 응답하지 않았습니다.",
     "showListenButton": "듣기 버튼 표시",
     "allowOnlineVoices": "온라인 음성 허용",
     "onlineVoicesNotNow": "나중에",
