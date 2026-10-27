@@ -1,6 +1,6 @@
 # BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
@@ -20,7 +20,7 @@ or the compassionate path:
 
 ## Acceptance criteria
 
-- [ ] Question-form and theological uses of the English phrases are not blocked as directed harm
-- [ ] Genuine second-person threats ("Go kill yourself", "You should die") still block under all 11 codes
-- [ ] Help-seeking forms route to the compassionate path
-- [ ] Parametrized across the 11 language codes; no regression in BITB-193 tests
+- [x] Question-form and theological uses of the English phrases are not blocked as directed harm
+- [x] Genuine second-person threats ("Go kill yourself", "You should die") still block under all 11 codes
+- [x] Help-seeking forms route to the compassionate path
+- [x] Parametrized across the 11 language codes; no regression in BITB-193 tests

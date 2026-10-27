@@ -911,6 +911,9 @@ class MultiLanguageContentFilter:
         "en": [
             r"\bsuicide\b",
             r"\bkill myself\b",
+            # BITB-238: help-seeking forms ("Is it a sin to kill yourself?") are no longer
+            # blocked as directed harm at Stage 1; they reach the compassionate path here.
+            r"\bkill(?:ing)?\s+(?:yourself|oneself)\b",
             r"\bend my life\b",
             r"\bself.harm\b",
             r"\bcut myself\b",
@@ -1077,9 +1080,6 @@ class MultiLanguageContentFilter:
     DIRECTED_HARM_PATTERNS = {
         "en": [
             r"\bgo kill yourself\b",
-            r"\bkill yourself\b",
-            r"\bgo die\b",
-            r"\byou should die\b",
             r"\bi will kill you\b",
             r"\bi want to kill you\b",
             r"\bgo fuck yourself\b",
@@ -1121,6 +1121,45 @@ class MultiLanguageContentFilter:
         ],
     }
 
+    # BITB-238: English phrases that are directed harm only as a threat, not as a question
+    # ("Is it a sin to kill yourself?") or theology ("you should die to sin daily").
+    # Evaluated by find_directed_harm_violation with the sentence-local context below.
+    DIRECTED_HARM_CONTEXTUAL_EN = [
+        r"\bkill yourself\b",
+        r"\bgo die\b",
+        r"\byou should die\b",
+    ]
+
+    # Text before the phrase (current sentence only) that makes it a threat: always blocks.
+    _DH_THREAT_BEFORE = re.compile(
+        r"(?:why\s+(?:don['\u2019]?t|do\s+not|won['\u2019]?t)\s+you"
+        r"|you\s+(?:should|need\s+to|must|ought\s+to|had\s+better|better|can|could)"
+        r"|i\s+(?:hope|wish|want)\s+you(?:\s+to)?"
+        r"|just|please|go(?:\s+and)?)\s+(?:(?:just|go(?:\s+and)?)\s+)*$",
+        re.IGNORECASE,
+    )
+    # Help-seeking / question context before "kill yourself": exempt (routes to compassion).
+    _DH_HELP_BEFORE = re.compile(
+        r"(?:\b(?:if|when|whether|after|before)\s+(?:you|one|someone|a\s+person|people|they)\s+$"
+        r"|\b(?:sin|wrong|ok|okay|allowed|forgiv\w*|unforgivable|permissible|hell|heaven)\b"
+        r"[^.!?\n]{0,25}\bto\s+$)",
+        re.IGNORECASE,
+    )
+    # Theological continuation after the phrase.
+    _DH_THEOLOGY_AFTER = {
+        "you should die": re.compile(
+            r"\s+(?:to|unto)\s+(?:sin|self|yourself|the\s+flesh|the\s+world)\b|\s+daily\b",
+            re.IGNORECASE,
+        ),
+        "go die": re.compile(
+            r"\s+(?:on\s+the\s+cross|for\s+(?:our|us|my|your|all|the)\b)", re.IGNORECASE
+        ),
+    }
+    # Theological lead-in before "go die" ("Jesus had to go die", "why did Jesus go die").
+    _DH_THEOLOGY_BEFORE = re.compile(
+        r"(?:\b(?:have|had|has)\s+to\s+$|\bdid\s+\w+(?:\s+\w+)?\s+$)", re.IGNORECASE
+    )
+
     def __init__(self):
         """Initialize compiled regex patterns."""
         self._violence_regex = {}
@@ -1151,6 +1190,10 @@ class MultiLanguageContentFilter:
         # Compile hate speech patterns
         self._hate_speech_regex = re.compile(
             "|".join(self.HATE_SPEECH_PATTERNS["all"]), re.IGNORECASE | re.UNICODE
+        )
+
+        self._directed_harm_contextual_regex = re.compile(
+            "|".join(self.DIRECTED_HARM_CONTEXTUAL_EN), re.IGNORECASE | re.UNICODE
         )
 
         # Compile directed harm patterns
@@ -1259,10 +1302,32 @@ class MultiLanguageContentFilter:
             m = self._directed_harm_regex[lang].search(normalized)
             if m:
                 return ViolationType.DIRECTED_HARM.value, lang, m.group(0)
+        for m in self._directed_harm_contextual_regex.finditer(normalized):
+            if not self._is_exempt_contextual_match(normalized, m):
+                return ViolationType.DIRECTED_HARM.value, "en", m.group(0)
         m = self._hate_speech_regex.search(normalized)
         if m:
             return ViolationType.HATE_SPEECH.value, "all", m.group(0)
         return None
+
+    def _is_exempt_contextual_match(self, normalized: str, m: re.Match) -> bool:
+        """True when a contextual English phrase is a question/theology, not a threat (BITB-238)."""
+        phrase = re.sub(r"\s+", " ", m.group(0).lower())
+        cut = max(normalized.rfind(c, 0, m.start()) for c in ".!?\n")
+        before = normalized[cut + 1 : m.start()]
+        if self._DH_THREAT_BEFORE.search(before):
+            return False
+        after = normalized[m.end() :]
+        if phrase == "kill yourself":
+            return bool(self._DH_HELP_BEFORE.search(before))
+        if phrase == "go die":
+            return bool(
+                self._DH_THEOLOGY_BEFORE.search(before)
+                or self._DH_THEOLOGY_AFTER["go die"].match(after)
+            )
+        if phrase == "you should die":
+            return bool(self._DH_THEOLOGY_AFTER["you should die"].match(after))
+        return False
 
     def find_directed_harm(self, normalized: str) -> str | None:
         """Search directed-harm patterns (every language) and hate speech (BITB-185).
