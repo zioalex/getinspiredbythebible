@@ -148,6 +148,7 @@
     "listenAnswer": "Antwort anhören",
     "pauseListening": "Vorlesen pausieren",
     "resumeListening": "Vorlesen fortsetzen",
+    "speechEngineNoResponse": "Die Sprachausgabe deines Browsers hat nicht reagiert.",
     "showListenButton": "Schaltfläche „Anhören“ anzeigen",
     "allowOnlineVoices": "Online-Stimmen erlauben",
     "onlineVoicesNotNow": "Nicht jetzt",

@@ -213,3 +213,14 @@ variables:
     required_in: remote
     description: Node environment
     default: production
+
+  # BITB-080 web-only enablement. The backend flag CHAT_FOLLOW_UPS_ENABLED
+  # (above, backend section) turns on `follow_ups` emission for ALL clients;
+  # each client then gates its own rendering. This build-time flag gates the
+  # web chips (frontend/src/lib/featureFlags.ts -> ChatIsland.tsx) — set it
+  # as a frontend image build-arg to light up the web chips. Android renders
+  # behind its own default-off flag (see docs/BACKLOG_STORIES/ BITB-080).
+  NEXT_PUBLIC_FOLLOW_UPS_ENABLED:
+    required_in: local
+    description: Render suggested follow-up question chips on web (BITB-080)
+    default: "false"

@@ -1,5 +1,13 @@
 import { screen, fireEvent, waitFor, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  beforeAll,
+  afterAll,
+} from "vitest";
 import Home from "./ChatIsland";
 import * as api from "@/lib/api";
 import * as turnstile from "@/lib/turnstile";
@@ -589,6 +597,20 @@ describe("Home page responsive layout", () => {
   });
 
   describe("Follow-up suggestions (BITB-080)", () => {
+    // The chips are gated behind NEXT_PUBLIC_FOLLOW_UPS_ENABLED (default off,
+    // same pattern as NEXT_PUBLIC_CITATION_SPANS_ENABLED). These behaviour
+    // tests exercise the flag-ON path; the flag-OFF path has its own test below.
+    const flagKey = "NEXT_PUBLIC_FOLLOW_UPS_ENABLED";
+    const originalFlag = process.env[flagKey];
+
+    beforeAll(() => {
+      process.env[flagKey] = "true";
+    });
+    afterAll(() => {
+      if (originalFlag === undefined) delete process.env[flagKey];
+      else process.env[flagKey] = originalFlag;
+    });
+
     async function submit(text: string) {
       const input = screen.getByPlaceholderText(
         "Share what's on your heart...",
@@ -743,6 +765,38 @@ describe("Home page responsive layout", () => {
           name: "Suggested follow-up questions",
         }),
       ).not.toBeInTheDocument();
+    });
+
+    it("hides chips when NEXT_PUBLIC_FOLLOW_UPS_ENABLED is unset (flag off)", async () => {
+      delete process.env[flagKey];
+      try {
+        vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+          yield { type: "content" as const, content: "Plain answer." };
+          yield {
+            type: "completion" as const,
+            verses_cited: [],
+            follow_ups: ["What next?", "Tell me more about this"],
+          };
+        });
+
+        renderWithIntl(<Home />);
+        await submit("A question");
+        await waitFor(() => {
+          expect(screen.getByText("Plain answer.")).toBeInTheDocument();
+        });
+
+        // Server sent follow_ups, but the flag-off client must ignore them —
+        // a backend-side rollout of CHAT_FOLLOW_UPS_ENABLED can never change
+        // rendering for a web client built with the flag unset.
+        expect(
+          screen.queryByRole("group", {
+            name: "Suggested follow-up questions",
+          }),
+        ).not.toBeInTheDocument();
+        expect(screen.queryByText("What next?")).not.toBeInTheDocument();
+      } finally {
+        process.env[flagKey] = "true"; // restore for this describe's other tests
+      }
     });
   });
 
