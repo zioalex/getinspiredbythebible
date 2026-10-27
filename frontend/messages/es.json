@@ -258,7 +258,8 @@
     "successDescription": "Gracias por comunicarte. Revisaremos tu mensaje pronto.",
     "sendAnother": "Enviar otro",
     "errorSend": "Error al enviar el mensaje. Por favor, inténtalo de nuevo o escríbenos directamente.",
-    "errorEmailInvalid": "Introduce un correo válido para que podamos responder."
+    "errorEmailInvalid": "Introduce un correo válido para que podamos responder.",
+    "close": "Cerrar"
   },
   "ErrorBoundary": {
     "title": "Algo salió mal",

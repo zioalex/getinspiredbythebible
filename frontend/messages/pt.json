@@ -258,7 +258,8 @@
     "successDescription": "Obrigado por entrar em contacto. Analisaremos a sua mensagem em breve.",
     "sendAnother": "Enviar outra",
     "errorSend": "Falha ao enviar a mensagem. Por favor, tente novamente ou escreva-nos diretamente.",
-    "errorEmailInvalid": "Insira um e-mail válido para podermos responder."
+    "errorEmailInvalid": "Insira um e-mail válido para podermos responder.",
+    "close": "Fechar"
   },
   "ErrorBoundary": {
     "title": "Algo deu errado",
