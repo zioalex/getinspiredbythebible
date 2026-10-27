@@ -28,6 +28,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-27: BITB-241 done — web read aloud no longer hangs on Pause on Linux Firefox (PR #1203)
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
+- 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
 - 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
 - 2026-10-24: BITB-241 in progress — web read aloud stuck on Pause with no audio on Linux Firefox: no idle cancel, start watchdog with retry and notice (PR #1203)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
@@ -3286,7 +3287,7 @@ stopped), budget alert at 80% of credit, teardown checklist when the migration c
 
 ### 🎯 BITB-223: Alert-Rule Rationalization — Actionability Over Inventory
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-23
