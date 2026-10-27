@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-26
+**Last Updated:** 2026-10-27
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-27: BITB-235 in progress — ID-allocation rule codified in AGENTS.md (origin/main + every open PR's story files, claim = open PR, first-claimant keeps on collision); BITB-241 double-claim resolved: #1203 keeps 241, #1215 renumbered to 243; CI duplicate-ID check still open (PR #1220)
 - 2026-10-26: BITB-242 created — platform-selective feature flags: server-driven per-platform (web/android) flag registry on GET /config, explicit per-flag fail policies, parity fixture, follow-ups pilot (PR #1220)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
@@ -3964,16 +3965,21 @@ non-`shrink-0` menu wrapper can overflow again. Pick a minimum width and guarant
 
 ---
 
-### 🎯 BITB-235: Story IDs Collide Between Concurrent PRs
+### 🚧 BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — allocation rule codified in AGENTS.md (2026-10-27, PR #1220); CI duplicate-ID check still open
 **Priority:** P3
 **Size:** S
 **Created:** 2026-10-23
 
 Follow-up of BITB-218/219: "highest ID + 1" only sees `main`, so concurrent PRs pick the same number
 (the header story went 206 → 212 → 213 → 219; this story itself went 223 → 235; #1195 merged titled
-with a stale ID that the 1.58.0 changelog repeats). Add a CI check or reservation rule.
+with a stale ID that the 1.58.0 changelog repeats). **Struck again 2026-10-26:** open PRs #1203 and
+# 1215 both claimed BITB-241 — the rule still said "check the highest number" without saying to look at
+open PRs; resolved 2026-10-27 (#1203 keeps 241, #1215 renumbered to 243). The allocation rule now lives
+in `AGENTS.md` Backlog Hygiene: highest across `origin/main` **and every open PR's story files**,
+**claim = the open PR**, first-claimant keeps on collision, renumber before merge. Remaining: the CI
+check that fails a PR adding a story file whose ID is already claimed on the base or by another open PR.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-235-story-id-collisions.md`
 

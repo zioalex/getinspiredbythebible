@@ -1,6 +1,6 @@
 # BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — allocation rule codified in AGENTS.md (2026-10-27, PR #1220); CI duplicate-ID check still open
 **Priority:** P3
 **Size:** S
 **Created:** 2026-10-23
@@ -22,6 +22,13 @@ add one. That only sees `main`, so PRs open at the same time pick the same numbe
   squash commit of #1195 on `main` still reads `(BITB-214)` — a different story (online-voices menu
   copy) — and the released `CHANGELOG.md` for 1.58.0 (#1167) cites BITB-214 for the security fix.
 
+**Struck again 2026-10-26, proving the story was never implemented:** open PR #1203 claimed
+BITB-241 on 2026-10-24 (web read-aloud, Linux Firefox) and open PR #1215 claimed BITB-241 again on
+2026-10-26 (fast pre-commit stages) — the second session checked only its local checkout, exactly
+the failure mode described above. Resolved 2026-10-27 by first-claimant practice: #1203 keeps 241,
+# 1215 renumbered to BITB-243 (story file, BACKLOG.md, AGENTS.md, docs/PRE_COMMIT_SETUP.md and
+k8s/kubeopencode/dev-image/README.md references updated; PR title updated).
+
 ## Options
 
 - A CI check (in `commitlint.yml` or a small script) that fails when a PR adds a
@@ -30,8 +37,15 @@ add one. That only sees `main`, so PRs open at the same time pick the same numbe
 - Make the rule "highest of `main` *and* open PRs + 1" in `AGENTS.md`, or reserve IDs with an
   `IDs reserved` line at the top of `docs/BACKLOG.md` committed straight to `main`.
 
+**Decision (2026-10-27):** the AGENTS.md rule is codified (PR #1220) — allocate by *highest across
+`origin/main` and every open PR's story files*, the **claim is the open PR** (push the story branch
+and open the PR immediately; a numbered story on a local branch claims nothing), and on collision
+the **earlier claimant keeps the ID** while the later PR renumbers before merge. A rule is not
+enforcement — the CI check above remains the open acceptance criterion, since the 2026-10-26
+collision happened *while the old rule was already in AGENTS.md*.
+
 ## Acceptance Criteria
 
-- [ ] Two PRs can no longer merge stories with the same ID unnoticed
-- [ ] `AGENTS.md` Backlog Hygiene describes the chosen rule
+- [ ] Two PRs can no longer merge stories with the same ID unnoticed (CI duplicate-ID check — still open)
+- [x] `AGENTS.md` Backlog Hygiene describes the chosen rule (PR #1220, 2026-10-27)
 - [ ] Decide whether to correct the 1.58.0 `CHANGELOG.md` line for #1195 (BITB-214 → BITB-218) by hand

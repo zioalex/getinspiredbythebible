@@ -173,6 +173,10 @@ old clients fall back to their compiled defaults, which by then are on).
 
 ## ID Note
 
-BITB-241 is double-claimed by open PRs #1203 (web read-aloud Firefox) and #1215 (pre-commit
-stages). Whichever renumbers will very likely take 242; if so, this story renumbers to the
-next free ID before merge (BITB-235 practice) and the changelog line records it.
+BITB-241 was double-claimed by open PRs #1203 (web read-aloud Firefox, claimed 2026-10-24)
+and #1215 (pre-commit stages, claimed 2026-10-26). Resolved 2026-10-27 per BITB-235
+first-claimant practice: **#1203 keeps 241**, **#1215 renumbered to BITB-243** (story file,
+BACKLOG.md, AGENTS.md, PRE_COMMIT_SETUP.md, k8s dev-image README), and **this story keeps
+242** — no renumber needed. Root cause (nothing checks open PRs before allocating an ID) and
+the prevention rule now codified in `AGENTS.md` Backlog Hygiene are recorded under BITB-235,
+whose CI duplicate-ID check remains open.
