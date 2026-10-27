@@ -292,11 +292,8 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
   startWatchdog = setTimeout(() => {
     startWatchdog = null;
     if (generation !== mine || current !== call || started) return;
-    // Firefox only sets `speaking` after a real start, so it proves audio began.
-    if (synth.speaking) {
-      started = true;
-      return;
-    }
+    // Only events prove audio began: a hung speech-dispatcher (Snap Firefox) reports
+    // speaking=true and pending=true immediately and never plays (BITB-248).
     if (attempt < 2) startQueue(call, fromIndex, attempt + 1);
     else giveUp();
   }, START_WATCHDOG_MS);

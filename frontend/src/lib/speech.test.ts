@@ -580,14 +580,18 @@ describe("start watchdog (BITB-241)", () => {
     expect(getStartFailedId()).toBe("m1");
   });
 
-  it("engine reporting speaking=true at timeout counts as started (no retry, no failure)", () => {
+  it("hung engine reporting speaking and pending with no events still gives up (BITB-248)", () => {
+    // Snap Firefox + broken speech-dispatcher: both flags true from 0 ms, no event ever fires.
     vi.useFakeTimers();
     speak("m1", chunks, voice, "en");
-    synth.speaking = true; // never fired onstart/onboundary
-    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
-    expect(synth.spoken).toHaveLength(2);
-    expect(getSpeakingId()).toBe("m1");
+    synth.speaking = true;
+    synth.pending = true;
+    vi.advanceTimersByTime(START_WATCHDOG_MS);
+    expect(synth.spoken).toHaveLength(4); // one retry
     expect(getStartFailedId()).toBeNull();
+    vi.advanceTimersByTime(START_WATCHDOG_MS);
+    expect(getSpeakingId()).toBeNull();
+    expect(getStartFailedId()).toBe("m1");
   });
 
   it("a non-final chunk's onend counts as a start signal", () => {

@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-27: BITB-248 in progress — web read aloud still stuck on Pause on Snap Firefox: start watchdog no longer trusts speechSynthesis.speaking; follow-up to BITB-241 (PR #1226)
 - 2026-10-27: BITB-246 created — visually check the read-aloud start-failure notice beside the action rail; follow-up to BITB-241 (renumbered from 244, taken on main by PR #1225)
 - 2026-10-27: BITB-247 created — count read-aloud start failures (web telemetry); follow-up to BITB-241 (renumbered from 245, taken on main by PR #1225)
 - 2026-10-27: BITB-241 done — web read aloud no longer hangs on Pause on Linux Firefox (PR #1203)
@@ -4287,6 +4288,25 @@ BITB-241 follow-up: start failures aren't reported, so their frequency (and the 
 - [ ] Locale-only `tts_start_failed` event, allowlisted on the backend; tests on both sides
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-247-tts-start-failed-telemetry.md`
+
+---
+
+### 🚧 BITB-248: Web Read Aloud Still Stuck on Pause on Snap Firefox (Start Watchdog Trusted `speaking`)
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-27
+
+BITB-241 follow-up: a hung speech-dispatcher reports `speaking`/`pending` true immediately and never plays.
+The start watchdog took `speaking` as a start, so it never gave up. Only events count now.
+
+**Acceptance Criteria (summary):**
+
+- [x] Regression test with the exact Snap Firefox signature
+- [ ] Owner check: the notice shows instead of a stuck Pause
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-248-start-watchdog-trusts-speaking-flag.md`
 
 ---
 
