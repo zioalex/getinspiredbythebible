@@ -1,0 +1,70 @@
+name: Story ID Check
+
+# BITB-235: story-ID duplicate-claim check. Backlog Hygiene says "highest BITB-NNN + 1", but
+# that only sees main — two concurrent PRs can (and did, twice) claim the same number, which
+# scripts/check_backlog_story_ids.py (BITB-111) notices only *after* the second PR merges. This
+# check fails the PR *before* merge when a docs/BACKLOG_STORIES/BITB-NNN-*.md file it adds
+# claims an ID that already exists on the base branch (minus files this PR deletes — a
+# renumber must not flag itself) or is added by another open PR on the same base.
+# Rule (AGENTS.md -> Backlog Hygiene): the FIRST claimant keeps the ID; the later PR
+# renumbers before merging.
+#
+# Path-filtered to stay cheap: it only runs when backlog story files or the check itself
+# change. A PR adding no story files skips with nothing to check.
+
+"on":
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "docs/BACKLOG_STORIES/**"
+      - "scripts/check_story_ids.py"
+      - "scripts/test_check_story_ids.py"
+      - ".github/workflows/story-id-check.yml"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  duplicate-claim-check:
+    name: Duplicate Story-ID Claim Check (BITB-235)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout PR head with full history
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Fetch the base branch
+        run: git fetch origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+
+      - name: Run the duplicate-claim check
+        run: >
+          python3 scripts/check_story_ids.py --base-ref "origin/${BASE_BRANCH}" --base-branch "${BASE_BRANCH}" --pr
+          "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}"
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  unit-tests:
+    name: Story-ID Check Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - run: pip install pytest pyyaml
+
+      - run: python -m pytest scripts/test_check_story_ids.py -v
