@@ -259,7 +259,8 @@
     "successDescription": "Grazie per averci contattato. Esamineremo il tuo messaggio presto.",
     "sendAnother": "Invia un altro",
     "errorSend": "Invio del messaggio non riuscito. Riprova o scrivici direttamente via email.",
-    "errorEmailInvalid": "Inserisci un'email valida così possiamo risponderti."
+    "errorEmailInvalid": "Inserisci un'email valida così possiamo risponderti.",
+    "close": "Chiudi"
   },
   "ErrorBoundary": {
     "title": "Qualcosa è andato storto",
