@@ -23,6 +23,8 @@ interface CurrentCall {
   lang: string;
   /** Index of the chunk that is playing (set from utterance.onstart). */
   index: number;
+  /** BITB-249: strong references to this call's utterances (WebKit drops unreferenced ones). */
+  utterances: SpeechSynthesisUtterance[];
 }
 let current: CurrentCall | null = null;
 /** True while the browser's own synthesis queue is paused via synth.pause(). */
@@ -208,6 +210,11 @@ export function getStartFailedId(): string | null {
   return startFailedId;
 }
 
+/** BITB-249: the utterances the active call is holding on to (test hook), empty when idle. */
+export function getActiveUtterances(): readonly SpeechSynthesisUtterance[] {
+  return current?.utterances ?? [];
+}
+
 /** True when the browser still holds a queue (speaking, pending or paused). */
 function isEngineBusy(synth: SpeechSynthesis): boolean {
   return nativePaused || synth.speaking || synth.pending || synth.paused;
@@ -251,7 +258,12 @@ export function stop(): void {
   if (hadFailure) notify();
 }
 
-/** Queues `call.chunks` from `fromIndex` as one fresh queue, replacing whatever plays. */
+/**
+ * Speaks `call.chunks` from `fromIndex`, ONE chunk at a time, replacing whatever plays.
+ * BITB-249: WebKit (every iOS browser) drops utterances queued behind the first and
+ * garbage-collects ones the page does not reference, so chunk i+1 is only spoken from chunk i's
+ * `onend`, and the call keeps references to its utterances while it is active.
+ */
 function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
   const synth = window.speechSynthesis;
   generation += 1;
@@ -263,6 +275,7 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
   const switching = current !== null && current !== call;
   cancelQueue(synth, !switching);
   call.index = fromIndex;
+  call.utterances = [];
   current = call;
   setState(call.id, null);
   let started = false;
@@ -284,19 +297,6 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     setState(null, null);
     if (!stateChanged) notify(); // otherwise setState already notified
   };
-  const markStarted = () => {
-    started = true;
-    clearWatchdog();
-    clearStartWatchdog();
-  };
-  startWatchdog = setTimeout(() => {
-    startWatchdog = null;
-    if (generation !== mine || current !== call || started) return;
-    // Only events prove audio began: a hung speech-dispatcher (Snap Firefox) reports
-    // speaking=true and pending=true immediately and never plays (BITB-248).
-    if (attempt < 2) startQueue(call, fromIndex, attempt + 1);
-    else giveUp();
-  }, START_WATCHDOG_MS);
 
   const finish = () => {
     if (generation !== mine) return; // superseded by stop() / pause() / another speak()
@@ -312,9 +312,27 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     setState(null, null);
   };
 
-  call.chunks.forEach((chunk, index) => {
-    if (index < fromIndex) return;
-    const utterance = new window.SpeechSynthesisUtterance(chunk);
+  const speakChunk = (index: number) => {
+    if (generation !== mine || current !== call) return;
+    let chunkStarted = false;
+    const markStarted = () => {
+      started = true;
+      chunkStarted = true;
+      clearWatchdog();
+      clearStartWatchdog();
+    };
+    clearStartWatchdog();
+    // Armed for every chunk: one that never starts is retried, then given up (BITB-241/248).
+    startWatchdog = setTimeout(() => {
+      startWatchdog = null;
+      if (generation !== mine || current !== call || chunkStarted) return;
+      // Only events prove audio began: a hung speech-dispatcher (Snap Firefox) reports
+      // speaking=true and pending=true immediately and never plays (BITB-248).
+      if (attempt < 2) startQueue(call, index, attempt + 1);
+      else giveUp();
+    }, START_WATCHDOG_MS);
+
+    const utterance = new window.SpeechSynthesisUtterance(call.chunks[index]);
     utterance.voice = call.voice;
     utterance.lang = call.voice.lang || call.lang;
     utterance.onstart = () => {
@@ -329,24 +347,30 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     utterance.onboundary = () => {
       if (generation === mine) markStarted();
     };
-    // Any chunk ending proves the engine ran.
-    utterance.onend =
-      index === call.chunks.length - 1
-        ? finish
-        : () => {
-            if (generation === mine) markStarted();
-          };
+    utterance.onend = () => {
+      if (generation !== mine) return;
+      markStarted(); // any chunk ending proves the engine ran
+      if (index >= call.chunks.length - 1) {
+        finish();
+        return;
+      }
+      call.index = index + 1; // a pause before the next start resumes at the next chunk
+      speakChunk(index + 1);
+    };
     utterance.onerror = () => {
       if (generation !== mine) return;
       if (started) finish();
       else giveUp(); // errored before anything played
     };
+    call.utterances.push(utterance); // keep a reference: WebKit GCs unreferenced utterances
     synth.speak(utterance);
-  });
+  };
+
+  speakChunk(fromIndex);
 }
 
 /**
- * Speak `chunks` in order as one queue, replacing anything already speaking or paused.
+ * Speak `chunks` in order, one utterance at a time, replacing anything already speaking or paused.
  * Must be called from a user gesture (iOS Safari requirement) — the Listen click.
  */
 export function speak(
@@ -357,7 +381,7 @@ export function speak(
 ): void {
   if (!isSpeechSupported() || chunks.length === 0) return;
   clearStartFailed();
-  startQueue({ id, chunks, voice, lang, index: 0 }, 0);
+  startQueue({ id, chunks, voice, lang, index: 0, utterances: [] }, 0);
 }
 
 /**
