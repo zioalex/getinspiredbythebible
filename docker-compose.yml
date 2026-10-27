@@ -137,6 +137,8 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
       # Optional Support-Us donate URL (BITB-157); empty => Ko-fi fallback
       - NEXT_PUBLIC_DONATE_URL=${NEXT_PUBLIC_DONATE_URL:-}
+      # BITB-080 web follow-up chips kill switch; default off, set true to enable
+      - NEXT_PUBLIC_FOLLOW_UPS_ENABLED=${NEXT_PUBLIC_FOLLOW_UPS_ENABLED:-false}
     volumes:
       - ./frontend:/app
       - /app/node_modules
