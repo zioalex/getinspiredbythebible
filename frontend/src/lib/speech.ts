@@ -312,7 +312,7 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     setState(null, null);
   };
 
-  const speakChunk = (index: number) => {
+  const speakChunk = (index: number, chunkAttempt: number) => {
     if (generation !== mine || current !== call) return;
     let chunkStarted = false;
     const markStarted = () => {
@@ -328,7 +328,7 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
       if (generation !== mine || current !== call || chunkStarted) return;
       // Only events prove audio began: a hung speech-dispatcher (Snap Firefox) reports
       // speaking=true and pending=true immediately and never plays (BITB-248).
-      if (attempt < 2) startQueue(call, index, attempt + 1);
+      if (chunkAttempt < 2) startQueue(call, index, chunkAttempt + 1);
       else giveUp();
     }, START_WATCHDOG_MS);
 
@@ -355,7 +355,10 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
         return;
       }
       call.index = index + 1; // a pause before the next start resumes at the next chunk
-      speakChunk(index + 1);
+      // A native pause() does not bump the generation: don't speak into the paused engine;
+      // resume()'s watchdog restarts at call.index.
+      if (nativePaused) return;
+      speakChunk(index + 1, 1); // each chunk gets a fresh retry budget
     };
     utterance.onerror = () => {
       if (generation !== mine) return;
@@ -366,7 +369,7 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     synth.speak(utterance);
   };
 
-  speakChunk(fromIndex);
+  speakChunk(fromIndex, attempt);
 }
 
 /**

@@ -694,6 +694,52 @@ describe("start watchdog (BITB-241)", () => {
     expect(getStartFailedId()).toBeNull();
   });
 
+  it("native pause racing a chunk's onend neither speaks nor trips the watchdog", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.spoken[0].onstart?.();
+    pause();
+    synth.spoken[0].onend?.(); // arrives after pause()
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    expect(synth.spoken).toHaveLength(1);
+    expect(getPausedId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
+    expect(synth.cancel).not.toHaveBeenCalled();
+    resume();
+    synth.spoken.length = 0;
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS);
+    expect(synth.spoken.map((u) => u.text)).toEqual(["two"]);
+  });
+
+  it("each chunk gets a fresh retry budget", () => {
+    vi.useFakeTimers();
+    const three = ["one", "two", "three"];
+    speak("m1", three, voice, "en");
+    synth.spoken[0].onstart?.();
+    synth.spoken[0].onend?.();
+    vi.advanceTimersByTime(START_WATCHDOG_MS); // "two" silent -> retried
+    synth.spoken[synth.spoken.length - 1].onstart?.();
+    synth.spoken[synth.spoken.length - 1].onend?.(); // "three" queued
+    vi.advanceTimersByTime(START_WATCHDOG_MS); // "three" silent -> retried, not given up
+    expect(synth.spoken.map((u) => u.text)).toEqual([
+      "one",
+      "two",
+      "two",
+      "three",
+      "three",
+    ]);
+    expect(getSpeakingId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
+  });
+
+  it("chunk one ending without onstart, then chunk two erroring, is a finish not a failure", () => {
+    speak("m1", chunks, voice, "en");
+    synth.spoken[0].onend?.();
+    synth.spoken[1].onerror?.();
+    expect(getSpeakingId()).toBeNull();
+    expect(getStartFailedId()).toBeNull();
+  });
+
   it("a later chunk that never starts is retried once, then given up", () => {
     vi.useFakeTimers();
     speak("m1", chunks, voice, "en");
