@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
 - 2026-10-27: BITB-248 in progress — web read aloud still stuck on Pause on Snap Firefox: start watchdog no longer trusts speechSynthesis.speaking; follow-up to BITB-241 (PR #1226)
 - 2026-10-27: BITB-246 created — visually check the read-aloud start-failure notice beside the action rail; follow-up to BITB-241 (renumbered from 244, taken on main by PR #1225)
 - 2026-10-27: BITB-247 created — count read-aloud start failures (web telemetry); follow-up to BITB-241 (renumbered from 245, taken on main by PR #1225)
@@ -4307,6 +4308,25 @@ The start watchdog took `speaking` as a start, so it never gave up. Only events 
 - [ ] Owner check: the notice shows instead of a stuck Pause
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-248-start-watchdog-trusts-speaking-flag.md`
+
+---
+
+### 🚧 BITB-249: Read Aloud Stops After the First Chunk on iPhone (Web)
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-27
+
+All chunks were queued up front with no references kept; iOS WebKit (every iPhone browser) drops queued
+utterances after the first, so only about two sentences were read. Fix: speak one chunk at a time from `onend`.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Sequential chunk speaking with retained utterances; pause/resume/stop/watchdog unchanged
+- [ ] Owner check on iPhone Firefox and Safari
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-249-ios-read-aloud-stops-after-first-chunk.md`
 
 ---
 
