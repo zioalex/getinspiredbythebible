@@ -20,9 +20,11 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-10-27: BITB-244 created — visually check the read-aloud start-failure notice beside the action rail; follow-up to BITB-241
-- 2026-10-27: BITB-245 created — count read-aloud start failures (web telemetry); follow-up to BITB-241
+- 2026-10-27: BITB-246 created — visually check the read-aloud start-failure notice beside the action rail; follow-up to BITB-241 (renumbered from 244, taken on main by PR #1225)
+- 2026-10-27: BITB-247 created — count read-aloud start failures (web telemetry); follow-up to BITB-241 (renumbered from 245, taken on main by PR #1225)
 - 2026-10-27: BITB-241 done — web read aloud no longer hangs on Pause on Linux Firefox (PR #1203)
+- 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
+- 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
 - 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
 - 2026-10-24: BITB-241 in progress — web read aloud stuck on Pause with no audio on Linux Firefox: no idle cancel, start watchdog with retry and notice (PR #1203)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
@@ -264,6 +266,37 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🔄 BITB-244: Bible Version / Language Selects Overflow the Mobile Menu
+
+**Status:** 🔄 In Review
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-27
+
+Tester report (iOS + Android): the menu's Bible version select sized itself to its longest option
+and spilled over the chat. Collapsed controls now show a truncating short label over a transparent
+native select (16px, no iOS zoom); same for the language select. GitHub issue #1223.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-244-mobile-menu-selects-fit-sidebar.md`
+
+---
+
+### 🔄 BITB-245: Pin the Chat Input to the Bottom of the Screen on Mobile
+
+**Status:** 🔄 In Review
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-27
+
+Tester report: footer links and "Get in Touch" under the composer get tapped by accident. Below lg
+the composer is now the last thing on screen; those entries move to the main menu, and the shell
+follows the on-screen keyboard (Android `interactive-widget`, iOS visual-viewport hook). Desktop
+unchanged. GitHub issue #1224.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-245-pin-chat-input-mobile.md`
+
+---
 
 ### 🎯 BITB-224: Availability Web Tests Are Silently Disabled in Production
 
@@ -4217,13 +4250,13 @@ watchdog retries once, then resets and shows a localized "speech engine didn't r
 - [x] Notice in 11 locales; Vitest coverage
 - [ ] Owner check on Linux Firefox
 
-**Follow-ups:** BITB-244, BITB-245
+**Follow-ups:** BITB-246, BITB-247
 
 **Full Story:** `docs/DONE/BITB-241-web-read-aloud-silent-start-firefox.md`
 
 ---
 
-### 🎯 BITB-244: Visually Check the "Speech Engine Didn't Respond" Notice Beside the Action Rail (Web)
+### 🎯 BITB-246: Visually Check the "Speech Engine Didn't Respond" Notice Beside the Action Rail (Web)
 
 **Status:** 🎯 Todo
 **Priority:** P3
@@ -4236,11 +4269,11 @@ BITB-241 follow-up: the notice's absolute placement beside the sticky rail was o
 
 - [ ] Screenshots in en, de, ru and ar at phone and desktop widths; fix if needed
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-244-read-aloud-notice-visual-check.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-246-read-aloud-notice-visual-check.md`
 
 ---
 
-### 🎯 BITB-245: Count Read-Aloud Start Failures (Web Telemetry)
+### 🎯 BITB-247: Count Read-Aloud Start Failures (Web Telemetry)
 
 **Status:** 🎯 Todo
 **Priority:** P3
@@ -4253,7 +4286,7 @@ BITB-241 follow-up: start failures aren't reported, so their frequency (and the 
 
 - [ ] Locale-only `tts_start_failed` event, allowlisted on the backend; tests on both sides
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-245-tts-start-failed-telemetry.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-247-tts-start-failed-telemetry.md`
 
 ---
 

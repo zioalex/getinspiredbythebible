@@ -1,4 +1,4 @@
-# BITB-245: Count Read-Aloud Start Failures (Web Telemetry)
+# BITB-247: Count Read-Aloud Start Failures (Web Telemetry)
 
 **Status:** 🎯 Todo
 **Priority:** P3

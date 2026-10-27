@@ -56,5 +56,5 @@ Follow-up to BITB-205 / BITB-210.
 
 ## Follow-ups
 
-- BITB-244 — visually check the notice beside the action rail
-- BITB-245 — count read-aloud start failures (telemetry)
+- BITB-246 — visually check the notice beside the action rail
+- BITB-247 — count read-aloud start failures (telemetry)

@@ -259,7 +259,8 @@
     "successDescription": "Thank you for reaching out. We'll review your message soon.",
     "sendAnother": "Send another",
     "errorSend": "Failed to send message. Please try again or email us directly.",
-    "errorEmailInvalid": "Please enter a valid email so we can reply."
+    "errorEmailInvalid": "Please enter a valid email so we can reply.",
+    "close": "Close"
   },
   "ErrorBoundary": {
     "title": "Something went wrong",

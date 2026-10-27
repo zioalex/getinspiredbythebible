@@ -1,4 +1,4 @@
-# BITB-244: Visually Check the "Speech Engine Didn't Respond" Notice Beside the Action Rail (Web)
+# BITB-246: Visually Check the "Speech Engine Didn't Respond" Notice Beside the Action Rail (Web)
 
 **Status:** 🎯 Todo
 **Priority:** P3

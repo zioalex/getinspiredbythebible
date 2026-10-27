@@ -21,7 +21,13 @@ const CONTACT_EMAIL = "contact@voxquieta.org";
 
 type Subject = "spiritual" | "bug" | "feature" | "feedback" | "other";
 
-export default function ContactForm() {
+interface ContactFormProps {
+  /** Render without the collapsible "Get in Touch" header, always expanded —
+   *  used by ContactModal, which supplies its own title (#1224). */
+  embedded?: boolean;
+}
+
+export default function ContactForm({ embedded = false }: ContactFormProps) {
   const t = useTranslations("Contact");
 
   const subjectOptions: { value: Subject; label: string }[] = [
@@ -31,7 +37,7 @@ export default function ContactForm() {
     { value: "feature", label: t("subjectFeature") },
     { value: "other", label: t("subjectOther") },
   ];
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(embedded);
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState<Subject>("spiritual");
   const [message, setMessage] = useState("");
@@ -95,26 +101,38 @@ export default function ContactForm() {
   };
 
   return (
-    <div className="mt-3 pt-3 sm:mt-6 sm:pt-4 border-t border-gray-200">
-      {/* Header - always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between text-left text-gray-600 hover:text-gray-800 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4" />
-          <span className="text-sm font-medium">{t("getInTouch")}</span>
-        </div>
-        {isExpanded ? (
-          <ChevronUp className="w-4 h-4" />
-        ) : (
-          <ChevronDown className="w-4 h-4" />
-        )}
-      </button>
+    <div
+      className={
+        embedded ? "" : "mt-3 pt-3 sm:mt-6 sm:pt-4 border-t border-gray-200"
+      }
+    >
+      {/* Header - always visible (omitted when embedded in ContactModal) */}
+      {!embedded && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-between text-left text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            <span className="text-sm font-medium">{t("getInTouch")}</span>
+          </div>
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4" />
+          ) : (
+            <ChevronDown className="w-4 h-4" />
+          )}
+        </button>
+      )}
 
       {/* Collapsible content */}
       {isExpanded && (
-        <div className="mt-4 space-y-4 max-h-[50dvh] overflow-y-auto">
+        <div
+          className={
+            embedded
+              ? "space-y-4"
+              : "mt-4 space-y-4 max-h-[50dvh] overflow-y-auto"
+          }
+        >
           {/* Contact email */}
           <div className="flex items-center gap-2 text-sm">
             <Mail className="w-4 h-4 text-gray-400" />
