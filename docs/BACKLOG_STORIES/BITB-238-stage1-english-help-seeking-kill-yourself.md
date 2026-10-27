@@ -24,3 +24,11 @@ or the compassionate path:
 - [x] Genuine second-person threats ("Go kill yourself", "You should die") still block under all 11 codes
 - [x] Help-seeking forms route to the compassionate path
 - [x] Parametrized across the 11 language codes; no regression in BITB-193 tests
+
+## Implementation notes
+
+- Contextual English phrases (`kill yourself`, `go die`, `you should die`) are exempt only in
+  question form (`is it a sin/ok to ...?`, `what happens if you ...`) or with a theological subject
+  (`Jesus had to go die ...`) / complete clause (`you should die to sin daily`). Threat lead-ins
+  (`why don't you`, `you should`, `just`, `go`), `... so do it`, and trailing insults still block.
+- Known limitation: exemptions are English-only; non-English help-seeking wording is unchanged.

@@ -1125,9 +1125,9 @@ class MultiLanguageContentFilter:
     # ("Is it a sin to kill yourself?") or theology ("you should die to sin daily").
     # Evaluated by find_directed_harm_violation with the sentence-local context below.
     DIRECTED_HARM_CONTEXTUAL_EN = [
-        r"\bkill yourself\b",
-        r"\bgo die\b",
-        r"\byou should die\b",
+        r"\bkill\s+yourself\b",
+        r"\bgo\s+die\b",
+        r"\byou\s+should\s+die\b",
     ]
 
     # Text before the phrase (current sentence only) that makes it a threat: always blocks.
@@ -1138,27 +1138,34 @@ class MultiLanguageContentFilter:
         r"|just|please|go(?:\s+and)?)\s+(?:(?:just|go(?:\s+and)?)\s+)*$",
         re.IGNORECASE,
     )
-    # Help-seeking / question context before "kill yourself": exempt (routes to compassion).
-    _DH_HELP_BEFORE = re.compile(
-        r"(?:\b(?:if|when|whether|after|before)\s+(?:you|one|someone|a\s+person|people|they)\s+$"
-        r"|\b(?:sin|wrong|ok|okay|allowed|forgiv\w*|unforgivable|permissible|hell|heaven)\b"
-        r"[^.!?\n]{0,25}\bto\s+$)",
+    # Help-seeking context before "kill yourself": "what happens if you ..." is always exempt
+    # (routes to compassion); "is it a sin/wrong/ok to ..." only when in question form.
+    _DH_HELP_IF_BEFORE = re.compile(
+        r"\b(?:if|when|whether|after|before)\s+(?:you|one|someone|a\s+person|people|they)\s+$",
         re.IGNORECASE,
     )
-    # Theological continuation after the phrase.
-    _DH_THEOLOGY_AFTER = {
-        "you should die": re.compile(
-            r"\s+(?:to|unto)\s+(?:sin|self|yourself|the\s+flesh|the\s+world)\b|\s+daily\b",
-            re.IGNORECASE,
-        ),
-        "go die": re.compile(
-            r"\s+(?:on\s+the\s+cross|for\s+(?:our|us|my|your|all|the)\b)", re.IGNORECASE
-        ),
-    }
-    # Theological lead-in before "go die" ("Jesus had to go die", "why did Jesus go die").
-    _DH_THEOLOGY_BEFORE = re.compile(
-        r"(?:\b(?:have|had|has)\s+to\s+$|\bdid\s+\w+(?:\s+\w+)?\s+$)", re.IGNORECASE
+    _DH_HELP_KEYWORD_BEFORE = re.compile(
+        r"\b(?:sin|wrong|ok|okay|allowed|forgiv\w*|unforgivable|permissible|hell|heaven)\b"
+        r"[^.!?\n]{0,25}\bto\s+$",
+        re.IGNORECASE,
     )
+    # "you should die" is theology only as a complete "to sin/self/the flesh" or "daily" clause:
+    # the phrase must end the sentence (a "..." ellipsis does not count) or be followed by a
+    # scriptural-attribution clause. "you should die daily you idiot" / "... in a fire" block.
+    _DH_THEOLOGY_AFTER_SHOULD_DIE = re.compile(
+        r"\s+(?:(?:to|unto)\s+(?:sin|self|yourself|the\s+flesh|the\s+world)(?:\s+daily)?|daily)"
+        r"\s*(?:\?|!|\.(?!\.)|$|[,;]\s+(?:according|as|because|since)\b)",
+        re.IGNORECASE,
+    )
+    # "go die" is theology only with a theological subject right before it
+    # ("Why did Jesus have to go die on the cross?", "Jesus had to go die for our sins").
+    _DH_THEOLOGY_BEFORE = re.compile(
+        r"\b(?:jesus|christ|he|the\s+son|the\s+lord|god|messiah)\s+"
+        r"(?:(?:had|has|have|did|does|do|was|were|going|needed|need|got|to|really|actually|not)\s+){0,4}$",
+        re.IGNORECASE,
+    )
+    # "kill yourself" followed by an instruction is a threat even inside a "question".
+    _DH_DO_IT_AFTER = re.compile(r"\W*(?:so\s+)?(?:do|go\s+do)\s+it\b", re.IGNORECASE)
 
     def __init__(self):
         """Initialize compiled regex patterns."""
@@ -1314,20 +1321,37 @@ class MultiLanguageContentFilter:
         """True when a contextual English phrase is a question/theology, not a threat (BITB-238)."""
         phrase = re.sub(r"\s+", " ", m.group(0).lower())
         cut = max(normalized.rfind(c, 0, m.start()) for c in ".!?\n")
-        before = normalized[cut + 1 : m.start()]
+        # Cap the lookbehind slice so the $-anchored regexes cannot backtrack over huge input.
+        before = normalized[max(cut + 1, m.start() - 80) : m.start()]
         if self._DH_THREAT_BEFORE.search(before):
             return False
         after = normalized[m.end() :]
         if phrase == "kill yourself":
-            return bool(self._DH_HELP_BEFORE.search(before))
-        if phrase == "go die":
-            return bool(
-                self._DH_THEOLOGY_BEFORE.search(before)
-                or self._DH_THEOLOGY_AFTER["go die"].match(after)
+            if self._DH_DO_IT_AFTER.match(after):
+                return False
+            if self._DH_HELP_IF_BEFORE.search(before):
+                return True
+            return bool(self._DH_HELP_KEYWORD_BEFORE.search(before)) and self._is_question(
+                before, after
             )
+        if phrase == "go die":
+            return bool(self._DH_THEOLOGY_BEFORE.search(before))
         if phrase == "you should die":
-            return bool(self._DH_THEOLOGY_AFTER["you should die"].match(after))
+            return bool(self._DH_THEOLOGY_AFTER_SHOULD_DIE.match(after))
         return False
+
+    @staticmethod
+    def _is_question(before: str, after: str) -> bool:
+        """True when the sentence containing the phrase is in question form."""
+        if re.match(
+            r"\s*(?:is|are|isn['\u2019]?t|does|do|did|will|would|can|could|should|may|what|why|"
+            r"how|who|whether)\b",
+            before,
+            re.IGNORECASE,
+        ):
+            return True
+        end = re.search(r"[.!?\n]", after)
+        return bool(end and end.group(0) == "?")
 
     def find_directed_harm(self, normalized: str) -> str | None:
         """Search directed-harm patterns (every language) and hate speech (BITB-185).

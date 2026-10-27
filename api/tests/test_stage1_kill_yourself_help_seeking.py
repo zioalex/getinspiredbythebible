@@ -26,6 +26,8 @@ HELP_SEEKING = [
     "Is it a sin to kill yourself?",
     "What happens if you kill yourself?",
     "Is it wrong to kill yourself?",
+    "Is it a sin to kill  yourself?",
+    "Is it ok to kill yourself?",
     "Will God forgive you if you kill yourself?",
 ]
 
@@ -34,7 +36,16 @@ THEOLOGICAL = [
     "Does Paul say you should die to sin daily?",
     "Jesus had to go die for our sins",
     "We must die to self daily",
+    "Why did Jesus go die on the cross?",
 ]
+
+
+def test_long_input_has_no_backtracking_blowup(flt):
+    text = ("a " * 20000) + "go die"
+    start = time.monotonic()
+    assert flt.find_directed_harm_violation(normalize_text(text)) is not None
+    assert time.monotonic() - start < 2
+
 
 THREATS = [
     "Go kill yourself",
@@ -45,6 +56,20 @@ THREATS = [
     "Go die",
     "You should die in a fire",
     "Is it a sin to kill yourself? Go kill yourself",
+    # BITB-238 verifier probes: exemptions must not be over-broad
+    "go die for all I care",
+    "go die for the sake of everyone",
+    "Go die on the cross like your Jesus",
+    "Why did you go die",
+    "did u go die",
+    "you have to go die",
+    "you had to go die",
+    "you should die daily you worthless idiot",
+    "you should die to yourself... in a fire",
+    "it is okay to kill yourself",
+    "it is not a sin to kill yourself, so do it",
+    "Is it a sin to kill yourself, so do it?",
+    "You should   die",
 ]
 
 
