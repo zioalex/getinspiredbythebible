@@ -45,7 +45,7 @@ pre-commit install
 # Also install commit-msg hook (optional)
 pre-commit install --hook-type commit-msg
 
-# Also install the pre-push hook (required for the slow checks — BITB-241)
+# Also install the pre-push hook (required for the slow checks — BITB-243)
 pre-commit install --hook-type pre-push
 ```
 

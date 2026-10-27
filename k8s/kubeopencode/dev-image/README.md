@@ -159,7 +159,7 @@ On a normal laptop or CI runner (no `/opt/pre-commit-seed`), `pre-commit`
 falls back to its own default cache location and behaves exactly as it did
 before this image existed.
 
-**Stage renames vs rev bumps (BITB-241):** pre-commit ≥3.2 renamed the
+**Stage renames vs rev bumps (BITB-243):** pre-commit ≥3.2 renamed the
 `commit`/`push` stages to `pre-commit`/`pre-push`; renaming `stages:` entries
 in `.pre-commit-config.yaml` does **not** touch the hook envs -- `install-hooks`
 builds the identical set either way, so a seed baked from the old names stays
