@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
 - 2026-10-27: BITB-248 in progress — web read aloud still stuck on Pause on Snap Firefox: start watchdog no longer trusts speechSynthesis.speaking; follow-up to BITB-241 (PR #1226)
 - 2026-10-27: BITB-246 created — visually check the read-aloud start-failure notice beside the action rail; follow-up to BITB-241 (renumbered from 244, taken on main by PR #1225)
@@ -4275,18 +4276,21 @@ BITB-241 follow-up: the notice's absolute placement beside the sticky rail was o
 
 ---
 
-### 🎯 BITB-247: Count Read-Aloud Start Failures (Web Telemetry)
+### 🚧 BITB-247: Read-Aloud Telemetry — Attempts, Completions and Failures (Web + Android)
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
+**Status:** 🚧 In Progress (spec confirmed 2026-10-27)
+**Priority:** P2
+**Size:** M
 **Created:** 2026-10-27
 
-BITB-241 follow-up: start failures aren't reported, so their frequency (and the case for BITB-215) is unknown.
+Widened from "count start failures": full funnel (`started`, `completed`, `start_failed`, `error`,
+`unavailable`) on web and Android, with coarse browser/OS family. A daily aggregate table feeds a weekly
+report section, and the OTel counter feeds a workbook tile. This data decides on a fallback voice.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Locale-only `tts_start_failed` event, allowlisted on the backend; tests on both sides
+- [ ] Endpoint, daily aggregate and migration; web and Android events; weekly report section and workbook tile
+- [ ] Privacy policy sentence in 11 locales; owner sees non-zero counts after deploy
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-247-tts-start-failed-telemetry.md`
 

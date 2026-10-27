@@ -5,7 +5,8 @@
 **Size:** S
 **Created:** 2026-10-27
 **Prompted by:** owner report 2026-10-27 — "on iPhone/Firefox the voice reading starts but stops after the
-second sentence. I tried in different languages. Same problem. Only 2 sentences are read."
+second sentence. I tried in different languages. Same problem. Only 2 sentences are read." Then: "sometimes one sentence, sometimes 2 sentences", which is exactly
+one chunk (a chunk holds one long sentence or two short ones).
 
 Follow-up to BITB-205 / BITB-241.
 
