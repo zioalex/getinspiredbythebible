@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-25
+**Last Updated:** 2026-10-27
 
 ## Changelog
 
@@ -20,6 +20,9 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-27: BITB-244 created — visually check the read-aloud start-failure notice beside the action rail; follow-up to BITB-241
+- 2026-10-27: BITB-245 created — count read-aloud start failures (web telemetry); follow-up to BITB-241
+- 2026-10-27: BITB-241 done — web read aloud no longer hangs on Pause on Linux Firefox (PR #1203)
 - 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
 - 2026-10-24: BITB-241 in progress — web read aloud stuck on Pause with no audio on Linux Firefox: no idle cancel, start watchdog with retry and notice (PR #1203)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
@@ -4198,23 +4201,59 @@ BITB-211 follow-up: a visible trailing reference list (not seen so far) would st
 
 ---
 
-### 🚧 BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
+### ✅ BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1203, merged 2026-10-27
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-24
 
-Linux Firefox lists speech-dispatcher voices, so Listen appears, but its engine can stay silent. The app
-then sits on "Pause" forever. Fix: no `cancel()` before `speak()` when idle (a speech-dispatcher race),
-and a start watchdog that retries once, then resets and explains.
+The engine is no longer cancelled before speaking when idle; switching answers always cancels. A 3 s start
+watchdog retries once, then resets and shows a localized "speech engine didn't respond" notice.
 
 **Acceptance Criteria (summary):**
 
-- [ ] No cancel when idle; start watchdog with one retry, then reset and message; first-chunk error handled
-- [ ] Message in 11 locales; Vitest coverage; owner check on Linux Firefox
+- [x] No idle cancel; start watchdog with retry, then reset and notice; first-chunk error handled
+- [x] Notice in 11 locales; Vitest coverage
+- [ ] Owner check on Linux Firefox
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-241-web-read-aloud-silent-start-firefox.md`
+**Follow-ups:** BITB-244, BITB-245
+
+**Full Story:** `docs/DONE/BITB-241-web-read-aloud-silent-start-firefox.md`
+
+---
+
+### 🎯 BITB-244: Visually Check the "Speech Engine Didn't Respond" Notice Beside the Action Rail (Web)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-27
+
+BITB-241 follow-up: the notice's absolute placement beside the sticky rail was only tested in jsdom.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Screenshots in en, de, ru and ar at phone and desktop widths; fix if needed
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-244-read-aloud-notice-visual-check.md`
+
+---
+
+### 🎯 BITB-245: Count Read-Aloud Start Failures (Web Telemetry)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-27
+
+BITB-241 follow-up: start failures aren't reported, so their frequency (and the case for BITB-215) is unknown.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Locale-only `tts_start_failed` event, allowlisted on the backend; tests on both sides
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-245-tts-start-failed-telemetry.md`
 
 ---
 
