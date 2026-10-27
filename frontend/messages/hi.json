@@ -148,6 +148,7 @@
     "listenAnswer": "उत्तर सुनें",
     "pauseListening": "पढ़ना थोड़ी देर रोकें",
     "resumeListening": "पढ़ना फिर शुरू करें",
+    "speechEngineNoResponse": "आपके ब्राउज़र के स्पीच इंजन ने जवाब नहीं दिया।",
     "showListenButton": "सुनें बटन दिखाएँ",
     "allowOnlineVoices": "ऑनलाइन आवाज़ों की अनुमति दें",
     "onlineVoicesNotNow": "अभी नहीं",
