@@ -23,6 +23,7 @@ import ChapterModal from "@/components/ChapterModal";
 import ChurchFinderBanner from "@/components/ChurchFinderBanner";
 import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import FollowUpSuggestions from "@/components/FollowUpSuggestions";
+import { followUpsEnabled } from "@/lib/featureFlags";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
 import ContactModal from "@/components/ContactModal";
@@ -1231,7 +1232,8 @@ export default function ChatIsland({
                       structural via the index check, not extra per-message state. */}
                   {index === messages.length - 1 &&
                     message.role === "assistant" &&
-                    !isLoading && (
+                    !isLoading &&
+                    followUpsEnabled() && (
                       <FollowUpSuggestions
                         suggestions={followUps}
                         onSelect={(suggestion) =>

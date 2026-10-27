@@ -18,7 +18,13 @@ import {
   getOnlineVoiceConsent,
   setOnlineVoiceConsent,
 } from "@/lib/onlineVoiceConsent";
-import { getPausedId, getSpeakingId, stop } from "@/lib/speech";
+import {
+  getPausedId,
+  getSpeakingId,
+  START_WATCHDOG_MS,
+  stop,
+} from "@/lib/speech";
+import { START_FAILED_NOTICE_MS } from "./ListenButton";
 import {
   FakeSynth,
   installSpeechMock,
@@ -510,5 +516,86 @@ describe("ListenButton online voices (BITB-210)", () => {
     expect(
       screen.getByRole("dialog", { name: /usare una voce online/i }),
     ).toBeVisible();
+  });
+});
+
+describe("ListenButton silent engine (BITB-241)", () => {
+  const NOTICE = /speech engine didn't respond/i;
+
+  afterEach(() => vi.useRealTimers());
+
+  async function renderAndTap() {
+    render(ui("m1", "Hello there."));
+    const button = await screen.findByRole("button", { name: LISTEN });
+    vi.useFakeTimers();
+    fireEvent.click(button);
+    return button;
+  }
+
+  it("returns to Listen and shows a status message when the engine stays silent", async () => {
+    await renderAndTap();
+    expect(screen.getByRole("button", { name: PAUSE })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("");
+    act(() => {
+      vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    });
+    expect(screen.getByRole("button", { name: LISTEN })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(NOTICE);
+  });
+
+  it("shows the message after a first-chunk error", async () => {
+    await renderAndTap();
+    act(() => synth.spoken[0].onerror?.());
+    expect(screen.getByRole("button", { name: LISTEN })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(NOTICE);
+  });
+
+  it("hides the message on the next tap", async () => {
+    const button = await renderAndTap();
+    act(() => {
+      vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(NOTICE);
+    fireEvent.click(button);
+    expect(screen.getByRole("status")).toHaveTextContent("");
+    expect(screen.getByRole("button", { name: PAUSE })).toBeInTheDocument();
+  });
+
+  it("hides the message on its own after a few seconds", async () => {
+    await renderAndTap();
+    act(() => {
+      vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(NOTICE);
+    act(() => {
+      vi.advanceTimersByTime(START_FAILED_NOTICE_MS);
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
+
+  it("a retry that starts keeps playing with no message", async () => {
+    await renderAndTap();
+    act(() => {
+      vi.advanceTimersByTime(START_WATCHDOG_MS);
+    });
+    act(() => synth.spoken[synth.spoken.length - 1].onstart?.());
+    act(() => {
+      vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    });
+    expect(screen.getByRole("button", { name: PAUSE })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
+
+  it("shows the message in the UI language", async () => {
+    render(ui("m1", "Ciao a tutti.", "it"));
+    const button = await screen.findByRole("button", { name: /ascolta/i });
+    vi.useFakeTimers();
+    fireEvent.click(button);
+    act(() => {
+      vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(
+      itMessages.Chat.speechEngineNoResponse,
+    );
   });
 });

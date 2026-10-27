@@ -148,6 +148,7 @@
     "listenAnswer": "Прослушать ответ",
     "pauseListening": "Приостановить чтение",
     "resumeListening": "Продолжить чтение",
+    "speechEngineNoResponse": "Речевой движок вашего браузера не ответил.",
     "showListenButton": "Показывать кнопку «Слушать»",
     "allowOnlineVoices": "Разрешить онлайн-голоса",
     "onlineVoicesNotNow": "Не сейчас",

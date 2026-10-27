@@ -148,6 +148,7 @@
     "listenAnswer": "Écouter la réponse",
     "pauseListening": "Mettre la lecture en pause",
     "resumeListening": "Reprendre la lecture",
+    "speechEngineNoResponse": "Le moteur de synthèse vocale de votre navigateur n'a pas répondu.",
     "showListenButton": "Afficher le bouton Écouter",
     "allowOnlineVoices": "Autoriser les voix en ligne",
     "onlineVoicesNotNow": "Pas maintenant",

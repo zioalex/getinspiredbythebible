@@ -148,6 +148,7 @@
     "listenAnswer": "朗读回答",
     "pauseListening": "暂停朗读",
     "resumeListening": "继续朗读",
+    "speechEngineNoResponse": "浏览器的语音引擎没有响应。",
     "showListenButton": "显示朗读按钮",
     "allowOnlineVoices": "允许在线语音",
     "onlineVoicesNotNow": "暂不",

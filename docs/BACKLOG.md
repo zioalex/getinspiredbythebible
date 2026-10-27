@@ -22,6 +22,8 @@ Prioritized list of user stories and features for Vox Quieta.
 
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
+- 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
+- 2026-10-24: BITB-241 in progress — web read aloud stuck on Pause with no audio on Linux Firefox: no idle cancel, start watchdog with retry and notice (PR #1203)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
@@ -4226,6 +4228,26 @@ BITB-211 follow-up: a visible trailing reference list (not seen so far) would st
 - [ ] If found: shared fixture rule + parity test + prompt fix; else close
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-216-read-aloud-visible-verse-list.md`
+
+---
+
+### 🚧 BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-24
+
+Linux Firefox lists speech-dispatcher voices, so Listen appears, but its engine can stay silent. The app
+then sits on "Pause" forever. Fix: no `cancel()` before `speak()` when idle (a speech-dispatcher race),
+and a start watchdog that retries once, then resets and explains.
+
+**Acceptance Criteria (summary):**
+
+- [ ] No cancel when idle; start watchdog with one retry, then reset and message; first-chunk error handled
+- [ ] Message in 11 locales; Vitest coverage; owner check on Linux Firefox
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-241-web-read-aloud-silent-start-firefox.md`
 
 ---
 

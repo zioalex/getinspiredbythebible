@@ -50,6 +50,16 @@ export interface FakeSynth {
   resume: ReturnType<typeof vi.fn>;
   /** Mirrors `speechSynthesis.paused`. */
   paused: boolean;
+  /** Mirrors `speechSynthesis.speaking` / `.pending`; tests set them by hand (default false). */
+  speaking: boolean;
+  pending: boolean;
+  /**
+   * Called synchronously for every `speak(utterance)` with the 1-based speak count, so a test can
+   * start or fail the engine on the Nth attempt. Default: silent (the engine never fires events).
+   */
+  speakHook: ((u: FakeUtterance, nth: number) => void) | null;
+  /** The last `n` queued utterances, i.e. the most recent queue of an `n`-chunk answer. */
+  lastQueue: (n: number) => FakeUtterance[];
   addEventListener: ReturnType<typeof vi.fn>;
   removeEventListener: ReturnType<typeof vi.fn>;
   emitVoicesChanged: () => void;
@@ -64,9 +74,14 @@ export function installSpeechMock(voices: FakeVoice[]): FakeSynth {
     getVoices: vi.fn(() => synth.voices),
     speak: vi.fn((u: FakeUtterance) => {
       synth.spoken.push(u);
+      synth.speakHook?.(u, synth.spoken.length);
     }),
     cancel: vi.fn(),
     paused: false,
+    speaking: false,
+    pending: false,
+    speakHook: null,
+    lastQueue: (n: number) => synth.spoken.slice(-n),
     pause: vi.fn(() => {
       synth.paused = true;
     }),
