@@ -461,7 +461,10 @@ avoid stale entries accumulating in `.git/worktrees/`.
   a new changelog line recording the renumber (citing the winner PR), and update **every
   in-repo `BITB-NNN` reference** (repo-wide grep, as with file renames — see Documentation
   Completeness). Commit subjects keep their historical IDs; never rewrite pushed history.
-  Worked examples: 206→219, 214→218, 223..233, 236/237→239/240, 241→243.
+  Worked examples: 206→219, 214→218, 223..233, 236/237→239/240, 241→243. The allocation rule is
+  mechanically enforced by the path-filtered `story-id-check` CI workflow (BITB-235, PR #1221),
+  which fails a PR adding a story file whose ID is already claimed on the base or by another
+  open PR.
 
 ### Branch & PR Hygiene
 
