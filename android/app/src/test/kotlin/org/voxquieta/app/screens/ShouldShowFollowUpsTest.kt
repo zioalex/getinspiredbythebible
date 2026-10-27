@@ -12,11 +12,17 @@ import org.voxquieta.app.presentation.screens.shouldShowFollowUps
  * list: they render only under the LAST message, only when it's an assistant
  * message, only when the app isn't loading/session-limited, and only when the
  * backend actually sent suggestions for this turn.
+ *
+ * The default-off Android rollout gate (parent story BITB-080) is covered too:
+ * with the flag OFF nothing renders even when `follow_ups` arrived in the
+ * stream (Android stays dark until its own later rollout); with the flag ON
+ * the existing behavior resumes unchanged.
  */
 class ShouldShowFollowUpsTest {
 
     // Baseline "all conditions satisfied" arguments — each test below flips
     // exactly one of them to false and asserts the result flips to false too.
+    // `enabled = true` stands in for the future flipped-on rollout state.
     private val lastIndex = 4
     private val followUps = listOf("What does this mean?", "Tell me more")
 
@@ -30,6 +36,7 @@ class ShouldShowFollowUpsTest {
                 isLoading = false,
                 isSessionLimitReached = false,
                 followUps = followUps,
+                enabled = true,
             ),
         )
     }
@@ -44,6 +51,7 @@ class ShouldShowFollowUpsTest {
                 isLoading = false,
                 isSessionLimitReached = false,
                 followUps = followUps,
+                enabled = true,
             ),
         )
     }
@@ -58,6 +66,7 @@ class ShouldShowFollowUpsTest {
                 isLoading = false,
                 isSessionLimitReached = false,
                 followUps = followUps,
+                enabled = true,
             ),
         )
     }
@@ -72,6 +81,7 @@ class ShouldShowFollowUpsTest {
                 isLoading = true,
                 isSessionLimitReached = false,
                 followUps = followUps,
+                enabled = true,
             ),
         )
     }
@@ -86,6 +96,7 @@ class ShouldShowFollowUpsTest {
                 isLoading = false,
                 isSessionLimitReached = true,
                 followUps = followUps,
+                enabled = true,
             ),
         )
     }
@@ -100,6 +111,41 @@ class ShouldShowFollowUpsTest {
                 isLoading = false,
                 isSessionLimitReached = false,
                 followUps = emptyList(),
+                enabled = true,
+            ),
+        )
+    }
+
+    // ── BITB-080 default-off rollout gate ─────────────────────────────────────
+
+    @Test
+    fun `false when the rollout gate is off even with follow-ups present in the stream`() {
+        assertFalse(
+            shouldShowFollowUps(
+                index = lastIndex,
+                lastIndex = lastIndex,
+                role = Message.Role.ASSISTANT,
+                isLoading = false,
+                isSessionLimitReached = false,
+                followUps = followUps,
+                enabled = false,
+            ),
+        )
+    }
+
+    @Test
+    fun `default gate mirrors the compile-time BuildConfig flag (default off)`() {
+        // The default value comes from BuildConfig.CHAT_FOLLOW_UPS_ENABLED, which
+        // is false unless the build passes -PchatFollowUpsEnabled=true. Unit tests
+        // run against the debug BuildConfig, so the default must be OFF here.
+        assertFalse(
+            shouldShowFollowUps(
+                index = lastIndex,
+                lastIndex = lastIndex,
+                role = Message.Role.ASSISTANT,
+                isLoading = false,
+                isSessionLimitReached = false,
+                followUps = followUps,
             ),
         )
     }
