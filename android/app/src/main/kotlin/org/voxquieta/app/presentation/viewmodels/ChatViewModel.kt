@@ -223,6 +223,23 @@ class ChatViewModel @Inject constructor(
          * own configured limit regardless of this value.
          */
         const val MAX_MESSAGE_LENGTH = 500
+
+        /**
+         * Compile-time rollout gate for the BITB-149 follow-up chips (parent
+         * story BITB-080): the backend now emits `follow_ups` to ALL clients, but
+         * Android stays DARK until its own later rollout. Defaults to
+         * [org.voxquieta.app.BuildConfig.CHAT_FOLLOW_UPS_ENABLED] (false unless
+         * built with `-PchatFollowUpsEnabled=true`). Parsing in the SSE layer is
+         * kept intact — this gate only suppresses *state exposure / rendering*,
+         * so flipping it on later resumes the current behavior unchanged.
+         * [followUpsEnabledForTest] lets unit tests exercise both gate states.
+         */
+        val followUpsEnabled: Boolean
+            get() = followUpsEnabledForTest ?: org.voxquieta.app.BuildConfig.CHAT_FOLLOW_UPS_ENABLED
+
+        /** Test-only override for [followUpsEnabled]; null = use the BuildConfig value. */
+        @androidx.annotation.VisibleForTesting
+        internal var followUpsEnabledForTest: Boolean? = null
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -881,7 +898,10 @@ class ChatViewModel @Inject constructor(
                         // Suggested follow-up questions (BITB-149). Only set when
                         // non-empty; already cleared at turn-start above, so an
                         // absent/suppressed field must not clear it back to empty here.
-                        if (chunk.followUps.isNotEmpty()) {
+                        // Gated by the default-off rollout flag (BITB-080): when the
+                        // flag is off Android ignores the field entirely — no chips,
+                        // no crash, no empty row (the existing degrade-silently contract).
+                        if (followUpsEnabled && chunk.followUps.isNotEmpty()) {
                             _uiState.update { state -> state.copy(followUps = chunk.followUps) }
                         }
                         return@collect
