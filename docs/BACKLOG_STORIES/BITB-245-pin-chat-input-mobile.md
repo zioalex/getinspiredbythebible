@@ -1,6 +1,6 @@
 # BITB-245: Pin the Chat Input to the Bottom of the Screen on Mobile
 
-**Status:** 🔄 In Review (PR pending)
+**Status:** 🔄 In Review (PR #1225)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-10-27

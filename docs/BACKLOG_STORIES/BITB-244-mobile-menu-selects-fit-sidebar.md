@@ -1,6 +1,6 @@
 # BITB-244: Bible Version / Language Selects Overflow the Mobile Menu
 
-**Status:** 🔄 In Review (PR pending)
+**Status:** 🔄 In Review (PR #1225)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-27
