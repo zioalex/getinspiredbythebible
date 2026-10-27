@@ -66,7 +66,7 @@ Verdict legend: **keep** (unchanged), **demote** (slower cadence),
 | `scripture_grounding_errors` | 2 | 2 | **Keep PT5M** | "Same as above for the grounding/resolution path." |
 | `chat_ttft_p95` | 3 | 0 | **Demote PT1H** (was PT15M) | "Nothing at 3am — gross latency/outage is caught by the synthetic-chat probe (30s timeouts); this is provider-quality drift for next week." Window PT1H kept; `evaluation_frequency` PT1H; 2-of-3 sustained gate kept. |
 | `chat_verseless_responses` | 2 | 0 | **Demote PT1H** | "Check the retrieval path tomorrow — quality drift, and the search path has dedicated PT5M rules." Window PT1H, 15-min bins, `total > 10`/bin, `failing_periods` **2 of 4** (≥30 min of verseless serving). |
-| `verse_grounding_paraphrase_brackets` | 3 | 0 | **Demote P1D** (daily) | "Nothing — cosmetic nested-parens trend data (BITB-053), dormant until paraphrase mode is 'append'." Window P1D (24h; `PT24H` is not in the provider's allowed-value list for `window_duration` — `P1D` is the closest valid granularity), 1h bins, `total > 20`/bin (same 5-per-15-min rate), 2-of-3 gate kept. |
+| `verse_grounding_paraphrase_brackets` | 3 | 0 | **Demote P1D** (daily) | "Nothing — cosmetic nested-parens trend data (BITB-053), dormant until paraphrase mode is 'append'." Window P1D (24h; `PT24H` is not in the provider's allowed-value list for `window_duration` — `P1D` is the closest valid granularity), 1h bins, `total > 20`/bin (same 5-per-15-min rate); clustering gate is "≥2 hot bins per day" (`threshold = 1`) with 1-of-1 `failing_periods` — the original 2-of-3 gate made the look-back 72h and Azure rejects >48h (see *Post-merge apply fix*). |
 | `embedding_fallback_rate` | 2 | 0 | **Demote PT15M** | "Diagnose the embedding breaker tomorrow — its user-facing symptom is covered by the GH verse-search probe." Window PT15M, 5-min bins. |
 | `backend_client_rejection_spike` | 3 | 0 | **Demote PT15M** | "If it's a real bot attack I'd act — but on a 15-minute cadence; routine Turnstile/auth noise never needs a page." Insurance for abuse patterns (security-adjacent): demoted, not removed; `>=30` rejections per 15 min. |
 | `frontend_client_errors` | 2 | 0 | **Demote PT1H** | "Debug the JS errors in the morning — never an emergency; the BITB-066 reporter retains the data for diagnosis." Window PT1H, 15-min bins, `total > 20`/bin, `failing_periods` **2 of 4**. |
@@ -122,6 +122,17 @@ cannot catch the storage ratchet — that is BITB-232.
 - **`backend_probe_failures`: deferred to BITB-224** — its input (the availability web
   tests) is disabled per the evidence; re-enable the tests or retire the rule, decided
   there, not here.
+
+## Post-merge apply fix (2026-10-27)
+
+The first `terraform apply` after #1218 merged failed on
+`verse_grounding_paraphrase_brackets` with `400 InvalidRequestContent: Query look back
+cannot exceed 48 hours`. Azure computes look-back as `window_duration ×
+number_of_evaluation_periods`; the P1D window with the kept 2-of-3 gate is 72h.
+`terraform validate`/`plan` don't check this, so CI was green. Fix: 1-of-1
+`failing_periods`, with the clustering moved into the threshold (alert only when at
+least 2 hourly bins in the day exceed 20). `api/tests/test_monitoring_alert_lookback.py`
+now asserts every scheduled-query rule in `deployment/monitoring.tf` stays within 48h.
 
 ## Estimated savings
 
