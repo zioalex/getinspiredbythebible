@@ -28,9 +28,16 @@ let current: CurrentCall | null = null;
 /** True while the browser's own synthesis queue is paused via synth.pause(). */
 let nativePaused = false;
 let resumeWatchdog: ReturnType<typeof setTimeout> | null = null;
+/** BITB-241: separate timer detecting an engine that never starts a freshly queued reading. */
+let startWatchdog: ReturnType<typeof setTimeout> | null = null;
+/** BITB-241: id of the answer whose reading never started (engine silent / errored), or null. */
+let startFailedId: string | null = null;
 
 /** How long a native resume may stay silent before falling back to chunk restart. */
 export const RESUME_WATCHDOG_MS = 1000;
+
+/** BITB-241: how long a fresh reading may stay silent (no start/boundary) before one retry. */
+export const START_WATCHDOG_MS = 3000;
 
 function notify(): void {
   listeners.forEach((l) => l());
@@ -48,6 +55,20 @@ function clearWatchdog(): void {
     clearTimeout(resumeWatchdog);
     resumeWatchdog = null;
   }
+}
+
+function clearStartWatchdog(): void {
+  if (startWatchdog !== null) {
+    clearTimeout(startWatchdog);
+    startWatchdog = null;
+  }
+}
+
+/** Forget a recorded start failure (next speak/stop, or when the UI hides its message). */
+export function clearStartFailed(): void {
+  if (startFailedId === null) return;
+  startFailedId = null;
+  notify();
 }
 
 /** Android Chrome's synth.pause() is unreliable (it cancels), so use chunk restart there. */
@@ -182,8 +203,26 @@ export function getPausedId(): string | null {
   return pausedId;
 }
 
-/** Cancels the browser queue; a paused queue must also be resumed or it stays paused. */
-function cancelQueue(synth: SpeechSynthesis): void {
+/** Id of the message whose reading never started (BITB-241), or null. */
+export function getStartFailedId(): string | null {
+  return startFailedId;
+}
+
+/** True when the browser still holds a queue (speaking, pending or paused). */
+function isEngineBusy(synth: SpeechSynthesis): boolean {
+  return nativePaused || synth.speaking || synth.pending || synth.paused;
+}
+
+/**
+ * Cancels the browser queue; a paused queue must also be resumed or it stays paused.
+ * With `onlyIfBusy`, an idle engine is left alone: on Linux Firefox (speech-dispatcher) the
+ * asynchronous cancel can swallow the utterance queued right after it (BITB-241).
+ */
+function cancelQueue(synth: SpeechSynthesis, onlyIfBusy = false): void {
+  if (onlyIfBusy && !isEngineBusy(synth)) {
+    nativePaused = false;
+    return;
+  }
   try {
     synth.cancel();
     // A native resume() can silently no-op (Chrome), leaving the engine paused.
@@ -196,29 +235,77 @@ function cancelQueue(synth: SpeechSynthesis): void {
 
 /** Stop any speech immediately and forget any paused position. */
 export function stop(): void {
+  const hadReading = speakingId !== null || pausedId !== null;
   generation += 1;
   clearWatchdog();
-  if (isSpeechSupported()) cancelQueue(window.speechSynthesis);
+  clearStartWatchdog();
+  const hadFailure = startFailedId !== null;
+  startFailedId = null;
+  if (isSpeechSupported()) {
+    // Our own reading may not be visible in the browser's flags yet, so cancel for it too.
+    cancelQueue(window.speechSynthesis, !hadReading);
+  }
   current = null;
   nativePaused = false;
   setState(null, null);
+  if (hadFailure) notify();
 }
 
 /** Queues `call.chunks` from `fromIndex` as one fresh queue, replacing whatever plays. */
-function startQueue(call: CurrentCall, fromIndex: number): void {
+function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
   const synth = window.speechSynthesis;
   generation += 1;
   const mine = generation;
   clearWatchdog();
-  cancelQueue(synth); // one voice at a time
+  clearStartWatchdog();
+  // One voice at a time: switching answers always cancels; the first speak and a same-call
+  // retry skip the cancel on an idle engine (it can swallow the next utterance, BITB-241).
+  const switching = current !== null && current !== call;
+  cancelQueue(synth, !switching);
   call.index = fromIndex;
   current = call;
   setState(call.id, null);
+  let started = false;
+
+  // BITB-241: the engine never started (no start/boundary/error): retry once, then give up.
+  const giveUp = () => {
+    generation += 1;
+    clearWatchdog();
+    clearStartWatchdog();
+    try {
+      if (isEngineBusy(synth)) synth.cancel();
+    } catch {
+      // ignore
+    }
+    current = null;
+    nativePaused = false;
+    startFailedId = call.id;
+    const stateChanged = speakingId !== null || pausedId !== null;
+    setState(null, null);
+    if (!stateChanged) notify(); // otherwise setState already notified
+  };
+  const markStarted = () => {
+    started = true;
+    clearWatchdog();
+    clearStartWatchdog();
+  };
+  startWatchdog = setTimeout(() => {
+    startWatchdog = null;
+    if (generation !== mine || current !== call || started) return;
+    // Firefox only sets `speaking` after a real start, so it proves audio began.
+    if (synth.speaking) {
+      started = true;
+      return;
+    }
+    if (attempt < 2) startQueue(call, fromIndex, attempt + 1);
+    else giveUp();
+  }, START_WATCHDOG_MS);
 
   const finish = () => {
     if (generation !== mine) return; // superseded by stop() / pause() / another speak()
     generation += 1;
     clearWatchdog();
+    clearStartWatchdog();
     try {
       synth.cancel(); // drop whatever is still queued after an error
     } catch {
@@ -236,17 +323,27 @@ function startQueue(call: CurrentCall, fromIndex: number): void {
     utterance.onstart = () => {
       if (generation !== mine) return;
       call.index = index;
-      clearWatchdog();
+      markStarted();
     };
     // A silent native resume is detected by the absence of any of these.
     utterance.onresume = () => {
       if (generation === mine) clearWatchdog();
     };
     utterance.onboundary = () => {
-      if (generation === mine) clearWatchdog();
+      if (generation === mine) markStarted();
     };
-    if (index === call.chunks.length - 1) utterance.onend = finish;
-    utterance.onerror = finish;
+    // Any chunk ending proves the engine ran.
+    utterance.onend =
+      index === call.chunks.length - 1
+        ? finish
+        : () => {
+            if (generation === mine) markStarted();
+          };
+    utterance.onerror = () => {
+      if (generation !== mine) return;
+      if (started) finish();
+      else giveUp(); // errored before anything played
+    };
     synth.speak(utterance);
   });
 }
@@ -262,6 +359,7 @@ export function speak(
   lang: string,
 ): void {
   if (!isSpeechSupported() || chunks.length === 0) return;
+  clearStartFailed();
   startQueue({ id, chunks, voice, lang, index: 0 }, 0);
 }
 
@@ -274,6 +372,7 @@ export function pause(): void {
   if (!isSpeechSupported() || speakingId === null || current === null) return;
   const synth = window.speechSynthesis;
   clearWatchdog();
+  clearStartWatchdog();
   if (shouldUseNativePause()) {
     try {
       synth.pause();
