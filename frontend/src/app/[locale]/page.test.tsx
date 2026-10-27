@@ -512,6 +512,65 @@ describe("Home page responsive layout", () => {
     });
   });
 
+  // #1224: on mobile/tablet the composer is the last thing on screen; the
+  // footer links and "Get in Touch" move to the main menu.
+  describe("pinned composer (mobile)", () => {
+    it("sizes main from the keyboard-aware variable, falling back to 100dvh", () => {
+      const { container } = renderWithIntl(<Home />);
+      const main = container.querySelector("main") as HTMLElement;
+      expect(main.style.height).toBe("var(--chat-viewport-height, 100dvh)");
+    });
+
+    it("wraps footer links and the contact form in a desktop-only container", () => {
+      renderWithIntl(<Home />);
+      const extras = screen.getByTestId("chat-desktop-extras");
+      expect(extras).toHaveClass("hidden", "lg:block");
+      expect(
+        extras.querySelector('[data-testid="chat-footer-links"]'),
+      ).not.toBeNull();
+      expect(extras).toHaveTextContent(enMessages.Contact.getInTouch);
+    });
+
+    it("orders the disclaimer above the composer below lg", () => {
+      renderWithIntl(<Home />);
+      const inputArea = screen.getByTestId("chat-input-area");
+      expect(inputArea).toHaveClass("flex", "flex-col");
+      const disclaimer = screen.getByTestId("chat-disclaimer");
+      expect(disclaimer).toHaveClass("order-first", "lg:order-none");
+      // The form itself has no order class, so it follows the disclaimer.
+      const form = inputArea.querySelector("form")!;
+      expect(form.className).not.toMatch(/order-/);
+      // Nothing else in the input area is visible after the form below lg.
+      const children = Array.from(inputArea.children) as HTMLElement[];
+      const afterForm = children.slice(children.indexOf(form) + 1);
+      for (const el of afterForm) {
+        const mobileVisibleAfterForm =
+          !el.className.includes("order-first") &&
+          !el.className.includes("hidden") &&
+          !el.className.includes("text-right"); // char counter hugs the form
+        expect(mobileVisibleAfterForm, el.outerHTML.slice(0, 120)).toBe(false);
+      }
+    });
+
+    it("opens the contact dialog from the main menu", async () => {
+      renderWithIntl(<Home />);
+      fireEvent.click(
+        screen.getByRole("button", { name: enMessages.Chat.mainMenuLabel }),
+      );
+      const items = screen.getAllByRole("button", {
+        name: enMessages.Contact.getInTouch,
+      });
+      // The menu entry is the lg:hidden one (desktop inline toggle is the other).
+      const menuItem = items.find((b) => b.className.includes("lg:hidden"))!;
+      fireEvent.click(menuItem);
+      expect(
+        await screen.findByRole("dialog", {
+          name: enMessages.Contact.getInTouch,
+        }),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("mobile FAB (Floating Action Button)", () => {
     it("does not show FAB when there are no verses", () => {
       renderWithIntl(<Home />);
