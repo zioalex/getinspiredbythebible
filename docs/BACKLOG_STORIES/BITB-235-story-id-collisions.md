@@ -25,8 +25,8 @@ add one. That only sees `main`, so PRs open at the same time pick the same numbe
 **Struck again 2026-10-26, proving the story was never implemented:** open PR #1203 claimed
 BITB-241 on 2026-10-24 (web read-aloud, Linux Firefox) and open PR #1215 claimed BITB-241 again on
 2026-10-26 (fast pre-commit stages) — the second session checked only its local checkout, exactly
-the failure mode described above. Resolved 2026-10-27 by first-claimant practice: #1203 keeps 241,
-# 1215 renumbered to BITB-243 (story file, BACKLOG.md, AGENTS.md, docs/PRE_COMMIT_SETUP.md and
+the failure mode described above. Resolved 2026-10-27 by first-claimant practice: #1203 keeps 241
+and #1215 renumbered to BITB-243 (story file, BACKLOG.md, AGENTS.md, docs/PRE_COMMIT_SETUP.md and
 k8s/kubeopencode/dev-image/README.md references updated; PR title updated).
 
 ## Options

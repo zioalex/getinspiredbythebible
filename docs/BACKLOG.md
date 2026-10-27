@@ -3974,12 +3974,13 @@ non-`shrink-0` menu wrapper can overflow again. Pick a minimum width and guarant
 
 Follow-up of BITB-218/219: "highest ID + 1" only sees `main`, so concurrent PRs pick the same number
 (the header story went 206 → 212 → 213 → 219; this story itself went 223 → 235; #1195 merged titled
-with a stale ID that the 1.58.0 changelog repeats). **Struck again 2026-10-26:** open PRs #1203 and
-# 1215 both claimed BITB-241 — the rule still said "check the highest number" without saying to look at
-open PRs; resolved 2026-10-27 (#1203 keeps 241, #1215 renumbered to 243). The allocation rule now lives
-in `AGENTS.md` Backlog Hygiene: highest across `origin/main` **and every open PR's story files**,
-**claim = the open PR**, first-claimant keeps on collision, renumber before merge. Remaining: the CI
-check that fails a PR adding a story file whose ID is already claimed on the base or by another open PR.
+with a stale ID that the 1.58.0 changelog repeats). **Struck again 2026-10-26:** open PRs #1203
+and #1215 both claimed BITB-241 — the rule still said "check the highest number" without saying
+to look at open PRs; resolved 2026-10-27 (#1203 keeps 241, #1215 renumbered to 243). The
+allocation rule now lives in `AGENTS.md` Backlog Hygiene: highest across `origin/main` **and
+every open PR's story files**, **claim = the open PR**, first-claimant keeps on collision,
+renumber before merge. Remaining: the CI check that fails a PR adding a story file whose ID is
+already claimed on the base or by another open PR.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-235-story-id-collisions.md`
 
