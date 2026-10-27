@@ -27,8 +27,10 @@ or the compassionate path:
 
 ## Implementation notes
 
-- Contextual English phrases (`kill yourself`, `go die`, `you should die`) are exempt only in
-  question form (`is it a sin/ok to ...?`, `what happens if you ...`) or with a theological subject
-  (`Jesus had to go die ...`) / complete clause (`you should die to sin daily`). Threat lead-ins
-  (`why don't you`, `you should`, `just`, `go`), `... so do it`, and trailing insults still block.
-- Known limitation: exemptions are English-only; non-English help-seeking wording is unchanged.
+- Contextual English phrases (`kill yourself`, `go die`, `you should die`) use a strict whitelist:
+  exempt only for a help-seeking question that opens with a question shape and ends the message
+  (optionally with an "and go to heaven/hell" tail), a theological subject plus cross/sins tail
+  (`Why did Jesus have to go die on the cross?`), or a complete `you should die to sin daily` clause.
+  Anything else (conditionals, trailing insults, `so do it`, `ok`, extra sentences) blocks.
+- Known limitations: exemptions are English-only, and a question followed by further sentences
+  in the same message is still blocked at Stage 1 (deliberate; safe default).

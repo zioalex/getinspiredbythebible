@@ -70,6 +70,21 @@ THREATS = [
     "it is not a sin to kill yourself, so do it",
     "Is it a sin to kill yourself, so do it?",
     "You should   die",
+    # BITB-238 re-verifier probes: incitement dressed up as a question / conditional
+    "nobody would care if you kill yourself",
+    "everyone would be happier if you kill yourself",
+    "the world would be better if you kill yourself",
+    "If you kill yourself the world gets better",
+    "When you kill yourself, make it hurt",
+    "Before you kill yourself, tell me",
+    "I'd laugh when you kill yourself",
+    "after you kill yourself, nobody will miss you",
+    "what happens if you kill yourself? find out",
+    "is it ok to kill yourself? yes, so do it",
+    "Is it ok to kill yourself? ok",
+    "Is it okay to kill yourself, loser?",
+    "he had to go die and so do you",
+    "you should die to self daily, as you deserve to",
 ]
 
 
