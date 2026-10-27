@@ -170,11 +170,18 @@ class ChatViewModelTest {
             ttsPreferences,
             analyticsHelper,
         )
+        // BITB-080 default-off rollout gate: the existing BITB-149 behavior tests
+        // below represent the FLAG-ON state, so flip the gate on for this class.
+        // The flag-off contract has its own dedicated tests just below them.
+        ChatViewModel.followUpsEnabledForTest = true
     }
 
     @After
     fun tearDown() {
         LogCollector.clear()
+        // Reset the BITB-080 rollout-gate test override so it never leaks
+        // between test classes.
+        ChatViewModel.followUpsEnabledForTest = null
         Dispatchers.resetMain()
     }
 
@@ -3005,6 +3012,43 @@ class ChatViewModelTest {
             listOf("a", "b"),
             viewModel.uiState.value.followUps,
         )
+    }
+
+    // ── BITB-080: default-off rollout gate for the follow-up chips ───────────
+
+    @Test
+    fun `followUps in the stream are ignored while the rollout gate is off`() = runTest {
+        // The gate must default OFF (BuildConfig.CHAT_FOLLOW_UPS_ENABLED is false
+        // unless built with -PchatFollowUpsEnabled=true), and @After resets the
+        // test override — so the compile-time default applies here.
+        ChatViewModel.followUpsEnabledForTest = null
+
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // No crash, no empty row, no state exposure: the completion event's
+        // follow_ups field is ignored entirely while Android stays dark.
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `followUps resume unchanged when the rollout gate flips on`() = runTest {
+        ChatViewModel.followUpsEnabledForTest = true
+
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
     }
 
     // ── BITB-119: read aloud ──────────────────────────────────────────────
