@@ -59,11 +59,13 @@
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.verse_grounding_paraphrase_brackets (BITB-053, BITB-223)
 #       Observation alert: bracketed unquoted-paraphrase appends
 #       (chat.verse_grounding.paraphrase_detections, bracketed=true applied=true)
-#       clustering inside parenthetical references. Buffered (>20 per 1h bin over
-#       a 24h window) and clustered (2 of 3 evaluations) so a single stray event
-#       never pages. Cosmetic; dormant until grounding_paraphrases_mode is set to
-#       "append" per docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md.
-#       (BITB-223) demoted to P1D — trend data, not a page.
+#       clustering inside parenthetical references. Buffered (>20 per 1h bin) and
+#       clustered (at least 2 such hourly bins in the 24h window) so a single stray
+#       event never pages. Cosmetic; dormant until grounding_paraphrases_mode is set
+#       to "append" per docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md.
+#       (BITB-223) demoted to P1D — trend data, not a page. One evaluation period
+#       only: Azure caps query look-back (window_duration x evaluation periods) at
+#       48h, so the old 2-of-3 gate on a P1D window (72h) is rejected with a 400.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-143 Phase 2, BITB-223)
 #       Fires when the embedding provider's circuit breaker records any retry,
 #       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
@@ -941,7 +943,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_parap
   window_duration      = "P1D"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 3
-  description          = "BITB-053 unquoted-paraphrase appends are clustering inside parenthetical references (nested-parens artifact): >20 bracketed applied appends per 1h bin over the last 24h, sustained across 2 of the last 3 evaluations. Cosmetic; daily observation alert (BITB-223), active only while grounding_paraphrases_mode is 'append'."
+  description          = "BITB-053 unquoted-paraphrase appends are clustering inside parenthetical references (nested-parens artifact): >20 bracketed applied appends per 1h bin in at least 2 hourly bins over the last 24h. Cosmetic; daily observation alert (BITB-223), active only while grounding_paraphrases_mode is 'append'."
 
   criteria {
     query                   = <<-KQL
@@ -955,12 +957,14 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_parap
       | where total > 20
     KQL
     time_aggregation_method = "Count"
-    threshold               = 0
+    threshold               = 1
     operator                = "GreaterThan"
 
+    # Clustering lives in the threshold (2+ hot hourly bins per day), not in
+    # failing_periods: Azure rejects look-back > 48h, and P1D x 3 periods = 72h.
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 2
-      number_of_evaluation_periods             = 3
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
     }
   }
 
