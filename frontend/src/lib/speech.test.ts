@@ -7,7 +7,10 @@ import {
   isSpeechSupported,
   loadVoices,
   pause,
+  clearStartFailed,
+  getStartFailedId,
   RESUME_WATCHDOG_MS,
+  START_WATCHDOG_MS,
   resume,
   speak,
   stop,
@@ -130,9 +133,9 @@ describe("loadVoices", () => {
 describe("speak / stop", () => {
   const voice = makeVoice("en-US") as unknown as SpeechSynthesisVoice;
 
-  it("cancels first, then queues one utterance per chunk in order", () => {
+  it("queues one utterance per chunk in order, without cancelling an idle engine", () => {
     speak("m1", ["one", "two", "three"], voice, "en");
-    expect(synth.cancel).toHaveBeenCalledTimes(1);
+    expect(synth.cancel).not.toHaveBeenCalled();
     expect(synth.spoken.map((u) => u.text)).toEqual(["one", "two", "three"]);
     expect(synth.spoken.every((u) => u.voice === (voice as unknown))).toBe(
       true,
@@ -151,6 +154,7 @@ describe("speak / stop", () => {
 
   it("stops and drops the queue when a chunk errors", () => {
     speak("m1", ["one", "two"], voice, "en");
+    synth.spoken[0].onstart?.();
     synth.cancel.mockClear();
     synth.spoken[0].onerror?.();
     expect(getSpeakingId()).toBeNull();
@@ -161,13 +165,18 @@ describe("speak / stop", () => {
     speak("m1", ["one"], voice, "en");
     stop();
     expect(getSpeakingId()).toBeNull();
-    expect(synth.cancel).toHaveBeenCalledTimes(2);
+    expect(synth.cancel).toHaveBeenCalledTimes(1); // our reading was active
+    synth.cancel.mockClear();
+    stop(); // idle: nothing to cancel
+    expect(synth.cancel).not.toHaveBeenCalled();
   });
 
   it("one voice at a time: a second speak() replaces the first", () => {
     speak("m1", ["a"], voice, "en");
     const first = synth.spoken[0];
-    speak("m2", ["b"], voice, "en");
+    expect(synth.cancel).not.toHaveBeenCalled();
+    speak("m2", ["b"], voice, "en"); // engine flags stay false: switching must still cancel
+    expect(synth.cancel).toHaveBeenCalledTimes(1);
     expect(getSpeakingId()).toBe("m2");
     // The first message's late end/error events must not clobber the new speaker.
     first.onend?.();
@@ -213,7 +222,7 @@ describe("pause / resume (BITB-205)", () => {
     speak("m1", chunks, voice, "en");
     pause();
     expect(synth.pause).toHaveBeenCalledTimes(1);
-    expect(synth.cancel).toHaveBeenCalledTimes(1); // only the initial speak() cancel
+    expect(synth.cancel).not.toHaveBeenCalled(); // pause never cancels natively
     expect(getSpeakingId()).toBeNull();
     expect(getPausedId()).toBe("m1");
   });
@@ -236,7 +245,7 @@ describe("pause / resume (BITB-205)", () => {
     synth.spoken[0].onresume?.();
     vi.advanceTimersByTime(RESUME_WATCHDOG_MS * 3);
     expect(synth.spoken).toHaveLength(3);
-    expect(synth.cancel).toHaveBeenCalledTimes(1);
+    expect(synth.cancel).not.toHaveBeenCalled();
   });
 
   it("native path: onboundary and onstart also count as resume progress", () => {
@@ -300,7 +309,7 @@ describe("pause / resume (BITB-205)", () => {
     startChunk(1);
     pause();
     expect(synth.pause).not.toHaveBeenCalled();
-    expect(synth.cancel).toHaveBeenCalledTimes(2);
+    expect(synth.cancel).toHaveBeenCalledTimes(1); // the pause fallback's cancel
     expect(getPausedId()).toBe("m1");
 
     synth.spoken.length = 0;
@@ -405,5 +414,189 @@ describe("online voices and availability", () => {
     speak("m1", ["Hello"], v, "en");
     expect(synth.spoken[0].voice).toBe(v);
     expect(getSpeakingId()).toBe("m1");
+  });
+});
+
+describe("start watchdog (BITB-241)", () => {
+  const voice = makeVoice("en-US") as unknown as SpeechSynthesisVoice;
+  const chunks = ["one", "two"];
+
+  it("does not cancel an idle engine before speaking", () => {
+    speak("m1", chunks, voice, "en");
+    expect(synth.cancel).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["speaking", { speaking: true }],
+    ["pending", { pending: true }],
+    ["paused", { paused: true }],
+  ] as const)("still cancels first when the engine is %s", (_, flags) => {
+    Object.assign(synth, flags);
+    speak("m1", chunks, voice, "en");
+    expect(synth.cancel).toHaveBeenCalledTimes(1);
+    if (flags.paused) expect(synth.resume).toHaveBeenCalled(); // BITB-205 rule
+  });
+
+  it("a natively paused queue is cancelled and resumed when another answer is spoken", () => {
+    speak("m1", chunks, voice, "en");
+    pause();
+    synth.cancel.mockClear();
+    speak("m2", ["x"], voice, "en");
+    expect(synth.cancel).toHaveBeenCalledTimes(1);
+    expect(synth.paused).toBe(false);
+    expect(getPausedId()).toBeNull();
+    expect(getSpeakingId()).toBe("m2");
+  });
+
+  it("silent engine: one retry, then idle and a start failure is recorded", () => {
+    vi.useFakeTimers();
+    const listener = vi.fn();
+    subscribe(listener);
+    speak("m1", chunks, voice, "en");
+    expect(getSpeakingId()).toBe("m1");
+    vi.advanceTimersByTime(START_WATCHDOG_MS);
+    expect(synth.spoken).toHaveLength(4); // re-queued from the same chunk
+    expect(synth.spoken.slice(2).map((u) => u.text)).toEqual(chunks);
+    expect(synth.cancel).not.toHaveBeenCalled(); // idle engine: nothing to cancel
+    expect(getSpeakingId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
+    vi.advanceTimersByTime(START_WATCHDOG_MS);
+    expect(getSpeakingId()).toBeNull();
+    expect(getPausedId()).toBeNull();
+    expect(getStartFailedId()).toBe("m1");
+    expect(listener).toHaveBeenCalled();
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 5);
+    expect(synth.spoken).toHaveLength(4); // no third attempt
+  });
+
+  it("retry cancels a stuck queue when the engine reports busy", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.pending = true;
+    vi.advanceTimersByTime(START_WATCHDOG_MS);
+    expect(synth.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts on the retry: plays normally and records no failure", () => {
+    vi.useFakeTimers();
+    synth.speakHook = (u, nth) => {
+      if (nth === 3) setTimeout(() => u.onstart?.(), 10); // first chunk of attempt 2
+    };
+    speak("m1", chunks, voice, "en");
+    vi.advanceTimersByTime(START_WATCHDOG_MS + 10);
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(synth.spoken).toHaveLength(4);
+    expect(getSpeakingId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
+    synth.lastQueue(2)[1].onend?.();
+    expect(getSpeakingId()).toBeNull();
+  });
+
+  it("onstart or onboundary of the first attempt cancels the watchdog", () => {
+    vi.useFakeTimers();
+    for (const signal of ["onstart", "onboundary"] as const) {
+      speak("m1", chunks, voice, "en");
+      synth.lastQueue(2)[0][signal]?.();
+      const queued = synth.spoken.length;
+      vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+      expect(synth.spoken).toHaveLength(queued);
+      expect(getSpeakingId()).toBe("m1");
+      expect(getStartFailedId()).toBeNull();
+      stop();
+    }
+  });
+
+  it("a first-chunk error before any start gives up without a retry", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.speaking = true;
+    synth.lastQueue(2)[0].onerror?.();
+    expect(getSpeakingId()).toBeNull();
+    expect(getStartFailedId()).toBe("m1");
+    expect(synth.cancel).toHaveBeenCalled(); // drops the rest of the queue
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(synth.spoken).toHaveLength(2);
+  });
+
+  it("an error after the reading started is a normal finish, not a failure", () => {
+    speak("m1", chunks, voice, "en");
+    synth.lastQueue(2)[0].onstart?.();
+    synth.lastQueue(2)[0].onerror?.();
+    expect(getSpeakingId()).toBeNull();
+    expect(getStartFailedId()).toBeNull();
+  });
+
+  it("the failure clears on the next speak() and on stop()", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    expect(getStartFailedId()).toBe("m1");
+    speak("m1", chunks, voice, "en");
+    expect(getStartFailedId()).toBeNull();
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    expect(getStartFailedId()).toBe("m1");
+    stop();
+    expect(getStartFailedId()).toBeNull();
+    speak("m1", chunks, voice, "en");
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    clearStartFailed();
+    expect(getStartFailedId()).toBeNull();
+  });
+
+  it("stop() and pause() disarm the start watchdog; a second speak() supersedes the first", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    stop();
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(getStartFailedId()).toBeNull();
+    expect(synth.spoken).toHaveLength(2);
+
+    speak("m1", chunks, voice, "en");
+    pause();
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(getPausedId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
+    stop();
+
+    speak("m1", chunks, voice, "en");
+    vi.advanceTimersByTime(START_WATCHDOG_MS - 100);
+    speak("m2", ["z"], voice, "en");
+    vi.advanceTimersByTime(START_WATCHDOG_MS - 100); // m1's old timer must not fire
+    expect(getSpeakingId()).toBe("m2");
+    expect(getStartFailedId()).toBeNull();
+  });
+
+  it("the resume watchdog and the start watchdog do not clear each other", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.lastQueue(2)[0].onstart?.(); // start watchdog satisfied
+    pause();
+    resume();
+    synth.spoken.length = 0;
+    vi.advanceTimersByTime(RESUME_WATCHDOG_MS); // resume watchdog restarts the queue
+    expect(synth.spoken.map((u) => u.text)).toEqual(chunks);
+    // ...which arms a fresh start watchdog that gives up if that restart is silent too.
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 2);
+    expect(getStartFailedId()).toBe("m1");
+  });
+
+  it("engine reporting speaking=true at timeout counts as started (no retry, no failure)", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.speaking = true; // never fired onstart/onboundary
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(synth.spoken).toHaveLength(2);
+    expect(getSpeakingId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
+  });
+
+  it("a non-final chunk's onend counts as a start signal", () => {
+    vi.useFakeTimers();
+    speak("m1", chunks, voice, "en");
+    synth.lastQueue(2)[0].onend?.();
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(synth.spoken).toHaveLength(2);
+    expect(getSpeakingId()).toBe("m1");
+    expect(getStartFailedId()).toBeNull();
   });
 });
