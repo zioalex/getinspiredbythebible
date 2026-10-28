@@ -21,6 +21,7 @@ and no workflow runs the e2e suite on pull requests (`prod-browser-smoke.yml` on
 ## Decision (2026-10-28)
 
 **Engine + quirk tests:**
+
 - Playwright runs on **Chromium (Chrome/Edge), Firefox and WebKit (Safari and every iPhone browser)** on
   every PR.
 - The app is driven through its real UI, with the backend mocked by `page.route`.

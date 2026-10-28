@@ -19,20 +19,10 @@ export type ClientEventName =
   | "tts_unavailable";
 
 export type BrowserFamily =
-  | "chrome"
-  | "firefox"
-  | "safari"
-  | "edge"
-  | "samsung"
-  | "other";
+  "chrome" | "firefox" | "safari" | "edge" | "samsung" | "other";
 
 export type OsFamily =
-  | "android"
-  | "ios"
-  | "linux"
-  | "windows"
-  | "macos"
-  | "other";
+  "android" | "ios" | "linux" | "windows" | "macos" | "other";
 
 /** The subset of `navigator` the detectors read (injectable for tests). */
 export interface NavigatorLike {

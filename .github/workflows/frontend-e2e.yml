@@ -54,8 +54,7 @@ jobs:
       - name: Install Playwright browser
         # Chromium is the base install for every project; WebKit also serves Mobile Safari.
         run: >-
-          npx playwright install --with-deps
-          ${{ matrix.project == 'Mobile Safari' && 'webkit' || matrix.project }}
+          npx playwright install --with-deps ${{ matrix.project == 'Mobile Safari' && 'webkit' || matrix.project }}
 
       - name: Run read-aloud spec
         # CI=true (set by Actions) makes playwright.config.ts start `npm run start` on :3000.
