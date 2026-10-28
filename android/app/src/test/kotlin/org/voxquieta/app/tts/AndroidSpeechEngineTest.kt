@@ -10,6 +10,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -322,5 +328,232 @@ class AndroidSpeechEngineTest {
         val ptAo = voice("pt-AO")
         assertEquals(ptPt, rankLocalVoices(listOf(ptAo, ptPt), "pt").first())
         assertEquals(emptyList<Voice>(), rankLocalVoices(listOf(fr), "de"))
+    }
+
+    // ── BITB-247: reading outcomes (completed / error / start watchdog) ─────────
+
+    /** A scheduler the test drives by hand: records delays and lets the test fire or cancel. */
+    private class ManualWatchdog {
+        val delays = mutableListOf<Long>()
+        private val blocks = mutableListOf<() -> Unit>()
+        var cancelCount = 0
+            private set
+
+        val scheduler: (Long, () -> Unit) -> (() -> Unit) = { delay, block ->
+            delays += delay
+            blocks += block
+            val cancel: () -> Unit = { cancelCount += 1 }
+            cancel
+        }
+
+        /** Runs the most recently scheduled block, as the timer would after the delay. */
+        fun fireLast() = blocks.last().invoke()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun TestScope.collectEvents(engine: AndroidSpeechEngine): List<SpeechEvent> {
+        val seen = mutableListOf<SpeechEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { engine.events.toList(seen) }
+        return seen
+    }
+
+    @Test
+    fun `completed is emitted only when the last chunk finishes`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one", "two"), "en")
+        h.progress.onStart(h.idOf(0))
+        h.progress.onDone(h.idOf(0))
+        assertEquals(emptyList<SpeechEvent>(), events)
+        h.progress.onStart(h.idOf(1))
+        h.progress.onDone(h.idOf(1))
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.Completed("m1")), events)
+        assertNull(h.engine.speakingId.value)
+    }
+
+    @Test
+    fun `completed is also emitted after pause and resume`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one", "two"), "en")
+        h.progress.onStart(h.idOf(1))
+        h.engine.pause()
+        h.engine.resume()
+        h.progress.onStart(h.idOf(1))
+        h.progress.onDone(h.idOf(1))
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.Completed("m1")), events)
+    }
+
+    @Test
+    fun `a late done from the interrupted queue emits nothing`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one", "two"), "en")
+        val staleLast = h.idOf(1)
+        h.progress.onStart(h.idOf(0))
+        h.engine.pause()
+        h.progress.onDone(staleLast)
+        assertEquals(emptyList<SpeechEvent>(), events)
+    }
+
+    @Test
+    fun `onError emits Error once and stops the reading`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one", "two"), "en")
+        h.progress.onStart(h.idOf(0))
+        h.progress.onError(h.idOf(0), android.speech.tts.TextToSpeech.ERROR_SYNTHESIS)
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.Error("m1")), events)
+        assertNull(h.engine.speakingId.value)
+        // A second error callback for the same (now stale) call must not double-report.
+        h.progress.onError(h.idOf(1), android.speech.tts.TextToSpeech.ERROR_SYNTHESIS)
+        assertEquals(1, events.size)
+    }
+
+    @Test
+    fun `a stale onError after stop emits nothing`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        val id = h.idOf(0)
+        h.engine.stop()
+        h.progress.onError(id, android.speech.tts.TextToSpeech.ERROR)
+        assertEquals(emptyList<SpeechEvent>(), events)
+    }
+
+    @Test
+    fun `no onStart within the timeout emits StartFailed but keeps the reading going`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        assertTrue(h.engine.speak("m1", listOf("one"), "en"))
+        assertEquals(listOf(3_000L), watchdog.delays)
+        assertEquals("m1", h.engine.speakingId.value)
+
+        watchdog.fireLast()
+
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
+        // Telemetry must not change playback: still speaking, engine not stopped.
+        assertEquals("m1", h.engine.speakingId.value)
+        verify(exactly = 1) { h.tts.stop() } // only the QUEUE_FLUSH pre-clear in speak()
+    }
+
+    @Test
+    fun `a slow engine that starts after the timeout keeps playing and adds no second outcome`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        val id = h.idOf(0)
+
+        watchdog.fireLast() // StartFailed at 3 s
+        h.progress.onStart(id) // engine finally starts
+        h.progress.onDone(id)
+
+        // Single outcome per call: the late Completed is suppressed after StartFailed.
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
+        assertNull(h.engine.speakingId.value) // finished normally
+    }
+
+    @Test
+    fun `resume after a reported StartFailed adds no second outcome for the same tap`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one", "two"), "en")
+
+        watchdog.fireLast() // StartFailed at 3 s
+        h.progress.onStart(h.idOf(0)) // engine finally starts
+        h.engine.pause()
+        assertTrue(h.engine.resume())
+        watchdog.fireLast() // resumed attempt is silent too: no second StartFailed
+        h.progress.onStart(h.idOf(1))
+        h.progress.onDone(h.idOf(1)) // and its Completed stays suppressed
+
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
+
+        h.engine.speak("m2", listOf("three"), "en") // a new tap is a fresh attempt
+        watchdog.fireLast()
+        assertEquals(
+            listOf<SpeechEvent>(SpeechEvent.StartFailed("m1"), SpeechEvent.StartFailed("m2")),
+            events,
+        )
+    }
+
+    @Test
+    fun `onBeginSynthesis and onRangeStart count as started and cancel the watchdog`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        h.progress.onBeginSynthesis(h.idOf(0), 22050, 2, 1)
+        assertEquals(1, watchdog.cancelCount)
+        watchdog.fireLast()
+        assertEquals(emptyList<SpeechEvent>(), events)
+
+        h.engine.speak("m2", listOf("two"), "en")
+        h.progress.onRangeStart(h.idOf(0), 0, 3, 0)
+        assertEquals(2, watchdog.cancelCount)
+        watchdog.fireLast()
+        assertEquals(emptyList<SpeechEvent>(), events)
+    }
+
+    @Test
+    fun `onDone without onStart counts as started`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        h.progress.onDone(h.idOf(0))
+        watchdog.fireLast()
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.Completed("m1")), events)
+    }
+
+    @Test
+    fun `onStart cancels the watchdog and a late fire emits nothing`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        h.progress.onStart(h.idOf(0))
+        assertEquals(1, watchdog.cancelCount)
+
+        watchdog.fireLast() // even if the cancel raced, `started` guards it
+
+        assertEquals(emptyList<SpeechEvent>(), events)
+        assertEquals("m1", h.engine.speakingId.value)
+    }
+
+    @Test
+    fun `pause and stop cancel the watchdog`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        h.engine.pause()
+        assertEquals(1, watchdog.cancelCount)
+        watchdog.fireLast()
+        assertEquals(emptyList<SpeechEvent>(), events)
+
+        h.engine.resume()
+        h.engine.stop()
+        assertEquals(2, watchdog.cancelCount) // pause cancelled the first; resume re-armed, stop cancelled that
+        watchdog.fireLast()
+        assertEquals(emptyList<SpeechEvent>(), events)
+    }
+
+    @Test
+    fun `a refused speak emits no engine event (the ViewModel reports start_failed)`() = runTest {
+        val h = harness(listOf(voice("en-US")), focusResult = AudioManager.AUDIOFOCUS_REQUEST_FAILED)
+        val events = collectEvents(h.engine)
+        assertFalse(h.engine.speak("m1", listOf("Hello."), "en"))
+        assertEquals(emptyList<SpeechEvent>(), events)
     }
 }

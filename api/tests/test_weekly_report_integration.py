@@ -24,10 +24,11 @@ DB). CI's ``backend-tests`` job provides a service container with
 """
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import text
+from sqlalchemy import Table, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -146,3 +147,50 @@ async def test_build_report_with_sessions_table_from_migration(reporting_session
     assert report.engagement.web_sessions == 1
     assert report.engagement.mobile_sessions == 1
     assert {lc.language for lc in report.engagement.top_languages} == {"en", "it"}
+
+
+@pytest.mark.asyncio
+async def test_build_report_read_aloud_section_with_real_table(reporting_session: AsyncSession):
+    """BITB-247: with ``tts_event_daily`` present the funnel is aggregated from real rows
+    (7 UTC days, upsert-incremented counts), and old rows fall outside the window."""
+    from feedback.models import TtsEventDaily
+    from utils.tts_events import build_tts_event_upsert
+
+    await reporting_session.run_sync(
+        lambda sync_session: Base.metadata.create_all(
+            sync_session.connection(), tables=[cast(Table, TtsEventDaily.__table__)]
+        )
+    )
+    from datetime import UTC, datetime, timedelta
+
+    today = datetime.now(UTC).date()
+    dims = {"locale": "en", "platform": "web", "browser": "safari", "os": "ios"}
+    for event, times in (("tts_started", 3), ("tts_completed", 2), ("tts_error", 1)):
+        for _ in range(times):  # repeated upserts must increment, not duplicate
+            await reporting_session.execute(build_tts_event_upsert(day=today, event=event, **dims))
+    await reporting_session.execute(
+        build_tts_event_upsert(day=today - timedelta(days=30), event="tts_started", **dims)
+    )
+    await reporting_session.commit()
+
+    report = await build_weekly_report(reporting_session)
+
+    assert report.tts.available is True
+    assert report.tts.totals["tts_started"] == 3  # the 30-day-old row is outside the window
+    assert report.tts.totals["tts_completed"] == 2
+    assert report.tts.totals["tts_error"] == 1
+    assert report.tts.completion_rate == pytest.approx(2 / 3)
+    assert [(p.browser, p.os, p.failures) for p in report.tts.top_failures] == [
+        ("safari", "ios", 1)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_build_report_tolerates_missing_tts_table_on_real_connection(
+    reporting_session: AsyncSession,
+):
+    """BITB-247: the fixture schema has no ``tts_event_daily``; the report must roll back and
+    fall back to an unavailable section instead of raising."""
+    report = await build_weekly_report(reporting_session)
+    assert report.tts.available is False
+    assert report.tts.totals["tts_started"] == 0

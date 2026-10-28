@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-22
+lastUpdated: 2026-10-27
 ---
 
 # Informativa sulla privacy
 
 > _Questa traduzione è stata generata dall'intelligenza artificiale ed è fornita esclusivamente per comodità. In caso di omissioni, ambiguità o contraddizioni rispetto all'originale inglese, prevale la versione inglese, che resta canonica._
 
-Ultimo aggiornamento: 22 ottobre 2026
+Ultimo aggiornamento: 27 ottobre 2026
 
 ## Chi siamo
 
@@ -63,6 +63,8 @@ Puoi visualizzare, rinominare, eliminare o cancellare questa cronologia in quals
 Il pulsante Ascolta legge le risposte ad alta voce con la sintesi vocale integrata nel tuo browser. Per impostazione predefinita usa solo le voci offline installate sul tuo dispositivo, quindi il testo della risposta non lascia il dispositivo per questa funzione.
 
 Alcuni browser offrono solo voci online per la tua lingua. Usiamo una voce online solo se scegli "Consenti voci online". In tal caso il tuo browser invia il testo della risposta letta al servizio vocale del produttore del browser (ad esempio Google, Microsoft o Apple), che lo tratta secondo i propri termini; noi non lo riceviamo né lo conserviamo. La tua scelta è salvata solo sul tuo dispositivo e puoi revocarla in qualsiasi momento con l'interruttore "Consenti voci online" nel menu, che interrompe anche la lettura in corso.
+
+Contiamo l'uso della lettura ad alta voce in forma anonima, per lingua, famiglia di browser e famiglia di sistema operativo (ad esempio «Firefox su Linux»), per capire dove la funzione va e dove no. Questi conteggi non contengono testo, nomi di voci, stringhe user-agent, indirizzi IP o identificatori.
 
 ## Conservazione dei dati
 
