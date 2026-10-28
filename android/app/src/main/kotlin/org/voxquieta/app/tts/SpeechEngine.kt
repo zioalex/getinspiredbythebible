@@ -220,7 +220,7 @@ class AndroidSpeechEngine @Inject constructor(
     private fun armWatchdog(callToken: Long, id: String) {
         disarmWatchdog()
         cancelWatchdog = watchdogScheduler(START_TIMEOUT_MS) {
-            if (token == callToken && !started && _speakingId.value == id) {
+            if (token == callToken && !started && !startFailedReported && _speakingId.value == id) {
                 startFailedReported = true
                 _events.tryEmit(SpeechEvent.StartFailed(id))
             }
@@ -395,6 +395,9 @@ class AndroidSpeechEngine @Inject constructor(
         if (chunks.isEmpty()) return false
         // Any new speak() discards a paused position (one position at a time; BITB-205).
         _pausedId.value = null
+        // A new tap starts a fresh attempt; resume() keeps the flag so one tap never yields
+        // two outcomes (BITB-247).
+        startFailedReported = false
         return startSpeaking(id, chunks, languageTag, fromIndex = 0)
     }
 
@@ -419,7 +422,6 @@ class AndroidSpeechEngine @Inject constructor(
         currentLanguageTag = languageTag
         playingIndex = fromIndex
         started = false
-        startFailedReported = false
         engine.voice = voice
         _speakingId.value = id
         chunks.forEachIndexed { index, chunk ->

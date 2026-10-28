@@ -458,6 +458,32 @@ class AndroidSpeechEngineTest {
     }
 
     @Test
+    fun `resume after a reported StartFailed adds no second outcome for the same tap`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one", "two"), "en")
+
+        watchdog.fireLast() // StartFailed at 3 s
+        h.progress.onStart(h.idOf(0)) // engine finally starts
+        h.engine.pause()
+        assertTrue(h.engine.resume())
+        watchdog.fireLast() // resumed attempt is silent too: no second StartFailed
+        h.progress.onStart(h.idOf(1))
+        h.progress.onDone(h.idOf(1)) // and its Completed stays suppressed
+
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
+
+        h.engine.speak("m2", listOf("three"), "en") // a new tap is a fresh attempt
+        watchdog.fireLast()
+        assertEquals(
+            listOf<SpeechEvent>(SpeechEvent.StartFailed("m1"), SpeechEvent.StartFailed("m2")),
+            events,
+        )
+    }
+
+    @Test
     fun `onBeginSynthesis and onRangeStart count as started and cancel the watchdog`() = runTest {
         val h = harness(listOf(voice("en-US")))
         val watchdog = ManualWatchdog()
