@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-28: BITB-252 spec — privacy-safe RAG retrieval-miss logging (derived signals only, no prompt text)
+- 2026-10-28: BITB-251 spec — emergency critical path: deterministic hotline card first for threats to self or others
 - 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
 - 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
@@ -118,6 +120,27 @@ re-litigating a settled rule.
 ---
 
 ## P0 - Critical (Ship Now)
+
+### 🎯 BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
+
+**Status:** 🎯 Todo — spec awaiting owner confirmation
+**Size:** L
+**Created:** 2026-10-28
+
+A message threatening self or others sends a localized emergency + crisis-line card (region + language,
+tap-to-call) as the first event, before retrieval or the LLM. Today hotlines depend on the LLM on the
+compassionate path, and a threat to others gets no contacts at all.
+
+**Acceptance Criteria:**
+
+- [ ] All three trigger outcomes (compassionate, blocked self-harm, blocked threat) emit `crisis_resources` first, blocking + streaming
+- [ ] Region → language default → international fallback, parametrized across 11 languages
+- [ ] Every hotline entry carries a verified source + date (test-enforced); owner signs off the numbers
+- [ ] Crisis card on web and Android (tel:/sms:, RTL, accessible); old clients keep a markdown fallback
+
+**Full Story:** [`BITB-251-emergency-critical-path-hotlines.md`](BACKLOG_STORIES/BITB-251-emergency-critical-path-hotlines.md)
+
+---
 
 ### ✅ BITB-022: Fix Remaining Empty Panels in Performance Dashboard
 
@@ -272,6 +295,27 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-252: RAG Retrieval-Miss Insights — Privacy-Safe Logging
+
+**Status:** 🎯 Todo — spec awaiting owner confirmation
+**Size:** M
+**Created:** 2026-10-28
+
+Record empty, low-score, and cited-outside-pool retrieval misses in a TTL-bounded `retrieval_miss_samples`
+table plus a log event and OTel counter, using derived signals only (intent, topics, sanitized expansion
+terms, language, translation, scores, refs). No user text is ever stored.
+
+**Acceptance Criteria:**
+
+- [ ] Each miss reason recorded on blocking + streaming paths; non-search/crisis turns never recorded
+- [ ] Sentinel test proves no user text in DB row or log
+- [ ] Dedup by signature, TTL, feature flag, migration, export script + docs
+- [ ] One-line privacy-policy update in all 11 languages
+
+**Full Story:** [`BITB-252-rag-retrieval-miss-insights.md`](BACKLOG_STORIES/BITB-252-rag-retrieval-miss-insights.md)
+
+---
 
 ### 🔄 BITB-244: Bible Version / Language Selects Overflow the Mobile Menu
 
