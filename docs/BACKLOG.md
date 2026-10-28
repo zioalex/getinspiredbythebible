@@ -20,8 +20,14 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-27: BITB-223 fix — first apply failed: `verse_grounding_paraphrase_brackets` look-back 72h > Azure's 48h cap; gate moved to 2+ hot hourly bins/day (1-of-1 periods) + look-back regression test (PR pending)
+- 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
+- 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
 - 2026-10-27: BITB-235 in progress — ID-allocation rule codified in AGENTS.md (origin/main + every open PR's story files, claim = open PR, first-claimant keeps on collision); BITB-241 double-claim resolved: #1203 keeps 241, #1215 renumbered to 243; CI duplicate-ID check still open (PR #1220)
 - 2026-10-26: BITB-242 created — platform-selective feature flags: server-driven per-platform (web/android) flag registry on GET /config, explicit per-flag fail policies, parity fixture, follow-ups pilot (PR #1220)
+- 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
+- 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
+- 2026-10-24: BITB-241 in progress — web read aloud stuck on Pause with no audio on Linux Firefox: no idle cancel, start watchdog with retry and notice (PR #1203)
 - 2026-10-24: BITB-239/240 renumbered from 236/237 — those IDs were taken on main by PR #1202 (opencode model matrix + free-fleet expansion); content unchanged (PR #1199)
 - 2026-10-24: BITB-237 created — free-fleet expansion: pre-gate verifier (Nemotron), family-matched tier-1 hops, usage-rank comment fix; follow-up to BITB-236 (PR #1202)
 - 2026-10-24: BITB-236 done — agent model matrix 2.0: paid GLM-5.3/DeepSeek-V3.2-Exp primaries, gpt-oss-120b retired (PR #1202)
@@ -261,6 +267,37 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🔄 BITB-244: Bible Version / Language Selects Overflow the Mobile Menu
+
+**Status:** 🔄 In Review
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-27
+
+Tester report (iOS + Android): the menu's Bible version select sized itself to its longest option
+and spilled over the chat. Collapsed controls now show a truncating short label over a transparent
+native select (16px, no iOS zoom); same for the language select. GitHub issue #1223.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-244-mobile-menu-selects-fit-sidebar.md`
+
+---
+
+### 🔄 BITB-245: Pin the Chat Input to the Bottom of the Screen on Mobile
+
+**Status:** 🔄 In Review
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-27
+
+Tester report: footer links and "Get in Touch" under the composer get tapped by accident. Below lg
+the composer is now the last thing on screen; those entries move to the main menu, and the shell
+follows the on-screen keyboard (Android `interactive-widget`, iOS visual-viewport hook). Desktop
+unchanged. GitHub issue #1224.
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-245-pin-chat-input-mobile.md`
+
+---
 
 ### 🎯 BITB-224: Availability Web Tests Are Silently Disabled in Production
 
@@ -3287,7 +3324,7 @@ stopped), budget alert at 80% of credit, teardown checklist when the migration c
 
 ### 🎯 BITB-223: Alert-Rule Rationalization — Actionability Over Inventory
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-23
@@ -4241,6 +4278,26 @@ BITB-211 follow-up: a visible trailing reference list (not seen so far) would st
 - [ ] If found: shared fixture rule + parity test + prompt fix; else close
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-216-read-aloud-visible-verse-list.md`
+
+---
+
+### 🚧 BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-24
+
+Linux Firefox lists speech-dispatcher voices, so Listen appears, but its engine can stay silent. The app
+then sits on "Pause" forever. Fix: no `cancel()` before `speak()` when idle (a speech-dispatcher race),
+and a start watchdog that retries once, then resets and explains.
+
+**Acceptance Criteria (summary):**
+
+- [ ] No cancel when idle; start watchdog with one retry, then reset and message; first-chunk error handled
+- [ ] Message in 11 locales; Vitest coverage; owner check on Linux Firefox
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-241-web-read-aloud-silent-start-firefox.md`
 
 ---
 

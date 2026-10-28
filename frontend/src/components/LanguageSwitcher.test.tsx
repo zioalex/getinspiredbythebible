@@ -56,10 +56,28 @@ describe("LanguageSwitcher", () => {
       const label = localeLabels[loc];
       expect(label, `Missing localeLabels entry for "${loc}"`).toBeTruthy();
       expect(
-        screen.getByText(label),
+        screen.getByRole("option", { name: label }),
         `Option for locale "${loc}" not rendered`,
       ).toBeDefined();
     }
+  });
+
+  // #1223: the control must fit the mobile menu instead of sizing itself to
+  // its longest option, and must not trigger iOS focus zoom.
+  it("shows the current language as a truncating label inside a width-bounded control", () => {
+    renderWithIntl(<LanguageSwitcher />);
+    const control = screen.getByTestId("language-switcher-control");
+    expect(control).toHaveClass("min-w-0", "max-w-full", "flex-1");
+    expect(control.parentElement).toHaveClass("w-full", "min-w-0");
+    const label = control.querySelector("span.truncate");
+    expect(label).toHaveTextContent("English");
+  });
+
+  it("keeps the native select at >= 16px and stretched over the control", () => {
+    renderWithIntl(<LanguageSwitcher />);
+    const select = screen.getByRole("combobox");
+    expect(select).toHaveClass("text-base", "absolute", "inset-0", "w-full");
+    expect(select.className).not.toMatch(/\btext-(xs|sm)\b/);
   });
 
   it("renders Globe icon", () => {

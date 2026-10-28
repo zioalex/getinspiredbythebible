@@ -148,6 +148,7 @@
     "listenAnswer": "الاستماع إلى الإجابة",
     "pauseListening": "إيقاف القراءة مؤقتًا",
     "resumeListening": "استئناف القراءة",
+    "speechEngineNoResponse": "لم يستجب محرك الكلام في متصفحك.",
     "showListenButton": "إظهار زر الاستماع",
     "allowOnlineVoices": "السماح بالأصوات عبر الإنترنت",
     "onlineVoicesNotNow": "ليس الآن",
@@ -258,7 +259,8 @@
     "successDescription": "شكراً لتواصلك. سنراجع رسالتك قريباً.",
     "sendAnother": "إرسال رسالة أخرى",
     "errorSend": "فشل إرسال الرسالة. يرجى المحاولة مرة أخرى أو مراسلتنا مباشرة.",
-    "errorEmailInvalid": "يرجى إدخال بريد إلكتروني صالح حتى نتمكن من الرد."
+    "errorEmailInvalid": "يرجى إدخال بريد إلكتروني صالح حتى نتمكن من الرد.",
+    "close": "إغلاق"
   },
   "ErrorBoundary": {
     "title": "حدث خطأ ما",
