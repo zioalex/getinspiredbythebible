@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-27
+**Last Updated:** 2026-10-28
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
 - 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
 - 2026-10-27: BITB-248 in progress — web read aloud still stuck on Pause on Snap Firefox: start watchdog no longer trusts speechSynthesis.speaking; follow-up to BITB-241 (PR #1226)
@@ -4332,6 +4333,26 @@ utterances after the first, so only about two sentences were read. Fix: speak on
 - [ ] Owner check on iPhone Firefox and Safari
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-249-ios-read-aloud-stops-after-first-chunk.md`
+
+---
+
+### 🚧 BITB-250: Cross-Browser Read-Aloud E2E Tests with Browser-Quirk Engine Profiles (Web)
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-28
+
+Playwright on Chromium, Firefox and WebKit, driving the real UI against a fake speech engine whose profiles
+replay known browser bugs (iPhone queue drop, hung speech-dispatcher, late voices, cancel events, online-only,
+no voices), so read-aloud regressions fail CI before they ship.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Fake engine and profiles; the spec fails when BITB-248/249 fixes are reverted
+- [ ] Passes on all three engines; CI job on frontend PRs; README on adding profiles
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-250-cross-browser-read-aloud-e2e.md`
 
 ---
 
