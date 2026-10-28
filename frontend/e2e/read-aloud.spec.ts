@@ -46,7 +46,12 @@ const PAUSE = "Pause reading";
 const RESUME = "Resume reading";
 const NO_RESPONSE = "Your browser's speech engine didn't respond.";
 
-const API_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1):8000\//;
+// CI builds with NEXT_PUBLIC_API_URL=http://localhost:3000/e2e-api: same origin as the page, so
+// no CORS preflight is involved (WebKit failed the cross-origin preflight to a mocked :8000).
+// A default local build still calls :8000, which is matched too.
+const API_ORIGIN =
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:8000\/|:3000\/e2e-api\/)/;
+const API_PREFIX = /^\/e2e-api(?=\/)/;
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-headers": "*",
@@ -77,7 +82,7 @@ async function mockBackend(page: Page) {
     if (request.method() === "OPTIONS") {
       return route.fulfill({ status: 204, headers: CORS });
     }
-    const { pathname } = new URL(request.url());
+    const pathname = new URL(request.url()).pathname.replace(API_PREFIX, "");
     if (pathname === "/config") {
       return json(route, {
         chat: { max_message_length: 2000, session_max_requests: 100 },
@@ -175,6 +180,11 @@ async function setup(
       // storage blocked: nothing to seed
     }
   });
+  // Surface in-page errors in the test output: CI artifacts are not always reachable.
+  page.on("console", (msg) => {
+    if (msg.type() === "error") console.log(`[browser console] ${msg.text()}`);
+  });
+  page.on("pageerror", (err) => console.log(`[page error] ${err.message}`));
   await installFakeSpeech(page, profile, options);
   await mockBackend(page);
   return askQuestion(page);

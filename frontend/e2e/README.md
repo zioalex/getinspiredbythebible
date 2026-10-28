@@ -3,8 +3,8 @@
 ## Cross-browser read-aloud spec (BITB-250)
 
 `read-aloud.spec.ts` drives the real chat UI and Listen button on Chromium, Firefox, WebKit and
-Mobile Safari (iPhone 13 on WebKit). The backend is mocked with `page.route` (no server on
-`:8000` needed), and `window.speechSynthesis` is replaced by a fake engine
+Mobile Safari (iPhone 13 on WebKit). The backend is mocked with `page.route` (no backend server
+needed), and `window.speechSynthesis` is replaced by a fake engine
 (`support/fakeSpeech.ts`) that replays one known browser quirk per profile:
 
 | Profile                  | Reproduces                                                                                                                                                                                |
@@ -23,7 +23,7 @@ The specs need a production build (`next start`); Playwright only auto-starts it
 
 ```bash
 cd frontend
-npm run build && npm start &              # http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3000/e2e-api npm run build && npm start &   # as CI
 npx playwright install chromium firefox webkit   # once
 npx playwright test e2e/read-aloud.spec.ts                       # all projects
 npx playwright test e2e/read-aloud.spec.ts --project=webkit      # one engine
@@ -34,6 +34,11 @@ The older specs (`chat-bottom-bar`, `turnstile-ready`, ...) stay Chromium-only: 
 `firefox`, `webkit` and `Mobile Safari` projects in `playwright.config.ts` only match
 `read-aloud.spec.ts` (`CROSS_BROWSER_SPECS`). CI runs this spec in
 `.github/workflows/frontend-e2e.yml` on every pull request touching `frontend/**`.
+
+Build with `NEXT_PUBLIC_API_URL=http://localhost:3000/e2e-api` as CI does: the mocked API is then
+same-origin, so no CORS preflight is involved. WebKit failed every test when the mock sat on
+`localhost:8000`, while Chromium and Firefox passed. Browser console errors are printed in the
+test output prefixed `[browser console]`.
 
 ### Add a profile when a new browser quirk turns up
 

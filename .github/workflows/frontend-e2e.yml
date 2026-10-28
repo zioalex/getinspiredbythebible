@@ -46,9 +46,10 @@ jobs:
         run: npm ci
 
       - name: Build
-        # Pinned: the spec mocks this exact API origin (API_ORIGIN in read-aloud.spec.ts).
+        # Pinned: the spec mocks this API URL (API_ORIGIN in read-aloud.spec.ts). Same origin as
+        # the app, so WebKit makes no cross-origin preflight to the mocked backend.
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:8000
+          NEXT_PUBLIC_API_URL: http://localhost:3000/e2e-api
         run: npm run build
 
       - name: Install Playwright browser
