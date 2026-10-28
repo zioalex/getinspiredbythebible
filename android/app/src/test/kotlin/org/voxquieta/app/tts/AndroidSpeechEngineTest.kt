@@ -422,7 +422,7 @@ class AndroidSpeechEngineTest {
     }
 
     @Test
-    fun `no onStart within the timeout emits StartFailed and abandons the reading`() = runTest {
+    fun `no onStart within the timeout emits StartFailed but keeps the reading going`() = runTest {
         val h = harness(listOf(voice("en-US")))
         val watchdog = ManualWatchdog()
         h.engine.watchdogScheduler = watchdog.scheduler
@@ -434,8 +434,58 @@ class AndroidSpeechEngineTest {
         watchdog.fireLast()
 
         assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
-        assertNull(h.engine.speakingId.value)
-        verify { h.tts.stop() }
+        // Telemetry must not change playback: still speaking, engine not stopped.
+        assertEquals("m1", h.engine.speakingId.value)
+        verify(exactly = 1) { h.tts.stop() } // only the QUEUE_FLUSH pre-clear in speak()
+    }
+
+    @Test
+    fun `a slow engine that starts after the timeout keeps playing and adds no second outcome`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        val id = h.idOf(0)
+
+        watchdog.fireLast() // StartFailed at 3 s
+        h.progress.onStart(id) // engine finally starts
+        h.progress.onDone(id)
+
+        // Single outcome per call: the late Completed is suppressed after StartFailed.
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
+        assertNull(h.engine.speakingId.value) // finished normally
+    }
+
+    @Test
+    fun `onBeginSynthesis and onRangeStart count as started and cancel the watchdog`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        h.progress.onBeginSynthesis(h.idOf(0), 22050, 2, 1)
+        assertEquals(1, watchdog.cancelCount)
+        watchdog.fireLast()
+        assertEquals(emptyList<SpeechEvent>(), events)
+
+        h.engine.speak("m2", listOf("two"), "en")
+        h.progress.onRangeStart(h.idOf(0), 0, 3, 0)
+        assertEquals(2, watchdog.cancelCount)
+        watchdog.fireLast()
+        assertEquals(emptyList<SpeechEvent>(), events)
+    }
+
+    @Test
+    fun `onDone without onStart counts as started`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        h.progress.onDone(h.idOf(0))
+        watchdog.fireLast()
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.Completed("m1")), events)
     }
 
     @Test

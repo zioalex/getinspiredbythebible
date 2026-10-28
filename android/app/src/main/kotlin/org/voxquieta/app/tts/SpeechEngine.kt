@@ -88,7 +88,11 @@ sealed interface SpeechEvent {
     /** The platform engine reported an error for the call. */
     data class Error(override val id: String) : SpeechEvent
 
-    /** The engine never produced `onStart` within [AndroidSpeechEngine.START_TIMEOUT_MS]. */
+    /**
+     * The engine produced no utterance callback within [AndroidSpeechEngine.START_TIMEOUT_MS].
+     * Telemetry only: playback is NOT stopped. If the engine starts late the reading keeps
+     * playing, and its Completed/Error is suppressed (one outcome per call).
+     */
     data class StartFailed(override val id: String) : SpeechEvent
 }
 
@@ -191,9 +195,13 @@ class AndroidSpeechEngine @Inject constructor(
     @Volatile private var currentLanguageTag: String = ""
     @Volatile private var playingIndex = 0
 
-    // BITB-247: start watchdog. `started` flips on the first onStart of the current call; if it
-    // has not by START_TIMEOUT_MS the call is abandoned and reported as StartFailed.
+    // BITB-247: start watchdog. `started` flips on the first utterance callback (onStart,
+    // onBeginSynthesis, onRangeStart or onDone) of the current call; if none arrives by
+    // START_TIMEOUT_MS, StartFailed is emitted. Telemetry must not change playback, so the
+    // reading is left running; `startFailedReported` then suppresses that call's later
+    // Completed/Error so a call yields a single outcome.
     @Volatile private var started = false
+    @Volatile private var startFailedReported = false
     private var cancelWatchdog: (() -> Unit)? = null
 
     /**
@@ -213,8 +221,8 @@ class AndroidSpeechEngine @Inject constructor(
         disarmWatchdog()
         cancelWatchdog = watchdogScheduler(START_TIMEOUT_MS) {
             if (token == callToken && !started && _speakingId.value == id) {
+                startFailedReported = true
                 _events.tryEmit(SpeechEvent.StartFailed(id))
-                stop() // don't leave the UI "speaking" with a stuck queue
             }
         }
     }
@@ -295,14 +303,30 @@ class AndroidSpeechEngine @Inject constructor(
         override fun onStart(utteranceId: String?) {
             // Ids are "$token:$index"; remember which chunk is audible for resume().
             if (!belongsToCurrentCall(utteranceId)) return
-            started = true
-            disarmWatchdog()
+            markStarted()
             utteranceId?.substringAfter(':')?.toIntOrNull()?.let { playingIndex = it }
         }
 
+        // BITB-247: other signs the engine is alive, so a late onStart doesn't look like a failure.
+        override fun onBeginSynthesis(
+            utteranceId: String?,
+            sampleRateInHz: Int,
+            audioFormat: Int,
+            channelCount: Int,
+        ) {
+            if (belongsToCurrentCall(utteranceId)) markStarted()
+        }
+
+        override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+            if (belongsToCurrentCall(utteranceId)) markStarted()
+        }
+
         override fun onDone(utteranceId: String?) {
+            if (belongsToCurrentCall(utteranceId)) markStarted()
             if (utteranceId != null && utteranceId == lastUtteranceId) {
-                currentId?.let { _events.tryEmit(SpeechEvent.Completed(it)) }
+                if (!startFailedReported) {
+                    currentId?.let { _events.tryEmit(SpeechEvent.Completed(it)) }
+                }
                 finish()
             }
         }
@@ -319,8 +343,15 @@ class AndroidSpeechEngine @Inject constructor(
 
     private fun reportErrorAndStop(utteranceId: String?) {
         if (!belongsToCurrentCall(utteranceId)) return
-        currentId?.let { _events.tryEmit(SpeechEvent.Error(it)) }
+        if (!startFailedReported) {
+            currentId?.let { _events.tryEmit(SpeechEvent.Error(it)) }
+        }
         stop()
+    }
+
+    private fun markStarted() {
+        started = true
+        disarmWatchdog()
     }
 
     private fun belongsToCurrentCall(utteranceId: String?): Boolean =
@@ -388,6 +419,7 @@ class AndroidSpeechEngine @Inject constructor(
         currentLanguageTag = languageTag
         playingIndex = fromIndex
         started = false
+        startFailedReported = false
         engine.voice = voice
         _speakingId.value = id
         chunks.forEachIndexed { index, chunk ->

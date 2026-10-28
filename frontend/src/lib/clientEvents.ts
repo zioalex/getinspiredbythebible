@@ -103,13 +103,10 @@ export function detectOsFamily(
 }
 
 const unavailableReported = new Set<string>();
-const MAX_REPORTED_KEYS = 500;
-const reportedPerAnswer = new Set<string>();
 
 /** Test-only: forget which events were already reported. */
 export function __resetClientEventsForTest(): void {
   unavailableReported.clear();
-  reportedPerAnswer.clear();
 }
 
 export function reportClientEvent(
@@ -134,30 +131,6 @@ export function reportClientEvent(
   } catch {
     // never throw from telemetry
   }
-}
-
-/**
- * Report a read-aloud event at most once per (answer, event). Without an
- * `answerId` it behaves like `reportClientEvent` (no dedupe). Returns whether
- * the event was sent, so callers/tests can tell a deduped call from a sent one.
- */
-export function reportTtsEvent(
-  event: ClientEventName,
-  locale: string,
-  answerId?: string,
-): boolean {
-  if (answerId !== undefined) {
-    const key = `${answerId}\u0000${event}`;
-    if (reportedPerAnswer.has(key)) return false;
-    if (reportedPerAnswer.size >= MAX_REPORTED_KEYS) {
-      // Sets iterate in insertion order: drop the oldest key to stay bounded.
-      const oldest = reportedPerAnswer.values().next().value;
-      if (oldest !== undefined) reportedPerAnswer.delete(oldest);
-    }
-    reportedPerAnswer.add(key);
-  }
-  reportClientEvent(event, locale);
-  return true;
 }
 
 /** `tts_unavailable` is reported at most once per locale per page load. */

@@ -4,7 +4,6 @@ import {
   detectBrowserFamily,
   detectOsFamily,
   reportClientEvent,
-  reportTtsEvent,
   reportTtsUnavailableOnce,
   type ClientEventName,
 } from "./clientEvents";
@@ -210,36 +209,5 @@ describe("reportTtsUnavailableOnce", () => {
       { event: "tts_unavailable", locale: "hi", platform: "web" },
       { event: "tts_unavailable", locale: "ar", platform: "web" },
     ]);
-  });
-});
-
-describe("reportTtsEvent", () => {
-  it("sends at most once per (answer, event)", () => {
-    expect(reportTtsEvent("tts_started", "en", "a1")).toBe(true);
-    expect(reportTtsEvent("tts_started", "en", "a1")).toBe(false);
-    expect(reportTtsEvent("tts_completed", "en", "a1")).toBe(true);
-    expect(reportTtsEvent("tts_started", "en", "a2")).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-  });
-
-  it("does not dedupe when no answer id is given", () => {
-    reportTtsEvent("tts_error", "en");
-    reportTtsEvent("tts_error", "en");
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-
-  it("keeps its dedupe memory bounded", () => {
-    for (let i = 0; i < 600; i++) reportTtsEvent("tts_started", "en", `a${i}`);
-    fetchMock.mockClear();
-    // The oldest key was evicted, so it can be sent again; a recent one cannot.
-    expect(reportTtsEvent("tts_started", "en", "a0")).toBe(true);
-    expect(reportTtsEvent("tts_started", "en", "a599")).toBe(false);
-  });
-
-  it("never throws when fetch throws synchronously", () => {
-    fetchMock.mockImplementationOnce(() => {
-      throw new Error("boom");
-    });
-    expect(() => reportTtsEvent("tts_started", "en", "x")).not.toThrow();
   });
 });

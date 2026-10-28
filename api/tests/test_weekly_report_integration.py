@@ -24,10 +24,11 @@ DB). CI's ``backend-tests`` job provides a service container with
 """
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import text
+from sqlalchemy import Table, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -157,7 +158,7 @@ async def test_build_report_read_aloud_section_with_real_table(reporting_session
 
     await reporting_session.run_sync(
         lambda sync_session: Base.metadata.create_all(
-            sync_session.connection(), tables=[TtsEventDaily.__table__]
+            sync_session.connection(), tables=[cast(Table, TtsEventDaily.__table__)]
         )
     )
     from datetime import UTC, datetime, timedelta
