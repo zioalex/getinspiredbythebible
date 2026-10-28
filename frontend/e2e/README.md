@@ -7,15 +7,15 @@ Mobile Safari (iPhone 13 on WebKit). The backend is mocked with `page.route` (no
 `:8000` needed), and `window.speechSynthesis` is replaced by a fake engine
 (`support/fakeSpeech.ts`) that replays one known browser quirk per profile:
 
-| Profile                  | Reproduces                                                      |
-| ------------------------ | --------------------------------------------------------------- |
-| `well-behaved`           | start/boundary/end events, local voices                         |
-| `ios-webkit-drops-queue` | BITB-249: utterances queued behind a pending one are dropped    |
-| `hung-speechd`           | BITB-248: `speaking`/`pending` go true, no event ever fires     |
-| `chrome-late-voices`     | `getVoices()` empty until a delayed `voiceschanged`             |
-| `cancel-fires-end`       | `cancel()` synchronously fires `onend` on the current utterance |
-| `online-only`            | BITB-210: only `localService: false` voices                     |
-| `no-voices`              | empty voice list                                                |
+| Profile                  | Reproduces                                                                                                                                                                                |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `well-behaved`           | start/boundary/end events, local voices                                                                                                                                                   |
+| `ios-webkit-drops-queue` | BITB-249 (dropped-queue half): utterances queued behind a pending one are dropped. Garbage collection of unreferenced utterances is not deterministically emulable, so it is not modelled |
+| `hung-speechd`           | BITB-248: `speaking`/`pending` go true, no event ever fires, and `cancel()` does not clear them                                                                                           |
+| `chrome-late-voices`     | `getVoices()` empty until a delayed `voiceschanged`                                                                                                                                       |
+| `cancel-fires-end`       | `cancel()` synchronously fires `onerror` (`interrupted`/`canceled`) on the cancelled utterances                                                                                           |
+| `online-only`            | BITB-210: only `localService: false` voices                                                                                                                                               |
+| `no-voices`              | empty voice list                                                                                                                                                                          |
 
 ### Run it locally
 

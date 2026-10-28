@@ -46,6 +46,9 @@ jobs:
         run: npm ci
 
       - name: Build
+        # Pinned: the spec mocks this exact API origin (API_ORIGIN in read-aloud.spec.ts).
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
         run: npm run build
 
       - name: Install Playwright browser

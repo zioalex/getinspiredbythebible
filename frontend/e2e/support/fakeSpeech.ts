@@ -20,7 +20,7 @@ export type FakeSpeechProfile =
   | "hung-speechd"
   /** Chrome: getVoices() is empty until a delayed `voiceschanged`. */
   | "chrome-late-voices"
-  /** Chrome/Firefox: cancel() synchronously fires onend on the current utterance. */
+  /** cancel() synchronously fires onerror ("interrupted"/"canceled") on the cancelled utterances. */
   | "cancel-fires-end"
   /** BITB-210: only `localService: false` voices. */
   | "online-only"
@@ -55,6 +55,8 @@ export interface SpeechLog {
   /** Utterances the profile swallowed without ever firing an event. */
   dropped: string[];
   cancelCount: number;
+  /** cancel() calls made while an utterance was playing, queued or hung. */
+  cancelWhileSpeaking: number;
   pauseCount: number;
   resumeCount: number;
 }
@@ -100,6 +102,7 @@ function installInPage(args: InstallArgs): void {
     spokenVoices: [] as string[],
     dropped: [] as string[],
     cancelCount: 0,
+    cancelWhileSpeaking: 0,
     pauseCount: 0,
     resumeCount: 0,
   };
@@ -253,16 +256,22 @@ function installInPage(args: InstallArgs): void {
     },
     cancel() {
       log.cancelCount += 1;
+      if (current !== null || pendingQueue.length > 0 || hungSpeaking) {
+        log.cancelWhileSpeaking += 1;
+      }
       const u = current;
+      const queued = pendingQueue.splice(0);
       clearTimer();
       current = null;
       currentStarted = false;
-      pendingQueue.length = 0;
-      hungSpeaking = false;
+      // hung-speechd: a wedged speech-dispatcher ignores cancel(), so the flags stay true.
       paused = false;
-      if (u && profile === "cancel-fires-end") {
-        // Chrome fires the end of the cancelled utterance synchronously, inside cancel().
-        fire(u, "onend", { charIndex: 0, elapsedTime: 0 });
+      if (profile === "cancel-fires-end") {
+        // Blink/WebKit report a cancelled utterance as an error ("interrupted"/"canceled"),
+        // Firefox as an end. We fire the harsher, synchronous-inside-cancel() form: the
+        // app's handlers run re-entrantly while it is still switching answers.
+        if (u) fire(u, "onerror", { error: "interrupted", charIndex: 0 });
+        for (const q of queued) fire(q, "onerror", { error: "canceled" });
       }
     },
     pause() {
