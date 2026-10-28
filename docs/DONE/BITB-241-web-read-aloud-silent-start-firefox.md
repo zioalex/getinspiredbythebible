@@ -1,6 +1,6 @@
 # BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1203, merged 2026-10-27
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-24
@@ -38,12 +38,12 @@ Follow-up to BITB-205 / BITB-210.
 
 ## Acceptance criteria
 
-- [ ] No `cancel()` call when the engine is idle (test)
-- [ ] An engine that never fires `onstart`: one retry, then the button returns to idle and the
+- [x] No `cancel()` call when the engine is idle (test)
+- [x] An engine that never fires `onstart`: one retry, then the button returns to idle and the
       message shows (fake timers)
-- [ ] An engine that starts on the retry plays normally
-- [ ] A first-chunk `onerror` gives up the same way
-- [ ] Message strings in 11 `messages/*.json`; lint, tsc, vitest and build green
+- [x] An engine that starts on the retry plays normally
+- [x] A first-chunk `onerror` gives up the same way
+- [x] Message strings in 11 `messages/*.json`; lint, tsc, vitest and build green
 - [ ] Owner check on Linux Firefox: audio plays, or the message shows instead of a stuck "Pause"
 
 ## Notes
@@ -53,3 +53,8 @@ Follow-up to BITB-205 / BITB-210.
 ## Out of scope
 
 - Fixing speech-dispatcher on the user's machine (BITB-215 covers help for installing a voice)
+
+## Follow-ups
+
+- BITB-246 — visually check the notice beside the action rail
+- BITB-247 — count read-aloud start failures (telemetry)

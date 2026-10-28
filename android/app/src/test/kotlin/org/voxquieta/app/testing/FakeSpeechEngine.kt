@@ -1,9 +1,13 @@
 package org.voxquieta.app.testing
 
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.voxquieta.app.tts.SpeechEngine
+import org.voxquieta.app.tts.SpeechEvent
 
 /** In-memory [SpeechEngine] for ViewModel/UI tests (BITB-119). Records every call. */
 class FakeSpeechEngine(
@@ -23,6 +27,9 @@ class FakeSpeechEngine(
     private val _pausedId = MutableStateFlow<String?>(null)
     override val pausedId: StateFlow<String?> = _pausedId.asStateFlow()
 
+    private val _events = MutableSharedFlow<SpeechEvent>(extraBufferCapacity = 16)
+    override val events: SharedFlow<SpeechEvent> = _events.asSharedFlow()
+
     val spoken = mutableListOf<Spoken>()
     var warmUpCalls = 0
         private set
@@ -40,8 +47,23 @@ class FakeSpeechEngine(
         _isReady.value = value
     }
 
-    /** Simulates the last chunk finishing on its own. */
+    /** Simulates the last chunk finishing on its own (emits [SpeechEvent.Completed]). */
     fun finishSpeaking() {
+        _speakingId.value?.let { _events.tryEmit(SpeechEvent.Completed(it)) }
+        _speakingId.value = null
+        _pausedId.value = null
+    }
+
+    /** Simulates the platform engine reporting `onError` for the current reading. */
+    fun failSpeaking() {
+        _speakingId.value?.let { _events.tryEmit(SpeechEvent.Error(it)) }
+        _speakingId.value = null
+        _pausedId.value = null
+    }
+
+    /** Simulates the no-`onStart` watchdog giving up on the current reading. */
+    fun timeoutStart() {
+        _speakingId.value?.let { _events.tryEmit(SpeechEvent.StartFailed(it)) }
         _speakingId.value = null
         _pausedId.value = null
     }
