@@ -152,7 +152,7 @@ class TurnstileInterceptorTest {
     }
 
     @Test
-    fun `client-events POST bypasses Turnstile: no header, no wait, token kept`() {
+    fun `client-events POST bypasses Turnstile - no header, no wait, token kept`() {
         manager.onTokenReceived("chat-token")
         val captured = runIntercept(post("https://api.example.com/api/v1/client-events"))
         assertNull(captured.header("X-Turnstile-Token"))
