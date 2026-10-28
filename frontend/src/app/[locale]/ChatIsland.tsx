@@ -73,6 +73,7 @@ import ConversationSidebar from "@/components/ConversationSidebar";
 import {
   listConversations,
   getMessages,
+  storedToChatMessage,
   saveFullConversation,
 } from "@/lib/conversationStore";
 import {
@@ -332,14 +333,7 @@ export default function ChatIsland({
         const latest = list[0];
         const stored = await getMessages(latest.id);
         if (cancelled || stored.length === 0) return;
-        setMessages(
-          stored.map((m) => ({
-            role: m.role,
-            content: m.content,
-            versesCited: m.versesCited,
-            ...(m.follow_ups?.length ? { follow_ups: m.follow_ups } : {}),
-          })),
-        );
+        setMessages(stored.map(storedToChatMessage));
         setConversationId(latest.id);
       } catch {
         // No usable local history: start fresh.
@@ -910,13 +904,7 @@ export default function ChatIsland({
     setMobileVersesOpen(false);
     setShowSessionLimitButton(false);
     setConversationId(id);
-    setMessages(
-      stored.map((m) => ({
-        role: m.role,
-        content: m.content,
-        versesCited: m.versesCited,
-      })),
-    );
+    setMessages(stored.map(storedToChatMessage));
   };
 
   // BITB-118: the non-destructive default for a session-limit hit. Rotates

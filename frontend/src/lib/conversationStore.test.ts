@@ -8,6 +8,7 @@ import {
   saveConversation,
   appendMessage,
   saveFullConversation,
+  storedToChatMessage,
   renameConversation,
   deleteConversation,
   clearAll,
@@ -90,6 +91,30 @@ describe("conversationStore", () => {
     const stored = await getMessages("f");
     expect(stored[0].follow_ups).toBeUndefined();
     expect(stored[1].follow_ups).toEqual(["One?", "Two?"]);
+  });
+
+  it("storedToChatMessage keeps follow_ups through a save/restore round trip (BITB-251)", async () => {
+    await saveFullConversation("r", "T", [
+      { role: "user", content: "q", versesCited: [] },
+      {
+        role: "assistant",
+        content: "a",
+        versesCited: ["john 3:16"],
+        follow_ups: ["One?", "Two?"],
+      },
+      { role: "assistant", content: "b", follow_ups: [] },
+    ]);
+    const restored = (await getMessages("r")).map(storedToChatMessage);
+    expect(restored).toEqual([
+      { role: "user", content: "q", versesCited: [] },
+      {
+        role: "assistant",
+        content: "a",
+        versesCited: ["john 3:16"],
+        follow_ups: ["One?", "Two?"],
+      },
+      { role: "assistant", content: "b", versesCited: [] },
+    ]);
   });
 
   it("saveFullConversation preserves createdAt across resaves", async () => {

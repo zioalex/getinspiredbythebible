@@ -55,10 +55,11 @@ Both platforms are affected, so the cause is on the backend / in the prompt, not
   found by `extract_all_references` in the history messages that `_build_messages` actually
   sends (`history[-settings.max_conversation_history:]`, user and assistant). Applies to
   both `chat()` and `chat_stream()`.
-- **FR4 (API):** an OTel counter `chat_follow_ups_suppressed` (follow the existing counter
-  pattern in `service.py`) is incremented once per turn where follow-ups were enabled but none
+- **FR4 (API):** an OTel counter `chat.follow_ups.suppressed` (`chat_follow_ups_suppressed_counter`
+  in `api/utils/metrics.py`; App Insights may show it as `chat_follow_ups_suppressed`) is incremented once per turn where follow-ups were enabled but none
   were sent, with attributes `reason` ∈ {`no_trailer`, `too_few_valid`, `fabrication_filter`},
-  `language`, and `history_turns` bucket (`0`, `1-2`, `3-5`, `6+`). It applies to both
+  `language`, and `history_turns` bucket (`0`, `1-2`, `3-5`, `6+`) — counts history *messages*, not
+  question/answer pairs, so 3 exchanges land in `6+`. It applies to both
   `chat()` and `chat_stream()`.
 - **FR5 (Web):** `Message` (`frontend/src/lib/api.ts`) gains `follow_ups?: string[]`. When a
   completion carries `follow_ups`, they are saved on that assistant message, so they are sent
@@ -89,7 +90,7 @@ Both platforms are affected, so the cause is on the backend / in the prompt, not
 - [ ] Malicious echoed suggestions (`-->`, `<script>`, >120 chars, 1-item lists) never reach the prompt.
 - [ ] A suggestion that names a verse cited only in recent history is kept; one that names a verse
       cited nowhere is still dropped.
-- [ ] `chat_follow_ups_suppressed` fires with the right reason in each of the three cases, on both
+- [ ] `chat.follow_ups.suppressed` fires with the right reason in each of the three cases, on both
       `chat()` and `chat_stream()`.
 - [ ] Web: after a completion with `follow_ups`, the next request's `conversation_history`
       includes them on that assistant message (vitest).
@@ -121,3 +122,9 @@ Both platforms are affected, so the cause is on the backend / in the prompt, not
 | Android `domain/models/Message.kt`, `data/remote/models/ConversationMessageDto` + `ChatMapper.kt`, `ChatViewModel.kt` | Field, DTO, mapping, saving on the message. |
 | Android `app/src/test/...` | Mapper serialization + ViewModel test (flag on and off). |
 | `docs/BACKLOG.md` | Entry + changelog line. |
+
+## Known limitations
+
+- Android keeps `followUps` in memory only (not in Room), so a conversation reloaded after an app
+  restart echoes no trailers for its older turns; new turns echo normally.
+- Android 1.57.0 sends no `follow_ups` and benefits only from FR3 until the next release.
