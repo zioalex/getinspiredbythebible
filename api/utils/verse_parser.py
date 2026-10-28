@@ -917,7 +917,8 @@ def extract_citation_spans(text: str) -> list[CitationSpan]:
     marks would shift offsets out from under the spans they're meant to
     describe. A fully-vocalized Arabic citation the LLM produced may
     therefore be present in ``verses_cited`` but absent here — that is a
-    known, accepted gap (see docs/BACKLOG_STORIES/BITB-086), not a bug.
+    known, accepted gap (see docs/DONE/BITB-086-server-emitted-citation-spans.md),
+    not a bug.
 
     ``occurrence`` counts only among the spans this function actually
     returns (protected-region matches are dropped before counting), so it
