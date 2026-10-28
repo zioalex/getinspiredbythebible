@@ -47,7 +47,7 @@ jobs:
 
       - name: Build
         # Pinned: the spec mocks this API URL (API_ORIGIN in read-aloud.spec.ts). Same origin as
-        # the app, so WebKit makes no cross-origin preflight to the mocked backend.
+        # the app, so the mocked backend needs no CORS preflight.
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3000/e2e-api
         run: npm run build

@@ -36,9 +36,10 @@ The older specs (`chat-bottom-bar`, `turnstile-ready`, ...) stay Chromium-only: 
 `.github/workflows/frontend-e2e.yml` on every pull request touching `frontend/**`.
 
 Build with `NEXT_PUBLIC_API_URL=http://localhost:3000/e2e-api` as CI does: the mocked API is then
-same-origin, so no CORS preflight is involved. WebKit failed every test when the mock sat on
-`localhost:8000`, while Chromium and Firefox passed. Browser console errors are printed in the
-test output prefixed `[browser console]`.
+same-origin, so no CORS preflight is involved. The spec blocks service workers
+(`serviceWorkers: "block"`): with the production worker (`public/sw.js`) active, WebKit sends the
+API calls past `page.route` to the real server. Browser console errors are printed in the test
+output prefixed `[browser console]`.
 
 ### Add a profile when a new browser quirk turns up
 

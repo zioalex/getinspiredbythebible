@@ -47,8 +47,7 @@ const RESUME = "Resume reading";
 const NO_RESPONSE = "Your browser's speech engine didn't respond.";
 
 // CI builds with NEXT_PUBLIC_API_URL=http://localhost:3000/e2e-api: same origin as the page, so
-// no CORS preflight is involved (WebKit failed the cross-origin preflight to a mocked :8000).
-// A default local build still calls :8000, which is matched too.
+// the mock involves no CORS preflight. A default local build still calls :8000, matched too.
 const API_ORIGIN =
   /^https?:\/\/(localhost|127\.0\.0\.1)(:8000\/|:3000\/e2e-api\/)/;
 const API_PREFIX = /^\/e2e-api(?=\/)/;
@@ -208,6 +207,10 @@ const NO_VOICES: FakeSpeechProfile = "no-voices";
 const CANCEL_SWITCH: FakeSpeechProfile = "cancel-fires-end";
 
 test.describe("read aloud", () => {
+  // The production build registers the offline-shell service worker (public/sw.js). In WebKit
+  // requests then bypass page.route and hit the real server (404), so block it while mocking.
+  test.use({ serviceWorkers: "block" });
+
   test("every profile is exercised by this spec", () => {
     // Guards against adding a profile to the fake engine and forgetting to test it. One
     // project is enough: the check does not depend on the browser.
