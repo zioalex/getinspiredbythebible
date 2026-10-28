@@ -13,6 +13,9 @@ package org.voxquieta.app.domain.models
  *   (not persisted to Room). Populated when the SSE metadata event is received.
  * @param feedbackRating In-memory only (not persisted to Room). Set after the user
  *   taps 👍 or 👎. Null means no feedback has been given yet.
+ * @param followUps Suggested follow-up questions the server returned with this assistant
+ *   message (BITB-251). In-memory only (not persisted to Room). Echoed back in
+ *   `conversation_history` so the model keeps writing the trailer on later turns.
  */
 data class Message(
     val id: String,
@@ -25,6 +28,7 @@ data class Message(
     val feedbackRating: FeedbackRating? = null,
     /** Server-extracted verse citations in English canonical form (e.g. "John 3:16"). */
     val versesCited: List<String> = emptyList(),
+    val followUps: List<String> = emptyList(),
 ) {
     enum class Role { USER, ASSISTANT }
 }

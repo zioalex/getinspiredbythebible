@@ -34,6 +34,8 @@ export interface StoredMessage {
   content: string;
   /** Verse references cited by an assistant message (web analog of Android versesJson). */
   versesCited: string[];
+  /** BITB-251: chips shown under an assistant message, echoed back to the API as history. */
+  follow_ups?: string[];
   createdAt: number;
 }
 
@@ -332,6 +334,7 @@ export async function saveFullConversation(
     role: "user" | "assistant";
     content: string;
     versesCited?: string[];
+    follow_ups?: string[];
   }>,
 ): Promise<void> {
   try {
@@ -370,6 +373,7 @@ export async function saveFullConversation(
         role: m.role,
         content: m.content,
         versesCited: m.versesCited ?? [],
+        ...(m.follow_ups?.length ? { follow_ups: m.follow_ups } : {}),
         createdAt: now + i,
       });
     });

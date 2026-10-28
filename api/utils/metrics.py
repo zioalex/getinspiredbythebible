@@ -102,6 +102,17 @@ chat_cultural_tone_applied_counter = meter.create_counter(
     unit="1",
 )  # attributes: language, intent
 
+# BITB-251: turns where suggested follow-ups were enabled but none were sent.
+# `reason` separates a model that omitted the trailer (no_trailer), one whose
+# trailer had <2 valid suggestions (too_few_valid) and the verse-fabrication
+# filter emptying the list (fabrication_filter); `history_turns` is a bucket
+# (0, 1-2, 3-5, 6+) so the drop-off by conversation length is visible.
+chat_follow_ups_suppressed_counter = meter.create_counter(
+    name="chat.follow_ups.suppressed",
+    description="Chat turns with follow-ups enabled that returned no follow-up suggestions",
+    unit="1",
+)  # attributes: reason, language, history_turns
+
 # ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
 # A supported UI language whose backing translation has zero verses (never
 # loaded) or zero embeddings (loaded but unsearchable) degrades silently —

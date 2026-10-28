@@ -88,6 +88,9 @@ interface ChatMessage {
   messageId?: string; // Only present for assistant messages
   userMessage?: string; // User message that prompted this response
   versesCited?: string[];
+  // BITB-251: the chips shown under this assistant message. Persisted and sent
+  // back in conversation_history so the model sees its own earlier trailers.
+  follow_ups?: string[];
   // Live-render-only (BITB-109): deliberately not persisted to conversation
   // history/storage, so a restored conversation falls back to the regex
   // linkifier — correct, since offsets are only valid for the response that
@@ -334,6 +337,7 @@ export default function ChatIsland({
             role: m.role,
             content: m.content,
             versesCited: m.versesCited,
+            ...(m.follow_ups?.length ? { follow_ups: m.follow_ups } : {}),
           })),
         );
         setConversationId(latest.id);
@@ -361,6 +365,7 @@ export default function ChatIsland({
         role: m.role,
         content: m.content,
         versesCited: m.versesCited,
+        follow_ups: m.follow_ups,
       })),
     ).then(() => setHistoryRefresh((n) => n + 1));
   }, [messages, isLoading, conversationId]);
@@ -514,6 +519,9 @@ export default function ChatIsland({
       const apiMessages: Message[] = messages.map((m) => ({
         role: m.role,
         content: m.content,
+        ...(m.role === "assistant" && m.follow_ups?.length
+          ? { follow_ups: m.follow_ups }
+          : {}),
       }));
 
       // Streaming metadata and content
@@ -659,7 +667,19 @@ export default function ChatIsland({
           // BITB-080: absent when suppressed (crisis/off-topic/error turns) or
           // on an older backend -- render nothing rather than an empty row.
           if (chunk.follow_ups?.length) {
-            setFollowUps(chunk.follow_ups);
+            const turnFollowUps = chunk.follow_ups;
+            setFollowUps(turnFollowUps);
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  follow_ups: turnFollowUps,
+                };
+              }
+              return updated;
+            });
           }
           if (chunk.citations) {
             setMessages((prev) => {
