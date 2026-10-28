@@ -812,6 +812,15 @@ describe("outcomes (BITB-247)", () => {
     expect(outcomes).toEqual(["m1:start_failed"]);
   });
 
+  it("a later chunk going silent after audio played gives up as an error", () => {
+    vi.useFakeTimers();
+    speak("m1", ["one", "two"], voice, "en");
+    synth.spoken[0].onstart?.();
+    synth.spoken[0].onend?.(); // chunk 1 is spoken next and never starts
+    vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+    expect(outcomes).toEqual(["m1:error"]);
+  });
+
   it("error once for onerror after the reading started", () => {
     speak("m1", ["one"], voice, "en");
     synth.spoken[0].onstart?.();

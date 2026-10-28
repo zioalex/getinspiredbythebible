@@ -325,7 +325,8 @@ function startQueue(call: CurrentCall, fromIndex: number, attempt = 1): void {
     const stateChanged = speakingId !== null || pausedId !== null;
     setState(null, null);
     if (!stateChanged) notify(); // otherwise setState already notified
-    emitOutcome(call.id, "start_failed");
+    // A later chunk going silent after audio played is an error, not a failed start.
+    emitOutcome(call.id, call.anyStarted ? "error" : "start_failed");
   };
 
   const finish = (outcome: SpeechOutcome) => {
