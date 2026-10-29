@@ -187,9 +187,9 @@ async def test_url_spam_is_still_blocked_even_with_crisis_wording():
 
 @pytest.mark.asyncio
 async def test_bypass_logs_no_message_text(caplog):
-    secret = "fuck this I want to kill myself secret-marker"
+    private_text = "fuck this I want to kill myself secret-marker"
     with caplog.at_level("DEBUG"):
-        await _run_filter(secret)
+        await _run_filter(private_text)
     assert "secret-marker" not in caplog.text
     assert any("bypassed for crisis wording" in r.getMessage() for r in caplog.records)
 

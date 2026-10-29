@@ -1325,9 +1325,9 @@ describe("getCrisisResources (BITB-251)", () => {
     await expect(getCrisisResources("US", "pt", "self_harm")).resolves.toEqual(
       payload,
     );
-    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.at(
-      -1,
-    )!;
+    const [url, init] = (
+      global.fetch as ReturnType<typeof vi.fn>
+    ).mock.calls.at(-1)!;
     expect(String(url)).toMatch(/\/api\/v1\/crisis-resources$/);
     expect(String(url)).not.toContain("?");
     expect(String(url)).not.toContain("US");

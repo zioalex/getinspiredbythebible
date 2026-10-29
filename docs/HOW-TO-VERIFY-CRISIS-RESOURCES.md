@@ -80,7 +80,7 @@ Emergency numbers only work in the country the caller is in, so the API resolves
 2. Cloudflare's `CF-IPCountry` header (`XX` unknown and `T1` Tor are ignored);
 3. the client locale region (`region`, e.g. `pt-BR` -> `BR`);
 4. the per-language default in `language_defaults` (Arabic has none: international link only);
-5. none: only the international link (https://findahelpline.com) and "your local emergency number".
+5. none: only the international link (<https://findahelpline.com>) and "your local emergency number".
 
 The country is used only to pick numbers: it is never stored, and the only trace is the
 `country_source` attribute on the `chat_crisis_card_shown` counter. A country with no registry entry

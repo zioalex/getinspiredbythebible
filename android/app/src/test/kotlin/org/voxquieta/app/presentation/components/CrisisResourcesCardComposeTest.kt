@@ -10,6 +10,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.robolectric.annotation.Config
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import org.voxquieta.app.testing.ComposeTestHarness
@@ -18,8 +19,11 @@ import org.voxquieta.app.testing.crisisFixture
 /**
  * Robolectric-backed Compose UI tests for [CrisisResourcesCard] (BITB-251).
  *
- * Runs in the English default locale under Robolectric.
+ * Runs in the English default locale under Robolectric, on a tall phone-sized screen: the
+ * card is taller than Robolectric's default 320x470dp viewport, which would leave its lower
+ * rows off-screen (not displayed, clicks dropped). In the app it sits in the scrolling chat list.
  */
+@Config(qualifiers = "w411dp-h1400dp")
 class CrisisResourcesCardComposeTest : ComposeTestHarness() {
 
     private val launched = mutableListOf<Intent>()

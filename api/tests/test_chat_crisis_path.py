@@ -663,26 +663,26 @@ def test_chat_request_defaults():
 )
 async def test_counter_attributes(safety, path_attr, kind):
     service = _service()
-    secret = "super secret user text"
+    private_text = "super secret user text"
     with (
         _patched(service, safety),
         patch("chat.service.chat_crisis_card_shown_counter") as counter,
     ):
-        await service.chat(_request("it", secret), client_country="IT")
+        await service.chat(_request("it", private_text), client_country="IT")
     counter.add.assert_called_once_with(
         1,
         {"kind": kind, "language": "it", "country_source": "ip", "path": path_attr},
     )
-    assert secret not in str(counter.add.call_args)
+    assert private_text not in str(counter.add.call_args)
 
 
 @pytest.mark.asyncio
 async def test_crisis_logging_never_contains_message_text(caplog):
     service = _service()
-    secret = "my very private sentence"
+    private_text = "my very private sentence"
     with _patched(service, SELF_HARM_ALLOWED), caplog.at_level("DEBUG"):
-        await service.chat(_request("en", secret), client_country="IT")
+        await service.chat(_request("en", private_text), client_country="IT")
     crisis_logs = [r for r in caplog.records if r.getMessage() == "Crisis card attached"]
     assert crisis_logs
     for record in crisis_logs:
-        assert secret not in repr(record.__dict__)
+        assert private_text not in repr(record.__dict__)
