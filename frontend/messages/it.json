@@ -148,6 +148,7 @@
     "listenAnswer": "Ascolta la risposta",
     "pauseListening": "Metti in pausa la lettura",
     "resumeListening": "Riprendi la lettura",
+    "speechEngineNoResponse": "Il sintetizzatore vocale del browser non ha risposto.",
     "showListenButton": "Mostra il pulsante Ascolta",
     "allowOnlineVoices": "Consenti voci online",
     "onlineVoicesNotNow": "Non ora",
@@ -258,7 +259,8 @@
     "successDescription": "Grazie per averci contattato. Esamineremo il tuo messaggio presto.",
     "sendAnother": "Invia un altro",
     "errorSend": "Invio del messaggio non riuscito. Riprova o scrivici direttamente via email.",
-    "errorEmailInvalid": "Inserisci un'email valida così possiamo risponderti."
+    "errorEmailInvalid": "Inserisci un'email valida così possiamo risponderti.",
+    "close": "Chiudi"
   },
   "ErrorBoundary": {
     "title": "Qualcosa è andato storto",

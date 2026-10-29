@@ -151,6 +151,23 @@ class TurnstileInterceptorTest {
         assertNull(manager.currentToken())
     }
 
+    @Test
+    fun `client-events POST bypasses Turnstile - no header, no wait, token kept`() {
+        manager.onTokenReceived("chat-token")
+        val captured = runIntercept(post("https://api.example.com/api/v1/client-events"))
+        assertNull(captured.header("X-Turnstile-Token"))
+        assertEquals("chat-token", manager.currentToken())
+    }
+
+    @Test
+    fun `client-events POST without token does not wait`() {
+        val start = System.currentTimeMillis()
+        val captured = runIntercept(post("https://api.example.com/api/v1/client-events"))
+        val elapsed = System.currentTimeMillis() - start
+        assertNull(captured.header("X-Turnstile-Token"))
+        assertFalse("telemetry must not block on a token, took ${elapsed}ms", elapsed > 100)
+    }
+
     private fun runIntercept(request: Request): Request {
         val chain: Interceptor.Chain = mockk()
         val captured = slot<Request>()

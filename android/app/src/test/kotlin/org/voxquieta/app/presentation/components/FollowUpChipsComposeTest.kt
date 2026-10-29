@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.voxquieta.app.domain.models.Message
+import org.voxquieta.app.presentation.screens.shouldShowFollowUps
 import org.voxquieta.app.testing.ComposeTestHarness
 
 /**
@@ -75,5 +77,61 @@ class FollowUpChipsComposeTest : ComposeTestHarness() {
 
         assertEquals(1, tapCount)
         assertEquals("Question A", tapped)
+    }
+
+    // ── BITB-080: default-off rollout gate (rendering through the screen predicate) ──
+
+    @Test
+    fun `no chips render when the rollout gate is off even with follow-ups present`() {
+        setContentThemed {
+            if (shouldShowFollowUps(
+                    index = 0,
+                    lastIndex = 0,
+                    role = Message.Role.ASSISTANT,
+                    isLoading = false,
+                    isSessionLimitReached = false,
+                    followUps = listOf("Question A", "Question B"),
+                    enabled = false,
+                )
+            ) {
+                FollowUpChips(
+                    suggestions = listOf("Question A", "Question B"),
+                    onSelect = {},
+                )
+            }
+        }
+
+        // Android stays dark: no chips, no empty row, no TalkBack group.
+        composeRule.onNodeWithText("Question A").assertDoesNotExist()
+        composeRule.onNodeWithText("Question B").assertDoesNotExist()
+        composeRule
+            .onNodeWithContentDescription("Suggested follow-up questions")
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `chips render with TalkBack group label when the gate flips on`() {
+        setContentThemed {
+            if (shouldShowFollowUps(
+                    index = 0,
+                    lastIndex = 0,
+                    role = Message.Role.ASSISTANT,
+                    isLoading = false,
+                    isSessionLimitReached = false,
+                    followUps = listOf("Question A"),
+                    enabled = true,
+                )
+            ) {
+                FollowUpChips(
+                    suggestions = listOf("Question A"),
+                    onSelect = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Question A").assertIsDisplayed()
+        composeRule
+            .onNodeWithContentDescription("Suggested follow-up questions")
+            .assertIsDisplayed()
     }
 }

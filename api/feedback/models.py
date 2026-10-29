@@ -2,12 +2,12 @@
 Feedback models - Pydantic for API and SQLAlchemy for database.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Index, Integer, String, Text
 
 # Aliased for the same reason as api/scripture/models.py: `text` is a plausible
 # column name, and a bare import would be shadowed inside a class body.
@@ -171,4 +171,31 @@ class BlockedMessageSample(Base):
     def __repr__(self) -> str:
         return (
             f"<BlockedMessageSample(id={self.id}, stage='{self.stage}', " f"hits={self.hit_count})>"
+        )
+
+
+class TtsEventDaily(Base):
+    """
+    Daily aggregate of read-aloud client events (BITB-247).
+
+    One row per (day, event, locale, platform, browser, os); ``count`` is
+    incremented with an atomic ``INSERT ... ON CONFLICT DO UPDATE``. Every
+    dimension is an enum normalized in ``api/main.py`` so cardinality is
+    bounded. Never holds text, voice names, user agents, IPs or identifiers.
+    """
+
+    __tablename__ = "tts_event_daily"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    event: Mapped[str] = mapped_column(String(32), primary_key=True)
+    locale: Mapped[str] = mapped_column(String(8), primary_key=True)
+    platform: Mapped[str] = mapped_column(String(16), primary_key=True)
+    browser: Mapped[str] = mapped_column(String(16), primary_key=True)
+    os: Mapped[str] = mapped_column(String(16), primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, default=0, server_default=sql_text("0"))
+
+    def __repr__(self) -> str:
+        return (
+            f"<TtsEventDaily({self.day} {self.event} {self.locale} "
+            f"{self.platform}/{self.browser}/{self.os} = {self.count})>"
         )

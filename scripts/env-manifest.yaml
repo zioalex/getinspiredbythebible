@@ -140,6 +140,11 @@ variables:
     description: Logging level
     default: INFO
 
+  # Production enablement path (BITB-187 FR5): set chat_follow_ups_enabled=true
+  # in deployment/terraform.tfvars — main.tf maps it onto the backend Container
+  # App env. The web client is gated separately (NEXT_PUBLIC_FOLLOW_UPS_ENABLED,
+  # below in the Frontend section, flipped via web_follow_ups_enabled in the
+  # same tfvars and baked at image build time); Android gates compile-time.
   CHAT_FOLLOW_UPS_ENABLED:
     required_in: both
     description: Enable suggested follow-up question chips in chat responses (BITB-080)
@@ -213,3 +218,14 @@ variables:
     required_in: remote
     description: Node environment
     default: production
+
+  # BITB-080 web-only enablement. The backend flag CHAT_FOLLOW_UPS_ENABLED
+  # (above, backend section) turns on `follow_ups` emission for ALL clients;
+  # each client then gates its own rendering. This build-time flag gates the
+  # web chips (frontend/src/lib/featureFlags.ts -> ChatIsland.tsx) — set it
+  # as a frontend image build-arg to light up the web chips. Android renders
+  # behind its own default-off flag (see docs/BACKLOG_STORIES/ BITB-080).
+  NEXT_PUBLIC_FOLLOW_UPS_ENABLED:
+    required_in: local
+    description: Render suggested follow-up question chips on web (BITB-080)
+    default: "false"
