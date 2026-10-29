@@ -12,6 +12,8 @@
  * than throwing, matching the localStorage guard style in src/lib/api.ts.
  */
 
+import type { CrisisResources } from "./api";
+
 const DB_NAME = "voxquieta";
 const DB_VERSION = 1;
 const CONVERSATIONS_STORE = "conversations";
@@ -34,6 +36,12 @@ export interface StoredMessage {
   content: string;
   /** Verse references cited by an assistant message (web analog of Android versesJson). */
   versesCited: string[];
+  /**
+   * BITB-251: the crisis contacts card shown above this assistant reply.
+   * Absent on older rows and on non-crisis turns. Rides along in
+   * export/import because those operate on whole StoredMessage rows.
+   */
+  crisisResources?: CrisisResources;
   createdAt: number;
 }
 
@@ -332,6 +340,7 @@ export async function saveFullConversation(
     role: "user" | "assistant";
     content: string;
     versesCited?: string[];
+    crisisResources?: CrisisResources;
   }>,
 ): Promise<void> {
   try {
@@ -370,6 +379,7 @@ export async function saveFullConversation(
         role: m.role,
         content: m.content,
         versesCited: m.versesCited ?? [],
+        ...(m.crisisResources ? { crisisResources: m.crisisResources } : {}),
         createdAt: now + i,
       });
     });

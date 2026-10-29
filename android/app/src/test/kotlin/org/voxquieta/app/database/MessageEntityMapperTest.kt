@@ -198,4 +198,47 @@ class MessageEntityMapperTest {
 
         assertTrue("Expected empty verses list for 'null' string JSON", domain.verses.isEmpty())
     }
+
+    // ── BITB-251: crisis card persistence ────────────────────────────────────
+
+    @Test
+    fun `crisis card round-trips through the entity`() {
+        val original = Message(
+            id = "c1",
+            role = Message.Role.ASSISTANT,
+            content = "I am here.",
+            crisisResources = org.voxquieta.app.testing.crisisFixture,
+        )
+
+        val entity = original.toEntity(conversationId)
+        assertTrue(entity.crisisJson!!.contains("Telefono Amico"))
+
+        assertEquals(org.voxquieta.app.testing.crisisFixture, entity.toDomain().crisisResources)
+    }
+
+    @Test
+    fun `message without a card stores null crisisJson`() {
+        val entity = Message(id = "c2", role = Message.Role.ASSISTANT, content = "Hi").toEntity(conversationId)
+
+        assertEquals(null, entity.crisisJson)
+        assertEquals(null, entity.toDomain().crisisResources)
+    }
+
+    @Test
+    fun `malformed crisisJson degrades to no card instead of crashing`() {
+        val entity = MessageEntity(
+            id = "c3",
+            conversationId = conversationId,
+            role = "assistant",
+            content = "Stored",
+            versesJson = "[]",
+            createdAt = 1L,
+            crisisJson = "{not json",
+        )
+
+        val domain = entity.toDomain()
+
+        assertEquals(null, domain.crisisResources)
+        assertEquals("Stored", domain.content)
+    }
 }

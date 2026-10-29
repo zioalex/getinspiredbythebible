@@ -416,5 +416,17 @@
     "title": "You're offline",
     "description": "Vox Quieta needs an internet connection to answer your questions. Check your connection and try again.",
     "retry": "Try again"
+  },
+  "Crisis": {
+    "heading": "You don't have to face this alone — talk to someone now",
+    "emergencyLabel": "Emergency number",
+    "call": "Call",
+    "text": "Text",
+    "international": "More helplines worldwide",
+    "notInCountry": "Not in {country}?",
+    "chooseCountry": "Choose your country",
+    "callLineAria": "Call {name}",
+    "textLineAria": "Text {name}",
+    "regionSaved": "We'll use {country} numbers from your next message."
   }
 }

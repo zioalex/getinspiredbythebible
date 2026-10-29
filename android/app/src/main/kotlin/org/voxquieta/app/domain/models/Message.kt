@@ -25,6 +25,11 @@ data class Message(
     val feedbackRating: FeedbackRating? = null,
     /** Server-extracted verse citations in English canonical form (e.g. "John 3:16"). */
     val versesCited: List<String> = emptyList(),
+    /**
+     * Emergency/crisis contacts card shown above this assistant message (BITB-251).
+     * Persisted in Room (`crisisJson`) so the card stays attached to the saved turn.
+     */
+    val crisisResources: CrisisResources? = null,
 ) {
     enum class Role { USER, ASSISTANT }
 }

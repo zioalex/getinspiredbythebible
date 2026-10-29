@@ -416,5 +416,17 @@
     "title": "Du bist offline",
     "description": "Vox Quieta braucht eine Internetverbindung, um deine Fragen zu beantworten. Überprüfe deine Verbindung und versuche es erneut.",
     "retry": "Erneut versuchen"
+  },
+  "Crisis": {
+    "heading": "Du musst das nicht allein durchstehen — sprich jetzt mit jemandem",
+    "emergencyLabel": "Notrufnummer",
+    "call": "Anrufen",
+    "text": "SMS senden",
+    "international": "Weitere Hilfetelefone weltweit",
+    "notInCountry": "Nicht in {country}?",
+    "chooseCountry": "Wähle dein Land",
+    "callLineAria": "{name} anrufen",
+    "textLineAria": "SMS an {name} senden",
+    "regionSaved": "Ab deiner nächsten Nachricht verwenden wir die Nummern für {country}."
   }
 }

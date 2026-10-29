@@ -145,3 +145,69 @@ describe("conversationStore", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("conversationStore crisisResources (BITB-251)", () => {
+  const card = {
+    kind: "self_harm" as const,
+    country: "DE",
+    country_source: "locale" as const,
+    emergency: { number: "112" },
+    lines: [
+      {
+        name: "TelefonSeelsorge",
+        phone: "0800 111 0 111",
+        sms: null,
+        hours: null,
+        url: null,
+      },
+    ],
+    international_url: "https://findahelpline.com",
+    available_countries: ["DE", "AT"],
+  };
+
+  beforeEach(async () => {
+    __resetDbCache();
+    await clearAll();
+  });
+
+  it("persists and restores the card on an assistant message", async () => {
+    await saveFullConversation("c1", "Help", [
+      { role: "user", content: "I want to die" },
+      { role: "assistant", content: "I am here.", crisisResources: card },
+    ]);
+    const msgs = await getMessages("c1");
+    expect(msgs[0].crisisResources).toBeUndefined();
+    expect(msgs[1].crisisResources).toEqual(card);
+  });
+
+  it("tolerates older rows that have no crisisResources", async () => {
+    await saveConversation({
+      id: "old",
+      title: "Old",
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    await appendMessage({
+      id: "old:0",
+      conversationId: "old",
+      role: "assistant",
+      content: "hello",
+      versesCited: [],
+      createdAt: 2,
+    });
+    const msgs = await getMessages("old");
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].crisisResources).toBeUndefined();
+  });
+
+  it("survives export -> clear -> import", async () => {
+    await saveFullConversation("c2", "Help", [
+      { role: "assistant", content: "x", crisisResources: card },
+    ]);
+    const snapshot = await exportAll();
+    await clearAll();
+    await importAll(snapshot);
+    const msgs = await getMessages("c2");
+    expect(msgs[0].crisisResources).toEqual(card);
+  });
+});

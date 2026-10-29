@@ -5,6 +5,7 @@
 import { reportClientError } from "./clientErrorReporter";
 import { getSmokeSecret } from "./smoke";
 import { CitationSpan } from "./citationSpans";
+import { crisisRequestFields } from "./crisisRegion";
 
 // In production builds, NEXT_PUBLIC_API_URL must be set at build time.
 // The fallback is only for local development.
@@ -386,6 +387,26 @@ export interface TranslationInfo {
   year?: number;
 }
 
+/** BITB-251: structured emergency/crisis contacts sent ahead of the reply. */
+export interface CrisisLine {
+  name: string;
+  phone: string | null;
+  sms: string | null;
+  hours: string | null;
+  url: string | null;
+  verified?: boolean;
+}
+
+export interface CrisisResources {
+  kind: "self_harm" | "threat_to_others";
+  country: string | null;
+  country_source: "override" | "ip" | "locale" | "language_default" | "none";
+  emergency: { number: string } | null;
+  lines: CrisisLine[];
+  international_url: string;
+  available_countries: string[];
+}
+
 export interface ChatResponse {
   message_id: string;
   message: string;
@@ -397,6 +418,8 @@ export interface ChatResponse {
   /** BITB-080: suggested follow-up questions, in the user's own voice. Absent
    * when suppressed (crisis/off-topic/error turns) or on an older backend. */
   follow_ups?: string[];
+  /** BITB-251: crisis contacts card payload (self-harm / threat turns). */
+  crisis_resources?: CrisisResources | null;
 }
 
 export interface FeedbackRequest {
@@ -510,6 +533,7 @@ export async function sendMessage(
         include_search: true,
         preferred_translation: preferredTranslation,
         session_id: sessionId,
+        ...crisisRequestFields(),
       },
       { signal: controller.signal },
     );
@@ -582,7 +606,9 @@ export interface StreamMetadata {
 }
 
 export interface StreamChunk {
-  type: "metadata" | "content" | "error" | "completion";
+  type: "metadata" | "content" | "error" | "completion" | "crisis_resources";
+  // For crisis_resources type (BITB-251): first event of a crisis turn.
+  resources?: CrisisResources;
   // For metadata type:
   message_id?: string;
   scripture_context?: ScriptureContext;
@@ -655,6 +681,7 @@ export async function* streamMessage(
       preferred_translation: preferredTranslation,
       session_id: sessionId,
       language,
+      ...crisisRequestFields(language),
     }),
     signal,
   });
@@ -676,6 +703,7 @@ export async function* streamMessage(
           preferred_translation: preferredTranslation,
           session_id: sessionId,
           language,
+          ...crisisRequestFields(language),
         }),
         signal,
       });

@@ -200,6 +200,19 @@
     <string name="error_content_blocked">मैं इस संदेश का उत्तर नहीं दे सका — हमारी सुरक्षा प्रणाली ने इसे रोक लिया, और हो सकता है उसने आपके शब्दों को गलत समझा हो। कृपया अपनी बात को थोड़े अलग शब्दों में फिर से लिखें, और यदि कुछ सही नहीं लगे तो हमें contact@voxquieta.org पर लिखें। आपका यहाँ होना अच्छा लगा।</string>
     <string name="chat_follow_ups_label">सुझाए गए अनुवर्ती प्रश्न</string>
 
+    <!-- BITB-251: crisis resources card -->
+    <string name="crisis_heading">आपको इसका सामना अकेले नहीं करना है — अभी किसी से बात करें</string>
+    <string name="crisis_emergency_label">आपातकालीन नंबर</string>
+    <string name="crisis_emergency_aria">आपातकालीन नंबर %1$s पर कॉल करें</string>
+    <string name="crisis_call">कॉल करें</string>
+    <string name="crisis_text">संदेश भेजें</string>
+    <string name="crisis_international">दुनिया भर की और हेल्पलाइन</string>
+    <string name="crisis_not_in_country">%1$s में नहीं हैं?</string>
+    <string name="crisis_choose_country">अपना देश चुनें</string>
+    <string name="crisis_call_line_aria">%1$s को कॉल करें</string>
+    <string name="crisis_text_line_aria">%1$s को संदेश भेजें</string>
+    <string name="crisis_region_saved">आपके अगले संदेश से हम %1$s के नंबर इस्तेमाल करेंगे।</string>
+
     <!-- Actions -->
     <string name="action_select_language">भाषा चुनें</string>
     <string name="action_retry">पुनः प्रयास करें</string>

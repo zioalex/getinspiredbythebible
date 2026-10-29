@@ -248,4 +248,73 @@ class ChatMapperTest {
         assertEquals("John 3:16", verse.reference)
         assertNull(verse.localizedBook)
     }
+
+    // ── BITB-251: region + crisis card contract ──────────────────────────────
+
+    @Test
+    fun `ChatRequest toDto maps a 2-letter region upper-cased and the override flag`() {
+        val dto = ChatRequest(message = "hi", sessionId = "s", region = "ch", regionOverride = true).toDto()
+
+        assertEquals("CH", dto.region)
+        assertTrue(dto.regionOverride)
+        assertTrue(dto.supportsCrisisCard)
+    }
+
+    @Test
+    fun `ChatRequest toDto drops an invalid region`() {
+        assertNull(ChatRequest(message = "hi", sessionId = "s", region = "").toDto().region)
+        assertNull(ChatRequest(message = "hi", sessionId = "s", region = "USA").toDto().region)
+        assertNull(ChatRequest(message = "hi", sessionId = "s", region = "1A").toDto().region)
+    }
+
+    @Test
+    fun `request JSON always carries supports_crisis_card and region_override`() {
+        val json = org.voxquieta.app.data.remote.api.ApiClient.json
+        val body = json.encodeToString(
+            org.voxquieta.app.data.remote.models.ChatRequestDto.serializer(),
+            ChatRequest(message = "hi", sessionId = "s").toDto(),
+        )
+
+        assertTrue(body, body.contains("\"supports_crisis_card\":true"))
+        assertTrue(body, body.contains("\"region_override\":false"))
+        assertTrue("region is omitted when unknown: $body", !body.contains("\"region\":"))
+    }
+
+    @Test
+    fun `request JSON carries the picked region with region_override true`() {
+        val json = org.voxquieta.app.data.remote.api.ApiClient.json
+        val body = json.encodeToString(
+            org.voxquieta.app.data.remote.models.ChatRequestDto.serializer(),
+            ChatRequest(message = "hi", sessionId = "s", region = "AT", regionOverride = true).toDto(),
+        )
+
+        assertTrue(body, body.contains("\"region\":\"AT\""))
+        assertTrue(body, body.contains("\"region_override\":true"))
+    }
+
+    @Test
+    fun `StreamChunkDto maps crisis resources to the domain model`() {
+        val dto = StreamChunkDto(
+            type = "crisis_resources",
+            crisisResources = org.voxquieta.app.data.remote.models.CrisisResourcesDto(
+                kind = "threat_to_others",
+                country = "US",
+                emergency = org.voxquieta.app.data.remote.models.CrisisEmergencyDto("911"),
+                lines = listOf(org.voxquieta.app.data.remote.models.CrisisLineDto(name = "988", phone = "988")),
+                availableCountries = listOf("US", "CA"),
+            ),
+        )
+
+        val card = dto.toDomain().crisisResources!!
+
+        assertEquals("threat_to_others", card.kind)
+        assertEquals("911", card.emergencyNumber)
+        assertEquals("988", card.lines.single().phone)
+        assertEquals(listOf("US", "CA"), card.availableCountries)
+    }
+
+    @Test
+    fun `ChatResponseDto maps a null crisis_resources to null`() {
+        assertNull(ChatResponseDto(message = "x").toDomain().crisisResources)
+    }
 }

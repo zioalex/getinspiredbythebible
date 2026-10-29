@@ -143,6 +143,7 @@ class ChatViewModelTest {
         every { translationPreferences.preferredTranslationFlow(any()) } returns flowOf("")
         sessionPreferences = mockk(relaxed = true)
         coEvery { sessionPreferences.getOrCreateSessionId() } returns "test-session-id"
+        coEvery { sessionPreferences.getCrisisRegionOverride() } returns null
         lastConversationPreferences = mockk(relaxed = true)
         coEvery { lastConversationPreferences.getLastConversationId() } returns null
         bibleApiService = mockk(relaxed = true)
@@ -3494,5 +3495,91 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_UNAVAILABLE, any()) }
+    }
+
+    // ── BITB-251: crisis resources card ──────────────────────────────────────
+
+    @Test
+    fun `crisis_resources chunk attaches the card to the assistant message and keeps it after completion`() = runTest {
+        val card = org.voxquieta.app.testing.crisisFixture
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "crisis_resources", crisisResources = card),
+            StreamChunk(type = "metadata", messageId = "m1", model = "x"),
+            StreamChunk(content = "I am here.", done = true),
+        )
+
+        viewModel.sendMessage("I want to end it all")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        assertEquals(card, assistant.crisisResources)
+        assertEquals("I am here.", assistant.content)
+        // The persisted message carries the card so it survives a reload.
+        coVerify { repository.saveMessage(any(), match { it.crisisResources == card }) }
+    }
+
+    @Test
+    fun `crisis card stays on the message when the stream errors afterwards`() = runTest {
+        val card = org.voxquieta.app.testing.crisisFixture
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(type = "crisis_resources", crisisResources = card))
+            throw IOException("LLM down")
+        }
+
+        viewModel.sendMessage("I want to end it all")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val assistant = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+        assertEquals(card, assistant.crisisResources)
+        assertTrue(assistant.isError)
+    }
+
+    @Test
+    fun `ordinary turns carry no crisis card`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = "Hello", done = true))
+
+        viewModel.sendMessage("Who killed Goliath?")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }.crisisResources)
+    }
+
+    @Test
+    fun `request carries the device region and region_override false by default`() = runTest {
+        val previous = java.util.Locale.getDefault()
+        java.util.Locale.setDefault(java.util.Locale("pt", "BR"))
+        try {
+            val captured = io.mockk.slot<org.voxquieta.app.domain.models.ChatRequest>()
+            every { repository.chatStream(capture(captured)) } returns flowOf(StreamChunk(content = "x", done = true))
+
+            viewModel.sendMessage("oi")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals("BR", captured.captured.region)
+            assertFalse(captured.captured.regionOverride)
+        } finally {
+            java.util.Locale.setDefault(previous)
+        }
+    }
+
+    @Test
+    fun `request carries the user-picked country with region_override true`() = runTest {
+        coEvery { sessionPreferences.getCrisisRegionOverride() } returns "CH"
+        val captured = io.mockk.slot<org.voxquieta.app.domain.models.ChatRequest>()
+        every { repository.chatStream(capture(captured)) } returns flowOf(StreamChunk(content = "x", done = true))
+
+        viewModel.sendMessage("hallo")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("CH", captured.captured.region)
+        assertTrue(captured.captured.regionOverride)
+    }
+
+    @Test
+    fun `setCrisisRegionOverride persists the pick`() = runTest {
+        viewModel.setCrisisRegionOverride("AT")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { sessionPreferences.setCrisisRegionOverride("AT") }
     }
 }

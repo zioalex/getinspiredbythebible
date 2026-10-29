@@ -134,4 +134,27 @@ class SessionPreferencesTest {
         assertEquals(0, sessionPreferences.getInteractionCount())
         assertTrue("resetSessionId must issue a new session id", newId != oldId)
     }
+
+    // ── BITB-251: crisis-card country override ───────────────────────────────
+
+    @Test
+    fun `crisis region override is null until the user picks a country`() = runTest(testDispatcher) {
+        assertEquals(null, sessionPreferences.getCrisisRegionOverride())
+    }
+
+    @Test
+    fun `crisis region override persists upper-cased across instances`() = runTest(testDispatcher) {
+        sessionPreferences.setCrisisRegionOverride("at")
+
+        assertEquals("AT", SessionPreferences(dataStore).getCrisisRegionOverride())
+    }
+
+    @Test
+    fun `invalid crisis region codes are ignored`() = runTest(testDispatcher) {
+        sessionPreferences.setCrisisRegionOverride("AT")
+        sessionPreferences.setCrisisRegionOverride("USA")
+        sessionPreferences.setCrisisRegionOverride("1!")
+
+        assertEquals("AT", sessionPreferences.getCrisisRegionOverride())
+    }
 }

@@ -416,5 +416,17 @@
     "title": "Você está offline",
     "description": "O Vox Quieta precisa de uma conexão à internet para responder às suas perguntas. Verifique sua conexão e tente novamente.",
     "retry": "Tentar novamente"
+  },
+  "Crisis": {
+    "heading": "Você não precisa enfrentar isso sozinho(a) — fale com alguém agora",
+    "emergencyLabel": "Número de emergência",
+    "call": "Ligar",
+    "text": "Enviar SMS",
+    "international": "Mais linhas de ajuda no mundo",
+    "notInCountry": "Não está em {country}?",
+    "chooseCountry": "Escolha o seu país",
+    "callLineAria": "Ligar para {name}",
+    "textLineAria": "Enviar SMS para {name}",
+    "regionSaved": "A partir da sua próxima mensagem, usaremos os números de {country}."
   }
 }

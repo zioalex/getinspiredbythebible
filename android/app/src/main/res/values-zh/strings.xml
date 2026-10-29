@@ -200,6 +200,19 @@
     <string name="error_content_blocked">这条消息我没能回复 — 我们的安全系统暂时拦住了它，可能只是误读了您的表达。请尝试换一种说法再说一次；如果觉得有哪里不对，欢迎写信给我们 contact@voxquieta.org。很高兴您来到这里。</string>
     <string name="chat_follow_ups_label">建议的后续问题</string>
 
+    <!-- BITB-251: crisis resources card -->
+    <string name="crisis_heading">你不必独自面对这一切——现在就和某个人谈谈</string>
+    <string name="crisis_emergency_label">紧急电话</string>
+    <string name="crisis_emergency_aria">拨打紧急电话 %1$s</string>
+    <string name="crisis_call">拨打</string>
+    <string name="crisis_text">发短信</string>
+    <string name="crisis_international">全球更多求助热线</string>
+    <string name="crisis_not_in_country">不在%1$s？</string>
+    <string name="crisis_choose_country">选择你所在的国家或地区</string>
+    <string name="crisis_call_line_aria">拨打 %1$s</string>
+    <string name="crisis_text_line_aria">给 %1$s 发短信</string>
+    <string name="crisis_region_saved">从你的下一条消息开始，我们将使用%1$s的号码。</string>
+
     <!-- Actions -->
     <string name="action_select_language">选择语言</string>
     <string name="action_retry">重试</string>

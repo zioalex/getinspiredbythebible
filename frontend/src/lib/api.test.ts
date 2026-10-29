@@ -27,6 +27,13 @@ import {
   type ChurchSearchResponse,
 } from "./api";
 
+// BITB-251: fields every chat request now carries (jsdom navigator = en-US).
+const CRISIS_DEFAULTS = {
+  region: "US",
+  region_override: false,
+  supports_crisis_card: true,
+};
+
 // Mock fetch globally
 global.fetch = vi.fn();
 
@@ -73,6 +80,7 @@ describe("sendMessage", () => {
           message: "Tell me about love",
           conversation_history: [],
           include_search: true,
+          ...CRISIS_DEFAULTS,
         }),
         signal: expect.any(AbortSignal),
       }),
@@ -105,6 +113,7 @@ describe("sendMessage", () => {
           message: "Follow-up question",
           conversation_history: history,
           include_search: true,
+          ...CRISIS_DEFAULTS,
         }),
       }),
     );
@@ -140,6 +149,7 @@ describe("sendMessage", () => {
           conversation_history: [],
           include_search: true,
           preferred_translation: "ita1927",
+          ...CRISIS_DEFAULTS,
         }),
       }),
     );
@@ -1209,5 +1219,97 @@ describe("submitContactForm", () => {
     const result = submitContactForm(contact);
     await expect(result).rejects.not.toBeInstanceOf(InvalidContactEmailError);
     await expect(result).rejects.toThrow("API error: 500");
+  });
+});
+
+describe("crisis card request fields (BITB-251)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  function lastBody(): Record<string, unknown> {
+    const calls = (global.fetch as any).mock.calls;
+    return JSON.parse(calls[calls.length - 1][1].body);
+  }
+
+  it("streamMessage sends supports_crisis_card and a region", async () => {
+    (global.fetch as any).mockResolvedValueOnce(
+      streamResponseFromChunks(["data: [DONE]\n\n"]),
+    );
+    for await (const _ of streamMessage("hi", [], { language: "pt-BR" })) {
+      void _;
+    }
+    const body = lastBody();
+    expect(body.supports_crisis_card).toBe(true);
+    expect(body.region_override).toBe(false);
+    expect(typeof body.region === "string" || body.region === undefined).toBe(
+      true,
+    );
+  });
+
+  it("streamMessage sends the picked override with region_override true", async () => {
+    window.localStorage.setItem("vq_crisis_region_override", "CH");
+    (global.fetch as any).mockResolvedValueOnce(
+      streamResponseFromChunks(["data: [DONE]\n\n"]),
+    );
+    for await (const _ of streamMessage("hi", [], { language: "it" })) {
+      void _;
+    }
+    const body = lastBody();
+    expect(body.region).toBe("CH");
+    expect(body.region_override).toBe(true);
+    expect(body.supports_crisis_card).toBe(true);
+  });
+
+  it("the 403-retry body carries the same fields", async () => {
+    window.localStorage.setItem("vq_crisis_region_override", "AT");
+    setTurnstileToken("stale-token");
+    setTurnstileAwaiter(vi.fn().mockResolvedValue("fresh-token"));
+    (global.fetch as any)
+      .mockResolvedValueOnce({ ok: false, status: 403 })
+      .mockResolvedValueOnce(streamResponseFromChunks(["data: [DONE]\n\n"]));
+    for await (const _ of streamMessage("hi", [], { language: "de" })) {
+      void _;
+    }
+    setTurnstileToken(null);
+    setTurnstileAwaiter(null);
+    const calls = (global.fetch as any).mock.calls;
+    expect(calls.length).toBe(2);
+    for (const call of calls) {
+      const body = JSON.parse(call[1].body);
+      expect(body.region).toBe("AT");
+      expect(body.region_override).toBe(true);
+      expect(body.supports_crisis_card).toBe(true);
+    }
+  });
+
+  it("sendMessage (blocking) sends the fields and returns crisis_resources", async () => {
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        message: "x",
+        crisis_resources: { kind: "self_harm", lines: [] },
+      }),
+    });
+    const res = await sendMessage("hi");
+    expect(res.crisis_resources?.kind).toBe("self_harm");
+    const body = lastBody();
+    expect(body.supports_crisis_card).toBe(true);
+    expect(body.region_override).toBe(false);
+  });
+
+  it("yields a crisis_resources chunk first, before metadata", async () => {
+    (global.fetch as any).mockResolvedValueOnce(
+      streamResponseFromChunks([
+        'data: {"type":"crisis_resources","resources":{"kind":"threat_to_others","country":"US","lines":[],"available_countries":[]}}\n\n' +
+          'data: {"type":"metadata","message_id":"m1"}\n\n' +
+          "data: [DONE]\n\n",
+      ]),
+    );
+    const received = [];
+    for await (const chunk of streamMessage("hi")) received.push(chunk);
+    expect(received[0].type).toBe("crisis_resources");
+    expect(received[0].resources?.kind).toBe("threat_to_others");
+    expect(received[1].type).toBe("metadata");
   });
 });

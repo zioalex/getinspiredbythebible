@@ -203,6 +203,19 @@
     <string name="error_content_blocked">I wasn\'t able to respond to that one — our safety system held it back, and it may simply have misread your words. Please try rephrasing your thought, and if something still feels wrong, reach out to us at contact@voxquieta.org. We\'re glad you\'re here.</string>
     <string name="chat_follow_ups_label">Suggested follow-up questions</string>
 
+    <!-- BITB-251: crisis resources card -->
+    <string name="crisis_heading">You don\'t have to face this alone — talk to someone now</string>
+    <string name="crisis_emergency_label">Emergency number</string>
+    <string name="crisis_emergency_aria">Call emergency number %1$s</string>
+    <string name="crisis_call">Call</string>
+    <string name="crisis_text">Text</string>
+    <string name="crisis_international">More helplines worldwide</string>
+    <string name="crisis_not_in_country">Not in %1$s?</string>
+    <string name="crisis_choose_country">Choose your country</string>
+    <string name="crisis_call_line_aria">Call %1$s</string>
+    <string name="crisis_text_line_aria">Text %1$s</string>
+    <string name="crisis_region_saved">We\'ll use %1$s numbers from your next message.</string>
+
     <!-- Actions -->
     <string name="action_select_language">Select language</string>
     <string name="action_retry">Retry</string>

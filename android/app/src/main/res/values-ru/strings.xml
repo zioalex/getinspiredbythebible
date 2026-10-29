@@ -200,6 +200,19 @@
     <string name="error_content_blocked">Я не смог ответить на это сообщение — наша система безопасности задержала его и, возможно, просто неправильно поняла ваши слова. Попробуйте, пожалуйста, переформулировать мысль, а если что-то всё же кажется не так, напишите нам на contact@voxquieta.org. Рады, что вы здесь.</string>
     <string name="chat_follow_ups_label">Предлагаемые дополнительные вопросы</string>
 
+    <!-- BITB-251: crisis resources card -->
+    <string name="crisis_heading">Вам не нужно справляться с этим в одиночку — поговорите с кем-нибудь прямо сейчас</string>
+    <string name="crisis_emergency_label">Номер экстренной помощи</string>
+    <string name="crisis_emergency_aria">Позвонить на номер экстренной помощи %1$s</string>
+    <string name="crisis_call">Позвонить</string>
+    <string name="crisis_text">Отправить SMS</string>
+    <string name="crisis_international">Другие линии помощи по всему миру</string>
+    <string name="crisis_not_in_country">Вы не в стране «%1$s»?</string>
+    <string name="crisis_choose_country">Выберите вашу страну</string>
+    <string name="crisis_call_line_aria">Позвонить: %1$s</string>
+    <string name="crisis_text_line_aria">Отправить SMS: %1$s</string>
+    <string name="crisis_region_saved">Со следующего сообщения мы будем использовать номера для страны «%1$s».</string>
+
     <!-- Actions -->
     <string name="action_select_language">Выбрать язык</string>
     <string name="action_retry">Повторить</string>

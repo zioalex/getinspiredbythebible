@@ -1,6 +1,7 @@
 package org.voxquieta.app.data.streaming
 
 import org.voxquieta.app.data.remote.models.CorrectionDto
+import org.voxquieta.app.data.remote.models.CrisisResourcesDto
 import org.voxquieta.app.data.remote.models.StreamChunkDto
 import org.voxquieta.app.data.remote.models.VerseDto
 import kotlinx.coroutines.CancellationException
@@ -136,6 +137,21 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                                 followUps = followUps,
                             ),
                         )
+                    }
+                    "crisis_resources" -> {
+                        // BITB-251: first event of a self-harm / threat turn. A malformed
+                        // payload is logged and ignored -- it must never take the stream down
+                        // (the reply that follows still has to render).
+                        val resources: CrisisResourcesDto? = try {
+                            jsonObj["resources"]?.takeIf { it !is JsonNull }
+                                ?.let { json.decodeFromJsonElement<CrisisResourcesDto>(it) }
+                        } catch (e: Exception) {
+                            Timber.w(e, "SSE: failed to parse crisis_resources")
+                            null
+                        }
+                        if (resources != null) {
+                            emit(StreamChunkDto(type = "crisis_resources", crisisResources = resources))
+                        }
                     }
                     "content", null, "" -> {
                         // Standard content chunk or legacy plain chunk with no type field.
