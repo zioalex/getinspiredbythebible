@@ -77,13 +77,14 @@ tests **and** `backend_probe_failures` **and** update BITB-064's runbook note.
 
 ## Decision
 
-**Option A re-enable — proposed, owner confirmation pending.** Code implements Option A
-(tests cost almost nothing; only independent multi-geo vantage points).
+**Option A re-enable — confirmed by the owner on 2026-10-29.** Code implements Option A
+(tests cost almost nothing; they are the only independent multi-geo vantage points, and the
+BITB-064 browser-only-outage safety net depends on them).
 
 ## Acceptance Criteria
 
 - [ ] Disablement date and actor identified; intent documented in the story
-- [ ] Keep-or-retire decision recorded with reasoning (this is deliberately the
+- [x] Keep-or-retire decision recorded with reasoning (this is deliberately the
       owner's call — re-justify, don't rubber-stamp)
 - [ ] If kept: tests show `Enabled: true` in production (after deploy; owner-only)
 - [ ] If kept: `*-availability-failed` / `*-preflight-failed` alerts verified to fire on a
@@ -96,7 +97,7 @@ tests **and** `backend_probe_failures` **and** update BITB-064's runbook note.
 - [ ] Historical correlation of past `availabilityResults` rows / alert firings (owner-only)
 - [ ] If retired: tests, `backend_probe_failures`, and the BITB-064 runbook
       note are removed together in one PR
-- [ ] Either way: the decision and its date land in this story file
+- [x] Either way: the decision and its date land in this story file
 
 ## Out of Scope
 
