@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-29: BITB-251 in progress — plan approved (crisis overrides profanity filter, directed_harm excluded, unverified numbers shown + flagged, Android Room migration)
 - 2026-10-29: BITB-251 spec revised — country from Cloudflare IP geolocation, self-curated hotline registry with source + staleness checks (ThroughLine evaluated); BITB-252 threshold/retention confirmed
 - 2026-10-28: BITB-252 spec — privacy-safe RAG retrieval-miss logging (derived signals only, no prompt text)
 - 2026-10-28: BITB-251 spec — emergency critical path: deterministic hotline card first for threats to self or others
@@ -122,9 +123,9 @@ re-litigating a settled rule.
 
 ## P0 - Critical (Ship Now)
 
-### 🎯 BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
+### 🚧 BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
 
-**Status:** 🎯 Todo — spec awaiting owner confirmation
+**Status:** 🚧 In Progress — spec + plan approved
 **Size:** L
 **Created:** 2026-10-28
 

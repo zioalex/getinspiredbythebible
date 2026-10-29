@@ -1,6 +1,6 @@
 # BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
 
-**Status:** 🎯 Todo — spec awaiting owner confirmation (2026-10-28)
+**Status:** 🚧 In Progress — spec + plan approved 2026-10-29
 **Priority:** P0
 **Size:** L
 **Created:** 2026-10-28
@@ -223,3 +223,127 @@ Sources: [ThroughLine developer docs](https://developer.throughlinecare.com/gene
 [IASP crisis centres](https://www.iasp.info/crisis-centres/),
 [Cloudflare IP geolocation](https://developers.cloudflare.com/network/ip-geolocation),
 [Wikipedia emergency numbers](https://en.wikipedia.org/wiki/List_of_emergency_telephone_numbers).
+
+## Implementation plan (Plan stage, 2026-10-29)
+
+### Findings from the code read that change the design
+
+1. **A route-level filter can pre-empt the card.** `check_content_filter` (`api/utils/security.py`)
+   runs as a route dependency *before* `ChatService`, and returns HTTP 400 `content_blocked` on
+   profanity or repeated characters. So "f*** this, I want to kill myself" or "nooooo I want to
+   die" never reaches the safety pipeline. The user gets the generic blocked toast and **no
+   numbers**. Fix it here.
+2. **Classifying by reason string.** Blocked reasons come from four stages with different strings:
+   - keyword: `keyword_violation:<type>`, plus `self_harm_with_violence (fallback)`
+   - Llama Guard: `violence_or_threat_detected` (S1/S2/S9), plus `possible_help_seeking` (S11,
+     allowed)
+   - OpenAI moderation: `violence_or_threat_detected`, plus `self_harm_instructions_detected`
+   - Azure: `harmful_intent_detected` with severity `categories`, plus `help_seeking_detected`
+
+   `_map_reason_to_category` (`api/chat/prompts.py`) already normalises these, and the
+   classification reuses it.
+3. **`chat()` has five return paths after the safety check:** blocked, off-topic, clarification,
+   scripture-unavailable and normal. `chat_stream()` has the same five as yield paths.
+4. **Android local DB.** It is `version = 1` with `fallbackToDestructiveMigration()`. Adding a column
+   without an explicit `Migration(1, 2)` would **wipe every user's saved conversations**.
+5. **Verification can't happen here.** The sandbox cannot reach any official helpline site (988lifeline.org,
+   samaritans.org, telefonoamico.it and others all fail), so the first verification pass cannot
+   happen during Build. GitHub Actions can reach them.
+
+### Backend
+
+| File | Change |
+|------|--------|
+| `api/utils/crisis_resources.json` (new) | Registry data. `emergency` table per country, `lines` per country (`label` per language with an `en` fallback, `phone`, `sms`, `hours`, `url`), `language_defaults` (`ar` → none), `international_url`. Every entry has `source_url`, `verified_on` (ISO date or `null`) and `verified_by`. Seeded with the countries in the table above; entries not yet verified carry `verified_on: null` |
+| `api/utils/crisis_resources.py` (new) | `CrisisKind` enum (`self_harm`, `threat_to_others`). `classify_crisis(outcome) -> CrisisKind \| None`. `resolve_country(cf_country, client_region, language)`, which treats `XX`/`T1`/invalid as absent. `CrisisResourceProvider` protocol with `StaticRegistryProvider` loading the JSON once (`lru_cache`). `build_crisis_payload(kind, country, language) -> dict`. `render_markdown_fallback(payload, language) -> str` |
+| `api/chat/service.py` | Add `is_help_seeking` to `_SafetyOutcome`. `chat()`/`chat_stream()` gain a keyword-only `client_country: str \| None = None`. Right after `_check_content_safety`, compute `crisis = self._crisis_payload(...)`. **Stream:** if `crisis`, `yield {"type": "crisis_resources", "resources": crisis}` before anything else, then continue unchanged. **Blocking:** every return path goes through `_with_crisis(response, crisis)`, which sets `ChatResponse.crisis_resources`. Increment the counter `chat_crisis_card_shown{kind, language, region_used, path}` |
+| `api/chat/service.py` `ChatRequest` | Add `region: str \| None` (pattern `^[A-Za-z]{2}$`, upper-cased) and `supports_crisis_card: bool = False` |
+| `api/chat/prompts.py` | `COMPASSIONATE_RESPONSE_ADDENDUM`: remove the numbers, and say instead that a crisis card with local numbers is already shown above the reply, so the model should point to it gently and never write phone numbers itself. `self_harm_blocked` templates: remove the bullet list of numbers. `get_blocked_response(reason, lang, crisis_markdown="")` appends the registry-rendered fallback when the client did **not** declare `supports_crisis_card`. `violence_or_threat` keeps its text, and the card or fallback now follows it |
+| `api/routes/chat.py` | Read `http_request.headers.get("CF-IPCountry")` and pass it as `client_country` on both routes |
+| `api/utils/security.py` `check_content_filter` | If the violation is `PROFANITY` or `REPEATED_CHARS` and `MultiLanguageContentFilter` finds a self-harm span, violence or murder-suicide match on the normalised text, **don't 400**: log it and let the request reach the service so the crisis path runs. URL and spam blocking are unchanged |
+| `api/metrics` (existing module that holds the chat counters) | New counter |
+| `api/tests/` | `test_crisis_resources_registry.py`: schema, E.164-ish numbers, an official non-aggregator `source_url` host on every entry, every one of the 11 languages has `label`s. `test_crisis_resources_resolution.py`: country precedence, parametrized across 11 languages. `test_chat_crisis_path.py`: integration tests through `chat()`/`chat_stream()` for each trigger outcome × each return path. It asserts the stream's first event is `crisis_resources`, and that the card still arrives when a mocked `search_service` or LLM raises afterwards. It also checks a non-crisis Bible-narrative "kill" phrasing across 11 languages, and markdown-fallback on/off. Route test for the `CF-IPCountry` passthrough and the profanity + crisis bypass. Update the existing tests that assert numbers in `self_harm_blocked` |
+
+**Classification table (`classify_crisis`):**
+
+| Outcome | Kind |
+|---------|------|
+| allowed + compassionate (keyword, Llama Guard S11, Azure help-seeking) | `self_harm` |
+| blocked, `self_harm_blocked` category (including the ambiguous murder-suicide reason and OpenAI self-harm instructions) | `self_harm` |
+| blocked, `violence_or_threat` category | `threat_to_others` |
+| blocked Azure `harmful_intent_detected` with `self_harm` ≥ threshold / `violence` ≥ threshold | `self_harm` / `threat_to_others` |
+| `directed_harm` (abuse aimed at the bot, e.g. "go kill yourself"), `hate_speech`, `sexual_content`, generic | none |
+
+### Web (`frontend/`)
+
+- `src/lib/api.ts`:
+  - `StreamChunk.type` gets `"crisis_resources"` and `resources?: CrisisResources`, and the type is
+    exported.
+  - `ChatResponse.crisis_resources?`.
+  - The request body sends `region` (from `navigator.language`'s region subtag, else the locale's)
+    and `supports_crisis_card: true`.
+- `src/components/CrisisResourcesCard.tsx` (new):
+  - `role="alert"`; the emergency number rendered prominently; `tel:`/`sms:` links with accessible
+    names; findahelpline.com link; RTL via `dir`.
+  - A "Not in {country}?" button opens a small country picker built from the payload's
+    `available_countries`. The choice is saved to localStorage (try/catch) and sent as `region` on
+    later requests. Because `CF-IPCountry` otherwise wins, the backend gives a client
+    **`region_override: true`** precedence. Add that flag to the request too.
+- `src/app/[locale]/ChatIsland.tsx`: handle the `crisis_resources` chunk by setting
+  `crisisResources` on the placeholder assistant message, and render the card above the bubble.
+- `src/lib/conversationStore.ts`: optional `crisisResources` on `StoredMessage`, persisted and
+  restored. Older stored rows simply lack it.
+- `messages/*.json` (all 11): `Crisis.heading`, `call`, `text`, `emergency`, `international`,
+  `notInCountry`, `chooseCountry`.
+- Tests (Vitest): card rendering, hrefs, RTL, the picker storing the override, ChatIsland putting
+  the card above the reply when the first chunk is `crisis_resources`, and history round-trip.
+
+### Android (`android/`)
+
+- DTOs:
+  - `ChatRequestDto` gets `region`, `region_override` and `supports_crisis_card`.
+  - `EventSourceParser` handles `"crisis_resources"` and produces a `StreamChunk` with
+    `crisisResources`.
+  - Domain model `CrisisResources`.
+- `ChatViewModel`: attach it to the in-flight assistant message.
+- `presentation/components/CrisisResourcesCard.kt` (new):
+  - Dial and SMS use `ACTION_DIAL` / `ACTION_SENDTO`; there is no `CALL_PHONE` permission.
+  - Live region via `semantics { liveRegion = Polite }`; 48 dp targets.
+  - A country-override picker stored in DataStore/SharedPreferences.
+- Room:
+  - `MessageEntity.crisisJson: String?`.
+  - Database `version = 2` with an explicit `MIGRATION_1_2` (`ALTER TABLE messages ADD COLUMN
+    crisisJson TEXT`), registered in `DatabaseModule` before the destructive fallback.
+- Strings in `values/` plus all 10 `values-*`.
+- Tests:
+  - JVM tests for `EventSourceParser` (crisis event, malformed payload ignored) and the
+    entity-mapper round-trip.
+  - A Robolectric `MigrationTestHelper` test for 1 → 2.
+  - `CrisisResourcesCardComposeTest` asserting the dial intent and labels.
+
+### Ops, docs and CI
+
+- `.github/workflows/crisis-resources-staleness.yml` (new, weekly, not a PR gate): fails if any
+  `verified_on` is `null` or older than 180 days, or any `source_url` doesn't return 2xx/3xx.
+- `docs/HOW-TO-VERIFY-CRISIS-RESOURCES.md` (new): the re-verification procedure.
+- `deployment/README.md` Cloudflare checklist: add "Network → IP Geolocation: On", and a note that
+  without it the card falls back to locale.
+- Privacy policy (11 files): one line saying the country is inferred from the connection only to
+  show local emergency numbers, and is not stored. Bump the date.
+
+### Plan decisions (owner, 2026-10-29)
+
+1. **Unverified entries are shown**, with `verified_on: null` (today's production status quo). The
+   weekly check stays red until each one is verified.
+2. **Crisis wording overrides the profanity / repeated-characters route filter.**
+3. **No card for `directed_harm` only.** Every `violence_or_threat` outcome, Llama Guard S2
+   included, gets the card.
+4. **Android persists the card** via an explicit, tested Room `MIGRATION_1_2`.
+
+### Verification
+
+- `cd api && python -m pytest tests/ -x -q`; Ruff, Black, MyPy.
+- `cd frontend && npx vitest run && npm run lint && npx tsc --noEmit && npm run build`.
+- Android `testDebugUnitTest`, the ComposeTest tier and lint. If Gradle can't run in the sandbox,
+  say so, and PR CI becomes the gate.
+- Fresh Opus verifier against the acceptance criteria above.
