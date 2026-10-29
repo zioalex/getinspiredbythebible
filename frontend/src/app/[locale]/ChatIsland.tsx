@@ -27,6 +27,7 @@ import FollowUpSuggestions from "@/components/FollowUpSuggestions";
 import { followUpsEnabled } from "@/lib/featureFlags";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
+import ContactModal from "@/components/ContactModal";
 import LanguageSwitcher, { localeLabels } from "@/components/LanguageSwitcher";
 import MainMenu from "@/components/MainMenu";
 import LanguageSwitchSuggestion from "@/components/LanguageSwitchSuggestion";
@@ -67,6 +68,7 @@ import { useTurnstile } from "@/lib/turnstile";
 import { useServerConfig } from "@/lib/serverConfig";
 import { isSmokeMode } from "@/lib/smoke";
 import { useStopSpeechOnChange } from "@/lib/useStopSpeechOnChange";
+import { useKeyboardAwareViewport } from "@/lib/useKeyboardAwareViewport";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import {
@@ -210,6 +212,9 @@ export default function ChatIsland({
   // bumped after each save so the sidebar re-reads the store. History lives
   // only in the browser (IndexedDB) and is never sent to the server.
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  // #1224: keep the composer above the iOS on-screen keyboard.
+  useKeyboardAwareViewport();
   const [historyRefresh, setHistoryRefresh] = useState(0);
 
   // Only one promo/suggestion element in the sticky bottom region at a time,
@@ -1011,7 +1016,13 @@ export default function ChatIsland({
   }, [tWelcome]);
 
   return (
-    <main className="flex h-dvh">
+    <main
+      className="flex h-dvh"
+      // #1224: follows the visual viewport while the iOS keyboard is open
+      // (falls back to 100dvh everywhere else), so the message list scrolls,
+      // not the page.
+      style={{ height: "var(--chat-viewport-height, 100dvh)" }}
+    >
       {/* Main Chat Area */}
       <div className="flex-1 min-w-0 w-full flex flex-col max-w-4xl mx-auto overflow-x-clip">
         {/* Header */}
@@ -1024,6 +1035,7 @@ export default function ChatIsland({
                 translations={translations}
                 activeTranslationCode={activeTranslationCode}
                 onSelectTranslation={handleTranslationChange}
+                onOpenContact={() => setContactOpen(true)}
               />
               <Book className="w-8 h-8 text-primary-600 hidden sm:block shrink-0" />
               <div className="min-w-0">
@@ -1251,8 +1263,13 @@ export default function ChatIsland({
           )}
         </div>
 
-        {/* Input Area */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4">
+        {/* Input Area — below lg the composer is the last thing on screen
+            (#1224): the disclaimer and Church Finder banner are reordered
+            above it, and the footer links / contact form move to the menu. */}
+        <div
+          data-testid="chat-input-area"
+          className="sticky bottom-0 flex flex-col bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4"
+        >
           {/* Session Limit Buttons: "Continue" (non-destructive, keeps the
               visible thread) is the primary default; "Start New Session"
               (wipes the thread) stays available as a secondary, explicit
@@ -1333,24 +1350,30 @@ export default function ChatIsland({
               {input.length}/{maxMessageLength}
             </p>
           )}
-          <p className="text-xs text-gray-400 mt-2 text-center">
+          <p
+            data-testid="chat-disclaimer"
+            className="order-first mb-2 lg:order-none lg:mb-0 lg:mt-2 text-xs text-gray-400 text-center"
+          >
             {tChat("disclaimer")}
           </p>
 
-          {/* Compact link row — the page-level Footer is unreachable on this
-              h-dvh chat page, so these links live in the shell instead. */}
-          <ChatFooterLinks />
-
-          {/* Church Finder Banner */}
+          {/* Church Finder Banner — above the composer below lg */}
           {showChurchFinderBanner && (
-            <ChurchFinderBanner
-              onFindChurch={() => setChurchFinderModalOpen(true)}
-              onDismiss={() => setChurchFinderDismissed(true)}
-            />
+            <div className="order-first mb-2 lg:order-none lg:mb-0 [&>div]:mt-0 lg:[&>div]:mt-3">
+              <ChurchFinderBanner
+                onFindChurch={() => setChurchFinderModalOpen(true)}
+                onDismiss={() => setChurchFinderDismissed(true)}
+              />
+            </div>
           )}
 
-          {/* Contact Form */}
-          <ContactForm />
+          {/* Desktop only (#1224): compact footer link row (BITB-079) and the
+              inline contact form. Below lg both live in the main menu so they
+              are not tapped by accident right under the composer. */}
+          <div data-testid="chat-desktop-extras" className="hidden lg:block">
+            <ChatFooterLinks />
+            <ContactForm />
+          </div>
         </div>
       </div>
 
@@ -1434,7 +1457,7 @@ export default function ChatIsland({
       {!isUserNearBottom && messages.length > 0 && (
         <button
           onClick={handleScrollToBottomClick}
-          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 bg-gray-800/90 text-white rounded-full shadow-lg hover:bg-gray-900 transition-colors backdrop-blur-sm"
+          className="fixed bottom-[calc(8rem+env(safe-area-inset-bottom))] lg:bottom-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-4 py-2 bg-gray-800/90 text-white rounded-full shadow-lg hover:bg-gray-900 transition-colors backdrop-blur-sm"
           aria-label={tChat("scrollToBottom")}
         >
           <ChevronDown className="w-4 h-4" />
@@ -1442,11 +1465,12 @@ export default function ChatIsland({
         </button>
       )}
 
-      {/* Mobile FAB for verse references */}
+      {/* Mobile FAB for verse references — sits just above the pinned input
+          area (its old bottom-28 slot was the footer-link gutter, #1224). */}
       {relevantVerses.length > 0 && (
         <button
           onClick={() => setMobileVersesOpen(true)}
-          className="lg:hidden fixed bottom-28 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
+          className="lg:hidden fixed bottom-[calc(8rem+env(safe-area-inset-bottom))] right-4 z-40 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
           aria-label={tVerses("showScriptureReferences")}
         >
           <BookOpen className="w-5 h-5" />
@@ -1575,6 +1599,11 @@ export default function ChatIsland({
           hasNextChapter={true}
         />
       )}
+
+      <ContactModal
+        isOpen={contactOpen}
+        onClose={() => setContactOpen(false)}
+      />
 
       {/* Church Finder Modal */}
       <ChurchFinderModal

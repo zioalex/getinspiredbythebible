@@ -8,6 +8,11 @@ import {
   Info,
   Heart,
   Volume2,
+  MessageSquare,
+  Shield,
+  FileText,
+  ScrollText,
+  Smartphone,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -31,7 +36,17 @@ interface MainMenuProps {
   translations: TranslationInfo[];
   activeTranslationCode: string;
   onSelectTranslation: (code: string) => void;
+  /** Opens the contact form. Below lg the chat page drops its inline
+   *  "Get in Touch" form and footer links (#1224), so they live here. */
+  onOpenContact?: () => void;
 }
+
+// Entries moved out of the chat page's bottom bar on mobile/tablet (#1224).
+// Desktop (lg+) keeps the inline footer row and contact form, so these are
+// hidden there to avoid duplicates.
+const MOBILE_ONLY = "lg:hidden";
+const ITEM_CLASS =
+  "w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors";
 
 export default function MainMenu({
   onOpenHistory,
@@ -39,9 +54,12 @@ export default function MainMenu({
   translations,
   activeTranslationCode,
   onSelectTranslation,
+  onOpenContact,
 }: MainMenuProps) {
   const t = useTranslations("Chat");
   const tFooter = useTranslations("Footer");
+  const tLegal = useTranslations("Legal");
+  const tContact = useTranslations("Contact");
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const locale = useLocale();
@@ -93,7 +111,10 @@ export default function MainMenu({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1">
+        <div
+          data-testid="main-menu-panel"
+          className="absolute top-full start-0 mt-1 w-64 max-w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-5rem)] overflow-y-auto overflow-x-hidden bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1"
+        >
           <button
             onClick={() => {
               onOpenHistory();
@@ -107,14 +128,14 @@ export default function MainMenu({
 
           <div className="border-t border-gray-100 my-1" />
 
-          <div className="px-3 py-2" onChange={() => setOpen(false)}>
+          <div className="px-3 py-2 min-w-0" onChange={() => setOpen(false)}>
             <p className="text-xs font-medium text-gray-500 mb-1">
               {t("changeLanguage")}
             </p>
             <LanguageSwitcher />
           </div>
 
-          <div className="px-3 py-2" onChange={() => setOpen(false)}>
+          <div className="px-3 py-2 min-w-0" onChange={() => setOpen(false)}>
             <p className="text-xs font-medium text-gray-500 mb-1">
               {t("changeBibleVersion")}
             </p>
@@ -213,6 +234,43 @@ export default function MainMenu({
             <Info className="w-4 h-4 shrink-0" />
             {tFooter("about")}
           </Link>
+
+          {onOpenContact && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenContact();
+                setOpen(false);
+              }}
+              className={`${ITEM_CLASS} ${MOBILE_ONLY}`}
+            >
+              <MessageSquare className="w-4 h-4 shrink-0" aria-hidden="true" />
+              {tContact("getInTouch")}
+            </button>
+          )}
+
+          {(
+            [
+              { href: "/app", label: tFooter("getApp"), Icon: Smartphone },
+              { href: "/privacy", label: tLegal("navPrivacy"), Icon: Shield },
+              { href: "/terms", label: tLegal("navTerms"), Icon: FileText },
+              {
+                href: "/changelog",
+                label: tFooter("changelog"),
+                Icon: ScrollText,
+              },
+            ] as const
+          ).map(({ href, label, Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setOpen(false)}
+              className={`${ITEM_CLASS} ${MOBILE_ONLY}`}
+            >
+              <Icon className="w-4 h-4 shrink-0" aria-hidden="true" />
+              {label}
+            </Link>
+          ))}
 
           <a
             href={donateUrl("web-menu")}

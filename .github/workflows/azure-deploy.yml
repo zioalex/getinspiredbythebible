@@ -435,6 +435,27 @@ jobs:
           echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
           echo "✅ Building frontend with NEXT_PUBLIC_API_URL=$BACKEND_URL"
 
+      - name: Get web follow-ups flag (BITB-080)
+        id: follow-ups-flag
+        run: |
+          # The web rollout flag lives in deployment/terraform.tfvars (single
+          # source of truth, same file Terraform applies — mirrors the
+          # custom_domain_backend grep above). Next.js inlines NEXT_PUBLIC_*
+          # during `next build`, so the flag must be BAKED into the frontend
+          # image as a docker build-arg below; a runtime Container App env var
+          # would never reach the client bundle. Anything other than "true"
+          # (including unset, matching the variables.tf default false) keeps
+          # the web chips hidden.
+          WEB_FOLLOW_UPS=$(
+            grep -E -m1 '^[[:space:]]*web_follow_ups_enabled[[:space:]]*=' deployment/terraform.tfvars |
+            sed -E 's/.*=[[:space:]]*"?(true|false)"?.*/\1/' || true
+          )
+          if [ "$WEB_FOLLOW_UPS" != "true" ]; then
+            WEB_FOLLOW_UPS="false"
+          fi
+          echo "web_enabled=$WEB_FOLLOW_UPS" >> "$GITHUB_OUTPUT"
+          echo "Building frontend with NEXT_PUBLIC_FOLLOW_UPS_ENABLED=$WEB_FOLLOW_UPS"
+
       - name: Stage CHANGELOG.md into frontend/ for docker build context
         # The frontend Dockerfile uses `context: ./frontend`, so the repo-root
         # CHANGELOG.md is otherwise invisible to `next build` inside the
@@ -467,6 +488,7 @@ jobs:
             NEXT_PUBLIC_TURNSTILE_SITE_KEY=${{ vars.TF_VAR_TURNSTILE_SITE_KEY }}
             NEXT_PUBLIC_DONATE_URL=${{ vars.NEXT_PUBLIC_DONATE_URL }}
             NEXT_PUBLIC_BUILD_ID=${{ env.DEPLOY_SHA }}
+            NEXT_PUBLIC_FOLLOW_UPS_ENABLED=${{ steps.follow-ups-flag.outputs.web_enabled }}
 
       - name: Verify API URL in image
         if: github.event_name != 'pull_request'

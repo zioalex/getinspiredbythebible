@@ -407,6 +407,12 @@ variable "chat_follow_ups_enabled" {
   default     = false
 }
 
+variable "web_follow_ups_enabled" {
+  description = "Show the BITB-080 follow-up chips on the WEB client only. Baked into the frontend image at build time as NEXT_PUBLIC_FOLLOW_UPS_ENABLED: Next.js inlines NEXT_PUBLIC_* during `next build`, so azure-deploy.yml reads this flag from terraform.tfvars and passes it as a docker build-arg — it is NOT a runtime Container App env var. Android stays dark: its gate is compile-time (CHAT_FOLLOW_UPS_ENABLED BuildConfig, PR #1217), default off. Flipping it requires a frontend image rebuild to take effect."
+  type        = bool
+  default     = false
+}
+
 variable "max_message_length" {
   description = "Maximum length of chat messages"
   type        = number

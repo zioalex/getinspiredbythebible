@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-22
+lastUpdated: 2026-10-27
 ---
 
 # Datenschutzrichtlinie
 
 > _Diese Übersetzung wurde von einer KI erstellt und dient ausschließlich der Bequemlichkeit. Bei Auslassungen, Unklarheiten oder Widersprüchen zum englischen Original ist die englische Fassung verbindlich und vorrangig._
 
-Letzte Aktualisierung: 22. Oktober 2026
+Letzte Aktualisierung: 27. Oktober 2026
 
 ## Wer wir sind
 
@@ -63,6 +63,8 @@ Du kannst diesen Verlauf jederzeit ansehen, umbenennen, löschen oder vollständ
 Die Schaltfläche „Anhören“ liest Antworten mit der in deinem Browser eingebauten Sprachsynthese vor. Standardmäßig werden nur Offline-Stimmen verwendet, die auf deinem Gerät installiert sind. Der Text der Antwort verlässt dein Gerät für diese Funktion also nicht.
 
 Einige Browser bieten für deine Sprache nur Online-Stimmen an. Eine Online-Stimme verwenden wir nur, wenn du „Online-Stimmen erlauben“ wählst. Dann sendet dein Browser den Text der vorgelesenen Antwort an den Sprachdienst des Browser-Herstellers (zum Beispiel Google, Microsoft oder Apple), der ihn nach seinen eigenen Bedingungen verarbeitet; wir erhalten oder speichern ihn nicht. Deine Entscheidung wird nur auf deinem Gerät gespeichert und kann jederzeit mit dem Schalter „Online-Stimmen erlauben“ im Menü widerrufen werden; dadurch wird auch ein laufendes Vorlesen beendet.
+
+Wir zählen die Nutzung der Vorlesefunktion anonym nach Sprache, Browser-Familie und Betriebssystem-Familie (zum Beispiel „Firefox unter Linux“), um zu erkennen, wo die Funktion funktioniert und wo nicht. Diese Zählungen enthalten weder Text noch Stimmnamen, User-Agent-Zeichenfolgen, IP-Adressen oder Kennungen.
 
 ## Datenspeicherung
 
