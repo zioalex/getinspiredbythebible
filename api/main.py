@@ -59,6 +59,7 @@ from utils.metrics import (  # noqa: E402
 )
 from utils.metrics import meter as _metrics_meter  # noqa: F401, E402
 from utils.security import require_rate_limit  # noqa: E402
+from utils.tts_events import record_tts_event  # noqa: E402
 
 # Configure logging before anything else
 setup_logging()
@@ -486,26 +487,46 @@ async def report_client_error(report: ClientErrorReport, request: Request):
     return {"status": "ok"}
 
 
-# BITB-119: read-aloud client events. Event + locale only — never message text,
-# IDs, IP or user agent. Both are whitelisted so the counter's cardinality is bounded.
+# BITB-119 / BITB-247: read-aloud client events. Event, locale and three coarse enums
+# (platform, browser family, OS family) only — never message text, IDs, IP or user
+# agent. Everything is whitelisted/normalized so cardinality is bounded.
 _CLIENT_EVENT_LOCALES = frozenset(
     {"en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"}
 )
+_CLIENT_EVENT_PLATFORMS = frozenset({"web", "android"})
+_CLIENT_EVENT_BROWSERS = frozenset(
+    {"chrome", "firefox", "safari", "edge", "samsung", "app", "other"}
+)
+_CLIENT_EVENT_OSES = frozenset({"android", "ios", "linux", "windows", "macos", "other"})
 
 
 class ClientEvent(BaseModel):
-    """Body for POST /api/v1/client-events. Unknown events/extra fields -> 422."""
+    """Body for POST /api/v1/client-events. Unknown events/extra fields -> 422.
+
+    ``platform``/``browser``/``os`` are free strings on the wire (so a newer client
+    with a new family never gets a 422) and normalized server-side.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
-    event: Literal["tts_started", "tts_unavailable"]
+    event: Literal[
+        "tts_started", "tts_completed", "tts_start_failed", "tts_error", "tts_unavailable"
+    ]
     locale: str = Field(default="", max_length=16)
+    platform: str = Field(default="web", max_length=16)
+    browser: str = Field(default="other", max_length=16)
+    os: str = Field(default="other", max_length=16)
 
 
 def _normalize_client_event_locale(raw: str) -> str:
     """Reduce a BCP-47-ish tag (``zh-CN``, ``pt_BR``) to a supported locale, else ``other``."""
     primary = raw.strip().lower().replace("_", "-").split("-")[0]
     return primary if primary in _CLIENT_EVENT_LOCALES else "other"
+
+
+def _normalize_client_event_enum(raw: str, allowed: frozenset[str], default: str) -> str:
+    value = raw.strip().lower()
+    return value if value in allowed else default
 
 
 @app.post(
@@ -515,10 +536,16 @@ def _normalize_client_event_locale(raw: str) -> str:
 )
 async def report_client_event(event: ClientEvent):
     """Count a whitelisted client telemetry event (no logging of IP / user agent)."""
-    client_tts_events_counter.add(
-        1,
-        {"event": event.event, "locale": _normalize_client_event_locale(event.locale)},
-    )
+    attrs = {
+        "event": event.event,
+        "locale": _normalize_client_event_locale(event.locale),
+        "platform": _normalize_client_event_enum(event.platform, _CLIENT_EVENT_PLATFORMS, "web"),
+        "browser": _normalize_client_event_enum(event.browser, _CLIENT_EVENT_BROWSERS, "other"),
+        "os": _normalize_client_event_enum(event.os, _CLIENT_EVENT_OSES, "other"),
+    }
+    client_tts_events_counter.add(1, attrs)
+    # Daily aggregate for the weekly report. record_tts_event never raises.
+    await record_tts_event(**attrs)
     return {"status": "ok"}
 
 

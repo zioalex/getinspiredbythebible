@@ -18,14 +18,20 @@ import {
   reportTtsUnavailableOnce,
 } from "@/lib/clientEvents";
 import {
+  clearStartFailed,
   getPausedId,
   getSpeakingId,
+  getStartFailedId,
   pause,
   resume,
   speak,
   stop,
   subscribe,
+  subscribeOutcomes,
 } from "@/lib/speech";
+
+/** BITB-241: how long the "speech engine didn't respond" message stays visible. */
+export const START_FAILED_NOTICE_MS = 6000;
 
 interface ListenButtonProps {
   /** Identifies the message so only one answer is spoken at a time. */
@@ -63,6 +69,38 @@ export default function ListenButton({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const speakingId = useSyncExternalStore(subscribe, getSpeakingId, () => null);
   const pausedId = useSyncExternalStore(subscribe, getPausedId, () => null);
+
+  const startFailedId = useSyncExternalStore(
+    subscribe,
+    getStartFailedId,
+    () => null,
+  );
+  const startFailed = startFailedId === messageId;
+
+  // BITB-247: report how this answer's reading ended (once per Listen: the outcomes are
+  // mutually exclusive per speak() call, so a re-listen after an outcome counts again).
+  useEffect(
+    () =>
+      subscribeOutcomes((id, outcome) => {
+        if (id !== messageId) return;
+        reportClientEvent(
+          outcome === "completed"
+            ? "tts_completed"
+            : outcome === "start_failed"
+              ? "tts_start_failed"
+              : "tts_error",
+          locale,
+        );
+      }),
+    [messageId, locale],
+  );
+
+  // The message goes away on its own (the next tap clears it via speak()).
+  useEffect(() => {
+    if (!startFailed) return;
+    const timer = setTimeout(clearStartFailed, START_FAILED_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [startFailed]);
 
   const hasContent = content.trim().length > 0;
   // Offline voice first; an online voice only after the user's opt-in.
@@ -183,6 +221,18 @@ export default function ListenButton({
           <Volume2 className="w-4 h-4" aria-hidden="true" />
         )}
       </button>
+      {/* Always mounted (sr-only when empty) so the live region announces the change. Absolutely
+          positioned against the sticky rail so the rail's width (and the answer) never reflows. */}
+      <span
+        role="status"
+        className={
+          startFailed
+            ? "pointer-events-none absolute top-0 end-full me-1 z-10 w-28 rounded-md bg-white/95 p-1.5 text-center text-[11px] leading-tight text-amber-700 shadow dark:bg-gray-800/95 dark:text-amber-400"
+            : "sr-only"
+        }
+      >
+        {startFailed ? t("speechEngineNoResponse") : ""}
+      </span>
       {/* Portal: the sticky action rail is a stacking context that would trap z-50. */}
       {dialogOpen &&
         needsConsent &&

@@ -13,6 +13,7 @@ import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChapterVerseDto
+import org.voxquieta.app.data.remote.models.ClientEventRequestDto
 import org.voxquieta.app.data.remote.models.ConfigChatDto
 import org.voxquieta.app.data.remote.models.ConfigFeaturesDto
 import org.voxquieta.app.data.remote.models.ConfigResponseDto
@@ -170,11 +171,18 @@ class ChatViewModelTest {
             ttsPreferences,
             analyticsHelper,
         )
+        // BITB-080 default-off rollout gate: the existing BITB-149 behavior tests
+        // below represent the FLAG-ON state, so flip the gate on for this class.
+        // The flag-off contract has its own dedicated tests just below them.
+        ChatViewModel.followUpsEnabledForTest = true
     }
 
     @After
     fun tearDown() {
         LogCollector.clear()
+        // Reset the BITB-080 rollout-gate test override so it never leaks
+        // between test classes.
+        ChatViewModel.followUpsEnabledForTest = null
         Dispatchers.resetMain()
     }
 
@@ -3007,6 +3015,43 @@ class ChatViewModelTest {
         )
     }
 
+    // ── BITB-080: default-off rollout gate for the follow-up chips ───────────
+
+    @Test
+    fun `followUps in the stream are ignored while the rollout gate is off`() = runTest {
+        // The gate must default OFF (BuildConfig.CHAT_FOLLOW_UPS_ENABLED is false
+        // unless built with -PchatFollowUpsEnabled=true), and @After resets the
+        // test override — so the compile-time default applies here.
+        ChatViewModel.followUpsEnabledForTest = null
+
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // No crash, no empty row, no state exposure: the completion event's
+        // follow_ups field is ignored entirely while Android stays dark.
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `followUps resume unchanged when the rollout gate flips on`() = runTest {
+        ChatViewModel.followUpsEnabledForTest = true
+
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "completion", followUps = listOf("a", "b")),
+            StreamChunk(content = "Reply", done = true),
+        )
+
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
+    }
+
     // ── BITB-119: read aloud ──────────────────────────────────────────────
 
     private fun newViewModel(
@@ -3236,14 +3281,138 @@ class ChatViewModelTest {
     }
 
     @Test
-    fun `refused speech (audio focus denied) is not counted as started`() = runTest {
+    fun `refused speech (audio focus denied) is an attempt that logs started then start_failed`() = runTest {
         val message = viewModel.answer()
         speechEngine.audioFocusGranted = false
         viewModel.toggleSpeak(message, noRegex, emptyMap())
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.speakingMessageId)
-        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_STARTED, any()) }
+        // BITB-247: every tap that reaches the engine counts as started, so the failure rate
+        // (start_failed + error) / started is a true share of attempts.
+        verify(exactly = 1) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_STARTED, any()) }
+        verify(exactly = 1) {
+            analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_START_FAILED, mapOf(AnalyticsHelper.PARAM_LOCALE to "en"))
+        }
+    }
+
+    // ── BITB-247: read-aloud funnel telemetry (Firebase + backend POST) ──────
+
+    private fun postedEvent(event: String, locale: String = "en") =
+        ClientEventRequestDto(event = event, locale = locale)
+
+    @Test
+    fun `started is also posted to the backend with android app enums`() = runTest {
+        viewModel.telemetryDispatcher = testDispatcher
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val posted = ClientEventRequestDto(event = "tts_started", locale = "en")
+        assertEquals("android", posted.platform)
+        assertEquals("app", posted.browser)
+        assertEquals("android", posted.os)
+        coVerify(exactly = 1) { bibleApiService.postClientEvent(posted) }
+    }
+
+    @Test
+    fun `reading to the end logs completed to Firebase and the backend`() = runTest {
+        viewModel.telemetryDispatcher = testDispatcher
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        speechEngine.finishSpeaking()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_COMPLETED, mapOf(AnalyticsHelper.PARAM_LOCALE to "en"))
+        }
+        coVerify(exactly = 1) { bibleApiService.postClientEvent(postedEvent("tts_completed")) }
+        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_ERROR, any()) }
+        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_START_FAILED, any()) }
+    }
+
+    @Test
+    fun `an engine error logs tts_error to Firebase and the backend`() = runTest {
+        viewModel.telemetryDispatcher = testDispatcher
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        speechEngine.failSpeaking()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_ERROR, mapOf(AnalyticsHelper.PARAM_LOCALE to "en"))
+        }
+        coVerify(exactly = 1) { bibleApiService.postClientEvent(postedEvent("tts_error")) }
+        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_COMPLETED, any()) }
+    }
+
+    @Test
+    fun `no onStart within the watchdog logs tts_start_failed to Firebase and the backend`() = runTest {
+        viewModel.telemetryDispatcher = testDispatcher
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        speechEngine.timeoutStart()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_START_FAILED, mapOf(AnalyticsHelper.PARAM_LOCALE to "en"))
+        }
+        coVerify(exactly = 1) { bibleApiService.postClientEvent(postedEvent("tts_start_failed")) }
+        assertNull(viewModel.uiState.value.speakingMessageId)
+    }
+
+    @Test
+    fun `refused speech posts started then start_failed to the backend`() = runTest {
+        viewModel.telemetryDispatcher = testDispatcher
+        val message = viewModel.answer()
+        speechEngine.audioFocusGranted = false
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { bibleApiService.postClientEvent(postedEvent("tts_started")) }
+        coVerify(exactly = 1) { bibleApiService.postClientEvent(postedEvent("tts_start_failed")) }
+    }
+
+    @Test
+    fun `a failing backend POST never affects speech or Firebase logging`() = runTest {
+        viewModel.telemetryDispatcher = testDispatcher
+        coEvery { bibleApiService.postClientEvent(any()) } throws java.io.IOException("offline")
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(message.id, viewModel.uiState.value.speakingMessageId)
+        verify(exactly = 1) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_STARTED, any()) }
+
+        speechEngine.finishSpeaking()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.speakingMessageId)
+        verify(exactly = 1) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_COMPLETED, any()) }
+    }
+
+    @Test
+    fun `completed is reported in the UI language for every supported locale`() = runTest {
+        val locales = listOf("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko")
+        for (locale in locales) {
+            val engine = FakeSpeechEngine()
+            val vm = newViewModel(engine = engine)
+            vm.telemetryDispatcher = testDispatcher
+            testDispatcher.scheduler.advanceUntilIdle() // let init's language collector settle first
+            vm.setLocale(locale)
+            testDispatcher.scheduler.advanceUntilIdle()
+            val message = vm.answer()
+            vm.toggleSpeak(message, noRegex, emptyMap())
+            testDispatcher.scheduler.advanceUntilIdle()
+            engine.finishSpeaking()
+            testDispatcher.scheduler.advanceUntilIdle()
+            coVerify { bibleApiService.postClientEvent(postedEvent("tts_completed", locale)) }
+        }
     }
 
     @Test

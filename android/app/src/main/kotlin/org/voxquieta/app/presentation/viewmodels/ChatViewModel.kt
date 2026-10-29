@@ -16,6 +16,7 @@ import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
+import org.voxquieta.app.data.remote.models.ClientEventRequestDto
 import org.voxquieta.app.data.remote.models.ContactSubject
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.domain.models.ChatRequest
@@ -29,6 +30,7 @@ import org.voxquieta.app.domain.repositories.ContactRepository
 import org.voxquieta.app.presentation.components.ContactFormState
 import org.voxquieta.app.security.TurnstileManager
 import org.voxquieta.app.tts.SpeechEngine
+import org.voxquieta.app.tts.SpeechEvent
 import org.voxquieta.app.tts.speakableChunks
 import org.voxquieta.app.utils.LocaleApplier
 import org.voxquieta.app.utils.normalizeBookName
@@ -37,6 +39,7 @@ import org.voxquieta.app.utils.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -223,6 +226,23 @@ class ChatViewModel @Inject constructor(
          * own configured limit regardless of this value.
          */
         const val MAX_MESSAGE_LENGTH = 500
+
+        /**
+         * Compile-time rollout gate for the BITB-149 follow-up chips (parent
+         * story BITB-080): the backend now emits `follow_ups` to ALL clients, but
+         * Android stays DARK until its own later rollout. Defaults to
+         * [org.voxquieta.app.BuildConfig.CHAT_FOLLOW_UPS_ENABLED] (false unless
+         * built with `-PchatFollowUpsEnabled=true`). Parsing in the SSE layer is
+         * kept intact — this gate only suppresses *state exposure / rendering*,
+         * so flipping it on later resumes the current behavior unchanged.
+         * [followUpsEnabledForTest] lets unit tests exercise both gate states.
+         */
+        val followUpsEnabled: Boolean
+            get() = followUpsEnabledForTest ?: org.voxquieta.app.BuildConfig.CHAT_FOLLOW_UPS_ENABLED
+
+        /** Test-only override for [followUpsEnabled]; null = use the BuildConfig value. */
+        @androidx.annotation.VisibleForTesting
+        internal var followUpsEnabledForTest: Boolean? = null
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -320,6 +340,9 @@ class ChatViewModel @Inject constructor(
     /** Languages already reported as `tts_unavailable` (at most once each per ViewModel). */
     private val ttsUnavailableReported = mutableSetOf<String>()
 
+    /** Where read-aloud telemetry POSTs run (BITB-247); tests swap in their own dispatcher. */
+    internal var telemetryDispatcher: CoroutineDispatcher = Dispatchers.IO
+
     init {
         // isTurnstileReady is true when a valid token is held OR when Turnstile has
         // errored (fail-open): the interceptor already forwards requests without a
@@ -385,6 +408,17 @@ class ChatViewModel @Inject constructor(
                 _uiState.update { it.copy(pausedMessageId = id) }
             }
         }
+        // BITB-247: reading outcomes reported by the engine (completed / error / no-start timeout).
+        viewModelScope.launch {
+            speechEngine.events.collect { event ->
+                val name = when (event) {
+                    is SpeechEvent.Completed -> AnalyticsHelper.EVENT_TTS_COMPLETED
+                    is SpeechEvent.Error -> AnalyticsHelper.EVENT_TTS_ERROR
+                    is SpeechEvent.StartFailed -> AnalyticsHelper.EVENT_TTS_START_FAILED
+                }
+                reportTtsEvent(name, speechLanguage(_uiState.value.currentLocale))
+            }
+        }
         // BITB-119: count devices that would show Listen but have no on-device voice for the
         // language, once per language per ViewModel, and only after an answer exists (the
         // moment the button would have appeared) — mirrors the web.
@@ -407,10 +441,7 @@ class ChatViewModel @Inject constructor(
                         !speechEngine.hasLocalVoice(gate.language) &&
                         ttsUnavailableReported.add(gate.language)
                     ) {
-                        analyticsHelper.logEvent(
-                            AnalyticsHelper.EVENT_TTS_UNAVAILABLE,
-                            mapOf(AnalyticsHelper.PARAM_LOCALE to gate.language),
-                        )
+                        reportTtsEvent(AnalyticsHelper.EVENT_TTS_UNAVAILABLE, gate.language)
                     }
                 }
         }
@@ -589,11 +620,31 @@ class ChatViewModel @Inject constructor(
         val language = speechLanguage(_uiState.value.currentLocale)
         val chunks = speakableChunks(message.content, language, verseRefRegex, localizedToEnglish)
         if (chunks.isEmpty()) return
-        if (speechEngine.speak(message.id, chunks, language)) {
-            analyticsHelper.logEvent(
-                AnalyticsHelper.EVENT_TTS_STARTED,
-                mapOf(AnalyticsHelper.PARAM_LOCALE to language),
-            )
+        // BITB-247: every tap that reaches the engine is an attempt, so a refused speak() (no
+        // voice / focus denied) counts as started and then start_failed; the failure rate
+        // (start_failed + error) / started stays a true share of attempts.
+        reportTtsEvent(AnalyticsHelper.EVENT_TTS_STARTED, language)
+        if (!speechEngine.speak(message.id, chunks, language)) {
+            reportTtsEvent(AnalyticsHelper.EVENT_TTS_START_FAILED, language)
+        }
+    }
+
+    /**
+     * Records one read-aloud event in Firebase and, fire-and-forget, in the backend sink
+     * (BITB-247). Only the event name, language and fixed platform enums leave the device; a
+     * failed POST is swallowed and never touches speech.
+     */
+    private fun reportTtsEvent(event: String, language: String) {
+        analyticsHelper.logEvent(event, mapOf(AnalyticsHelper.PARAM_LOCALE to language))
+        viewModelScope.launch(telemetryDispatcher) {
+            try {
+                bibleApiService.postClientEvent(ClientEventRequestDto(event = event, locale = language))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // telemetry must never fail speech
+                Timber.v(e, "tts telemetry POST failed (ignored)")
+            }
         }
     }
 
@@ -881,7 +932,10 @@ class ChatViewModel @Inject constructor(
                         // Suggested follow-up questions (BITB-149). Only set when
                         // non-empty; already cleared at turn-start above, so an
                         // absent/suppressed field must not clear it back to empty here.
-                        if (chunk.followUps.isNotEmpty()) {
+                        // Gated by the default-off rollout flag (BITB-080): when the
+                        // flag is off Android ignores the field entirely — no chips,
+                        // no crash, no empty row (the existing degrade-silently contract).
+                        if (followUpsEnabled && chunk.followUps.isNotEmpty()) {
                             _uiState.update { state -> state.copy(followUps = chunk.followUps) }
                         }
                         return@collect

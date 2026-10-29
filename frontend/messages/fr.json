@@ -148,6 +148,7 @@
     "listenAnswer": "Écouter la réponse",
     "pauseListening": "Mettre la lecture en pause",
     "resumeListening": "Reprendre la lecture",
+    "speechEngineNoResponse": "Le moteur de synthèse vocale de votre navigateur n'a pas répondu.",
     "showListenButton": "Afficher le bouton Écouter",
     "allowOnlineVoices": "Autoriser les voix en ligne",
     "onlineVoicesNotNow": "Pas maintenant",
@@ -258,7 +259,8 @@
     "successDescription": "Merci de nous avoir contactés. Nous examinerons votre message bientôt.",
     "sendAnother": "Envoyer un autre",
     "errorSend": "Impossible d'envoyer le message. Veuillez réessayer ou nous écrire directement.",
-    "errorEmailInvalid": "Veuillez saisir un e-mail valide afin que nous puissions répondre."
+    "errorEmailInvalid": "Veuillez saisir un e-mail valide afin que nous puissions répondre.",
+    "close": "Fermer"
   },
   "ErrorBoundary": {
     "title": "Quelque chose s'est mal passé",

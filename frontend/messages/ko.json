@@ -148,6 +148,7 @@
     "listenAnswer": "답변 듣기",
     "pauseListening": "읽기 일시정지",
     "resumeListening": "읽기 재개",
+    "speechEngineNoResponse": "브라우저의 음성 엔진이 응답하지 않았습니다.",
     "showListenButton": "듣기 버튼 표시",
     "allowOnlineVoices": "온라인 음성 허용",
     "onlineVoicesNotNow": "나중에",
@@ -258,7 +259,8 @@
     "successDescription": "연락해 주셔서 감사합니다. 곧 메시지를 검토하겠습니다.",
     "sendAnother": "다른 메시지 보내기",
     "errorSend": "메시지 전송에 실패했습니다. 다시 시도하거나 직접 이메일을 보내주세요.",
-    "errorEmailInvalid": "답변을 드릴 수 있도록 유효한 이메일을 입력해 주세요."
+    "errorEmailInvalid": "답변을 드릴 수 있도록 유효한 이메일을 입력해 주세요.",
+    "close": "닫기"
   },
   "ErrorBoundary": {
     "title": "문제가 발생했습니다",

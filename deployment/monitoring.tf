@@ -29,50 +29,65 @@
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_errors (BITB-056)
 #       ERROR-level backend log lines, categorised; shares backend-error-filter.kql
 #       with the prod-monitor.yml log-scan job. Sev2 for hard-failure categories.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_error_rate_other (BITB-056)
-#       Sev3 companion: 5+ uncategorised ERROR lines in 10 min.
+#       (BITB-223) PT5M survivor — actionable, 3am action: investigate the inlined
+#       category/sample/RequestIds.
 #   - azurerm_monitor_metric_alert.db_cpu/db_memory/db_storage/db_connections_failed (BITB-056)
 #       Postgres flexible-server resource saturation (the conc~32 threshold knee) + disk-full.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_search_latency_p95 (BITB-056)
 #       Semantic-search p95 > 2000ms — the user-facing signal of the DB saturation knee.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_errors (BITB-041)
-#       Fires when verse/chapter fetch failures (timeout/db_error/empty_text) occur.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_latency_p95 (BITB-041)
+#       (BITB-223) PT5M survivor — protects the BITB-062 latency work; 3am action: DB
+#       investigation.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_latency_p95 (BITB-041, BITB-223)
 #       Fires when p95 latency of verse/chapter DB reads exceeds 1000ms.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_grounding_errors
+#       (BITB-223) demoted PT15M — latency quality trend, not an emergency.
+#
+#   (BITB-223) REMOVED rules (destruction on next apply is intended):
+#   - backend_unhandled_exceptions — 4th pager for the same event as backend_asgi_exceptions
+#     + backend_errors + backend_5xx_rate; redundant.
+#   - llama_guard_primary_failure_rate — redundant with content_safety_fallback_rate +
+#     the GH content-safety probe (asserts both directions end-to-end every 5 min).
+#   - backend_error_rate_other — "other" 4xx are client faults; actionable server-side
+#     errors are covered by backend_errors.
+#   - scripture_fetch_errors — redundant with scripture_pipeline_errors (same pipeline,
+#     2 firings there vs 0 here in the 30-day evidence window).
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_grounding_errors (BITB-223)
 #       Fires when scripture search / cited-verse resolution / grounding logs an
 #       error. These code paths swallow exceptions (fail open to a verse-less
 #       answer), so without this alert a broken search can run silently — exactly
 #       how the "# nosec inside SQL" syntax-error regression went unnoticed.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.verse_grounding_paraphrase_brackets (BITB-053)
+#       (BITB-223) PT5M survivor — actionable, has a 3am action.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.verse_grounding_paraphrase_brackets (BITB-053, BITB-223)
 #       Observation alert: bracketed unquoted-paraphrase appends
 #       (chat.verse_grounding.paraphrase_detections, bracketed=true applied=true)
-#       clustering inside parenthetical references. Buffered (>5 per 15-min bin)
-#       and clustered (2 of 3 evaluations) so a single stray event never pages.
-#       Cosmetic; dormant until grounding_paraphrases_mode is set to "append" per
-#       docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-143 Phase 2)
+#       clustering inside parenthetical references. Buffered (>20 per 1h bin) and
+#       clustered (at least 2 such hourly bins in the 24h window) so a single stray
+#       event never pages. Cosmetic; dormant until grounding_paraphrases_mode is set
+#       to "append" per docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md.
+#       (BITB-223) demoted to P1D — trend data, not a page. One evaluation period
+#       only: Azure caps query look-back (window_duration x evaluation periods) at
+#       48h, so the old 2-of-3 gate on a P1D window (72h) is rejected with a 400.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.embedding_fallback_rate (BITB-143 Phase 2, BITB-223)
 #       Fires when the embedding provider's circuit breaker records any retry,
 #       timeout, or open-circuit event (providers/embedding_resilience.py). Chat
 #       degrades to verse-less responses silently while this persists.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.content_safety_fallback_rate (BITB-061)
+#       (BITB-223) demoted to PT15M — real signal, but the symptom is covered by
+#       the GH verse-search probe; kept for diagnosis, not urgent paging.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.content_safety_fallback_rate (BITB-061, BITB-223)
 #       Fires when any content-safety provider (Llama Guard, OpenAI Moderation, Azure)
 #       degrades to the local keyword-only filter (utils/content_safety.py). The
 #       keyword filter still blocks/allows correctly, but this is the only signal
 #       that the ML-backed safety net is temporarily degraded for a crisis-sensitive
-#       product.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.llama_guard_primary_failure_rate
-#       Sev3 companion to content_safety_fallback_rate: fires when the PRIMARY Llama
-#       Guard model's failure rate stays >=90% (min 5 calls/bin, sustained across 2 of
-#       3 evaluations) — i.e. stuck failing on most/all requests, not the ~49% baseline
-#       it fails at under normal load (secondary recovers those; see BITB-061/070).
-#       content_safety_fallback_rate stays silent in this case since it only fires when
-#       BOTH models fail.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_client_rejection_spike
+#       product. (BITB-223) recalibrated: evaluated every 5 minutes, but the breach
+#       must be sustained for 30 minutes (6 of 6 five-minute windows) before paging —
+#       falling back occasionally is the designed behavior (BITB-061); only a
+#       sustained degradation pages.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_client_rejection_spike (BITB-223)
 #       Sev3 companion to backend_5xx_rate: 401/403/429 responses are excluded from
 #       that Sev1 rule (they're expected — Turnstile bot-rejection, auth, rate-limit),
 #       but a large spike in them can still mean a bot attack or a broken client-side
 #       Turnstile flow, so this rule watches them separately at a much higher threshold.
+#       (BITB-223) demoted to PT15M — abuse-pattern insurance (security-adjacent),
+#       demoted rather than removed.
 #   - azurerm_monitor_metric_alert.backend_cpu_high/backend_memory_high
 #       Container App CPU/memory saturation (2026-07-21 audit finding: the Postgres
 #       tier had db_cpu/db_memory alerts, but the backend Container App — 0.5 vCPU /
@@ -88,14 +103,25 @@
 #       sustained 15 minutes — i.e. autoscaling has hit its ceiling and additional
 #       load has nowhere to go. This is the direct "we are at capacity" signal that
 #       CPU/memory/restart alerts can only imply indirectly.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.chat_ttft_p95
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.chat_ttft_p95 (BITB-223)
 #       p95 of llm.ttft_ms (time-to-first-token) exceeded 5000ms, sustained across 2
-#       of 3 fifteen-minute evaluations over a 1h window. The 1h window + min-5-
-#       samples-per-bin guard (not the 15min/no-minimum shape used for scripture
-#       search) is deliberate: current chat volume is low enough that a tighter
-#       window would rarely have enough samples for a percentile to be meaningful —
-#       same rationale as llama_guard_primary_failure_rate below. User-facing
-#       complement to the CPU/memory/replica signals above.
+#       of 3 hourly evaluations over a 1h window. The 1h window + min-5-samples-per-bin
+#       guard (not the 15min/no-minimum shape used for scripture search) is deliberate:
+#       current chat volume is low enough that a tighter window would rarely have enough
+#       samples for a percentile to be meaningful. User-facing complement to the
+#       CPU/memory/replica signals above.
+#       (BITB-223) demoted to PT1H — quality metric with no 3am action; gross
+#       latency/outage is caught by the synthetic-chat probe (30s timeouts).
+#
+#   (BITB-223) recalibrated PT5M rules (evaluation cadence kept, breach gating added):
+#   - backend_5xx_rate — 15 minutes of sustained 5xx (3 of 3 five-minute windows at
+#     >=3 breaches each) so deploy-time app-replacement blips don't page (BITB-067
+#     gap #5). Sustained-window gating preferred over time-of-day suppression —
+#     deploy windows vary.
+#   - content_safety_fallback_rate — 30 minutes sustained (see above).
+#   - backend_probe_failures — left unchanged: its fate is decided by BITB-224
+#     (its input, the availability web tests, is currently disabled).
+#   - rate_limiter_fail_closed — untouched security fail-closed insurance (BITB-061).
 #
 # NOT added here: a db.connections.active pool-saturation alert. That metric
 # (db_connections_active_gauge in utils/metrics.py) is defined but never actually
@@ -502,8 +528,10 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_probe_failure
 # of level, so it paged at Sev2 on handled/transient WARNINGs and multi-line stack
 # dumps while carrying no sample/count/request-id to act on.
 #
-# This rule covers the hard-failure categories (everything except "other_error");
-# uncategorised ERROR noise is handled at Sev3 by backend_error_rate_other below.
+# This rule covers the hard-failure categories (everything except "other_error").
+# (BITB-223) The Sev3 companion backend_error_rate_other (uncategorised ERROR noise)
+# was removed: "other" 4xx are client faults and carry no server-side 3am action;
+# actionable server-side errors are the categories this rule already pages on.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-backend-error-logs"
@@ -545,86 +573,11 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
   tags = local.tags
 }
 
-# Uncategorised ERROR-rate alert (BITB-056). Sev3 informational companion to
-# backend_errors: surfaces a sustained spike of ERROR lines that don't match a known
-# hard-failure category, without paging at Sev2 on a single blip. Threshold of 5 over
-# 10 minutes is conservative; tune once a baseline is observed.
-resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_error_rate_other" {
-  count                = local.alerts_enabled ? 1 : 0
-  name                 = "${local.name_prefix}-backend-error-rate-other"
-  resource_group_name  = azurerm_resource_group.main.name
-  location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
-  scopes               = [azurerm_log_analytics_workspace.main.id]
-  severity             = 3
-  description          = "5+ uncategorised backend ERROR lines (ErrorCategory=other_error) in the last 10 minutes. Informational: the sample and RequestIds are inlined below (Details link for the full results) — use them to decide whether this warrants a new explicit category in backend-error-filter.kql."
-
-  criteria {
-    query                   = <<-KQL
-      ${file("${path.module}/azure-monitor/queries/backend-error-filter.kql")}
-      | where ErrorCategory == "other_error"
-      | summarize cnt = count(), Sample = any(Log_s), RequestIds = make_set(RequestId, 5)
-      | where cnt >= 5
-      // Single AlertSummary column for the Telegram Logic App (rows[0][0]). The
-      // cnt>=5 guard above already drops the empty-input row, so no extra guard.
-      | project AlertSummary = strcat('x', tostring(cnt), ' reqs=', strcat_array(RequestIds, ','), ' | ', substring(Sample, 0, 400))
-    KQL
-    time_aggregation_method = "Count"
-    threshold               = 0
-    operator                = "GreaterThan"
-
-    failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
-    }
-  }
-
-  action {
-    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
-  }
-
-  tags = local.tags
-}
-
-# Verse/chapter fetch error-rate alert (BITB-041).
-# Fires when scripture.fetch.errors custom metric records any failure
-# (timeout / db_error / empty_text) in the last 10 minutes.
-resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_errors" {
-  count                = local.alerts_enabled ? 1 : 0
-  name                 = "${local.name_prefix}-scripture-fetch-errors"
-  resource_group_name  = azurerm_resource_group.main.name
-  location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
-  scopes               = [azurerm_application_insights.main[0].id]
-  severity             = 2
-  description          = "Verse/chapter fetch errors (timeout, DB failure, or placeholder data) in the last 10 minutes."
-
-  criteria {
-    query                   = <<-KQL
-      customMetrics
-      | where timestamp > ago(10m)
-      | where name == "scripture.fetch.errors"
-      | summarize total = sum(valueSum) by bin(timestamp, 5m)
-      | where total > 0
-    KQL
-    time_aggregation_method = "Count"
-    threshold               = 0
-    operator                = "GreaterThan"
-
-    failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
-    }
-  }
-
-  action {
-    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
-  }
-
-  tags = local.tags
-}
+# Verse/chapter fetch error-rate alert (BITB-041): REMOVED in BITB-223.
+# Fires-when: scripture.fetch.errors custom metric records any failure (timeout /
+# db_error / empty_text). Redundant with scripture_pipeline_errors below (same
+# chat scripture pipeline): 2 firings there vs 0 here over the 30-day evidence
+# window, and that rule is kept at PT5M. Destruction on next apply is intended.
 
 # Scripture grounding / search failure alert.
 # The chat scripture pipeline fails open: _search_scripture, _resolve_cited_verses
@@ -718,26 +671,30 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_pipeline_er
 
 # Verseless response SLI alert (BITB-055).
 # Fires when a meaningful number of chat requests with include_search=True
-# are served with zero DB context verses AND zero resolved citations over 15
-# minutes — the exact silent-degradation signature of a broken retrieval path.
-# Threshold of 10 is conservative; tune down once a baseline is observed.
+# are served with zero DB context verses AND zero resolved citations —
+# the exact silent-degradation signature of a broken retrieval path.
+# (BITB-223) demoted to PT1H: quality drift with a "look at it next week"
+# action, not a 3am page. Window widened to 1h (15-min bins), and the breach
+# must recur in 2 of the last 4 bins (>=30 minutes of verseless serving)
+# so a single noisy bin does not alert. Threshold of 10 per 15-min bin
+# unchanged.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "chat_verseless_responses" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-chat-verseless-responses"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT15M"
+  evaluation_frequency = "PT1H"
+  window_duration      = "PT1H"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 2
-  description          = "More than 10 chat responses served with zero DB context verses AND zero resolved citations in the last 15 minutes (chat.responses.verseless metric). This is the silent-degradation signature of a broken scripture retrieval path."
+  description          = "More than 10 chat responses per 15-minute bin served with zero DB context verses AND zero resolved citations (chat.responses.verseless metric), recurring in 2 of the last 4 bins of the past hour — the silent-degradation signature of a broken scripture retrieval path. Quality drift (BITB-223): checked hourly, not paged."
 
   criteria {
     query                   = <<-KQL
       customMetrics
-      | where timestamp > ago(15m)
+      | where timestamp > ago(1h)
       | where name == "chat.responses.verseless"
-      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | summarize total = sum(valueSum) by bin(timestamp, 15m)
       | where total > 10
     KQL
     time_aggregation_method = "Count"
@@ -745,8 +702,8 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "chat_verseless_respon
     operator                = "GreaterThan"
 
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 3
+      minimum_failing_periods_to_trigger_alert = 2
+      number_of_evaluation_periods             = 4
     }
   }
 
@@ -759,16 +716,19 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "chat_verseless_respon
 
 # Verse/chapter fetch p95 latency alert (BITB-041).
 # Fires when p95 of db.query.duration_ms for verse/chapter ops exceeds 1000ms.
+# (BITB-223) demoted to PT15M: latency quality trend, not an emergency — a
+# sustained drift is investigated on the next working day, not at 3am. Query
+# window widened to match the 15-minute evaluation window (single p95 bin).
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_latency_p95" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-scripture-fetch-latency-p95"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
+  evaluation_frequency = "PT15M"
   window_duration      = "PT15M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 3
-  description          = "p95 latency of verse/chapter DB reads exceeded 1000ms over the last 15 minutes."
+  description          = "p95 latency of verse/chapter DB reads exceeded 1000ms over the last 15 minutes (quality trend, BITB-223 — checked every 15 minutes, not paged)."
 
   criteria {
     query                   = <<-KQL
@@ -777,7 +737,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_fetch_laten
       | where name == "db.query.duration_ms"
       | extend op = tostring(customDimensions["operation"])
       | where op in ("get_verse", "get_chapter")
-      | summarize p95 = percentile(value, 95) by bin(timestamp, 5m)
+      | summarize p95 = percentile(value, 95) by bin(timestamp, 15m)
       | where p95 > 1000
     KQL
     time_aggregation_method = "Count"
@@ -965,10 +925,13 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_search_late
 # which point this rule is the guardrail that tells us if the edge is real.
 #
 # Buffer + clustering (deliberately not a hair-trigger on a single event):
-#   - buffer: a 15-minute bin must accrue > 5 bracketed appends to count as a
-#     breach, so one-off coincidences are ignored.
-#   - clustering: the breach must recur in at least 2 of the last 3 fifteen-minute
-#     evaluations before paging, so a lone noisy bin does not alert.
+#   - buffer: an hourly bin must accrue > 20 bracketed appends to count as a
+#     breach (same 5-per-15-min rate as before, scaled to the wider bin), so
+#     one-off coincidences are ignored.
+#   - clustering: the breach must recur in at least 2 of the last 3 hourly
+#     evaluations before alerting, so a lone noisy bin does not alert.
+# (BITB-223) demoted to P1D evaluation over a 24h window — niche cosmetic
+# quality-regression counter (BITB-053); trend data, not a page.
 # Severity 3. Retune the bin threshold / failing-period ratio once a baseline
 # exists, or remove the rule if the edge proves negligible.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_paraphrase_brackets" {
@@ -976,30 +939,32 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_parap
   name                 = "${local.name_prefix}-verse-grounding-paraphrase-brackets"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT15M"
-  window_duration      = "PT1H"
+  evaluation_frequency = "P1D"
+  window_duration      = "P1D"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 3
-  description          = "BITB-053 unquoted-paraphrase appends are clustering inside parenthetical references (nested-parens artifact): >5 bracketed applied appends per 15-min bin, sustained across 2 of the last 3 evaluations. Cosmetic; observation alert active only while grounding_paraphrases_mode is 'append'."
+  description          = "BITB-053 unquoted-paraphrase appends are clustering inside parenthetical references (nested-parens artifact): >20 bracketed applied appends per 1h bin in at least 2 hourly bins over the last 24h. Cosmetic; daily observation alert (BITB-223), active only while grounding_paraphrases_mode is 'append'."
 
   criteria {
     query                   = <<-KQL
       customMetrics
-      | where timestamp > ago(1h)
+      | where timestamp > ago(24h)
       | where name == "chat.verse_grounding.paraphrase_detections"
       | extend bracketed = tostring(customDimensions["bracketed"])
       | extend applied = tostring(customDimensions["applied"])
       | where bracketed == "true" and applied == "true"
-      | summarize total = sum(valueSum) by bin(timestamp, 15m)
-      | where total > 5
+      | summarize total = sum(valueSum) by bin(timestamp, 1h)
+      | where total > 20
     KQL
     time_aggregation_method = "Count"
-    threshold               = 0
+    threshold               = 1
     operator                = "GreaterThan"
 
+    # Clustering lives in the threshold (2+ hot hourly bins per day), not in
+    # failing_periods: Azure rejects look-back > 48h, and P1D x 3 periods = 72h.
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 2
-      number_of_evaluation_periods             = 3
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
     }
   }
 
@@ -1012,26 +977,29 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "verse_grounding_parap
 
 # Embedding provider resilience alert (BITB-143 Phase 2).
 # Fires when the embedding.fallback_total custom metric records any retry,
-# timeout, or circuit-open event (providers/embedding_resilience.py) in the
-# last 10 minutes. A sustained rate here means the embedding provider is
-# degraded/down — chat requests degrade to verse-less responses per the
+# timeout, or circuit-open event (providers/embedding_resilience.py). A
+# sustained rate here means the embedding provider is degraded/down — chat
+# requests degrade to verse-less responses per the
 # EmbeddingCircuitOpenError handling in chat/service.py, which is otherwise
 # silent (no 5xx), so this metric is the signal.
+# (BITB-223) demoted to PT15M: real signal, but its user-facing symptom is
+# already covered by the GitHub verse-search probe; kept for diagnosis,
+# not urgent paging.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "embedding_fallback_rate" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-embedding-fallback-rate"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT15M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 2
-  description          = "Embedding provider retries, timeouts, or circuit-open events (embedding.fallback_total metric) in the last 10 minutes. Chat requests are degrading to verse-less responses while this persists — see providers/embedding_resilience.py."
+  description          = "Embedding provider retries, timeouts, or circuit-open events (embedding.fallback_total metric) in the last 15 minutes (BITB-223: evaluated every 15 minutes, not paged). Chat requests are degrading to verse-less responses while this persists — see providers/embedding_resilience.py."
 
   criteria {
     query                   = <<-KQL
       customMetrics
-      | where timestamp > ago(10m)
+      | where timestamp > ago(15m)
       | where name == "embedding.fallback_total"
       | summarize total = sum(valueSum) by bin(timestamp, 5m)
       | where total > 0
@@ -1130,24 +1098,31 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "rate_limiter_fail_clo
 # under normal operation (stale/late Turnstile tokens, bot/scanner traffic,
 # BITB-061's fail-closed Turnstile change) and are not backend failures; see
 # backend_client_rejection_spike below for a higher-threshold view of them.
-# KQL otherwise mirrors the workbook "Failed Requests" tile. Threshold is
-# conservative (a handful in 10m) to avoid single-blip noise; tune once a
-# baseline is observed. Severity 1: a 5xx spike is a user-facing outage.
+#
+# (BITB-223) RECALIBRATED: previously 3+ breaches in a single 10-minute window,
+# which paged 42 times in 30 days — mostly deploy-time app-replacement blips
+# (the brief 502/503 window while Container Apps swaps revisions; BITB-067
+# gap #5 documented this class). Now requires a SUSTAINED 15-minute breach:
+# >=3 5xx in every 5-minute window for 3 consecutive windows (failing_periods
+# 3 of 3 over a PT5M window_duration). A real outage (e.g. the 2026-07-05
+# _IncludedRouter class) is continuous and still pages within ~15 minutes; a
+# one-or-two-minute deploy blip does not. Sustained-window gating chosen over
+# time-of-day suppression because deploy windows vary. Severity 1 unchanged.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-backend-5xx-rate"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
   evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  window_duration      = "PT5M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 1
-  description          = "Backend returned HTTP 5xx, or another success==false response that isn't an expected client rejection (401/403/429), on 3+ requests in the last 10 minutes. Broad catch-all for server-side failures not covered by the specific metric/log alerts. Turnstile/bot 403s, auth 401s, and rate-limit 429s are excluded — see backend_client_rejection_spike for those. NOTE: a crash inside the OTel ASGI middleware records no requests row — see backend_asgi_exceptions for that class."
+  description          = "Backend returned HTTP 5xx, or another success==false response that isn't an expected client rejection (401/403/429), at >=3 requests per 5 minutes, sustained for the last 15 minutes (3 consecutive 5-minute windows). Broad catch-all for server-side failures not covered by the specific metric/log alerts. Turnstile/bot 403s, auth 401s, and rate-limit 429s are excluded — see backend_client_rejection_spike for those. Deploy-time app-replacement blips (seconds of 502s) do not sustain 15 minutes. NOTE: a crash inside the OTel ASGI middleware records no requests row — see backend_asgi_exceptions for that class."
 
   criteria {
     query                   = <<-KQL
       requests
-      | where timestamp > ago(10m)
+      | where timestamp > ago(5m)
       | where toint(resultCode) >= 500
           or (success == false and toint(resultCode) !in (401, 403, 429))
       | summarize total = count() by bin(timestamp, 5m)
@@ -1158,8 +1133,8 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
     operator                = "GreaterThan"
 
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
+      minimum_failing_periods_to_trigger_alert = 3
+      number_of_evaluation_periods             = 3
     }
   }
 
@@ -1170,43 +1145,14 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
   tags = local.tags
 }
 
-# Unhandled exceptions (App Insights exceptions table). Catches unhandled server
-# exceptions OTel records (e.g. a regression in a route handler surfaced by
-# ServerErrorMiddleware). KQL source: workbook "Exception Summary" tile.
-resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_unhandled_exceptions" {
-  count                = local.alerts_enabled ? 1 : 0
-  name                 = "${local.name_prefix}-backend-unhandled-exceptions"
-  resource_group_name  = azurerm_resource_group.main.name
-  location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
-  scopes               = [azurerm_application_insights.main[0].id]
-  severity             = 2
-  description          = "3+ unhandled server exceptions recorded in App Insights in the last 10 minutes (exceptions table). Surfaces regressions that raise past route handlers. Threshold is conservative; tune once a baseline is observed."
-
-  criteria {
-    query                   = <<-KQL
-      exceptions
-      | where timestamp > ago(10m)
-      | summarize total = count() by bin(timestamp, 5m)
-      | where total >= 3
-    KQL
-    time_aggregation_method = "Count"
-    threshold               = 0
-    operator                = "GreaterThan"
-
-    failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
-    }
-  }
-
-  action {
-    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
-  }
-
-  tags = local.tags
-}
+# Unhandled-exceptions alert (App Insights exceptions table): REMOVED in BITB-223.
+# Was: 3+ unhandled server exceptions in 10 minutes. Redundant — a 4th pager for
+# the same real incidents: backend_asgi_exceptions (uvicorn ASGI-layer line),
+# backend_errors (categorised ERROR logs) and backend_5xx_rate (requests table)
+# all fired on the same events in the 30-day evidence window. Destruction on
+# next apply is intended. The ASGI middleware crash class never reaches the
+# exceptions table anyway (no span is started) — backend_asgi_exceptions is the
+# reliable signal for it and stays at PT5M.
 
 # ASGI-layer exceptions (backend console logs). The in-telemetry catch for the
 # _IncludedRouter class: a crash above the app (OTel/CORS middleware) never
@@ -1270,23 +1216,26 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_asgi_exceptio
 # every other alert in this file (no severity-based routing exists here), so
 # noise control comes entirely from the threshold, not the severity label.
 # Threshold is a starting guess; tune once a baseline is observed.
+# (BITB-223) demoted to PT15M: abuse-pattern insurance (security-adjacent) —
+# demoted, not removed, and the threshold (30+ rejections) kept non-paging on
+# routine noise.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_client_rejection_spike" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-backend-client-rejection-spike"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT15M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 3
-  description          = "30+ requests in the last 10 minutes rejected with 401/403/429 (auth, Turnstile bot-verification, or rate-limit). These are expected in small numbers and are excluded from backend_5xx_rate; a spike this large may indicate a bot attack or a broken client-side Turnstile flow rather than routine noise. Threshold is a starting guess — tune once a baseline is observed."
+  description          = "30+ requests in the last 15 minutes rejected with 401/403/429 (auth, Turnstile bot-verification, or rate-limit). These are expected in small numbers and are excluded from backend_5xx_rate; a spike this large may indicate a bot attack or a broken client-side Turnstile flow rather than routine noise. Threshold is a starting guess — tune once a baseline is observed. (BITB-223: evaluated every 15 minutes.)"
 
   criteria {
     query                   = <<-KQL
       requests
-      | where timestamp > ago(10m)
+      | where timestamp > ago(15m)
       | where toint(resultCode) in (401, 403, 429)
-      | summarize total = count() by bin(timestamp, 5m)
+      | summarize total = count() by bin(timestamp, 15m)
       | where total >= 30
     KQL
     time_aggregation_method = "Count"
@@ -1313,23 +1262,26 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_client_reject
 # backend catch-all alerts. Threshold is deliberately a spike, not per-error, so
 # individual users' transient network blips don't page; tune once a baseline
 # exists.
+# (BITB-223) demoted to PT1H: actionable (debugging JS errors) but never an
+# emergency — the BITB-066 reporter also feeds client.errors_total for
+# diagnosis; checked hourly.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_errors" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-frontend-client-errors"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  evaluation_frequency = "PT1H"
+  window_duration      = "PT1H"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 2
-  description          = "More than 20 client-side error reports (client.errors_total) received in the last 10 minutes — a spike of browser-side JS/render/API failures, e.g. a browser-only outage. Emitted by the frontend error reporter (BITB-066)."
+  description          = "More than 20 client-side error reports (client.errors_total) per 15-minute bin over the last hour, recurring in 2 of the last 4 bins — a spike of browser-side JS/render/API failures, e.g. a browser-only outage. Emitted by the frontend error reporter (BITB-066). (BITB-223: evaluated hourly, not paged.)"
 
   criteria {
     query                   = <<-KQL
       customMetrics
-      | where timestamp > ago(10m)
+      | where timestamp > ago(1h)
       | where name == "client.errors_total"
-      | summarize total = sum(valueSum) by bin(timestamp, 5m)
+      | summarize total = sum(valueSum) by bin(timestamp, 15m)
       | where total > 20
     KQL
     time_aggregation_method = "Count"
@@ -1337,8 +1289,8 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_error
     operator                = "GreaterThan"
 
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
+      minimum_failing_periods_to_trigger_alert = 2
+      number_of_evaluation_periods             = 4
     }
   }
 
@@ -1356,21 +1308,31 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_error
 # filter (never to allow-all), but for a pastoral-care product screening
 # self-harm/violence content, a degraded ML safety net is itself an
 # operator-actionable signal, not just a resilience detail.
+#
+# (BITB-223) RECALIBRATED: this was the noisiest rule in the fleet (99 firings
+# in 30 days) because ANY single fallback event paged. Falling back
+# occasionally is the designed behavior (BITB-061): the secondary model
+# recovers transient primary failures, and the keyword filter still screens
+# correctly during fallback. Now the breach must be SUSTAINED for 30 minutes —
+# the metric above threshold in 6 consecutive 5-minute windows (failing_periods
+# 6 of 6 over a PT5M window_duration) — before paging. A blip (one or a few
+# fallback events, minutes-long) does not page; a persistently degraded safety
+# pipeline still pages within ~30 minutes. Kept at PT5M evaluation, Sev2.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallback_rate" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-content-safety-fallback-rate"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
   evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  window_duration      = "PT5M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 2
-  description          = "Content safety provider (Llama Guard / OpenAI Moderation / Azure) degraded to keyword-only fallback (content_safety.fallback_total metric) in the last 10 minutes — see utils/content_safety.py."
+  description          = "Content safety provider (Llama Guard / OpenAI Moderation / Azure) degraded to keyword-only fallback (content_safety.fallback_total metric) for a SUSTAINED 30 minutes (every 5-minute window in the last 30 minutes above zero). Occasional fallback is designed behavior (BITB-061) and does not page; only a persistently degraded ML safety net does. See utils/content_safety.py."
 
   criteria {
     query                   = <<-KQL
       customMetrics
-      | where timestamp > ago(10m)
+      | where timestamp > ago(5m)
       | where name == "content_safety.fallback_total"
       | summarize total = sum(valueSum) by bin(timestamp, 5m)
       | where total > 0
@@ -1380,8 +1342,8 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallba
     operator                = "GreaterThan"
 
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 1
-      number_of_evaluation_periods             = 1
+      minimum_failing_periods_to_trigger_alert = 6
+      number_of_evaluation_periods             = 6
     }
   }
 
@@ -1392,62 +1354,15 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallba
   tags = local.tags
 }
 
-# Lower severity than content_safety_fallback_rate above: this fires when the
-# PRIMARY Llama Guard model (meta-llama/llama-guard-4-12b) is stuck failing on
-# most/all requests while the secondary model keeps recovering them — the
-# request is still ML-classified correctly, just at higher latency/cost, so
-# it's not user-impacting on its own. Without this alert, that state is
-# completely invisible: content_safety_fallback_rate only fires when BOTH
-# models fail (the request degrades to keyword-only).
-#
-# IMPORTANT: the primary model fails on ~49% of calls under normal production
-# load — a known OpenRouter routing quirk (finish_reason=stop, content: null
-# on some routes; see the docstring in providers/llama_guard.py), always
-# recovered by the secondary (0 total end-to-end failures in the BITB-061
-# 100-sample benchmark; see docs/BACKLOG_STORIES/BITB-070-reevaluate-hybrid-
-# content-safety-mode.md). That ~49% is accepted, steady-state noise, not an
-# incident — so this rule alerts on a sustained high FAILURE RATE (computed
-# from the same metric's success/failed outcomes, both emitted by
-# llama_guard_primary_result_counter) well above that baseline, clustered
-# across evaluations, rather than on any single failure.
-resource "azurerm_monitor_scheduled_query_rules_alert_v2" "llama_guard_primary_failure_rate" {
-  count                = local.alerts_enabled ? 1 : 0
-  name                 = "${local.name_prefix}-llama-guard-primary-failure-rate"
-  resource_group_name  = azurerm_resource_group.main.name
-  location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT15M"
-  window_duration      = "PT1H"
-  scopes               = [azurerm_application_insights.main[0].id]
-  severity             = 3
-  description          = "Primary Llama Guard model (llama_guard.primary_result_total) failure rate stayed >=90% over a 15-min bin (min 5 calls), sustained across 2 of the last 3 evaluations — i.e. the primary is stuck failing on most/all requests, not the expected ~49% baseline (see BITB-061/070). The secondary model is still recovering these end-to-end, but the pipeline is running on a single remaining ML classifier for a sustained period. See providers/llama_guard.py."
-
-  criteria {
-    query                   = <<-KQL
-      customMetrics
-      | where timestamp > ago(1h)
-      | where name == "llama_guard.primary_result_total"
-      | extend outcome = tostring(customDimensions["outcome"])
-      | summarize failed = sumif(valueSum, outcome == "failed"), total = sum(valueSum) by bin(timestamp, 15m)
-      | where total >= 5
-      | extend failure_rate = todouble(failed) / todouble(total)
-      | where failure_rate >= 0.9
-    KQL
-    time_aggregation_method = "Count"
-    threshold               = 0
-    operator                = "GreaterThan"
-
-    failing_periods {
-      minimum_failing_periods_to_trigger_alert = 2
-      number_of_evaluation_periods             = 3
-    }
-  }
-
-  action {
-    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
-  }
-
-  tags = local.tags
-}
+# Llama-Guard primary-model failure-rate alert: REMOVED in BITB-223.
+# Was: sustained >=90% primary-model failure rate (min 5 calls/bin, 2 of 3
+# evaluations) at Sev3 — the state where the primary ML classifier is stuck
+# failing but the secondary recovers every request end-to-end. Redundant with
+# content_safety_fallback_rate (the aggregate fallback signal, recalibrated
+# above to a 30-minute sustained breach) and with the GitHub content-safety
+# probe, which asserts BOTH classification directions end-to-end every 5
+# minutes. No 3am action existed for this state on its own. Destruction on
+# next apply is intended.
 
 # -----------------------------------------------------------------------------
 # Container App resource-saturation alerts (2026-07-21 audit finding)
@@ -1597,25 +1512,26 @@ resource "azurerm_monitor_metric_alert" "frontend_memory_high" {
 # claude}.py), but nothing alerted on it — only the DB-tier scripture-search p95
 # had a latency alert, leaving the user-facing chat-latency signal uncovered.
 #
-# Shape deliberately mirrors llama_guard_primary_failure_rate, not
-# scripture_search_latency_p95: current production chat volume is low (single-
-# digit TTFT samples per hour at the time this was written), so a 15-min window
-# with no minimum sample count would let one slow request masquerade as a p95
-# breach. Widening to a 1h window with a >=5-sample-per-bin guard, evaluated
-# every 15 minutes and requiring the breach to recur in 2 of the last 3
-# evaluations, keeps the alert statistically meaningful at current volume and
-# should be tightened back toward the 15min/2000ms-style shape once traffic
+# Shape deliberately: 1h window with a >=5-samples-per-bin guard (not the
+# 15min/no-minimum shape used for scripture search) — current production chat
+# volume is low (single-digit TTFT samples per hour at the time this was
+# written), so a 15-min window with no minimum sample count would let one slow
+# request masquerade as a p95 breach. Requiring the breach to recur in 2 of the
+# last 3 evaluations keeps the alert statistically meaningful at current volume
+# and should be tightened back toward the 15min/2000ms-style shape once traffic
 # grows enough to support it.
+# (BITB-223) demoted to PT1H evaluation — quality metric with no 3am action;
+# gross latency/outage is caught by the synthetic-chat probe (30s timeouts).
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "chat_ttft_p95" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-chat-ttft-p95"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT15M"
+  evaluation_frequency = "PT1H"
   window_duration      = "PT1H"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 3
-  description          = "p95 of chat time-to-first-token (llm.ttft_ms) stayed above 5000ms over a 15-min bin (min 5 samples), sustained across 2 of the last 3 evaluations. User-facing complement to backend-cpu-high/backend-replicas-at-max — this is what a saturated backend or a degraded LLM provider looks like from the user's chair."
+  description          = "p95 of chat time-to-first-token (llm.ttft_ms) stayed above 5000ms over a 15-min bin (min 5 samples), sustained across 2 of the last 3 evaluations. User-facing complement to backend-cpu-high/backend-replicas-at-max — this is what a saturated backend or a degraded LLM provider looks like from the user's chair. (BITB-223: evaluated hourly, not paged.)"
 
   criteria {
     query                   = <<-KQL

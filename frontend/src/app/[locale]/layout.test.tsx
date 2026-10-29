@@ -19,4 +19,8 @@ describe("viewport", () => {
     expect(viewport.viewportFit).toBe("cover");
     expect(viewport.maximumScale).toBe(5);
   });
+
+  it("lets the Android keyboard resize the layout viewport (#1224)", () => {
+    expect(viewport.interactiveWidget).toBe("resizes-content");
+  });
 });
