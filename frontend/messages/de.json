@@ -428,6 +428,7 @@
     "callLineAria": "{name} anrufen",
     "textLineAria": "SMS an {name} senden",
     "regionSaved": "Ab deiner nächsten Nachricht verwenden wir die Nummern für {country}.",
+    "emergencyNumberAria": "Notrufnummer {number} anrufen",
     "localEmergencyHint": "Rufen Sie die örtliche Notrufnummer an (die <dial>112</dial> funktioniert von den meisten Mobiltelefonen aus)."
   }
 }

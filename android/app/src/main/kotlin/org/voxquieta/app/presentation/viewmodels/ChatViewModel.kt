@@ -19,6 +19,7 @@ import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ClientEventRequestDto
 import org.voxquieta.app.data.remote.models.ContactSubject
+import org.voxquieta.app.data.remote.models.CrisisResourcesRequestDto
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Church
@@ -1130,7 +1131,9 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             val language = _uiState.value.currentLocale.ifBlank { Locale.getDefault().toLanguageTag() }
             val fresh = try {
-                bibleApiService.getCrisisResources(code, language, current.kind).toDomain()
+                bibleApiService.getCrisisResources(
+                    CrisisResourcesRequestDto(country = code, language = language, kind = current.kind),
+                ).toDomain()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

@@ -143,10 +143,12 @@ describe("CrisisResourcesCard (BITB-251)", () => {
     expect(hint).toHaveTextContent(
       "Call your local emergency number (112 works from most mobile phones).",
     );
-    expect(within(hint).getByRole("link", { name: "112" })).toHaveAttribute(
-      "href",
-      "tel:112",
-    );
+    const link = within(hint).getByRole("link", {
+      name: "Call emergency number 112",
+    });
+    expect(link).toHaveAttribute("href", "tel:112");
+    expect(link.className).toContain("min-w-[44px]");
+    expect(link.className).toContain("min-h-[44px]");
   });
 
   it("does not show the local-emergency hint when an emergency number is known", () => {
@@ -178,10 +180,10 @@ describe("CrisisResourcesCard (BITB-251)", () => {
         </NextIntlClientProvider>,
       );
       const hint = screen.getByTestId("crisis-local-emergency");
-      expect(within(hint).getByRole("link", { name: "112" })).toHaveAttribute(
-        "href",
-        "tel:112",
-      );
+      const link = within(hint).getByRole("link", {
+        name: messages.Crisis.emergencyNumberAria.replace("{number}", "112"),
+      });
+      expect(link).toHaveAttribute("href", "tel:112");
       expect(hint.textContent).not.toContain("<dial>");
       unmount();
     }

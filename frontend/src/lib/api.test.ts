@@ -1316,7 +1316,7 @@ describe("crisis card request fields (BITB-251)", () => {
 });
 
 describe("getCrisisResources (BITB-251)", () => {
-  it("GETs /api/v1/crisis-resources with country, language and kind", async () => {
+  it("POSTs country, language and kind in a JSON body, never in the URL", async () => {
     const payload = { kind: "self_harm", country: "US" };
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
@@ -1325,13 +1325,18 @@ describe("getCrisisResources (BITB-251)", () => {
     await expect(getCrisisResources("US", "pt", "self_harm")).resolves.toEqual(
       payload,
     );
-    const url = String(
-      (global.fetch as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0],
-    );
-    expect(url).toContain("/api/v1/crisis-resources?");
-    expect(url).toContain("country=US");
-    expect(url).toContain("language=pt");
-    expect(url).toContain("kind=self_harm");
+    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.at(
+      -1,
+    )!;
+    expect(String(url)).toMatch(/\/api\/v1\/crisis-resources$/);
+    expect(String(url)).not.toContain("?");
+    expect(String(url)).not.toContain("US");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({
+      country: "US",
+      language: "pt",
+      kind: "self_harm",
+    });
   });
 
   it("throws on a non-2xx response so the caller keeps the old card", async () => {

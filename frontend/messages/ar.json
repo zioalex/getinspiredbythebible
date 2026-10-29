@@ -428,6 +428,7 @@
     "callLineAria": "الاتصال بـ {name}",
     "textLineAria": "إرسال رسالة نصية إلى {name}",
     "regionSaved": "سنستخدم أرقام {country} ابتداءً من رسالتك التالية.",
+    "emergencyNumberAria": "الاتصال برقم الطوارئ {number}",
     "localEmergencyHint": "اتصل برقم الطوارئ المحلي (يعمل الرقم <dial>112</dial> من معظم الهواتف المحمولة)."
   }
 }

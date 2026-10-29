@@ -3606,7 +3606,7 @@ class ChatViewModelTest {
     @Test
     fun `picking a country fetches that country's card, swaps it in place and saves it`() = runTest {
         val assistant = sendCrisisTurn()
-        coEvery { bibleApiService.getCrisisResources("AT", any(), "self_harm") } returns austriaCard()
+        coEvery { bibleApiService.getCrisisResources(match { it.country == "AT" && it.kind == "self_harm" }) } returns austriaCard()
 
         viewModel.onCrisisCountrySelected(assistant.id, "AT")
         testDispatcher.scheduler.advanceUntilIdle()
@@ -3623,7 +3623,7 @@ class ChatViewModelTest {
     @Test
     fun `a failed refresh keeps the old card but still stores the override`() = runTest {
         val assistant = sendCrisisTurn()
-        coEvery { bibleApiService.getCrisisResources(any(), any(), any()) } throws IOException("offline")
+        coEvery { bibleApiService.getCrisisResources(any()) } throws IOException("offline")
 
         viewModel.onCrisisCountrySelected(assistant.id, "AT")
         testDispatcher.scheduler.advanceUntilIdle()
@@ -3645,6 +3645,6 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { sessionPreferences.setCrisisRegionOverride("AT") }
-        coVerify(exactly = 0) { bibleApiService.getCrisisResources(any(), any(), any()) }
+        coVerify(exactly = 0) { bibleApiService.getCrisisResources(any()) }
     }
 }

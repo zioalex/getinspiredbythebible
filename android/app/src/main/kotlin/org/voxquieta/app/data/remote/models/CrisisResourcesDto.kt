@@ -34,3 +34,14 @@ data class CrisisLineDto(
     // Ops-only flag; ignored by the UI but tolerated on the wire.
     @SerialName("verified") val verified: Boolean = false,
 )
+
+/**
+ * Request body for `POST api/v1/crisis-resources` (BITB-251). A body rather than query
+ * parameters so the user's picked country is never part of the request URL.
+ */
+@Serializable
+data class CrisisResourcesRequestDto(
+    @SerialName("country") val country: String,
+    @SerialName("language") val language: String? = null,
+    @SerialName("kind") val kind: String,
+)

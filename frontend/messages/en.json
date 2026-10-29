@@ -428,6 +428,7 @@
     "callLineAria": "Call {name}",
     "textLineAria": "Text {name}",
     "regionSaved": "We'll use {country} numbers from your next message.",
+    "emergencyNumberAria": "Call emergency number {number}",
     "localEmergencyHint": "Call your local emergency number (<dial>112</dial> works from most mobile phones)."
   }
 }

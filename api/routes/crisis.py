@@ -1,17 +1,22 @@
 """Crisis resources route (BITB-251).
 
-Read-only lookup of the hotline card payload for a country the user picked in the card's
+Lookup of the hotline card payload for a country the user picked in the card's
 "Not in <country>?" picker, so the card already on screen can be re-rendered in place.
 Serves public registry data only: no Turnstile, no message text, nothing stored. Only
 counts are recorded (never the country, which is user location data).
+
+This is a POST with a JSON body on purpose: the picked country is location data and a query
+string would be recorded in the request URL by the access/telemetry instrumentation.
 """
 
 from enum import Enum
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 
 from utils.crisis_resources import (
+    SUPPORTED_LANGUAGES,
     CrisisKind,
     build_crisis_payload,
     build_minimal_crisis_payload,
@@ -32,20 +37,24 @@ class CrisisKindParam(str, Enum):
     THREAT_TO_OTHERS = "threat_to_others"
 
 
-@router.get("", dependencies=[Depends(require_rate_limit)])
-async def get_crisis_resources(
-    kind: CrisisKindParam,
-    country: Annotated[str | None, Query(max_length=8)] = None,
-    language: Annotated[str | None, Query(max_length=16)] = None,
-) -> dict[str, Any]:
+class CrisisResourcesRequest(BaseModel):
+    kind: CrisisKindParam
+    country: str | None = Field(default=None, max_length=8)
+    language: str | None = Field(default=None, max_length=16)
+
+
+@router.post("", dependencies=[Depends(require_rate_limit)])
+async def get_crisis_resources(body: CrisisResourcesRequest) -> dict[str, Any]:
     """Return the ``crisis_resources`` payload for ``country`` (``country_source=override``).
 
     An unusable country code yields the international-only payload; an unknown ``kind`` is
     rejected with 422 by validation.
     """
-    crisis_kind = CrisisKind(kind.value)
-    lang = (language or "en").replace("_", "-").split("-", 1)[0].lower()[:8] or "en"
-    code = normalize_country_code(country)
+    crisis_kind = CrisisKind(body.kind.value)
+    base_lang = (body.language or "en").replace("_", "-").split("-", 1)[0].lower()
+    # Clamp to the supported set: also keeps the metric label cardinality bounded.
+    lang = base_lang if base_lang in SUPPORTED_LANGUAGES else "en"
+    code = normalize_country_code(body.country)
     try:
         if code:
             payload = build_crisis_payload(

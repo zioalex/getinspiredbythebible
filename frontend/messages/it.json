@@ -428,6 +428,7 @@
     "callLineAria": "Chiama {name}",
     "textLineAria": "Invia un SMS a {name}",
     "regionSaved": "Dal prossimo messaggio useremo i numeri di {country}.",
+    "emergencyNumberAria": "Chiama il numero di emergenza {number}",
     "localEmergencyHint": "Chiama il numero di emergenza locale (il <dial>112</dial> funziona dalla maggior parte dei telefoni cellulari)."
   }
 }

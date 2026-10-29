@@ -38,7 +38,7 @@ O texto da sua mensagem é usado por esses provedores **exclusivamente** para ge
 - Não exigimos cadastro de conta.
 - Não coletamos seu nome, endereço de e-mail ou número de telefone.
 - Não rastreamos sua localização.
-- **País aproximado, apenas para números de emergência**: se a sua mensagem sugerir que você ou outra pessoa pode estar em perigo, deduzimos o seu país a partir da sua conexão (o cabeçalho de país da Cloudflare) ou do idioma do seu dispositivo, somente para mostrar os números locais corretos de emergência e de apoio. Ele nunca é armazenado em nossos servidores; o cartão é salvo apenas junto com a sua conversa, no seu dispositivo.
+- **País aproximado, apenas para números de emergência**: se a sua mensagem sugerir que você ou outra pessoa pode estar em perigo, deduzimos o seu país a partir da sua conexão (o cabeçalho de país da Cloudflare) ou do idioma do seu dispositivo, somente para mostrar os números locais corretos de emergência e de apoio. Ele nunca é armazenado em nossos servidores; o cartão é salvo apenas junto com a sua conversa, no seu dispositivo. Se você escolher outro país no cartão, esse país é enviado a nós somente para consultar os números dele e não é armazenado em nossos servidores.
 - Não vendemos seus dados a terceiros.
 
 ## Histórico de conversas
