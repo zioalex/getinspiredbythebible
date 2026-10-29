@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-29: BITB-251 created — spike: decision model (Clef-flash, Jev if access) for intent routing + topic detection, offline 11-language eval + shadow mode
 - 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
 - 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
@@ -3219,6 +3220,34 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-251: Spike — Decision Model (Clef / Jev) for Intent Routing and Topic Detection
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-29
+
+Can a decision model (Cloudflare Clef-flash; TypeSafe Jev if early access
+arrives) replace the generative LLM call in `_detect_intent`, which runs on
+every chat request before search? It would answer the 7-way intent question
+and the 13 topic yes/no questions in one call, with probabilities. Build a
+`DecisionProvider` interface, a labelled set in all 11 languages and an
+offline runner (accuracy, macro-F1, calibration/ECE, threshold sweep,
+p50/p95, cost), plus a flag-gated shadow mode that logs both verdicts and
+never changes routing.
+
+**Acceptance criteria:**
+
+- [ ] Labelled set: ≥30 cases × 11 languages, every intent label in every language
+- [ ] `DecisionProvider` + Clef client + factory + config, with mocked-transport tests
+- [ ] Offline runner + dated per-language report (LLM baseline vs Clef-flash)
+- [ ] Shadow mode (`decision_shadow_enabled`, off by default): routing unchanged, a failure or timeout adds no latency, no message text in logs; tested via `chat()` + `chat_stream()` across 11 languages
+- [ ] Findings with a go/no-go per language; Jev compared or marked "no access"
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-251-decision-model-intent-routing-spike.md`
+
+---
 
 ### 🎯 BITB-237: Free-Fleet Expansion — Pre-Gate Verifier for Nemotron, Family-Matched Tier-1 Failovers
 
