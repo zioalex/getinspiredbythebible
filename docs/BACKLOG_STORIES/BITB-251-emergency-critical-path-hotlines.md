@@ -40,9 +40,17 @@ Problems:
 2. **Order:** the hotline card is sent **first**: as the first stream event, before retrieval or the LLM
    runs. On the compassionate path, the LLM's compassionate reply then follows underneath. Blocked
    paths still make no LLM call: their pre-written text follows the card.
-3. **Contact selection:** by **locale region + language**. Use the region subtag the client sends
-   (e.g. `pt-BR`, `de-AT`, `es-MX`, `zh-TW`) when present, else a per-language default country.
-   findahelpline.com is always included.
+3. **Contact selection** (revised 2026-10-29): by **where the user is**, then locale. Emergency
+   numbers only work in the country the caller is in, so the order of precedence is:
+   1. the `CF-IPCountry` header. Cloudflare already proxies `api.voxquieta.org`: the API reads
+      `CF-Connecting-IP`. This is the free IP Geolocation setting. There is no geo-IP database and
+      nothing is stored.
+   2. the client locale region (e.g. `pt-BR`, `de-AT`).
+   3. a per-language default country.
+   4. international only.
+
+   findahelpline.com is always included, and `XX`/`T1` (unknown, Tor) skip step 1. The card shows the
+   country it used, with a "Not in <country>?" picker, so a VPN user or traveller can correct it.
 4. **UI:** a **dedicated crisis card** (structured `crisis_resources` field) on web and Android, with
    `tel:`/`sms:` links, pinned above the reply.
 5. **Threat to others:** **same card** as self-harm (local emergency number + crisis line).
@@ -74,9 +82,11 @@ Problems:
      | hi | IN | Tele-MANAS 14416 | 112 | — |
      | ko | KR | 109 | 112 / 119 | — |
 
-2. **Request:** add an optional `region` field (ISO 3166-1 alpha-2) to `ChatRequest`. Web sends it from
-   the locale or `navigator.language`. Android sends it from `Locale.getDefault().country`. Older
-   clients omit it and get the language default.
+2. **Request:** read `CF-IPCountry` server-side (owner step: enable IP Geolocation in Cloudflare →
+   Network). Add an optional `region` field (ISO 3166-1 alpha-2) to `ChatRequest` for the locale
+   fallback and the picker override: web sends it from the locale or `navigator.language`, and
+   Android sends it from `Locale.getDefault().country`. The country is used only to pick contacts,
+   never stored. A user-picked override is kept only on the device.
 3. **Backend critical path,** in both `chat()` and `chat_stream()`:
    - It runs right after `_check_content_safety`, so its only latency cost is the safety check.
    - On any of the three trigger outcomes:
@@ -128,8 +138,11 @@ Problems:
       contacts.
 - [ ] Region resolution is tested for the exact region, the language default, an unknown region and
       a missing region, and is parametrized across all 11 languages.
-- [ ] Every registry entry has a source URL and verification date. A test enforces this, and the owner
-      signs off on the numbers table.
+- [ ] Every registry entry has an official `source_url`, `verified_on` and `verified_by`. A CI test
+      enforces this, and the owner signs off on the numbers table.
+- [ ] The weekly staleness workflow fails on an entry older than 180 days or a dead source URL.
+- [ ] The country comes from `CF-IPCountry`, then the locale region, then the language default, then
+      international. `XX`/`T1` are ignored. Tested, including the "Not in <country>?" override.
 - [ ] Non-crisis turns never get the card: a regression test covers a Bible-narrative "kill" phrasing
       across the 11 languages.
 - [ ] The compassionate addendum no longer hard-codes numbers. Blocked templates render numbers from
@@ -147,10 +160,66 @@ Problems:
   moderator.
 - Changing *which* messages the safety pipeline flags. Detection recall stays in BITB-200–204.
 
-## Open questions
+## Resolved questions (owner, 2026-10-29)
 
-1. **Arabic default country.** There is no pan-Arab crisis line. When there's no region, should it
-   be international only, or a default country? Proposed: international only, plus regional entries
-   when the region is known.
-2. **Card on later turns.** Should it repeat on each crisis turn in a session, or only the first?
-   Proposed: on every crisis turn, since repeats are cheap and safety-relevant.
+1. **Arabic / no-region default.** Resolved by IP country (FR 3): the country is normally known, so
+   the language default only applies when Cloudflare reports `XX`. For Arabic it is then
+   international only.
+2. **Card on later turns.** It shows **on every crisis turn.**
+
+## Hotline data source — decision (owner, 2026-10-29)
+
+**Self-curated registry**, not ThroughLine. The research is below. The registry is maintained like
+this:
+
+1. **One data file**, `api/safety/crisis_resources.json`, loaded by `api/safety/crisis_resources.py`.
+   Each crisis-line and emergency entry has `source_url`, which must be the operator's own site or a
+   national regulator or health ministry (never an aggregator), plus `verified_on` (ISO date) and
+   `verified_by`.
+2. **A CI test** fails if any entry lacks a source, has a non-official source host, or has a
+   malformed E.164-style number.
+3. **A staleness check**: a weekly scheduled workflow (not the PR gate, so PRs never go red just
+   because time passed) fails when any `verified_on` is more than 180 days old, or when a
+   `source_url` no longer resolves. Re-verifying means: open the source, confirm the number and
+   hours, and bump `verified_on` in a PR.
+4. **A provider interface** (`CrisisResourceProvider`) with a single `StaticRegistryProvider`
+   implementation, so a licensed feed such as ThroughLine can be swapped in later without touching
+   the chat path.
+5. **The first verification pass** is done during Build. The owner signs off on the final table in
+   the PR.
+
+## Data source research (2026-10-29)
+
+| Source | Verified? | Machine-readable | Licence / cost | Fit |
+|--------|-----------|------------------|----------------|-----|
+| **ThroughLine API** (the organisation behind findahelpline.com, an IASP partner) | Yes. More than 1,300 services, verified by direct contact with the helplines and maintained daily. Phone/SMS/URL validation and audits | Yes. OAuth 2.0 REST: `/countries`, `/helplines?country=<ISO-2>`, topic filter | Developer account enabled by their team. Free sandbox covers US + NZ only; full coverage (170+ countries) is paid, price on request. 1,000 calls/day by default | Best: the same data we already link to, kept current by people whose job it is |
+| findahelpline.com website / widget | Yes (same data) | No | Terms: **personal use only. Commercial use, scraping and AI extraction are prohibited** without permission | Link only, as today. Never scrape it |
+| IASP / Befrienders Worldwide directories | Partly | No public API | Ask the organisations | No |
+| Wikipedia "List of suicide crisis lines" / emergency numbers | Not verified | Wiki tables | CC BY-SA | Fallback cross-check only |
+| esrot.com emergency-numbers dataset | Partly, by its own disclaimer | Yes | Third party | Emergency numbers only, as a cross-check |
+
+**Emergency numbers** (police/ambulance) are national, change very rarely and have no verified API. A
+small static table in the repo is fine for them, with the national-regulator source URL per entry.
+112 also works on every GSM network, and the ITU recognises 112 and 911.
+
+### Recommended architecture (if ThroughLine is chosen)
+
+- **Never call ThroughLine on the crisis path.** A daily job syncs `/helplines` for every country,
+  for the topics *suicidal thoughts* and *abuse/violence*, into a local cache table. That is about
+  200 calls/day, within quota. The crisis path reads only the cache.
+- **Bundled fallback.** A static JSON shipped in the repo, regenerated from the last good sync and
+  committed by a scheduled PR, so an owner can review the diff. It covers the 11 default countries
+  plus the emergency table, so a brand-new deploy or a ThroughLine outage still shows numbers.
+- **Staleness.** An alert fires if the sync hasn't succeeded for 7 days. Cached rows keep their
+  ThroughLine `id` and `last_verified` date.
+- **Owner steps:** apply for a ThroughLine developer account; store credentials as
+  `THROUGHLINE_CLIENT_ID` / `THROUGHLINE_CLIENT_SECRET` in Key Vault; accept their data-use terms
+  (attribution, display rules).
+
+Sources: [ThroughLine developer docs](https://developer.throughlinecare.com/general),
+[ThroughLine for Trust & Safety](https://www.throughlinecare.com/who-we-serve/trust-safety-teams),
+[ThroughLine pricing / limits](https://developer.throughlinecare.com/limits-policy),
+[Find A Helpline terms](https://findahelpline.com/terms),
+[IASP crisis centres](https://www.iasp.info/crisis-centres/),
+[Cloudflare IP geolocation](https://developers.cloudflare.com/network/ip-geolocation),
+[Wikipedia emergency numbers](https://en.wikipedia.org/wiki/List_of_emergency_telephone_numbers).

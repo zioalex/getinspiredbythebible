@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-29: BITB-251 spec revised — country from Cloudflare IP geolocation, self-curated hotline registry with source + staleness checks (ThroughLine evaluated); BITB-252 threshold/retention confirmed
 - 2026-10-28: BITB-252 spec — privacy-safe RAG retrieval-miss logging (derived signals only, no prompt text)
 - 2026-10-28: BITB-251 spec — emergency critical path: deterministic hotline card first for threats to self or others
 - 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
@@ -134,8 +135,8 @@ compassionate path, and a threat to others gets no contacts at all.
 **Acceptance Criteria:**
 
 - [ ] All three trigger outcomes (compassionate, blocked self-harm, blocked threat) emit `crisis_resources` first, blocking + streaming
-- [ ] Region → language default → international fallback, parametrized across 11 languages
-- [ ] Every hotline entry carries a verified source + date (test-enforced); owner signs off the numbers
+- [ ] Country from Cloudflare `CF-IPCountry` → locale region → language default → international, parametrized across 11 languages
+- [ ] Self-curated registry: every entry has an official source + `verified_on` (CI-enforced), weekly 180-day staleness check; owner signs off the numbers
 - [ ] Crisis card on web and Android (tel:/sms:, RTL, accessible); old clients keep a markdown fallback
 
 **Full Story:** [`BITB-251-emergency-critical-path-hotlines.md`](BACKLOG_STORIES/BITB-251-emergency-critical-path-hotlines.md)

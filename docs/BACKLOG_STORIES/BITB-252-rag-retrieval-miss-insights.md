@@ -128,9 +128,8 @@ carve-out is safety-blocked samples.
 - An admin UI or dashboard (App Insights workbook panels could be a follow-up).
 - Storing raw or capped prompt text, or an opt-in to share it.
 
-## Open questions
+## Resolved questions (owner, 2026-10-29)
 
-1. **Default `low_score` threshold.** Propose deriving it from the BITB-139 golden-set score
-   distribution (e.g. the p10 of correct hits), and making it configurable per embedding model.
-2. **Retention.** Proposed: 90 days. These are anonymous aggregates, so a longer window than the
-   30-day blocked samples is defensible.
+1. **Default `low_score` threshold.** Derived from the BITB-139 golden-set score distribution (e.g.
+   the p10 of correct hits), and configurable per embedding model.
+2. **Retention.** 90 days.
