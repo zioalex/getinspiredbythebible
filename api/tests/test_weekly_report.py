@@ -21,7 +21,9 @@ from reports.weekly_report import (
     FeedbackStats,
     LanguageCount,
     NegativeComment,
+    TtsStats,
     WeeklyReport,
+    _build_tts_stats,
     build_weekly_report,
     render_html,
     render_text,
@@ -56,6 +58,7 @@ async def test_build_report_happy_path():
             _result(all_=[("en", 20), ("it", 8)]),  # 5 languages
             _result(scalar_=6),  # 6 prev feedback total
             _result(scalar_=9),  # 7 prev new sessions
+            _result(all_=[]),  # 8 read-aloud
         ]
     )
 
@@ -93,6 +96,7 @@ async def test_build_report_empty_data_no_divide_error():
             _result(all_=[]),  # languages
             _result(scalar_=None),  # prev feedback total (None -> 0)
             _result(scalar_=None),  # prev new sessions
+            _result(all_=[]),  # read-aloud
         ]
     )
 
@@ -140,6 +144,7 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing(
                 DummyOrigError(error_message, pgcode=pgcode),
             ),
             _result(scalar_=0),
+            _result(all_=[]),  # read-aloud
         ]
     )
 
@@ -161,7 +166,7 @@ async def test_build_report_falls_back_when_sessions_schema_is_missing(
     assert report.engagement.total_messages == 0
     assert report.engagement.top_languages == []
     assert report.new_sessions_prev == 0
-    assert db.execute.await_count == 5
+    assert db.execute.await_count == 6
     # The failed sessions query aborts the transaction; the fallback must roll
     # it back or the remaining queries die with InFailedSQLTransaction.
     db.rollback.assert_awaited_once()
@@ -241,3 +246,162 @@ def test_render_html_escapes_user_text():
     assert "<script>" not in html_out
     assert "&lt;script&gt;" in html_out
     assert "&amp; bad" in html_out
+
+
+# ==================== Read aloud (BITB-247) ====================
+
+_TTS_ROWS = [
+    ("tts_started", "chrome", "windows", 60),
+    ("tts_started", "safari", "ios", 40),
+    ("tts_completed", "chrome", "windows", 50),
+    ("tts_completed", "safari", "ios", 20),
+    ("tts_start_failed", "firefox", "linux", 7),
+    ("tts_start_failed", "safari", "ios", 5),
+    ("tts_error", "safari", "ios", 3),
+    ("tts_error", "chrome", "android", 2),
+    ("tts_error", "app", "android", 1),
+    ("tts_unavailable", "firefox", "linux", 4),
+]
+
+
+def test_build_tts_stats_totals_rates_and_top_failures():
+    stats = _build_tts_stats(_TTS_ROWS)
+
+    assert stats.available is True
+    assert stats.totals == {
+        "tts_started": 100,
+        "tts_completed": 70,
+        "tts_start_failed": 12,
+        "tts_error": 6,
+        "tts_unavailable": 4,
+    }
+    assert stats.completion_rate == pytest.approx(0.7)
+    assert stats.failure_rate == pytest.approx(0.18)
+    # safari/ios 5+3=8, firefox/linux 7, chrome/android 2 (app/android 1 is cut: top 3).
+    assert [(p.browser, p.os, p.failures) for p in stats.top_failures] == [
+        ("safari", "ios", 8),
+        ("firefox", "linux", 7),
+        ("chrome", "android", 2),
+    ]
+
+
+def test_build_tts_stats_no_started_gives_none_rates():
+    stats = _build_tts_stats([("tts_unavailable", "other", "other", 3)])
+    assert stats.completion_rate is None
+    assert stats.failure_rate is None
+    assert stats.top_failures == []
+
+
+@pytest.mark.asyncio
+async def test_build_report_includes_read_aloud_from_seeded_rows():
+    db = _db_with(
+        [
+            _result(all_=[]),
+            _result(all_=[]),
+            _result(all_=[]),
+            _result(one_=(0, 0, 0, 0, 0)),
+            _result(all_=[]),
+            _result(scalar_=0),
+            _result(scalar_=0),
+            _result(all_=_TTS_ROWS),
+        ]
+    )
+
+    report = await build_weekly_report(db, now=NOW)
+
+    assert report.tts.totals["tts_started"] == 100
+    # Window is the 7 UTC calendar days ending on NOW's date.
+    params = db.execute.await_args_list[-1].args[1]
+    assert str(params["first_day"]) == "2026-06-02"
+    assert str(params["last_day"]) == "2026-06-08"
+
+    text_out = render_text(report)
+    assert "READ ALOUD" in text_out
+    assert "Completed: 70" in text_out
+    assert "Completion rate (completed / started): 70%" in text_out
+    assert "Failure rate ((start failed + error) / started): 18%" in text_out
+    assert "safari / ios: 8" in text_out
+    html_out = render_html(report)
+    assert "Read aloud" in html_out
+    assert "safari / ios" in html_out
+    assert "70%" in html_out
+
+
+@pytest.mark.asyncio
+async def test_build_report_tolerates_missing_tts_table():
+    class DummyOrigError(Exception):
+        pgcode = "42P01"
+
+    db = MagicMock()
+    actions = iter(
+        [
+            _result(all_=[]),
+            _result(all_=[]),
+            _result(all_=[]),
+            _result(one_=(0, 0, 0, 0, 0)),
+            _result(all_=[]),
+            _result(scalar_=0),
+            _result(scalar_=0),
+            ProgrammingError(
+                "SELECT ... FROM tts_event_daily",
+                {},
+                DummyOrigError('relation "tts_event_daily" does not exist'),
+            ),
+        ]
+    )
+
+    async def execute(*_args, **_kwargs):
+        action = next(actions)
+        if isinstance(action, Exception):
+            raise action
+        return action
+
+    db.execute = AsyncMock(side_effect=execute)
+    db.rollback = AsyncMock()
+
+    report = await build_weekly_report(db, now=NOW)
+
+    assert report.tts.available is False
+    assert report.tts.totals["tts_started"] == 0
+    db.rollback.assert_awaited_once()
+    assert "Not available" in render_text(report)
+    assert "Not available" in render_html(report)
+
+
+@pytest.mark.asyncio
+async def test_build_report_reraises_unrelated_tts_programming_error():
+    class DummyOrigError(Exception):
+        pgcode = "42601"
+
+    db = MagicMock()
+    actions = iter(
+        [
+            _result(all_=[]),
+            _result(all_=[]),
+            _result(all_=[]),
+            _result(one_=(0, 0, 0, 0, 0)),
+            _result(all_=[]),
+            _result(scalar_=0),
+            _result(scalar_=0),
+            ProgrammingError("SELECT", {}, DummyOrigError("syntax error")),
+        ]
+    )
+
+    async def execute(*_args, **_kwargs):
+        action = next(actions)
+        if isinstance(action, Exception):
+            raise action
+        return action
+
+    db.execute = AsyncMock(side_effect=execute)
+    db.rollback = AsyncMock()
+
+    with pytest.raises(ProgrammingError):
+        await build_weekly_report(db, now=NOW)
+
+
+def test_tts_stats_model_defaults_unavailable_report_renders():
+    report = _report_with_comment("x")
+    assert isinstance(report.tts, TtsStats)
+    assert report.tts.available is False
+    assert "Not available" in render_text(report)

@@ -19,6 +19,11 @@ import org.voxquieta.app.R
  * backend/web contract). Mirrors `frontend/src/components/FollowUpSuggestions.tsx`:
  * degrades silently (no spinner, no empty row) when there are no suggestions.
  *
+ * Rendering is gated by the default-off BITB-080 rollout flag
+ * ([org.voxquieta.app.BuildConfig.CHAT_FOLLOW_UPS_ENABLED], mirrored in
+ * [org.voxquieta.app.presentation.screens.shouldShowFollowUps] and the
+ * ChatViewModel state exposure): Android stays dark until that flag flips on.
+ *
  * @param suggestions The 2-3 suggested follow-up questions to render as chips.
  * @param onSelect Called with the tapped suggestion's exact text.
  */

@@ -70,6 +70,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   viewportFit: "cover",
+  // Android Chrome: let the on-screen keyboard shrink the layout viewport
+  // (and 100dvh) so the chat composer stays above it (#1224). iOS ignores
+  // this; useKeyboardAwareViewport covers it there.
+  interactiveWidget: "resizes-content",
 };
 
 export function generateStaticParams() {
