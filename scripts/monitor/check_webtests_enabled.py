@@ -58,7 +58,10 @@ def evaluate(tests: list[dict], expected: list[str]) -> list[str]:
 
 
 def _az(args: list[str]) -> object:
-    result = subprocess.run(["az", *args], check=False, capture_output=True, text=True)
+    try:
+        result = subprocess.run(["az", *args], check=False, capture_output=True, text=True)
+    except OSError as exc:
+        raise RuntimeError(f"az could not be executed: {exc}") from exc
     if result.returncode != 0:
         raise RuntimeError(f"az {' '.join(args[:2])} failed: {result.stderr.strip()[:300]}")
     try:
