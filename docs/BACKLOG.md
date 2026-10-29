@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-29: BITB-253/254 opened — follow-ups from BITB-251 verification (keyword-fallback Bible-narrative card; Llama Guard S11 combos get no card)
 - 2026-10-29: BITB-251 in progress — plan approved (crisis overrides profanity filter, directed_harm excluded, unverified numbers shown + flagged, Android Room migration)
 - 2026-10-29: BITB-251 spec revised — country from Cloudflare IP geolocation, self-curated hotline registry with source + staleness checks (ThroughLine evaluated); BITB-252 threshold/retention confirmed
 - 2026-10-28: BITB-252 spec — privacy-safe RAG retrieval-miss logging (derived signals only, no prompt text)
@@ -297,6 +298,33 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-253: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
+
+**Status:** 🎯 Todo
+**Size:** M
+**Created:** 2026-10-29
+
+Follow-up to BITB-251. With ML safety down, "Why did Cain kill Abel?" (en, ar) is blocked as violence
+and now also gets a threat crisis card. Unblock third-person Bible narrative in the keyword fallback,
+in 11 languages, and flip the BITB-251 xfails.
+
+**Full Story:** [`BITB-253-keyword-fallback-bible-narrative-violence.md`](BACKLOG_STORIES/BITB-253-keyword-fallback-bible-narrative-violence.md)
+
+---
+
+### 🎯 BITB-254: Crisis Card for Llama Guard S11 Combined with Other Categories
+
+**Status:** 🎯 Todo
+**Size:** S
+**Created:** 2026-10-29
+
+Follow-up to BITB-251. Llama Guard S11 together with S6 or S10 maps to a generic or hate reason, so
+the user gets no crisis numbers. Show the self-harm card whenever S11 is present.
+
+**Full Story:** [`BITB-254-llama-guard-s11-combo-crisis-card.md`](BACKLOG_STORIES/BITB-254-llama-guard-s11-combo-crisis-card.md)
+
+---
 
 ### 🎯 BITB-252: RAG Retrieval-Miss Insights — Privacy-Safe Logging
 

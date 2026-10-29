@@ -93,7 +93,7 @@ Problems:
      - `chat_stream()` yields `{"type": "crisis_resources", "resources": {...}}` as the **first**
        event, before `metadata`, retrieval and the LLM.
      - `chat()` returns `crisis_resources` on `ChatResponse`.
-   - Payload: `kind` (`self_harm` | `threat_to_others`), `region_used`, `emergency`,
+   - Payload: `kind` (`self_harm` | `threat_to_others`), `country`, `country_source`, `emergency`,
      `lines[]` (localized `label`, `phone`, `sms`, `hours`, `url`), `international_url`, and a
      localized `heading`.
    - The card must still be sent if retrieval or the LLM fails afterwards.
@@ -111,7 +111,7 @@ Problems:
    - RTL-correct for Arabic. The card stays attached to the saved turn in local history.
 6. **Android:** the equivalent Compose card, with `Intent.ACTION_DIAL` and `ACTION_SENDTO`. It never
    uses `ACTION_CALL`, so no permission is needed. Strings go in all 11 `values-*` locales.
-7. **Telemetry:** an OTel counter `chat_crisis_card_shown{kind, language, region_used, path}`. No
+7. **Telemetry:** an OTel counter `chat_crisis_card_shown{kind, language, country_source, path}`. No
    message text is logged; the existing `text_hash` is kept.
 
 ## Non-functional requirements
@@ -125,7 +125,7 @@ Problems:
   - Links have descriptive accessible names ("Call 988 Suicide & Crisis Lifeline").
   - Tap targets are at least 44×44 px or 48 dp. Contrast meets WCAG AA in light and dark.
 - **Privacy:** no new storage. The region is used only to pick contacts and is not logged beyond
-  `region_used` in the counter.
+  `country_source` (never the country itself) in the counter.
 - **Correctness:** a wrong number in a crisis is worse than none. Every entry carries a source and a
   verification date, and a test fails if any entry is missing its source.
 
@@ -256,7 +256,7 @@ Sources: [ThroughLine developer docs](https://developer.throughlinecare.com/gene
 |------|--------|
 | `api/utils/crisis_resources.json` (new) | Registry data. `emergency` table per country, `lines` per country (`label` per language with an `en` fallback, `phone`, `sms`, `hours`, `url`), `language_defaults` (`ar` → none), `international_url`. Every entry has `source_url`, `verified_on` (ISO date or `null`) and `verified_by`. Seeded with the countries in the table above; entries not yet verified carry `verified_on: null` |
 | `api/utils/crisis_resources.py` (new) | `CrisisKind` enum (`self_harm`, `threat_to_others`). `classify_crisis(outcome) -> CrisisKind \| None`. `resolve_country(cf_country, client_region, language)`, which treats `XX`/`T1`/invalid as absent. `CrisisResourceProvider` protocol with `StaticRegistryProvider` loading the JSON once (`lru_cache`). `build_crisis_payload(kind, country, language) -> dict`. `render_markdown_fallback(payload, language) -> str` |
-| `api/chat/service.py` | Add `is_help_seeking` to `_SafetyOutcome`. `chat()`/`chat_stream()` gain a keyword-only `client_country: str \| None = None`. Right after `_check_content_safety`, compute `crisis = self._crisis_payload(...)`. **Stream:** if `crisis`, `yield {"type": "crisis_resources", "resources": crisis}` before anything else, then continue unchanged. **Blocking:** every return path goes through `_with_crisis(response, crisis)`, which sets `ChatResponse.crisis_resources`. Increment the counter `chat_crisis_card_shown{kind, language, region_used, path}` |
+| `api/chat/service.py` | Add `is_help_seeking` to `_SafetyOutcome`. `chat()`/`chat_stream()` gain a keyword-only `client_country: str \| None = None`. Right after `_check_content_safety`, compute `crisis = self._crisis_payload(...)`. **Stream:** if `crisis`, `yield {"type": "crisis_resources", "resources": crisis}` before anything else, then continue unchanged. **Blocking:** every return path goes through `_with_crisis(response, crisis)`, which sets `ChatResponse.crisis_resources`. Increment the counter `chat_crisis_card_shown{kind, language, country_source, path}` |
 | `api/chat/service.py` `ChatRequest` | Add `region: str \| None` (pattern `^[A-Za-z]{2}$`, upper-cased) and `supports_crisis_card: bool = False` |
 | `api/chat/prompts.py` | `COMPASSIONATE_RESPONSE_ADDENDUM`: remove the numbers, and say instead that a crisis card with local numbers is already shown above the reply, so the model should point to it gently and never write phone numbers itself. `self_harm_blocked` templates: remove the bullet list of numbers. `get_blocked_response(reason, lang, crisis_markdown="")` appends the registry-rendered fallback when the client did **not** declare `supports_crisis_card`. `violence_or_threat` keeps its text, and the card or fallback now follows it |
 | `api/routes/chat.py` | Read `http_request.headers.get("CF-IPCountry")` and pass it as `client_country` on both routes |
