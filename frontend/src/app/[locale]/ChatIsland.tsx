@@ -55,6 +55,7 @@ import {
   StreamChunk,
   StreamMetadata,
   CrisisResources,
+  getCrisisResources,
 } from "@/lib/api";
 
 import {
@@ -380,6 +381,29 @@ export default function ChatIsland({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // BITB-251: the user picked another country in a crisis card. Re-fetch that
+  // country's numbers and swap them into the message in place (the persistence
+  // effect then saves the new card with the conversation). Resolves false on any
+  // failure so the card keeps its old numbers and shows the "next message" note.
+  const handleCrisisRegionChange = async (
+    index: number,
+    region: string,
+  ): Promise<boolean> => {
+    const current = messages[index]?.crisisResources;
+    if (!current) return false;
+    try {
+      const fresh = await getCrisisResources(region, locale, current.kind);
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === index ? { ...m, crisisResources: fresh } : m,
+        ),
+      );
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleScrollToBottomClick = () => {
@@ -1222,7 +1246,12 @@ export default function ChatIsland({
                 <div key={index}>
                   {/* BITB-251: crisis contacts pinned ABOVE the reply. */}
                   {message.role === "assistant" && message.crisisResources && (
-                    <CrisisResourcesCard resources={message.crisisResources} />
+                    <CrisisResourcesCard
+                      resources={message.crisisResources}
+                      onRegionChange={(region) =>
+                        handleCrisisRegionChange(index, region)
+                      }
+                    />
                   )}
                   <ChatMessage
                     message={{

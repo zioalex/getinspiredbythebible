@@ -52,7 +52,7 @@ data-handling practices.
 - We do not require account registration.
 - We do not collect your name, email address, or phone number.
 - We do not track your location.
-- **Approximate country, for emergency numbers only**: If your message suggests that you or someone else may be in danger, we infer your country from your connection (Cloudflare's country header) or your device language, solely to show the right local emergency and crisis phone numbers. It is never stored.
+- **Approximate country, for emergency numbers only**: If your message suggests that you or someone else may be in danger, we infer your country from your connection (Cloudflare's country header) or your device language, solely to show the right local emergency and crisis phone numbers. It is never stored on our servers; the card itself is saved only with your conversation, on your device.
 - We do not sell your data to third parties.
 
 ## Conversation History

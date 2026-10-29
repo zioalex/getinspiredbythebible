@@ -407,6 +407,26 @@ export interface CrisisResources {
   available_countries: string[];
 }
 
+/**
+ * BITB-251: re-fetch the crisis card payload for a country the user picked in
+ * the card's picker, so the card already on screen can be re-rendered in place.
+ * Read-only public data; throws on any non-2xx so the caller can keep the old card.
+ */
+export async function getCrisisResources(
+  country: string,
+  language: string,
+  kind: CrisisResources["kind"],
+): Promise<CrisisResources> {
+  const params = new URLSearchParams({ country, language, kind });
+  const response = await fetch(`${API_URL}/api/v1/crisis-resources?${params}`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  return response.json();
+}
+
 export interface ChatResponse {
   message_id: string;
   message: string;

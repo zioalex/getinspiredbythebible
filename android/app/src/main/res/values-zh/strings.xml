@@ -212,6 +212,7 @@
     <string name="crisis_call_line_aria">拨打 %1$s</string>
     <string name="crisis_text_line_aria">给 %1$s 发短信</string>
     <string name="crisis_region_saved">从你的下一条消息开始，我们将使用%1$s的号码。</string>
+    <string name="crisis_local_emergency_hint">请拨打当地的紧急电话（大多数手机都可以拨打 %1$s）。</string>
 
     <!-- Actions -->
     <string name="action_select_language">选择语言</string>

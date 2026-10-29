@@ -31,8 +31,13 @@ function countryName(code: string, locale: string): string {
 
 interface CrisisResourcesCardProps {
   resources: CrisisResources;
-  /** Called after the user picks a different country (override saved). */
-  onRegionChange?: (region: string) => void;
+  /**
+   * Called after the user picks a different country (override saved). May return
+   * a promise resolving to `true` when the card was re-rendered with the new
+   * country's numbers; any other result (false / void / rejection) shows the
+   * "from your next message" note instead.
+   */
+  onRegionChange?: (region: string) => Promise<boolean> | boolean | void;
 }
 
 export default function CrisisResourcesCard({
@@ -50,12 +55,19 @@ export default function CrisisResourcesCard({
   const linkClass =
     "inline-flex min-h-[44px] items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-900 underline underline-offset-2 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-700 dark:text-red-100 dark:hover:bg-red-900";
 
-  const handlePick = (code: string) => {
+  const handlePick = async (code: string) => {
     if (!code) return;
     setCrisisRegionOverride(code);
-    setChosen(code);
     setPickerOpen(false);
-    onRegionChange?.(code);
+    let updated = false;
+    try {
+      updated = (await onRegionChange?.(code)) === true;
+    } catch {
+      updated = false;
+    }
+    // On success the parent swapped `resources`, so the card already shows the
+    // new numbers; otherwise keep the old card and say when the pick takes effect.
+    if (!updated) setChosen(code);
   };
 
   return (
@@ -70,6 +82,24 @@ export default function CrisisResourcesCard({
         <LifeBuoy className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
         <span>{t("heading")}</span>
       </h2>
+
+      {!resources.emergency && (
+        <p
+          className="mt-3 text-sm font-medium"
+          data-testid="crisis-local-emergency"
+        >
+          {t.rich("localEmergencyHint", {
+            dial: (chunks) => (
+              <a
+                href="tel:112"
+                className="inline-flex min-h-[44px] items-center px-1 font-bold underline underline-offset-2"
+              >
+                <bdi>{chunks}</bdi>
+              </a>
+            ),
+          })}
+        </p>
+      )}
 
       {resources.emergency && (
         <a

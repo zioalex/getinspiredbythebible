@@ -161,6 +161,12 @@ chat_crisis_card_shown_counter = meter.create_counter(
     unit="1",
 )  # attributes: kind (self_harm|threat_to_others), language, country_source, path (blocked|llm)
 
+crisis_resources_lookup_counter = meter.create_counter(
+    name="crisis.resources_lookup",
+    description="Crisis card country re-lookups after the user picked a country (BITB-251)",
+    unit="1",
+)  # attributes: kind, language (no country: it is user location data)
+
 # ── Church metrics ────────────────────────────────────────────────────────
 church_search_counter = meter.create_counter(
     name="church.search.total",

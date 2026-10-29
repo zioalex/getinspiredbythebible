@@ -15,6 +15,7 @@ import {
   submitFeedback,
   submitContactForm,
   streamMessage,
+  getCrisisResources,
   ColdStartError,
   StreamTimeoutError,
   MessageTooLongError,
@@ -1311,5 +1312,35 @@ describe("crisis card request fields (BITB-251)", () => {
     expect(received[0].type).toBe("crisis_resources");
     expect(received[0].resources?.kind).toBe("threat_to_others");
     expect(received[1].type).toBe("metadata");
+  });
+});
+
+describe("getCrisisResources (BITB-251)", () => {
+  it("GETs /api/v1/crisis-resources with country, language and kind", async () => {
+    const payload = { kind: "self_harm", country: "US" };
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: async () => payload,
+    });
+    await expect(getCrisisResources("US", "pt", "self_harm")).resolves.toEqual(
+      payload,
+    );
+    const url = String(
+      (global.fetch as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0],
+    );
+    expect(url).toContain("/api/v1/crisis-resources?");
+    expect(url).toContain("country=US");
+    expect(url).toContain("language=pt");
+    expect(url).toContain("kind=self_harm");
+  });
+
+  it("throws on a non-2xx response so the caller keeps the old card", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+    });
+    await expect(
+      getCrisisResources("US", "en", "threat_to_others"),
+    ).rejects.toThrow("API error: 429");
   });
 });

@@ -199,3 +199,32 @@ async def test_bypassed_violation_does_not_write_a_blocked_sample():
     with patch("feedback.blocked_samples.record_blocked_sample", new_callable=AsyncMock) as rec:
         await _run_filter("fuck this, I want to kill myself")
     rec.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "message",
+    [
+        "shit http://evil.example/buy kill",
+        "fuck https://casino.example.com murder",
+        "fuck this I want to kill myself casino.example.com",
+        "nooooooo I want to die http://evil.example/buy",
+    ],
+)
+async def test_url_hidden_behind_profanity_or_repeats_still_blocks_with_crisis_wording(message):
+    """`check` reports only the first violation; the bypass must re-check the rest."""
+    with pytest.raises(HTTPException) as exc_info:
+        await _run_filter(message)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail["error"] == "content_blocked"
+    assert "URL" in exc_info.value.detail["message"]
+
+
+def test_content_filter_check_skip_ignores_only_the_named_types():
+    from utils.security import ContentFilter, ViolationType
+
+    flt = ContentFilter()
+    skip = frozenset({ViolationType.PROFANITY, ViolationType.REPEATED_CHARS})
+    assert flt.check("fuck this")[1] == ViolationType.PROFANITY
+    assert flt.check("fuck this", skip=skip) == (True, None, None)
+    assert flt.check("fuck http://a.example/x", skip=skip)[1] == ViolationType.URL_DETECTED

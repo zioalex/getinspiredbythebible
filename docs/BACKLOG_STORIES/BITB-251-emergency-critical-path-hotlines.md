@@ -347,3 +347,18 @@ Sources: [ThroughLine developer docs](https://developer.throughlinecare.com/gene
 - Android `testDebugUnitTest`, the ComposeTest tier and lint. If Gradle can't run in the sandbox,
   say so, and PR CI becomes the gate.
 - Fresh Opus verifier against the acceptance criteria above.
+
+## Fix round (verifier findings, 2026-10-29)
+
+- Old clients (no `supports_crisis_card`): the compassionate addendum has a no-card variant and the
+  registry-rendered markdown is appended after the LLM text on every allowed path (stream: extra
+  `content` chunk, also re-appended to `corrected_message`).
+- Crisis bypass of profanity / repeated-chars now re-runs the remaining content-filter checks
+  (`ContentFilter.check(skip=...)`), so a URL hidden behind profanity still blocks.
+- `GET /api/v1/crisis-resources?country=XX&language=xx&kind=self_harm|threat_to_others`
+  (rate-limited, no Turnstile, counts only). Web and Android re-render the card in place after the
+  country pick and save the new card with the conversation.
+- Cards with no `emergency` show a localized "call your local emergency number (112 ...)" line with
+  112 as a dial target.
+- Real keyword-fallback test for Bible-narrative phrasings: en and ar misfire (xfail strict,
+  BITB-253; safety keyword tables unchanged).

@@ -212,6 +212,7 @@
     <string name="crisis_call_line_aria">Позвонить: %1$s</string>
     <string name="crisis_text_line_aria">Отправить SMS: %1$s</string>
     <string name="crisis_region_saved">Со следующего сообщения мы будем использовать номера для страны «%1$s».</string>
+    <string name="crisis_local_emergency_hint">Позвоните на местный номер экстренной помощи (номер %1$s работает с большинства мобильных телефонов).</string>
 
     <!-- Actions -->
     <string name="action_select_language">Выбрать язык</string>

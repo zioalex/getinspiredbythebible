@@ -212,6 +212,7 @@
     <string name="crisis_call_line_aria">%1$s anrufen</string>
     <string name="crisis_text_line_aria">SMS an %1$s senden</string>
     <string name="crisis_region_saved">Ab deiner nächsten Nachricht verwenden wir die Nummern für %1$s.</string>
+    <string name="crisis_local_emergency_hint">Rufen Sie die örtliche Notrufnummer an (die %1$s funktioniert von den meisten Mobiltelefonen aus).</string>
 
     <!-- Actions -->
     <string name="action_select_language">Sprache auswählen</string>

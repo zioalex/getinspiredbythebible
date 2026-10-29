@@ -212,6 +212,7 @@
     <string name="crisis_call_line_aria">%1$s에 전화하기</string>
     <string name="crisis_text_line_aria">%1$s에 문자 보내기</string>
     <string name="crisis_region_saved">다음 메시지부터 %1$s의 번호를 사용합니다.</string>
+    <string name="crisis_local_emergency_hint">현지 응급 전화번호로 전화하세요 (대부분의 휴대전화에서 %1$s번으로 연결됩니다).</string>
 
     <!-- Actions -->
     <string name="action_select_language">언어 선택</string>

@@ -427,6 +427,7 @@
     "chooseCountry": "选择你所在的国家或地区",
     "callLineAria": "拨打 {name}",
     "textLineAria": "给 {name} 发短信",
-    "regionSaved": "从你的下一条消息开始，我们将使用{country}的号码。"
+    "regionSaved": "从你的下一条消息开始，我们将使用{country}的号码。",
+    "localEmergencyHint": "请拨打当地的紧急电话（大多数手机都可以拨打 <dial>112</dial>）。"
   }
 }

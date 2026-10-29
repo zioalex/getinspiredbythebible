@@ -215,6 +215,7 @@
     <string name="crisis_call_line_aria">Call %1$s</string>
     <string name="crisis_text_line_aria">Text %1$s</string>
     <string name="crisis_region_saved">We\'ll use %1$s numbers from your next message.</string>
+    <string name="crisis_local_emergency_hint">Call your local emergency number (%1$s works from most mobile phones).</string>
 
     <!-- Actions -->
     <string name="action_select_language">Select language</string>

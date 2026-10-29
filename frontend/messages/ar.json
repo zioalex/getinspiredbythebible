@@ -427,6 +427,7 @@
     "chooseCountry": "اختر بلدك",
     "callLineAria": "الاتصال بـ {name}",
     "textLineAria": "إرسال رسالة نصية إلى {name}",
-    "regionSaved": "سنستخدم أرقام {country} ابتداءً من رسالتك التالية."
+    "regionSaved": "سنستخدم أرقام {country} ابتداءً من رسالتك التالية.",
+    "localEmergencyHint": "اتصل برقم الطوارئ المحلي (يعمل الرقم <dial>112</dial> من معظم الهواتف المحمولة)."
   }
 }

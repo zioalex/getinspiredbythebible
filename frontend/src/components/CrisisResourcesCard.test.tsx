@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  waitFor,
+} from "@testing-library/react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import CrisisResourcesCard, { dialableNumber } from "./CrisisResourcesCard";
 import { renderWithIntl, renderWithIntlLocale } from "@/test/i18n-helpers";
@@ -101,7 +107,7 @@ describe("CrisisResourcesCard (BITB-251)", () => {
     ).toBeInTheDocument();
   });
 
-  it("opens a country picker, stores the override and notifies", () => {
+  it("opens a country picker, stores the override and notifies", async () => {
     const onRegionChange = vi.fn();
     renderWithIntl(
       <CrisisResourcesCard
@@ -118,6 +124,90 @@ describe("CrisisResourcesCard (BITB-251)", () => {
     fireEvent.change(select, { target: { value: "AT" } });
     expect(getCrisisRegionOverride()).toBe("AT");
     expect(onRegionChange).toHaveBeenCalledWith("AT");
-    expect(screen.getByRole("status")).toHaveTextContent("Austria");
+    expect(await screen.findByRole("status")).toHaveTextContent("Austria");
+  });
+
+  it("shows the local-emergency hint with a tappable 112 when emergency is null", () => {
+    renderWithIntl(
+      <CrisisResourcesCard
+        resources={{
+          ...crisisFixture,
+          country: null,
+          country_source: "none",
+          emergency: null,
+          lines: [],
+        }}
+      />,
+    );
+    const hint = screen.getByTestId("crisis-local-emergency");
+    expect(hint).toHaveTextContent(
+      "Call your local emergency number (112 works from most mobile phones).",
+    );
+    expect(within(hint).getByRole("link", { name: "112" })).toHaveAttribute(
+      "href",
+      "tel:112",
+    );
+  });
+
+  it("does not show the local-emergency hint when an emergency number is known", () => {
+    renderWithIntl(<CrisisResourcesCard resources={crisisFixture} />);
+    expect(screen.queryByTestId("crisis-local-emergency")).toBeNull();
+  });
+
+  it("localizes the hint with a 112 dial link in every locale", async () => {
+    const locales = [
+      "en",
+      "it",
+      "de",
+      "es",
+      "fr",
+      "pt",
+      "ar",
+      "ru",
+      "zh",
+      "hi",
+      "ko",
+    ];
+    for (const locale of locales) {
+      const messages = (await import(`../../messages/${locale}.json`)).default;
+      const { unmount } = render(
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <CrisisResourcesCard
+            resources={{ ...crisisFixture, emergency: null, lines: [] }}
+          />
+        </NextIntlClientProvider>,
+      );
+      const hint = screen.getByTestId("crisis-local-emergency");
+      expect(within(hint).getByRole("link", { name: "112" })).toHaveAttribute(
+        "href",
+        "tel:112",
+      );
+      expect(hint.textContent).not.toContain("<dial>");
+      unmount();
+    }
+  });
+
+  it("shows the note only when the region update did not succeed", async () => {
+    const ok = vi.fn().mockResolvedValue(true);
+    const { unmount } = renderWithIntl(
+      <CrisisResourcesCard resources={crisisFixture} onRegionChange={ok} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Not in Italy?" }));
+    fireEvent.change(screen.getByLabelText(enMessages.Crisis.chooseCountry), {
+      target: { value: "AT" },
+    });
+    await waitFor(() => expect(ok).toHaveBeenCalledWith("AT"));
+    expect(screen.queryByRole("status")).toBeNull();
+    unmount();
+
+    const fail = vi.fn().mockResolvedValue(false);
+    renderWithIntl(
+      <CrisisResourcesCard resources={crisisFixture} onRegionChange={fail} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Not in Italy?" }));
+    fireEvent.change(screen.getByLabelText(enMessages.Crisis.chooseCountry), {
+      target: { value: "AT" },
+    });
+    expect(await screen.findByRole("status")).toHaveTextContent("Austria");
   });
 });

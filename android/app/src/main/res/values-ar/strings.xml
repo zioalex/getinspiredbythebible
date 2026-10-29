@@ -212,6 +212,7 @@
     <string name="crisis_call_line_aria">الاتصال بـ %1$s</string>
     <string name="crisis_text_line_aria">إرسال رسالة نصية إلى %1$s</string>
     <string name="crisis_region_saved">سنستخدم أرقام %1$s ابتداءً من رسالتك التالية.</string>
+    <string name="crisis_local_emergency_hint">اتصل برقم الطوارئ المحلي (يعمل الرقم %1$s من معظم الهواتف المحمولة).</string>
 
     <!-- Actions -->
     <string name="action_select_language">اختر اللغة</string>

@@ -519,7 +519,7 @@ fun ChatScreen(
                         message.crisisResources?.let { card ->
                             CrisisResourcesCard(
                                 resources = card,
-                                onCountrySelected = viewModel::setCrisisRegionOverride,
+                                onCountrySelected = { code -> viewModel.onCrisisCountrySelected(message.id, code) },
                             )
                         }
                         ChatMessageItem(

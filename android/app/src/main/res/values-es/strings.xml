@@ -212,6 +212,7 @@
     <string name="crisis_call_line_aria">Llamar a %1$s</string>
     <string name="crisis_text_line_aria">Enviar SMS a %1$s</string>
     <string name="crisis_region_saved">Desde tu próximo mensaje usaremos los números de %1$s.</string>
+    <string name="crisis_local_emergency_hint">Llama al número de emergencias de tu país (el %1$s funciona desde la mayoría de los teléfonos móviles).</string>
 
     <!-- Actions -->
     <string name="action_select_language">Seleccionar idioma</string>

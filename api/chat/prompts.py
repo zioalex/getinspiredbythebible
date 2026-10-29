@@ -842,6 +842,24 @@ emotional pain or thoughts of self-harm. Respond with EXTRA warmth and care:
    (Psalm 34:18, Psalm 46:1, Matthew 11:28, Isaiah 41:10)
 5. Gently encourage them to reach out to a trusted person, counselor, or pastor"""
 
+# BITB-251: variant for clients that cannot render the crisis card (the verified numbers are
+# appended below the reply by the service instead of shown in a card above it).
+COMPASSIONATE_RESPONSE_ADDENDUM_NO_CARD = """
+
+## URGENT — This user may be in deep distress
+The content-safety system detected that this user may be experiencing serious
+emotional pain or thoughts of self-harm. Respond with EXTRA warmth and care:
+1. Acknowledge their pain explicitly and with full empathy — do NOT jump straight to Bible verses
+2. Affirm they are not alone and that reaching out took courage
+3. Verified emergency and helpline numbers for the user's country are added BELOW your
+   reply automatically. You may gently mention that numbers follow below, but NEVER write
+   phone numbers, hotline names or helpline links yourself, and never invent them
+4. Offer scripture ONLY after the user feels heard — and when you do, you may
+   gently ground it with the "In the Bible is written..." phrase in their
+   language, choosing verses about God's nearness in suffering
+   (Psalm 34:18, Psalm 46:1, Matthew 11:28, Isaiah 41:10)
+5. Gently encourage them to reach out to a trusted person, counselor, or pastor"""
+
 
 # ---------------------------------------------------------------------------
 # Follow-up suggestions (BITB-080)
@@ -1345,9 +1363,15 @@ def _map_reason_to_category(reason: str) -> str:
     return "generic"
 
 
-def get_compassionate_addendum() -> str:
-    """Return the compassionate-response system-prompt addendum."""
-    return COMPASSIONATE_RESPONSE_ADDENDUM
+def get_compassionate_addendum(supports_crisis_card: bool = True) -> str:
+    """Return the compassionate-response system-prompt addendum.
+
+    The default variant says a crisis card is shown above the reply; clients that cannot
+    render it (``supports_crisis_card=False``) get a variant that does not claim that.
+    """
+    if supports_crisis_card:
+        return COMPASSIONATE_RESPONSE_ADDENDUM
+    return COMPASSIONATE_RESPONSE_ADDENDUM_NO_CARD
 
 
 def get_blocked_response(reason: str, language_code: str = "en", crisis_markdown: str = "") -> str:

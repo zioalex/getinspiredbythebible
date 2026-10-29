@@ -38,7 +38,7 @@ Il testo del tuo messaggio viene utilizzato da questi fornitori **esclusivamente
 - Non richiediamo la registrazione di un account.
 - Non raccogliamo nome, indirizzo e-mail o numero di telefono.
 - Non tracciamo la tua posizione.
-- **Paese approssimativo, solo per i numeri di emergenza**: se il tuo messaggio fa pensare che tu o qualcun altro possiate essere in pericolo, deduciamo il tuo paese dalla connessione (l'intestazione del paese di Cloudflare) o dalla lingua del dispositivo, al solo scopo di mostrarti i numeri di emergenza e di supporto locali corretti. Non viene mai memorizzato.
+- **Paese approssimativo, solo per i numeri di emergenza**: se il tuo messaggio fa pensare che tu o qualcun altro possiate essere in pericolo, deduciamo il tuo paese dalla connessione (l'intestazione del paese di Cloudflare) o dalla lingua del dispositivo, al solo scopo di mostrarti i numeri di emergenza e di supporto locali corretti. Non viene mai memorizzato sui nostri server; la scheda viene salvata solo insieme alla tua conversazione, sul tuo dispositivo.
 - Non vendiamo i tuoi dati a terze parti.
 
 ## Cronologia delle conversazioni

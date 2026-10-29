@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextIntlClientProvider } from "next-intl";
 import Home from "./ChatIsland";
 import enMessages from "../../../messages/en.json";
-import { streamMessage } from "@/lib/api";
+import { streamMessage, getCrisisResources } from "@/lib/api";
 import {
   listConversations,
   getMessages,
@@ -12,6 +12,7 @@ import {
   __resetDbCache,
 } from "@/lib/conversationStore";
 import { crisisFixture } from "@/test/crisisFixtures";
+import { getCrisisRegionOverride } from "@/lib/crisisRegion";
 
 // BITB-251: the crisis card renders above the reply and survives stop/error.
 Element.prototype.scrollIntoView = vi.fn();
@@ -26,6 +27,7 @@ vi.mock("@/lib/api", async (importOriginal) => {
   return {
     ...actual,
     streamMessage: vi.fn(),
+    getCrisisResources: vi.fn(),
     getChapter: vi.fn(),
     getTranslations: vi.fn().mockResolvedValue([]),
     submitFeedback: vi.fn(),
@@ -168,5 +170,77 @@ describe("ChatIsland crisis card (BITB-251)", () => {
     await send("Who killed Goliath?");
     await screen.findByText("David killed Goliath.");
     expect(screen.queryByTestId("crisis-resources-card")).toBeNull();
+  });
+
+  async function openPickerAndChoose(code: string) {
+    vi.mocked(streamMessage).mockImplementation(async function* () {
+      yield CRISIS_CHUNK as never;
+      yield { type: "metadata", message_id: "m1", provider: "p", model: "m" };
+      yield { type: "content", content: "I am here with you." };
+      yield { type: "completion", verses_cited: [] };
+    });
+    renderChat();
+    await send("I want to end it all");
+    await screen.findByText("I am here with you.");
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Not in Italy?" }),
+    );
+    fireEvent.change(screen.getByLabelText(enMessages.Crisis.chooseCountry), {
+      target: { value: code },
+    });
+  }
+
+  it("re-renders the card in place with the picked country's numbers and saves them", async () => {
+    vi.mocked(getCrisisResources).mockResolvedValue({
+      ...crisisFixture,
+      country: "US",
+      country_source: "override",
+      emergency: { number: "911" },
+      lines: [
+        {
+          name: "988 Suicide & Crisis Lifeline",
+          phone: "988",
+          sms: "988",
+          hours: null,
+          url: null,
+        },
+      ],
+    });
+    await openPickerAndChoose("US");
+
+    expect(
+      await screen.findByRole("link", { name: /Emergency number: 911/ }),
+    ).toHaveAttribute("href", "tel:911");
+    expect(
+      screen.getByRole("link", { name: "Call 988 Suicide & Crisis Lifeline" }),
+    ).toHaveAttribute("href", "tel:988");
+    expect(screen.queryByRole("link", { name: /Telefono Amico/ })).toBeNull();
+    expect(screen.getAllByTestId("crisis-resources-card")).toHaveLength(1);
+    expect(getCrisisResources).toHaveBeenCalledWith("US", "en", "self_harm");
+    expect(getCrisisRegionOverride()).toBe("US");
+    // Success: the "from your next message" note is not shown.
+    expect(screen.queryByRole("status")).toBeNull();
+
+    // History saves the NEW card, not the old one.
+    await waitFor(async () => {
+      const [conv] = await listConversations();
+      const msgs = await getMessages(conv.id);
+      expect(
+        msgs.find((m) => m.role === "assistant")?.crisisResources?.country,
+      ).toBe("US");
+    });
+  });
+
+  it("keeps the old card and shows the next-message note when the fetch fails", async () => {
+    vi.mocked(getCrisisResources).mockRejectedValue(new Error("offline"));
+    await openPickerAndChoose("US");
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "We'll use United States numbers from your next message.",
+    );
+    expect(
+      screen.getByRole("link", { name: "Call Telefono Amico" }),
+    ).toBeInTheDocument();
+    expect(getCrisisRegionOverride()).toBe("US");
   });
 });

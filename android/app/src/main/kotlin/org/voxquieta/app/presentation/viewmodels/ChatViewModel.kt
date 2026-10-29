@@ -14,6 +14,7 @@ import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TtsPreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
+import org.voxquieta.app.data.remote.mappers.toDomain
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ClientEventRequestDto
@@ -1106,10 +1107,6 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * Re-sends the last user message, discarding the empty/error assistant placeholder.
-     * No-op if there is no prior user message or if the app is currently loading.
-     */
-    /**
      * BITB-251: stores the country the user picked in the crisis card's "Not in X?" picker.
      * Used (with `region_override = true`) from the next message on; stays on this device.
      */
@@ -1117,6 +1114,47 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch { sessionPreferences.setCrisisRegionOverride(code) }
     }
 
+    /**
+     * BITB-251: the user picked [code] in the crisis card of message [messageLocalId].
+     * Saves the override for future requests, then fetches that country's numbers and swaps
+     * them into the card already on screen (and into the saved message, so history keeps the
+     * new card). On any failure the old card stays and the card's own "from your next
+     * message" note applies. A card still streaming is left alone: its final save would
+     * overwrite the swap, so only the override is stored.
+     */
+    fun onCrisisCountrySelected(messageLocalId: String, code: String) {
+        setCrisisRegionOverride(code)
+        val target = _uiState.value.messages.firstOrNull { it.id == messageLocalId }
+        val current = target?.crisisResources ?: return
+        if (target.isStreaming) return
+        viewModelScope.launch {
+            val language = _uiState.value.currentLocale.ifBlank { Locale.getDefault().toLanguageTag() }
+            val fresh = try {
+                bibleApiService.getCrisisResources(code, language, current.kind).toDomain()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.w(e, "Crisis card refresh failed; keeping the existing card")
+                return@launch
+            }
+            _uiState.update { state ->
+                state.copy(
+                    messages = state.messages.map { msg ->
+                        if (msg.id == messageLocalId) msg.copy(crisisResources = fresh) else msg
+                    },
+                )
+            }
+            val conversationId = _uiState.value.currentConversationId ?: return@launch
+            _uiState.value.messages.firstOrNull { it.id == messageLocalId }?.let { updated ->
+                if (!updated.isStreaming) repository.saveMessage(conversationId, updated)
+            }
+        }
+    }
+
+    /**
+     * Re-sends the last user message, discarding the empty/error assistant placeholder.
+     * No-op if there is no prior user message or if the app is currently loading.
+     */
     fun retryLastMessage() {
         if (_uiState.value.isLoading) return
 

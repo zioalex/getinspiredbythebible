@@ -427,6 +427,7 @@
     "chooseCountry": "अपना देश चुनें",
     "callLineAria": "{name} को कॉल करें",
     "textLineAria": "{name} को संदेश भेजें",
-    "regionSaved": "आपके अगले संदेश से हम {country} के नंबर इस्तेमाल करेंगे।"
+    "regionSaved": "आपके अगले संदेश से हम {country} के नंबर इस्तेमाल करेंगे।",
+    "localEmergencyHint": "अपने स्थानीय आपातकालीन नंबर पर कॉल करें (अधिकांश मोबाइल फ़ोन से <dial>112</dial> काम करता है)।"
   }
 }

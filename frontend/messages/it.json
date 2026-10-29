@@ -427,6 +427,7 @@
     "chooseCountry": "Scegli il tuo paese",
     "callLineAria": "Chiama {name}",
     "textLineAria": "Invia un SMS a {name}",
-    "regionSaved": "Dal prossimo messaggio useremo i numeri di {country}."
+    "regionSaved": "Dal prossimo messaggio useremo i numeri di {country}.",
+    "localEmergencyHint": "Chiama il numero di emergenza locale (il <dial>112</dial> funziona dalla maggior parte dei telefoni cellulari)."
   }
 }

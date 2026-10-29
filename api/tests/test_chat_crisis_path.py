@@ -5,6 +5,7 @@ card must survive every return path of both entry points and must be the FIRST s
 """
 
 import sys
+import time
 from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,9 +14,16 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from chat.prompts import get_blocked_response
+from chat.prompts import (
+    COMPASSIONATE_RESPONSE_ADDENDUM,
+    COMPASSIONATE_RESPONSE_ADDENDUM_NO_CARD,
+    get_blocked_response,
+    get_compassionate_addendum,
+)
 from chat.service import ChatRequest, ChatResponse, ChatService, _SafetyOutcome
 from providers.base import LLMResponse
+from utils.content_safety import ContentSafetyService
+from utils.crisis_resources import classify_crisis, render_markdown_fallback
 
 LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
 
@@ -32,6 +40,21 @@ NARRATIVE = {
     "zh": "为什么该隐在创世记中杀了亚伯？",
     "hi": "उत्पत्ति की पुस्तक में कैन ने हाबिल को क्यों मार डाला?",
     "ko": "창세기에서 가인은 왜 아벨을 죽였나요?",
+}
+
+# Second Bible-narrative phrasing per language (David and Goliath).
+NARRATIVE_DAVID = {
+    "en": "How did David kill Goliath with a sling in 1 Samuel 17?",
+    "it": "Come Davide uccise Golia con la fionda in 1 Samuele 17?",
+    "de": "Wie hat David Goliat mit der Schleuder getötet in 1. Samuel 17?",
+    "es": "¿Cómo mató David a Goliat con la honda en 1 Samuel 17?",
+    "fr": "Comment David a-t-il tué Goliath avec sa fronde dans 1 Samuel 17 ?",
+    "pt": "Como Davi matou Golias com a funda em 1 Samuel 17?",
+    "ar": "كيف قتل داود جليات بالمقلاع في صموئيل الأول 17؟",
+    "ru": "Как Давид убил Голиафа пращой в 1 Книге Царств 17?",
+    "zh": "大卫在撒母耳记上17章是怎样杀死歌利亚的？",
+    "hi": "1 शमूएल 17 में दाऊद ने गोलियत को गोफन से कैसे मार डाला?",
+    "ko": "사무엘상 17장에서 다윗은 어떻게 골리앗을 죽였나요?",
 }
 
 SELF_HARM_ALLOWED = _SafetyOutcome(
@@ -351,6 +374,49 @@ async def test_bible_narrative_kill_phrasing_gets_no_card(language):
     assert events[0]["type"] == "metadata"
 
 
+# Languages whose keyword fallback still blocks third-person Bible narrative as violence;
+# tracked by BITB-253 (the safety keyword tables are deliberately NOT changed by BITB-251).
+_KEYWORD_FALLBACK_MISFIRES = {"en", "ar"}
+
+
+def _narrative_cases():
+    for label, phrases in (("cain", NARRATIVE), ("david", NARRATIVE_DAVID)):
+        for language in LANGUAGES:
+            marks = []
+            if language in _KEYWORD_FALLBACK_MISFIRES:
+                marks.append(
+                    pytest.mark.xfail(
+                        strict=True,
+                        reason="BITB-253: keyword fallback blocks third-person Bible narrative "
+                        "as violence",
+                    )
+                )
+            yield pytest.param(language, phrases[language], id=f"{label}-{language}", marks=marks)
+
+
+@pytest.mark.parametrize("language,message", list(_narrative_cases()))
+def test_bible_narrative_through_real_keyword_fallback_gets_no_card(language, message, monkeypatch):
+    """Real ContentSafetyService keyword fallback (ML stages unavailable), not a mock."""
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="hybrid",
+            azure_content_safety_enabled=False,
+        ),
+    )
+    result = ContentSafetyService()._full_keyword_fallback(message, language, time.monotonic())
+    outcome = _SafetyOutcome(
+        allowed=result.allowed,
+        compassionate=result.compassionate_response_needed,
+        reason=result.reason,
+        categories=result.categories,
+        is_help_seeking=result.is_help_seeking,
+    )
+    assert outcome.allowed, outcome.reason
+    assert classify_crisis(outcome) is None
+
+
 @pytest.mark.asyncio
 async def test_no_counter_increment_on_non_crisis_turn():
     service = _service()
@@ -403,11 +469,113 @@ async def test_stream_blocked_fallback_flag(language):
 
 
 @pytest.mark.asyncio
-async def test_compassionate_llm_text_is_never_modified_by_fallback():
+@pytest.mark.parametrize("path", ALLOWED_PATHS)
+@pytest.mark.parametrize("language", LANGUAGES)
+async def test_chat_old_client_gets_fallback_after_llm_text(path, language):
+    """Old clients (no card) keep their numbers on every allowed path that produces text."""
     service = _service()
-    with _patched(service, SELF_HARM_ALLOWED):
-        response = await service.chat(_request(), client_country="US")
-    assert response.message == "A gentle reply."
+    with _patched(service, SELF_HARM_ALLOWED, path=path):
+        old = await service.chat(_request(language), client_country="US")
+    fallback = render_markdown_fallback(old.crisis_resources, language)
+    assert "988" in fallback
+    assert old.message.endswith(fallback)
+
+    service = _service()
+    with _patched(service, SELF_HARM_ALLOWED, path=path):
+        new = await service.chat(_request(language, supports_crisis_card=True), client_country="US")
+    assert new.message == old.message[: -len(fallback)].rstrip("\n")
+    assert "988" not in new.message
+    if path in ("normal", "off_topic", "clarification"):
+        assert new.message == "A gentle reply."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ALLOWED_PATHS)
+@pytest.mark.parametrize("language", LANGUAGES)
+async def test_stream_old_client_gets_fallback_chunk_before_completion(path, language):
+    service = _service()
+    with _patched(service, SELF_HARM_ALLOWED, path=path):
+        old = await _collect_stream(service, _request(language), client_country="US")
+    fallback = render_markdown_fallback(old[0]["resources"], language)
+    assert _text(old).endswith(fallback)
+    assert old[-1]["type"] == "completion"
+    assert old[-2]["type"] == "content" and old[-2]["content"].endswith(fallback)
+
+    service = _service()
+    with _patched(service, SELF_HARM_ALLOWED, path=path):
+        new = await _collect_stream(
+            service, _request(language, supports_crisis_card=True), client_country="US"
+        )
+    assert "988" not in _text(new)
+    if path in ("normal", "off_topic", "clarification"):
+        assert _text(new) == "A gentle reply."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language", LANGUAGES)
+async def test_stream_corrected_message_keeps_fallback_for_old_client(language):
+    """Grounding may rewrite the body; the authoritative text must still end with the numbers."""
+    service = _service()
+    correction = MagicMock(reference="Psalm 23:1", reason="mismatch")
+    with (
+        _patched(service, SELF_HARM_ALLOWED),
+        patch.object(
+            service,
+            "_ground_streamed_answer",
+            AsyncMock(return_value=([], "A corrected reply.", [correction])),
+        ),
+    ):
+        events = await _collect_stream(service, _request(language), client_country="US")
+    fallback = render_markdown_fallback(events[0]["resources"], language)
+    completion = events[-1]
+    assert completion["corrected_message"] == "A corrected reply." + "\n\n" + fallback
+
+    service = _service()
+    with (
+        _patched(service, SELF_HARM_ALLOWED),
+        patch.object(
+            service,
+            "_ground_streamed_answer",
+            AsyncMock(return_value=([], "A corrected reply.", [correction])),
+        ),
+    ):
+        events = await _collect_stream(
+            service, _request(language, supports_crisis_card=True), client_country="US"
+        )
+    assert events[-1]["corrected_message"] == "A corrected reply."
+
+
+@pytest.mark.asyncio
+async def test_addendum_variant_chosen_by_supports_crisis_card_flag():
+    captured = []
+    for supports in (True, False):
+        service = _service()
+        with _patched(service, SELF_HARM_ALLOWED):
+            await service.chat(_request(supports_crisis_card=supports), client_country="US")
+        system = service.llm.chat.call_args.kwargs["messages"][0].content
+        captured.append(system)
+    with_card, without_card = captured
+    assert COMPASSIONATE_RESPONSE_ADDENDUM in with_card
+    assert COMPASSIONATE_RESPONSE_ADDENDUM_NO_CARD in without_card
+    assert COMPASSIONATE_RESPONSE_ADDENDUM not in without_card
+    assert "ALREADY" not in without_card and "shown above" not in without_card
+    # Both variants forbid the model writing numbers itself.
+    for text in (COMPASSIONATE_RESPONSE_ADDENDUM, COMPASSIONATE_RESPONSE_ADDENDUM_NO_CARD):
+        assert "NEVER write" in text
+    assert get_compassionate_addendum(True) == COMPASSIONATE_RESPONSE_ADDENDUM
+    assert get_compassionate_addendum(False) == COMPASSIONATE_RESPONSE_ADDENDUM_NO_CARD
+
+
+@pytest.mark.asyncio
+async def test_addendum_variant_chosen_in_stream_by_flag():
+    prompts = []
+    for supports in (True, False):
+        service = _service()
+        with _patched(service, SELF_HARM_ALLOWED):
+            await _collect_stream(service, _request(supports_crisis_card=supports))
+        prompts.append(service.llm.chat_stream.call_args.kwargs["messages"][0].content)
+    assert COMPASSIONATE_RESPONSE_ADDENDUM in prompts[0]
+    assert COMPASSIONATE_RESPONSE_ADDENDUM_NO_CARD in prompts[1]
 
 
 # ---------------------------------------------------------------------------

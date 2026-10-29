@@ -40,12 +40,16 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import org.voxquieta.app.R
 import org.voxquieta.app.domain.models.CrisisLine
 import org.voxquieta.app.domain.models.CrisisResources
 import timber.log.Timber
 import java.util.Locale
+
+/** Works from most mobile phones worldwide; the dial target when the local number is unknown. */
+internal const val FALLBACK_EMERGENCY_NUMBER = "112"
 
 /** Minimum touch target (Material / WCAG): 48dp. */
 private val MinTarget = 48.dp
@@ -103,7 +107,11 @@ fun CrisisResourcesCard(
 
     var pickerOpen by remember { mutableStateOf(false) }
     var chosenCountry by rememberSaveable { mutableStateOf<String?>(null) }
-    val shownCountry = chosenCountry ?: resources.country
+    // A pick that differs from the card's country has not been applied (yet, or the refresh
+    // failed): keep showing it and say it takes effect from the next message. Once the card
+    // was re-rendered for that country the note disappears.
+    val pendingCountry = chosenCountry?.takeIf { it != resources.country }
+    val shownCountry = pendingCountry ?: resources.country
 
     Surface(
         modifier = modifier
@@ -123,6 +131,25 @@ fun CrisisResourcesCard(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() },
             )
+
+            if (resources.emergencyNumber == null) {
+                // Unknown / unregistered country: 112 reaches emergency services from most
+                // mobile phones, so make it a dial target instead of showing nothing.
+                TextButton(
+                    onClick = { launch(dialIntent(FALLBACK_EMERGENCY_NUMBER)) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = MinTarget),
+                ) {
+                    Text(
+                        text = stringResource(R.string.crisis_local_emergency_hint, FALLBACK_EMERGENCY_NUMBER),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textDecoration = TextDecoration.Underline,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
 
             resources.emergencyNumber?.let { number ->
                 val emergencyAria = stringResource(R.string.crisis_emergency_aria, number)
@@ -170,7 +197,7 @@ fun CrisisResourcesCard(
                 }
             }
 
-            chosenCountry?.let {
+            pendingCountry?.let {
                 Text(
                     text = stringResource(R.string.crisis_region_saved, countryDisplayName(it)),
                     style = MaterialTheme.typography.bodySmall,

@@ -427,6 +427,7 @@
     "chooseCountry": "국가를 선택하세요",
     "callLineAria": "{name}에 전화하기",
     "textLineAria": "{name}에 문자 보내기",
-    "regionSaved": "다음 메시지부터 {country}의 번호를 사용합니다."
+    "regionSaved": "다음 메시지부터 {country}의 번호를 사용합니다.",
+    "localEmergencyHint": "현지 응급 전화번호로 전화하세요 (대부분의 휴대전화에서 <dial>112</dial>번으로 연결됩니다)."
   }
 }

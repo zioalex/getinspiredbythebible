@@ -38,7 +38,7 @@ Estos proveedores utilizan el texto de tu mensaje **únicamente** para generar l
 - No requerimos registro de cuenta.
 - No recopilamos tu nombre, dirección de correo electrónico ni número de teléfono.
 - No rastreamos tu ubicación.
-- **País aproximado, solo para números de emergencia**: si tu mensaje sugiere que tú u otra persona podéis estar en peligro, deducimos tu país a partir de tu conexión (la cabecera de país de Cloudflare) o del idioma de tu dispositivo, únicamente para mostrarte los números de emergencia y de ayuda locales correctos. Nunca se almacena.
+- **País aproximado, solo para números de emergencia**: si tu mensaje sugiere que tú u otra persona podéis estar en peligro, deducimos tu país a partir de tu conexión (la cabecera de país de Cloudflare) o del idioma de tu dispositivo, únicamente para mostrarte los números de emergencia y de ayuda locales correctos. Nunca se almacena en nuestros servidores; la tarjeta solo se guarda junto con tu conversación, en tu dispositivo.
 - No vendemos tus datos a terceros.
 
 ## Historial de conversaciones

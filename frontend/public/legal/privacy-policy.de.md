@@ -38,7 +38,7 @@ Dein Nachrichtentext wird von diesen Anbietern **ausschließlich** verwendet, um
 - Wir verlangen keine Kontoregistrierung.
 - Wir erheben nicht deinen Namen, deine E-Mail-Adresse oder Telefonnummer.
 - Wir verfolgen deinen Standort nicht.
-- **Ungefähres Land, nur für Notrufnummern**: Wenn deine Nachricht darauf hindeutet, dass du oder jemand anderes in Gefahr sein könnte, leiten wir dein Land aus deiner Verbindung (dem Länder-Header von Cloudflare) oder der Sprache deines Geräts ab – ausschließlich, um die richtigen örtlichen Notruf- und Krisennummern anzuzeigen. Es wird niemals gespeichert.
+- **Ungefähres Land, nur für Notrufnummern**: Wenn deine Nachricht darauf hindeutet, dass du oder jemand anderes in Gefahr sein könnte, leiten wir dein Land aus deiner Verbindung (dem Länder-Header von Cloudflare) oder der Sprache deines Geräts ab – ausschließlich, um die richtigen örtlichen Notruf- und Krisennummern anzuzeigen. Es wird niemals auf unseren Servern gespeichert; die Karte wird nur zusammen mit deiner Unterhaltung auf deinem Gerät gespeichert.
 - Wir verkaufen deine Daten nicht an Dritte.
 
 ## Gesprächsverlauf

@@ -3582,4 +3582,69 @@ class ChatViewModelTest {
 
         coVerify { sessionPreferences.setCrisisRegionOverride("AT") }
     }
+
+    // ── BITB-251: picking a country re-renders the card already shown ─────────
+
+    private fun austriaCard() = org.voxquieta.app.data.remote.models.CrisisResourcesDto(
+        kind = "self_harm",
+        country = "AT",
+        countrySource = "override",
+        emergency = org.voxquieta.app.data.remote.models.CrisisEmergencyDto("144"),
+        availableCountries = listOf("AT", "IT"),
+    )
+
+    private fun sendCrisisTurn(): Message {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "crisis_resources", crisisResources = org.voxquieta.app.testing.crisisFixture),
+            StreamChunk(content = "I am here.", done = true),
+        )
+        viewModel.sendMessage("I want to end it all")
+        testDispatcher.scheduler.advanceUntilIdle()
+        return viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+    }
+
+    @Test
+    fun `picking a country fetches that country's card, swaps it in place and saves it`() = runTest {
+        val assistant = sendCrisisTurn()
+        coEvery { bibleApiService.getCrisisResources("AT", any(), "self_harm") } returns austriaCard()
+
+        viewModel.onCrisisCountrySelected(assistant.id, "AT")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val updated = viewModel.uiState.value.messages.first { it.id == assistant.id }
+        assertEquals("AT", updated.crisisResources?.country)
+        assertEquals("144", updated.crisisResources?.emergencyNumber)
+        assertEquals("override", updated.crisisResources?.countrySource)
+        assertEquals("I am here.", updated.content)
+        coVerify { sessionPreferences.setCrisisRegionOverride("AT") }
+        coVerify { repository.saveMessage(any(), match { it.id == assistant.id && it.crisisResources?.country == "AT" }) }
+    }
+
+    @Test
+    fun `a failed refresh keeps the old card but still stores the override`() = runTest {
+        val assistant = sendCrisisTurn()
+        coEvery { bibleApiService.getCrisisResources(any(), any(), any()) } throws IOException("offline")
+
+        viewModel.onCrisisCountrySelected(assistant.id, "AT")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val after = viewModel.uiState.value.messages.first { it.id == assistant.id }
+        assertEquals(org.voxquieta.app.testing.crisisFixture, after.crisisResources)
+        coVerify { sessionPreferences.setCrisisRegionOverride("AT") }
+        coVerify(exactly = 0) { repository.saveMessage(any(), match { it.crisisResources?.country == "AT" }) }
+    }
+
+    @Test
+    fun `picking a country on a message without a card only stores the override`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = "Hello", done = true))
+        viewModel.sendMessage("hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+        val assistant = viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+
+        viewModel.onCrisisCountrySelected(assistant.id, "AT")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { sessionPreferences.setCrisisRegionOverride("AT") }
+        coVerify(exactly = 0) { bibleApiService.getCrisisResources(any(), any(), any()) }
+    }
 }

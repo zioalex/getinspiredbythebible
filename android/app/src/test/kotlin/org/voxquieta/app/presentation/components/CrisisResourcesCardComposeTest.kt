@@ -10,6 +10,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import org.voxquieta.app.testing.ComposeTestHarness
 import org.voxquieta.app.testing.crisisFixture
 
@@ -129,6 +131,59 @@ class CrisisResourcesCardComposeTest : ComposeTestHarness() {
         composeRule.onNodeWithContentDescription("Call emergency number 112").assertDoesNotExist()
         composeRule.onNodeWithText("More helplines worldwide").assertIsDisplayed()
         composeRule.onNodeWithText("Choose your country").assertIsDisplayed()
+    }
+
+    @Test
+    fun `without an emergency number the local-emergency hint is a 112 dial target`() {
+        mount(crisisFixture.copy(emergencyNumber = null, country = null, lines = emptyList()))
+
+        val hint = "Call your local emergency number (112 works from most mobile phones)."
+        composeRule.onNodeWithText(hint).assertIsDisplayed()
+        composeRule.onNodeWithText(hint).performClick()
+
+        val intent = launched.single()
+        assertEquals(Intent.ACTION_DIAL, intent.action)
+        assertEquals("tel:112", intent.data.toString())
+    }
+
+    @Test
+    fun `no local-emergency hint when the emergency number is known`() {
+        mount()
+
+        composeRule
+            .onNodeWithText("Call your local emergency number", substring = true)
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun `next-message note disappears once the card is re-rendered for the picked country`() {
+        var resources by androidx.compose.runtime.mutableStateOf(crisisFixture)
+        setContentThemed {
+            CrisisResourcesCard(
+                resources = resources,
+                onCountrySelected = { picked.add(it) },
+                launchIntent = { launched.add(it) },
+            )
+        }
+
+        composeRule.onNodeWithText("Not in Italy?").performClick()
+        composeRule.onNodeWithText("Austria").performClick()
+        composeRule.onNodeWithText("We'll use Austria numbers from your next message.").assertIsDisplayed()
+
+        // The ViewModel swapped in the Austrian numbers: the card shows them, no stale note.
+        resources = crisisFixture.copy(
+            country = "AT",
+            countrySource = "override",
+            emergencyNumber = "144",
+        )
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Emergency number: 144").assertIsDisplayed()
+        composeRule.onNodeWithText("Emergency number: 112").assertDoesNotExist()
+        composeRule
+            .onNodeWithText("We'll use Austria numbers from your next message.")
+            .assertDoesNotExist()
+        composeRule.onNodeWithText("Not in Austria?").assertIsDisplayed()
     }
 
     @Test
