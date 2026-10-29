@@ -155,6 +155,12 @@ chat_scripture_unavailable_counter = meter.create_counter(
     unit="1",
 )  # attributes: language
 
+chat_crisis_card_shown_counter = meter.create_counter(
+    name="chat.crisis_card_shown",
+    description="Crisis hotline cards sent for threats to self or others (BITB-251)",
+    unit="1",
+)  # attributes: kind (self_harm|threat_to_others), language, country_source, path (blocked|llm)
+
 # ── Church metrics ────────────────────────────────────────────────────────
 church_search_counter = meter.create_counter(
     name="church.search.total",

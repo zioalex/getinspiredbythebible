@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-27
+lastUpdated: 2026-10-29
 ---
 
 # Politique de confidentialité
 
 > _Cette traduction a été générée par intelligence artificielle et est fournie à titre de commodité uniquement. En cas d'omission, d'ambiguïté ou de contradiction avec l'original anglais, la version anglaise fait foi et prévaut._
 
-Dernière mise à jour : 27 octobre 2026
+Dernière mise à jour : 29 octobre 2026
 
 ## Qui nous sommes
 
@@ -38,6 +38,7 @@ Le texte de votre message est utilisé par ces fournisseurs **uniquement** pour 
 - Nous n'exigeons pas d'inscription à un compte.
 - Nous ne collectons pas votre nom, adresse e-mail ni numéro de téléphone.
 - Nous ne suivons pas votre localisation.
+- **Pays approximatif, uniquement pour les numéros d'urgence** : si votre message laisse penser que vous ou quelqu'un d'autre pourriez être en danger, nous déduisons votre pays de votre connexion (l'en-tête de pays de Cloudflare) ou de la langue de votre appareil, uniquement pour afficher les bons numéros d'urgence et d'aide locaux. Il n'est jamais enregistré.
 - Nous ne vendons pas vos données à des tiers.
 
 ## Historique des conversations

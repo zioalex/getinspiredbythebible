@@ -832,9 +832,10 @@ The content-safety system detected that this user may be experiencing serious
 emotional pain or thoughts of self-harm. Respond with EXTRA warmth and care:
 1. Acknowledge their pain explicitly and with full empathy — do NOT jump straight to Bible verses
 2. Affirm they are not alone and that reaching out took courage
-3. Include crisis resources naturally in your response:
-   - US: call or text 988 (Suicide & Crisis Lifeline)
-   - International: https://findahelpline.com
+3. A crisis card with emergency and helpline numbers for the user's country is ALREADY
+   shown above your reply. Refer to it gently (for example "the numbers above are there
+   for you, any time") and encourage them to use it. NEVER write phone numbers, hotline
+   names or helpline links yourself, and never invent them
 4. Offer scripture ONLY after the user feels heard — and when you do, you may
    gently ground it with the "In the Bible is written..." phrase in their
    language, choosing verses about God's nearness in suffering
@@ -933,90 +934,56 @@ _BLOCKED_RESPONSE_TEMPLATES: dict[str, dict[str, str]] = {
         "en": (
             "I can hear that something very heavy may be weighing on you, and I'm truly sorry. "
             "Your life is precious and deeply valued by God.\n\n"
-            "Please reach out for immediate support right now:\n"
-            "- **US:** call or text **988** (Suicide & Crisis Lifeline, free, 24/7)\n"
-            "- **International:** https://findahelpline.com\n\n"
             "You don't have to face this alone. A real person is ready to listen."
         ),
         "it": (
             "Sento che qualcosa di molto pesante ti sta gravando, e ne sono davvero dispiaciuto. "
             "La tua vita è preziosa e profondamente amata da Dio.\n\n"
-            "Ti chiedo di contattare subito qualcuno che possa aiutarti:\n"
-            "- **Italia:** Telefono Amico **02 2327 2327** (tutti i giorni, 10–24)\n"
-            "- **Internazionale:** https://findahelpline.com\n\n"
             "Non devi affrontare questo da solo. C'è qualcuno pronto ad ascoltarti."
         ),
         "de": (
             "Ich spüre, dass etwas sehr Schweres auf dir lastet, und es tut mir sehr leid. "
             "Dein Leben ist kostbar und von Gott tief geliebt.\n\n"
-            "Bitte wende dich sofort an jemanden, der helfen kann:\n"
-            "- **Deutschland:** Telefonseelsorge **0800 111 0 111** (kostenlos, 24/7)\n"
-            "- **International:** https://findahelpline.com\n\n"
             "Du musst das nicht alleine tragen. Ein echtes Gespräch wartet auf dich."
         ),
         "es": (
             "Siento que algo muy pesado te está agobiando, y lo siento mucho. "
             "Tu vida es preciosa y profundamente amada por Dios.\n\n"
-            "Por favor, contacta ahora mismo con alguien que pueda ayudarte:\n"
-            "- **España:** Teléfono de la Esperanza **717 003 717** (24 horas)\n"
-            "- **Internacional:** https://findahelpline.com\n\n"
             "No tienes que enfrentar esto solo. Hay alguien dispuesto a escucharte."
         ),
         "fr": (
             "Je sens que quelque chose de très lourd pèse sur toi, et j'en suis sincèrement désolé. "
             "Ta vie est précieuse et profondément aimée de Dieu.\n\n"
-            "Je t'encourage à contacter immédiatement quelqu'un qui peut t'aider :\n"
-            "- **France :** 3114 — Numéro national de prévention du suicide (24h/24)\n"
-            "- **International :** https://findahelpline.com\n\n"
             "Tu n'as pas à traverser cela seul. Une personne est prête à t'écouter."
         ),
         "pt": (
             "Sinto que algo muito pesado está te sobrecarregando, e sinto muito por isso. "
             "A sua vida é preciosa e profundamente amada por Deus.\n\n"
-            "Por favor, entre em contato agora com alguém que possa ajudar:\n"
-            "- **Brasil:** CVV **188** (gratuito, 24h) ou https://www.cvv.org.br\n"
-            "- **Internacional:** https://findahelpline.com\n\n"
             "Você não precisa enfrentar isso sozinho. Há alguém pronto para ouvir."
         ),
         "ar": (
             "أشعر أن شيئاً ثقيلاً جداً يُثقل كاهلك، وأنا آسف جداً لذلك. "
             "حياتك ثمينة ومحبوبة من الله بعمق.\n\n"
-            "أرجو أن تتواصل الآن مع شخص يستطيع مساعدتك:\n"
-            "- **دولي:** https://findahelpline.com\n\n"
             "لست وحدك في هذا. هناك شخص مستعد للاستماع إليك."
         ),
         "ru": (
             "Я чувствую, что на тебе лежит что-то очень тяжёлое, и мне искренне жаль. "
             "Твоя жизнь драгоценна и глубоко любима Богом.\n\n"
-            "Пожалуйста, прямо сейчас обратись к тому, кто может помочь:\n"
-            "- **США:** позвони или отправь сообщение на **988** "
-            "(линия помощи при суицидальном кризисе, бесплатно, 24/7)\n"
-            "- **В других странах:** https://findahelpline.com\n\n"
             "Тебе не нужно проходить через это в одиночку. Живой человек готов тебя выслушать."
         ),
         "zh": (
             "我能感受到有一份沉重的负担压在你身上，我真的很难过。"
             "你的生命十分宝贵，深受上帝所爱。\n\n"
-            "请现在就联系可以帮助你的人：\n"
-            "- **美国：** 拨打或发短信至 **988**（自杀与危机生命线，免费，全天候）\n"
-            "- **国际：** https://findahelpline.com\n\n"
             "你不必独自面对这一切。有真人愿意倾听你。"
         ),
         "hi": (
             "मैं महसूस कर सकता हूँ कि कोई बहुत भारी बोझ आप पर है, और मुझे सचमुच दुख है। "
             "आपका जीवन अनमोल है और परमेश्वर को बहुत प्रिय है।\n\n"
-            "कृपया अभी किसी ऐसे व्यक्ति से संपर्क करें जो मदद कर सके:\n"
-            "- **अमेरिका:** **988** पर कॉल या टेक्स्ट करें "
-            "(सुसाइड एंड क्राइसिस लाइफलाइन, निःशुल्क, 24/7)\n"
-            "- **अंतरराष्ट्रीय:** https://findahelpline.com\n\n"
             "आपको इसे अकेले नहीं सहना है। कोई वास्तविक व्यक्ति सुनने के लिए तैयार है।"
         ),
         "ko": (
             "매우 무거운 짐이 당신을 짓누르고 있다는 것이 느껴지고, 정말 마음이 아픕니다. "
             "당신의 생명은 소중하며 하나님께 깊이 사랑받고 있습니다.\n\n"
-            "지금 바로 도움을 줄 수 있는 사람에게 연락해 주세요:\n"
-            "- **미국:** **988**로 전화 또는 문자 (자살 및 위기 상담 전화, 무료, 24시간)\n"
-            "- **국제:** https://findahelpline.com\n\n"
             "이 일을 혼자 감당하지 않아도 됩니다. 귀 기울여 줄 사람이 있습니다."
         ),
     },
@@ -1383,7 +1350,7 @@ def get_compassionate_addendum() -> str:
     return COMPASSIONATE_RESPONSE_ADDENDUM
 
 
-def get_blocked_response(reason: str, language_code: str = "en") -> str:
+def get_blocked_response(reason: str, language_code: str = "en", crisis_markdown: str = "") -> str:
     """
     Return a localized pre-written response for blocked content.
 
@@ -1391,17 +1358,22 @@ def get_blocked_response(reason: str, language_code: str = "en") -> str:
         reason: ContentSafetyCheckResult.reason string
         language_code: ISO 639-1 language code (en, it, de, es, fr, pt, ar, ru, zh, hi, ko;
             the self_harm_blocked template covers all 11)
+        crisis_markdown: Registry-rendered hotline list (BITB-251). Appended for clients that
+            do not render the structured crisis card; empty when the card is supported.
 
     Returns:
         Localized message string; falls back to English then generic.
     """
     category = _map_reason_to_category(reason)
     by_lang = _BLOCKED_RESPONSE_TEMPLATES.get(category, _BLOCKED_RESPONSE_TEMPLATES["generic"])
-    return (
+    text = (
         by_lang.get(language_code)
         or by_lang.get("en")
         or _BLOCKED_RESPONSE_TEMPLATES["generic"]["en"]
     )
+    if crisis_markdown:
+        text = f"{text}\n\n{crisis_markdown}"
+    return text
 
 
 # Fail-closed grounding message (BITB-058). When a scripture-seeking request cannot be

@@ -21,6 +21,14 @@ from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from providers.embedding_resilience import CircuitOpenError as EmbeddingCircuitOpenError
 from scripture import ScriptureSearchService, SearchResults
 from utils.content_safety import get_content_safety_service
+from utils.crisis_resources import (
+    build_crisis_payload,
+    build_minimal_crisis_payload,
+    classify_crisis,
+    normalize_country_code,
+    render_markdown_fallback,
+    resolve_country,
+)
 from utils.db_retry import is_disconnection_error, run_with_disconnect_retry
 from utils.language import (
     detect_language,
@@ -32,6 +40,7 @@ from utils.language import (
 from utils.logging_config import get_logger
 from utils.metrics import (
     chat_clarification_requested_counter,
+    chat_crisis_card_shown_counter,
     chat_cultural_tone_applied_counter,
     chat_scripture_unavailable_counter,
     chat_verseless_responses_counter,
@@ -120,6 +129,19 @@ class ChatRequest(BaseModel):
     )  # Explicit language code from the client (e.g. "it", "de"). When present,
     # overrides server-side language detection so responses are always in the
     # user's chosen language regardless of what language they type in.
+    # BITB-251: ISO 3166-1 alpha-2 country the client believes the user is in (locale region
+    # or the user's pick in the crisis card). Only used to choose emergency / crisis numbers;
+    # never stored. Invalid values are dropped (not rejected) so a malformed region can never
+    # turn a crisis message into an HTTP 422.
+    region: str | None = None
+    region_override: bool = False  # True when the user picked `region` in the crisis card
+    supports_crisis_card: bool = False  # Client renders `crisis_resources`; skip markdown fallback
+
+    @field_validator("region", mode="before")
+    @classmethod
+    def normalize_region(cls, v: object) -> str | None:
+        """Upper-case a valid alpha-2 region; anything else becomes None."""
+        return normalize_country_code(v) if isinstance(v, str) else None
 
     @field_validator("message")
     @classmethod
@@ -143,6 +165,7 @@ class ChatResponse(BaseModel):
     translation_info: dict | None = None
     language_suggestion: str | None = None  # Detected language differs from selected UI language
     follow_ups: list[str] = []  # BITB-080: suggested next questions, in the user's voice
+    crisis_resources: dict | None = None  # BITB-251: hotline card payload on a crisis turn
 
 
 @dataclass
@@ -153,6 +176,9 @@ class _SafetyOutcome:
     compassionate: bool
     reason: str
     categories: dict[str, int]
+    is_help_seeking: bool = (
+        False  # BITB-251: safety pipeline flagged help-seeking (even if blocked)
+    )
 
 
 class ChatService:
@@ -279,6 +305,7 @@ class ChatService:
                 compassionate=False,
                 reason=safety_result.reason,
                 categories=safety_result.categories,
+                is_help_seeking=safety_result.is_help_seeking,
             )
 
         if safety_result.compassionate_response_needed:
@@ -292,7 +319,59 @@ class ChatService:
             compassionate=safety_result.compassionate_response_needed,
             reason=safety_result.reason,
             categories=safety_result.categories,
+            is_help_seeking=safety_result.is_help_seeking,
         )
+
+    def _crisis_payload(
+        self,
+        safety: _SafetyOutcome,
+        request: ChatRequest,
+        language: str,
+        client_country: str | None,
+    ) -> dict | None:
+        """BITB-251: build the crisis-card payload for a self-harm / threat turn, else None.
+
+        Never raises (a registry problem degrades to the international link only) and never
+        logs message text or the country.
+        """
+        kind = classify_crisis(safety)
+        if kind is None:
+            return None
+        country_source = "none"
+        try:
+            country, country_source = resolve_country(
+                client_country, request.region, language, request.region_override
+            )
+            payload = build_crisis_payload(kind, country, country_source, language)
+        except Exception:
+            logger.exception("Crisis registry unavailable; sending international link only")
+            payload = build_minimal_crisis_payload(kind)
+        chat_crisis_card_shown_counter.add(
+            1,
+            {
+                "kind": kind.value,
+                "language": language,
+                "country_source": country_source,
+                "path": "llm" if safety.allowed else "blocked",
+            },
+        )
+        logger.info(
+            "Crisis card attached",
+            extra={
+                "kind": kind.value,
+                "language": language,
+                "country_source": country_source,
+                "path": "llm" if safety.allowed else "blocked",
+            },
+        )
+        return payload
+
+    @staticmethod
+    def _crisis_fallback_markdown(crisis: dict | None, language: str, request: ChatRequest) -> str:
+        """Registry-rendered hotline list for clients that do not render the card."""
+        if not crisis or request.supports_crisis_card:
+            return ""
+        return render_markdown_fallback(crisis, language)
 
     async def _expand_query(
         self, user_message: str, language: str, model_override: str | None = None
@@ -424,7 +503,9 @@ Keep it under 120 words."""
             )
         return topics
 
-    async def chat(self, request: ChatRequest) -> ChatResponse:
+    async def chat(
+        self, request: ChatRequest, *, client_country: str | None = None
+    ) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
 
@@ -489,9 +570,17 @@ Keep it under 120 words."""
         safety = await self._check_content_safety(
             request.message, effective_language, request.session_id, context="chat"
         )
+        # BITB-251: decide the hotline card right after the safety check so every
+        # return path below carries it (and a later failure cannot lose it).
+        crisis = self._crisis_payload(safety, request, effective_language, client_country)
         if not safety.allowed:
             return self._build_blocked_response(
-                safety, effective_language, translation, translation_info
+                safety,
+                effective_language,
+                translation,
+                translation_info,
+                crisis=crisis,
+                crisis_markdown=self._crisis_fallback_markdown(crisis, effective_language, request),
             )
 
         # Intent detection: classify before scripture search
@@ -507,6 +596,7 @@ Keep it under 120 words."""
                     total_start,
                     model_override,
                     compassionate_mode=safety.compassionate,
+                    crisis_resources=crisis,
                 )
 
         # Check if this is a verse/prayer lookup request
@@ -538,6 +628,7 @@ Keep it under 120 words."""
                 total_start,
                 model_override,
                 language_suggestion,
+                crisis_resources=crisis,
             )
 
         # Step 1: Search for relevant scripture (if enabled; timed via @timed_stage)
@@ -572,6 +663,7 @@ Keep it under 120 words."""
                 detected_translation=translation,
                 translation_info=translation_info,
                 language_suggestion=language_suggestion,
+                crisis_resources=crisis,
             )
 
         # Step 2: Build the message list
@@ -680,6 +772,7 @@ Keep it under 120 words."""
             translation_info=translation_info,
             language_suggestion=language_suggestion,
             follow_ups=follow_ups,
+            crisis_resources=crisis,
         )
 
     def _scripture_grounding_unavailable(
@@ -718,6 +811,7 @@ Keep it under 120 words."""
         total_start: float,
         model_override: str | None = None,
         compassionate_mode: bool = False,
+        crisis_resources: dict | None = None,
     ) -> ChatResponse:
         """Generate a warm redirect response for off-topic messages, skipping scripture search."""
         logger.info("Off-topic message detected, skipping scripture search")
@@ -749,6 +843,7 @@ Keep it under 120 words."""
             model=response.model,
             detected_translation=translation,
             translation_info=translation_info,
+            crisis_resources=crisis_resources,
         )
 
     def _wants_clarification(
@@ -842,6 +937,7 @@ Keep it under 120 words."""
         total_start: float,
         model_override: str | None = None,
         language_suggestion: str | None = None,
+        crisis_resources: dict | None = None,
     ) -> "ChatResponse":
         """Ask one gentle clarifying question, skipping scripture search entirely."""
         logger.info("Message needs clarification, skipping scripture search")
@@ -874,6 +970,7 @@ Keep it under 120 words."""
             detected_translation=translation,
             translation_info=translation_info,
             language_suggestion=language_suggestion,
+            crisis_resources=crisis_resources,
         )
 
     def _build_blocked_response(
@@ -882,9 +979,11 @@ Keep it under 120 words."""
         language: str,
         translation: str,
         translation_info: dict | None,
+        crisis: dict | None = None,
+        crisis_markdown: str = "",
     ) -> "ChatResponse":
         """Return a warm pre-written ChatResponse for blocked content (no LLM call)."""
-        message = get_blocked_response(outcome.reason, language)
+        message = get_blocked_response(outcome.reason, language, crisis_markdown)
         logger.info(
             "Returning synthetic blocked-content response",
             extra={"reason": outcome.reason, "language": language},
@@ -897,6 +996,7 @@ Keep it under 120 words."""
             model="content_safety",
             detected_translation=translation,
             translation_info=translation_info,
+            crisis_resources=crisis,
         )
 
     async def _stream_blocked_response(
@@ -906,9 +1006,10 @@ Keep it under 120 words."""
         language: str,
         translation: str,
         translation_info: dict | None,
+        crisis_markdown: str = "",
     ) -> AsyncIterator[dict]:
         """Yield SSE-compatible chunks for a blocked-content synthetic response."""
-        text = get_blocked_response(outcome.reason, language)
+        text = get_blocked_response(outcome.reason, language, crisis_markdown)
         logger.info(
             "Streaming synthetic blocked-content response",
             extra={"reason": outcome.reason, "language": language},
@@ -1435,7 +1536,9 @@ Keep it under 120 words."""
                 scripture_context.verses.insert(0, dv)
                 existing_refs.add((dv.book, dv.chapter, dv.verse))
 
-    async def chat_stream(self, request: ChatRequest) -> AsyncIterator[dict]:  # noqa: C901
+    async def chat_stream(  # noqa: C901
+        self, request: ChatRequest, *, client_country: str | None = None
+    ) -> AsyncIterator[dict]:
         """
         Stream a chat response for real-time display.
 
@@ -1485,9 +1588,19 @@ Keep it under 120 words."""
         safety = await self._check_content_safety(
             request.message, effective_language, request.session_id, context="chat stream"
         )
+        # BITB-251: the hotline card is the FIRST event after the safety check -- before
+        # intent detection, retrieval and the LLM -- so a later failure cannot lose it.
+        crisis = self._crisis_payload(safety, request, effective_language, client_country)
+        if crisis:
+            yield {"type": "crisis_resources", "resources": crisis}
         if not safety.allowed:
             async for chunk in self._stream_blocked_response(
-                safety, message_id, effective_language, translation, translation_info
+                safety,
+                message_id,
+                effective_language,
+                translation,
+                translation_info,
+                crisis_markdown=self._crisis_fallback_markdown(crisis, effective_language, request),
             ):
                 yield chunk
             return

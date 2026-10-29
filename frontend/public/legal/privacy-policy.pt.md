@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-27
+lastUpdated: 2026-10-29
 ---
 
 # Política de Privacidade
 
 > _Esta tradução foi gerada por inteligência artificial e é fornecida apenas como conveniência. Em caso de omissão, ambiguidade ou contradição com o original em inglês, prevalece a versão em inglês, que é a canônica._
 
-Última atualização: 27 de outubro de 2026
+Última atualização: 29 de outubro de 2026
 
 ## Quem somos
 
@@ -38,6 +38,7 @@ O texto da sua mensagem é usado por esses provedores **exclusivamente** para ge
 - Não exigimos cadastro de conta.
 - Não coletamos seu nome, endereço de e-mail ou número de telefone.
 - Não rastreamos sua localização.
+- **País aproximado, apenas para números de emergência**: se a sua mensagem sugerir que você ou outra pessoa pode estar em perigo, deduzimos o seu país a partir da sua conexão (o cabeçalho de país da Cloudflare) ou do idioma do seu dispositivo, somente para mostrar os números locais corretos de emergência e de apoio. Ele nunca é armazenado.
 - Não vendemos seus dados a terceiros.
 
 ## Histórico de conversas

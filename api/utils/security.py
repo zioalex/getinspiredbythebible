@@ -263,6 +263,40 @@ async def require_rate_limit(request: Request) -> None:
         )
 
 
+# Cosmetic violations that must never pre-empt the crisis path (BITB-251).
+_CRISIS_BYPASS_VIOLATIONS = frozenset({ViolationType.PROFANITY, ViolationType.REPEATED_CHARS})
+
+_crisis_keyword_filter: "MultiLanguageContentFilter | None" = None
+_REPEAT_RUN = re.compile(r"(\w)\1{2,}", re.UNICODE)
+
+
+def _has_crisis_wording(message: str) -> bool:
+    """True when the text contains self-harm, violence or murder-suicide wording (any language).
+
+    Deliberately broad: it only decides whether the *cosmetic* route filter steps aside; the
+    real safety pipeline (ChatService._check_content_safety) still decides allow/block.
+    """
+    global _crisis_keyword_filter
+    if _crisis_keyword_filter is None:
+        _crisis_keyword_filter = MultiLanguageContentFilter()
+    normalized = normalize_text(message)
+    flt = _crisis_keyword_filter
+    # A stretched word ("morireeeeee", "nooooo I want to die") is exactly what trips the
+    # repeated-chars filter, so also try the text with every 3+ run collapsed to one/two.
+    variants = (
+        normalized,
+        _REPEAT_RUN.sub(r"\1", normalized),
+        _REPEAT_RUN.sub(r"\1\1", normalized),
+    )
+    return any(
+        flt.find_all_self_harm_spans(text)
+        or flt.find_violence_matches(text)
+        or flt.find_hard_violence_matches(text)
+        or flt.find_murder_suicide_matches(text)
+        for text in dict.fromkeys(variants)
+    )
+
+
 async def check_content_filter(request: Request) -> None:
     """
     FastAPI dependency to check content against filter.
@@ -288,6 +322,17 @@ async def check_content_filter(request: Request) -> None:
 
     content_filter = get_content_filter()
     allowed, violation_type, reason = content_filter.check(message)
+
+    if not allowed and violation_type in _CRISIS_BYPASS_VIOLATIONS and _has_crisis_wording(message):
+        # BITB-251: "f*** this, I want to kill myself" / "nooooo I want to die" must reach
+        # the safety pipeline so the crisis card is shown, not the generic blocked toast.
+        # Only the cosmetic filters (profanity, repeated chars) yield; URL/spam still block.
+        # Never log message text.
+        logger.info(
+            "Content filter bypassed for crisis wording",
+            extra={"violation_type": violation_type.value if violation_type else None},
+        )
+        return
 
     if not allowed:
         ip_address = get_client_ip(request)

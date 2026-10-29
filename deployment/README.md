@@ -1064,6 +1064,21 @@ without a token.
 
 **Symptom if wrong:** Error 526 (Invalid SSL Certificate) when set to "Full (Strict)" without a valid origin cert installed.
 
+### IP Geolocation (crisis card, BITB-251)
+
+The API reads Cloudflare's `CF-IPCountry` header to show the emergency and crisis numbers
+of the country the user is actually in (see `docs/HOW-TO-VERIFY-CRISIS-RESOURCES.md`).
+Cloudflare only adds that header when the setting is on:
+
+1. Go to **Cloudflare Dashboard** -> your domain -> **Network**
+2. Set **IP Geolocation** to **On** (free on every plan; no geo-IP database, nothing is stored)
+3. The proxied record that serves `api.voxquieta.org` must be **Proxied** (orange cloud)
+
+**Symptom if missing:** the crisis card still appears, but it falls back to the client's
+locale region, then the language default (for Arabic: international link only), so a traveller
+or VPN user may be shown the wrong country's numbers until they pick theirs in the card.
+`XX` (unknown) and `T1` (Tor) are ignored by the API.
+
 ### Origin Certificate Creation
 
 When creating a new Cloudflare Origin Certificate:

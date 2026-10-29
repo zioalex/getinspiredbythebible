@@ -1,0 +1,38 @@
+name: Crisis Resources Staleness
+
+# BITB-251: weekly check of the emergency / crisis-line registry
+# (api/utils/crisis_resources.json). Fails when any entry has verified_on null or
+# older than 180 days, or when any source_url no longer answers 2xx/3xx.
+#
+# Deliberately NOT a pull_request check: PRs must never go red just because time
+# passed. A red run here means "a human must re-verify the numbers"; follow
+# docs/HOW-TO-VERIFY-CRISIS-RESOURCES.md, then bump verified_on / verified_by in a PR.
+#
+# Manual run: Actions -> Crisis Resources Staleness -> Run workflow.
+# Local run:  python3 scripts/check_crisis_resources.py [--skip-urls]
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    # Mondays 07:23 UTC.
+    - cron: "23 7 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crisis-resources-staleness
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Verify crisis resources are fresh and reachable
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Check verification dates and source URLs
+        run: python3 scripts/check_crisis_resources.py

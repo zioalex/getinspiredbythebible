@@ -68,13 +68,16 @@ class TestGetCompassionateAddendum:
         result = get_compassionate_addendum()
         assert result is COMPASSIONATE_RESPONSE_ADDENDUM
 
-    def test_contains_crisis_resources(self):
+    def test_points_to_card_and_forbids_writing_numbers(self):
+        """BITB-251: numbers come from the crisis card, never from the model."""
         result = get_compassionate_addendum()
-        assert "988" in result  # US crisis line
+        assert "crisis card" in result
+        assert "NEVER write phone numbers" in result
 
-    def test_contains_international_resource(self):
+    def test_contains_no_hardcoded_numbers_or_links(self):
         result = get_compassionate_addendum()
-        assert "findahelpline" in result
+        assert "988" not in result
+        assert "findahelpline" not in result
 
     def test_not_empty(self):
         assert len(get_compassionate_addendum()) > 50
@@ -149,7 +152,7 @@ class TestBuildMessagesCompassionateMode:
         )
         system_content = msgs[0].content
         assert "URGENT" in system_content  # from COMPASSIONATE_RESPONSE_ADDENDUM
-        assert "988" in system_content
+        assert "crisis card" in system_content
 
     def test_compassionate_addendum_appended_not_prepended(self):
         service = _make_service()
