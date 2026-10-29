@@ -59,6 +59,18 @@ interface AnalyticsHelper {
         /** User started reading an answer aloud (BITB-119). */
         const val EVENT_TTS_STARTED = "tts_started"
 
+        /** An answer was read to the end (last utterance finished) (BITB-247). */
+        const val EVENT_TTS_COMPLETED = "tts_completed"
+
+        /**
+         * Reading never started: `speak()` was refused (no voice / audio focus denied) or the
+         * engine produced no `onStart` within the watchdog window (BITB-247).
+         */
+        const val EVENT_TTS_START_FAILED = "tts_start_failed"
+
+        /** The platform engine reported `onError` for the answer being read (BITB-247). */
+        const val EVENT_TTS_ERROR = "tts_error"
+
         /** Listen is enabled but this device has no on-device voice for the language (BITB-119). */
         const val EVENT_TTS_UNAVAILABLE = "tts_unavailable"
 

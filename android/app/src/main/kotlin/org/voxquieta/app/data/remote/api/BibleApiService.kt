@@ -3,6 +3,7 @@ package org.voxquieta.app.data.remote.api
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ChatRequestDto
 import org.voxquieta.app.data.remote.models.ChurchSearchRequestDto
+import org.voxquieta.app.data.remote.models.ClientEventRequestDto
 import org.voxquieta.app.data.remote.models.ChurchSearchResponseDto
 import org.voxquieta.app.data.remote.models.ConfigResponseDto
 import org.voxquieta.app.data.remote.models.ContactRequestDto
@@ -63,6 +64,13 @@ interface BibleApiService {
      */
     @GET("config")
     suspend fun getConfig(): ConfigResponseDto
+
+    /**
+     * Reports one read-aloud telemetry event (BITB-247). Fire-and-forget: callers ignore the
+     * result and swallow failures; it must never affect speech.
+     */
+    @POST("api/v1/client-events")
+    suspend fun postClientEvent(@Body body: ClientEventRequestDto): Response<Unit>
 
     /**
      * Submits thumbs-up / thumbs-down feedback for a finished assistant message.

@@ -27,6 +27,7 @@ import {
   speak,
   stop,
   subscribe,
+  subscribeOutcomes,
 } from "@/lib/speech";
 
 /** BITB-241: how long the "speech engine didn't respond" message stays visible. */
@@ -75,6 +76,24 @@ export default function ListenButton({
     () => null,
   );
   const startFailed = startFailedId === messageId;
+
+  // BITB-247: report how this answer's reading ended (once per Listen: the outcomes are
+  // mutually exclusive per speak() call, so a re-listen after an outcome counts again).
+  useEffect(
+    () =>
+      subscribeOutcomes((id, outcome) => {
+        if (id !== messageId) return;
+        reportClientEvent(
+          outcome === "completed"
+            ? "tts_completed"
+            : outcome === "start_failed"
+              ? "tts_start_failed"
+              : "tts_error",
+          locale,
+        );
+      }),
+    [messageId, locale],
+  );
 
   // The message goes away on its own (the next tap clears it via speak()).
   useEffect(() => {

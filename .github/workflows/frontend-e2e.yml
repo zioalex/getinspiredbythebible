@@ -1,0 +1,73 @@
+name: Frontend E2E
+
+# BITB-250: cross-browser read-aloud e2e. Runs frontend/e2e/read-aloud.spec.ts on Chromium,
+# Firefox, WebKit and Mobile Safari against a production build served by Playwright's webServer
+# (see frontend/playwright.config.ts). The chat backend and speechSynthesis are mocked in the
+# spec, so no secrets or services are needed. Not a required check yet; make it required once
+# it has been stable for a while.
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  read-aloud-e2e:
+    name: Read-aloud e2e (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit, "Mobile Safari"]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22.x"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        # Pinned: the spec mocks this API URL (API_ORIGIN in read-aloud.spec.ts). Same origin as
+        # the app, so the mocked backend needs no CORS preflight.
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3000/e2e-api
+        run: npm run build
+
+      - name: Install Playwright browser
+        # Chromium is the base install for every project; WebKit also serves Mobile Safari.
+        run: >-
+          npx playwright install --with-deps ${{ matrix.project == 'Mobile Safari' && 'webkit' || matrix.project }}
+
+      - name: Run read-aloud spec
+        # CI=true (set by Actions) makes playwright.config.ts start `npm run start` on :3000.
+        run: npx playwright test e2e/read-aloud.spec.ts --project="${{ matrix.project }}"
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ strategy.job-index }}
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore

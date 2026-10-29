@@ -10,8 +10,13 @@ import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import androidx.annotation.RequiresApi
 import dagger.hilt.android.qualifiers.ApplicationContext
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import timber.log.Timber
 import java.util.Locale
@@ -26,6 +31,12 @@ import javax.inject.Singleton
  * ViewModel/UI tests can use a fake instead of the platform `TextToSpeech`.
  */
 interface SpeechEngine {
+    /**
+     * BITB-247: outcomes of a reading, for telemetry. Hot, no replay: only collectors present
+     * when an event happens see it. Emission never blocks or fails speech.
+     */
+    val events: SharedFlow<SpeechEvent>
+
     /** True once the platform engine has initialised and its voices can be queried. */
     val isReady: StateFlow<Boolean>
 
@@ -65,6 +76,24 @@ interface SpeechEngine {
 
     /** Stops speaking immediately, releases audio focus and discards any paused position. */
     fun stop()
+}
+
+/** BITB-247: a reading outcome reported by [SpeechEngine.events]; [id] is the message id. */
+sealed interface SpeechEvent {
+    val id: String
+
+    /** The last utterance of the call finished: the answer was read to the end. */
+    data class Completed(override val id: String) : SpeechEvent
+
+    /** The platform engine reported an error for the call. */
+    data class Error(override val id: String) : SpeechEvent
+
+    /**
+     * The engine produced no utterance callback within [AndroidSpeechEngine.START_TIMEOUT_MS].
+     * Telemetry only: playback is NOT stopped. If the engine starts late the reading keeps
+     * playing, and its Completed/Error is suppressed (one outcome per call).
+     */
+    data class StartFailed(override val id: String) : SpeechEvent
 }
 
 /**
@@ -120,6 +149,11 @@ class AndroidSpeechEngine @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : SpeechEngine {
 
+    companion object {
+        /** No `onStart` within this long after speak() means the engine never started (BITB-247). */
+        const val START_TIMEOUT_MS = 3_000L
+    }
+
     private val _isReady = MutableStateFlow(false)
     override val isReady: StateFlow<Boolean> = _isReady.asStateFlow()
 
@@ -128,6 +162,10 @@ class AndroidSpeechEngine @Inject constructor(
 
     private val _pausedId = MutableStateFlow<String?>(null)
     override val pausedId: StateFlow<String?> = _pausedId.asStateFlow()
+
+    // BITB-247: extraBufferCapacity + tryEmit so callbacks (binder thread) never suspend.
+    private val _events = MutableSharedFlow<SpeechEvent>(extraBufferCapacity = 16)
+    override val events: SharedFlow<SpeechEvent> = _events.asSharedFlow()
 
     private var tts: TextToSpeech? = null
 
@@ -156,6 +194,44 @@ class AndroidSpeechEngine @Inject constructor(
     @Volatile private var currentChunks: List<String> = emptyList()
     @Volatile private var currentLanguageTag: String = ""
     @Volatile private var playingIndex = 0
+
+    // BITB-247: start watchdog. `started` flips on the first utterance callback (onStart,
+    // onBeginSynthesis, onRangeStart or onDone) of the current call; if none arrives by
+    // START_TIMEOUT_MS, StartFailed is emitted. Telemetry must not change playback, so the
+    // reading is left running; `startFailedReported` then suppresses that call's later
+    // Completed/Error so a call yields a single outcome.
+    @Volatile private var started = false
+    @Volatile private var startFailedReported = false
+    private var cancelWatchdog: (() -> Unit)? = null
+
+    /**
+     * Schedules [block] after the delay and returns a cancel function. Replaceable in tests so
+     * the timeout can be driven without real time.
+     */
+    internal var watchdogScheduler: (Long, () -> Unit) -> (() -> Unit) = { delayMs, block ->
+        val handler = Handler(Looper.getMainLooper())
+        val runnable = Runnable { block() }
+        handler.postDelayed(runnable, delayMs)
+        val cancel: () -> Unit = { handler.removeCallbacks(runnable) }
+        cancel
+    }
+
+    @Synchronized
+    private fun armWatchdog(callToken: Long, id: String) {
+        disarmWatchdog()
+        cancelWatchdog = watchdogScheduler(START_TIMEOUT_MS) {
+            if (token == callToken && !started && !startFailedReported && _speakingId.value == id) {
+                startFailedReported = true
+                _events.tryEmit(SpeechEvent.StartFailed(id))
+            }
+        }
+    }
+
+    @Synchronized
+    private fun disarmWatchdog() {
+        cancelWatchdog?.invoke()
+        cancelWatchdog = null
+    }
 
     private val speechAttributes: AudioAttributes = AudioAttributes.Builder()
         // USAGE_ASSISTANT is API 26; minSdk is 24.
@@ -227,21 +303,55 @@ class AndroidSpeechEngine @Inject constructor(
         override fun onStart(utteranceId: String?) {
             // Ids are "$token:$index"; remember which chunk is audible for resume().
             if (!belongsToCurrentCall(utteranceId)) return
+            markStarted()
             utteranceId?.substringAfter(':')?.toIntOrNull()?.let { playingIndex = it }
         }
 
+        // BITB-247: other signs the engine is alive, so a late onStart doesn't look like a failure.
+        override fun onBeginSynthesis(
+            utteranceId: String?,
+            sampleRateInHz: Int,
+            audioFormat: Int,
+            channelCount: Int,
+        ) {
+            if (belongsToCurrentCall(utteranceId)) markStarted()
+        }
+
+        override fun onRangeStart(utteranceId: String?, start: Int, end: Int, frame: Int) {
+            if (belongsToCurrentCall(utteranceId)) markStarted()
+        }
+
         override fun onDone(utteranceId: String?) {
-            if (utteranceId != null && utteranceId == lastUtteranceId) finish()
+            if (belongsToCurrentCall(utteranceId)) markStarted()
+            if (utteranceId != null && utteranceId == lastUtteranceId) {
+                if (!startFailedReported) {
+                    currentId?.let { _events.tryEmit(SpeechEvent.Completed(it)) }
+                }
+                finish()
+            }
         }
 
         @Deprecated("Deprecated in Java")
         override fun onError(utteranceId: String?) {
-            if (belongsToCurrentCall(utteranceId)) stop()
+            reportErrorAndStop(utteranceId)
         }
 
         override fun onError(utteranceId: String?, errorCode: Int) {
-            if (belongsToCurrentCall(utteranceId)) stop()
+            reportErrorAndStop(utteranceId)
         }
+    }
+
+    private fun reportErrorAndStop(utteranceId: String?) {
+        if (!belongsToCurrentCall(utteranceId)) return
+        if (!startFailedReported) {
+            currentId?.let { _events.tryEmit(SpeechEvent.Error(it)) }
+        }
+        stop()
+    }
+
+    private fun markStarted() {
+        started = true
+        disarmWatchdog()
     }
 
     private fun belongsToCurrentCall(utteranceId: String?): Boolean =
@@ -285,6 +395,9 @@ class AndroidSpeechEngine @Inject constructor(
         if (chunks.isEmpty()) return false
         // Any new speak() discards a paused position (one position at a time; BITB-205).
         _pausedId.value = null
+        // A new tap starts a fresh attempt; resume() keeps the flag so one tap never yields
+        // two outcomes (BITB-247).
+        startFailedReported = false
         return startSpeaking(id, chunks, languageTag, fromIndex = 0)
     }
 
@@ -308,6 +421,7 @@ class AndroidSpeechEngine @Inject constructor(
         currentChunks = chunks
         currentLanguageTag = languageTag
         playingIndex = fromIndex
+        started = false
         engine.voice = voice
         _speakingId.value = id
         chunks.forEachIndexed { index, chunk ->
@@ -321,6 +435,7 @@ class AndroidSpeechEngine @Inject constructor(
                 utteranceId,
             )
         }
+        armWatchdog(myToken, id)
         return true
     }
 
@@ -328,6 +443,7 @@ class AndroidSpeechEngine @Inject constructor(
         val id = _speakingId.value ?: return
         token++ // invalidate callbacks from the interrupted queue
         lastUtteranceId = null
+        disarmWatchdog()
         runCatching { tts?.stop() }
         _speakingId.value = null
         _pausedId.value = id
@@ -372,6 +488,7 @@ class AndroidSpeechEngine @Inject constructor(
     }
 
     private fun finish() {
+        disarmWatchdog()
         _speakingId.value = null
         clearPosition()
         abandonFocus()

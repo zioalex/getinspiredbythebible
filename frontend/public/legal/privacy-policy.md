@@ -1,10 +1,10 @@
 ---
-lastUpdated: 2026-10-22
+lastUpdated: 2026-10-27
 ---
 
 # Privacy Policy
 
-Last updated: October 22, 2026
+Last updated: October 27, 2026
 
 ## Who We Are
 
@@ -80,6 +80,8 @@ with a passphrase only you know, so it stays in your hands even in transit.
 The Listen button reads answers aloud with your browser's built-in speech synthesis. By default it uses only offline voices installed on your device, so the text of the answer never leaves your device for this feature.
 
 Some browsers offer only online voices for your language. We use an online voice only if you choose "Allow online voices". In that case your browser sends the text of the answer being read to the browser vendor's speech service (for example Google, Microsoft or Apple), which handles it under its own terms; we do not receive or store it. Your choice is saved only on your device, and you can revoke it at any time with the "Allow online voices" switch in the menu, which also stops any reading in progress.
+
+We count read-aloud use anonymously, by language, browser family and operating system family (for example "Firefox on Linux"), so we can tell where the feature works and where it fails. These counts contain no text, voice names, user-agent strings, IP addresses or identifiers.
 
 ## Data Retention
 

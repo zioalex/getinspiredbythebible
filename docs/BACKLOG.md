@@ -21,6 +21,13 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-10-28: BITB-086 ✅ Done — both deferred client-side ACs (web reference consumer + corrupt-span degradation) completed via BITB-109 (PR #1055); backend contract shipped in PR #985; story moved to docs/DONE/ (this PR)
+- 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
+- 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
+- 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
+- 2026-10-27: BITB-248 in progress — web read aloud still stuck on Pause on Snap Firefox: start watchdog no longer trusts speechSynthesis.speaking; follow-up to BITB-241 (PR #1226)
+- 2026-10-27: BITB-246 created — visually check the read-aloud start-failure notice beside the action rail; follow-up to BITB-241 (renumbered from 244, taken on main by PR #1225)
+- 2026-10-27: BITB-247 created — count read-aloud start failures (web telemetry); follow-up to BITB-241 (renumbered from 245, taken on main by PR #1225)
+- 2026-10-27: BITB-241 done — web read aloud no longer hangs on Pause on Linux Firefox (PR #1203)
 - 2026-10-27: BITB-223 fix — first apply failed: `verse_grounding_paraphrase_brackets` look-back 72h > Azure's 48h cap; gate moved to 2+ hot hourly bins/day (1-of-1 periods) + look-back regression test (PR pending)
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
@@ -4234,23 +4241,120 @@ BITB-211 follow-up: a visible trailing reference list (not seen so far) would st
 
 ---
 
-### 🚧 BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
+### ✅ BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1203, merged 2026-10-27
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-24
 
-Linux Firefox lists speech-dispatcher voices, so Listen appears, but its engine can stay silent. The app
-then sits on "Pause" forever. Fix: no `cancel()` before `speak()` when idle (a speech-dispatcher race),
-and a start watchdog that retries once, then resets and explains.
+The engine is no longer cancelled before speaking when idle; switching answers always cancels. A 3 s start
+watchdog retries once, then resets and shows a localized "speech engine didn't respond" notice.
 
 **Acceptance Criteria (summary):**
 
-- [ ] No cancel when idle; start watchdog with one retry, then reset and message; first-chunk error handled
-- [ ] Message in 11 locales; Vitest coverage; owner check on Linux Firefox
+- [x] No idle cancel; start watchdog with retry, then reset and notice; first-chunk error handled
+- [x] Notice in 11 locales; Vitest coverage
+- [ ] Owner check on Linux Firefox
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-241-web-read-aloud-silent-start-firefox.md`
+**Follow-ups:** BITB-246, BITB-247
+
+**Full Story:** `docs/DONE/BITB-241-web-read-aloud-silent-start-firefox.md`
+
+---
+
+### 🎯 BITB-246: Visually Check the "Speech Engine Didn't Respond" Notice Beside the Action Rail (Web)
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-27
+
+BITB-241 follow-up: the notice's absolute placement beside the sticky rail was only tested in jsdom.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Screenshots in en, de, ru and ar at phone and desktop widths; fix if needed
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-246-read-aloud-notice-visual-check.md`
+
+---
+
+### 🚧 BITB-247: Read-Aloud Telemetry — Attempts, Completions and Failures (Web + Android)
+
+**Status:** 🚧 In Progress (spec confirmed 2026-10-27)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-27
+
+Widened from "count start failures": full funnel (`started`, `completed`, `start_failed`, `error`,
+`unavailable`) on web and Android, with coarse browser/OS family. A daily aggregate table feeds a weekly
+report section, and the OTel counter feeds a workbook tile. This data decides on a fallback voice.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Endpoint, daily aggregate and migration; web and Android events; weekly report section and workbook tile
+- [ ] Privacy policy sentence in 11 locales; owner sees non-zero counts after deploy
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-247-tts-start-failed-telemetry.md`
+
+---
+
+### 🚧 BITB-248: Web Read Aloud Still Stuck on Pause on Snap Firefox (Start Watchdog Trusted `speaking`)
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-27
+
+BITB-241 follow-up: a hung speech-dispatcher reports `speaking`/`pending` true immediately and never plays.
+The start watchdog took `speaking` as a start, so it never gave up. Only events count now.
+
+**Acceptance Criteria (summary):**
+
+- [x] Regression test with the exact Snap Firefox signature
+- [ ] Owner check: the notice shows instead of a stuck Pause
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-248-start-watchdog-trusts-speaking-flag.md`
+
+---
+
+### 🚧 BITB-249: Read Aloud Stops After the First Chunk on iPhone (Web)
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-27
+
+All chunks were queued up front with no references kept; iOS WebKit (every iPhone browser) drops queued
+utterances after the first, so only about two sentences were read. Fix: speak one chunk at a time from `onend`.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Sequential chunk speaking with retained utterances; pause/resume/stop/watchdog unchanged
+- [ ] Owner check on iPhone Firefox and Safari
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-249-ios-read-aloud-stops-after-first-chunk.md`
+
+---
+
+### 🚧 BITB-250: Cross-Browser Read-Aloud E2E Tests with Browser-Quirk Engine Profiles (Web)
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-28
+
+Playwright on Chromium, Firefox and WebKit, driving the real UI against a fake speech engine whose profiles
+replay known browser bugs (iPhone queue drop, hung speech-dispatcher, late voices, cancel events, online-only,
+no voices), so read-aloud regressions fail CI before they ship.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Fake engine and profiles; the spec fails when BITB-248/249 fixes are reverted
+- [ ] Passes on all three engines; CI job on frontend PRs; README on adding profiles
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-250-cross-browser-read-aloud-e2e.md`
 
 ---
 
