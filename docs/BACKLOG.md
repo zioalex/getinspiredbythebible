@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-29: BITB-251 in review — crisis card on web + Android, Cloudflare country, self-curated registry; passed independent verify after 2 fix rounds
 - 2026-10-29: BITB-253/254 opened — follow-ups from BITB-251 verification (keyword-fallback Bible-narrative card; Llama Guard S11 combos get no card)
 - 2026-10-29: BITB-251 in progress — plan approved (crisis overrides profanity filter, directed_harm excluded, unverified numbers shown + flagged, Android Room migration)
 - 2026-10-29: BITB-251 spec revised — country from Cloudflare IP geolocation, self-curated hotline registry with source + staleness checks (ThroughLine evaluated); BITB-252 threshold/retention confirmed
@@ -124,9 +125,9 @@ re-litigating a settled rule.
 
 ## P0 - Critical (Ship Now)
 
-### 🚧 BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
+### 🔍 BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
 
-**Status:** 🚧 In Progress — spec + plan approved
+**Status:** 🔍 In Review — verified, awaiting PR CI + owner number verification
 **Size:** L
 **Created:** 2026-10-28
 

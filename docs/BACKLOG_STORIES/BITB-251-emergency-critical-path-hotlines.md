@@ -1,6 +1,6 @@
 # BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
 
-**Status:** 🚧 In Progress — spec + plan approved 2026-10-29
+**Status:** 🔍 In Review — verified (3 verify rounds) 2026-10-29
 **Priority:** P0
 **Size:** L
 **Created:** 2026-10-28
@@ -355,8 +355,8 @@ Sources: [ThroughLine developer docs](https://developer.throughlinecare.com/gene
   `content` chunk, also re-appended to `corrected_message`).
 - Crisis bypass of profanity / repeated-chars now re-runs the remaining content-filter checks
   (`ContentFilter.check(skip=...)`), so a URL hidden behind profanity still blocks.
-- `GET /api/v1/crisis-resources?country=XX&language=xx&kind=self_harm|threat_to_others`
-  (rate-limited, no Turnstile, counts only). Web and Android re-render the card in place after the
+- `POST /api/v1/crisis-resources` with JSON body `{country, language, kind}`. It is POST so the
+  picked country never appears in a URL or in request telemetry (verify round 2). It is rate-limited, no Turnstile, counts only). Web and Android re-render the card in place after the
   country pick and save the new card with the conversation.
 - Cards with no `emergency` show a localized "call your local emergency number (112 ...)" line with
   112 as a dial target.
