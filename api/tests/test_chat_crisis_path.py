@@ -86,13 +86,18 @@ DIRECTED_BLOCKED = _SafetyOutcome(
 )
 
 # (outcome, expected kind) for every trigger outcome.
-TRIGGERS = [
-    pytest.param(SELF_HARM_ALLOWED, "self_harm", id="compassionate"),
-    pytest.param(SELF_HARM_BLOCKED, "self_harm", id="self_harm_blocked"),
-    pytest.param(AMBIGUOUS_BLOCKED, "self_harm", id="murder_suicide_ambiguous"),
-    pytest.param(THREAT_BLOCKED, "threat_to_others", id="threat_to_others"),
+_TRIGGER_CASES: list[tuple[_SafetyOutcome, str, str]] = [
+    (SELF_HARM_ALLOWED, "self_harm", "compassionate"),
+    (SELF_HARM_BLOCKED, "self_harm", "self_harm_blocked"),
+    (AMBIGUOUS_BLOCKED, "self_harm", "murder_suicide_ambiguous"),
+    (THREAT_BLOCKED, "threat_to_others", "threat_to_others"),
 ]
-BLOCKED_TRIGGERS = [t for t in TRIGGERS if not t.values[0].allowed]
+TRIGGERS = [pytest.param(outcome, kind, id=id_) for outcome, kind, id_ in _TRIGGER_CASES]
+BLOCKED_TRIGGERS = [
+    pytest.param(outcome, kind, id=id_)
+    for outcome, kind, id_ in _TRIGGER_CASES
+    if not outcome.allowed
+]
 # Paths reachable after an ALLOWED safety outcome.
 ALLOWED_PATHS = ["off_topic", "clarification", "scripture_unavailable", "normal"]
 
