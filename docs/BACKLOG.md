@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-28: BITB-254 in progress — follow-up chips stop after a few turns: clients echo chips back so the model keeps seeing the trailer; history-aware verse filter; suppressed-chips counter (PR pending)
 - 2026-10-29: BITB-224 in progress — root cause: azurerm standard web test enabled defaults to false and main.tf never set it; pin enabled=true + scheduled webtests-enabled guard in prod-deploy-drift.yml (PR pending)
 - 2026-10-28: BITB-086 ✅ Done — both deferred client-side ACs (web reference consumer + corrupt-span degradation) completed via BITB-109 (PR #1055); backend contract shipped in PR #985; story moved to docs/DONE/ (this PR)
 - 2026-10-28: BITB-253 created — Integration Tests intermittently fail at "Load CI test data"; follow-up to BITB-250
@@ -287,6 +288,28 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🚧 BITB-254: Follow-Up Chips Stop Appearing After a Few Turns (Web + Android)
+
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-28
+
+The server strips the `<!-- FOLLOWUPS -->` trailer and clients echo the stripped body as history, so the model
+copies its own trailer-less earlier turns and stops suggesting. Clients now echo each turn's `follow_ups`
+and the server re-attaches a sanitized trailer; the verse filter accepts refs from recent history; a
+`chat.follow_ups.suppressed` counter records why chips were dropped.
+
+**Acceptance Criteria (summary):**
+
+- [ ] History trailer re-attached only when follow-ups are enabled; echoed text sanitized
+- [ ] Suggestions citing verses from recent history are kept (11 languages)
+- [ ] Counter fires with the right reason in `chat()` and `chat_stream()`
+- [ ] Web and Android send `follow_ups` on assistant history messages
+- [ ] Owner: check the suppressed rate by `history_turns` bucket after deploy
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-254-follow-up-chips-stop-after-few-turns.md`
 
 ### 🎯 BITB-243: Fast Pre-commit Commit Stage (Slow Hooks → pre-push)
 

@@ -3052,6 +3052,52 @@ class ChatViewModelTest {
         assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
     }
 
+    // ── BITB-254: chips are echoed back in conversation_history ──────────────
+
+    private fun followUpTurnsRequests(): List<ChatRequest> {
+        val requests = mutableListOf<ChatRequest>()
+        var call = 0
+        every { repository.chatStream(capture(requests)) } answers {
+            call++
+            if (call == 1) {
+                flowOf(
+                    StreamChunk(type = "completion", followUps = listOf("a?", "b?")),
+                    StreamChunk(content = "First answer", done = true),
+                )
+            } else {
+                flowOf(StreamChunk(content = "Second answer", done = true))
+            }
+        }
+        viewModel.sendMessage("First")
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.sendMessage("Second")
+        testDispatcher.scheduler.advanceUntilIdle()
+        return requests
+    }
+
+    @Test
+    fun `followUps are stored on the assistant message and echoed in the next request (flag on)`() = runTest {
+        ChatViewModel.followUpsEnabledForTest = true
+        val requests = followUpTurnsRequests()
+
+        val firstAssistant = viewModel.uiState.value.messages.first { it.role == Message.Role.ASSISTANT }
+        assertEquals(listOf("a?", "b?"), firstAssistant.followUps)
+        val echoed = requests[1].conversationHistory.first { it.role == Message.Role.ASSISTANT }
+        assertEquals(listOf("a?", "b?"), echoed.followUps)
+    }
+
+    @Test
+    fun `followUps are still stored and echoed when the rollout flag is off`() = runTest {
+        ChatViewModel.followUpsEnabledForTest = false
+        val requests = followUpTurnsRequests()
+
+        // Chips stay hidden (UI-state gate unchanged)...
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+        // ...but the model still sees its earlier trailer.
+        val echoed = requests[1].conversationHistory.first { it.role == Message.Role.ASSISTANT }
+        assertEquals(listOf("a?", "b?"), echoed.followUps)
+    }
+
     // ── BITB-119: read aloud ──────────────────────────────────────────────
 
     private fun newViewModel(
