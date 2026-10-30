@@ -1,6 +1,6 @@
 # BITB-250: Cross-Browser Read-Aloud E2E Tests with Browser-Quirk Engine Profiles (Web)
 
-**Status:** 🚧 In Progress (scope confirmed 2026-10-28)
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-28
@@ -69,14 +69,18 @@ and no workflow runs the e2e suite on pull requests (`prod-browser-smoke.yml` on
 
 ## Acceptance criteria
 
-- [ ] The fake engine and its profiles, with each profile reproducing its documented bug. Proof: the
+- [x] The fake engine and its profiles, with each profile reproducing its documented bug. Proof: the
       spec fails if the BITB-248 fix or the BITB-249 sequential speaking is reverted (verify locally on
       Chromium by temporarily reverting, then restore)
-- [ ] The spec passes on Chromium locally; Firefox and WebKit pass in CI
-- [ ] A CI job runs on frontend PRs and uploads the report on failure
-- [ ] README note on adding profiles
+- [x] The spec passes on Chromium locally; Firefox and WebKit pass in CI
+- [x] A CI job runs on frontend PRs and uploads the report on failure
+- [x] README note on adding profiles
 
 ## Out of scope
 
 - Real devices (BrowserStack/Sauce) and real voice output
 - Android app (covered by the Robolectric/instrumented tiers)
+
+## Follow-ups
+
+- BITB-253
