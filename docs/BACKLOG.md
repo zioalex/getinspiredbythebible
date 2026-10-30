@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 
 ## Changelog
 
@@ -21,6 +21,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-10-28: BITB-254 in progress — follow-up chips stop after a few turns: clients echo chips back so the model keeps seeing the trailer; history-aware verse filter; suppressed-chips counter (PR pending)
+- 2026-10-29: BITB-224 in progress — root cause: azurerm standard web test enabled defaults to false and main.tf never set it; pin enabled=true + scheduled webtests-enabled guard in prod-deploy-drift.yml (PR pending)
+- 2026-10-28: BITB-086 ✅ Done — both deferred client-side ACs (web reference consumer + corrupt-span degradation) completed via BITB-109 (PR #1055); backend contract shipped in PR #985; story moved to docs/DONE/ (this PR)
 - 2026-10-28: BITB-253 created — Integration Tests intermittently fail at "Load CI test data"; follow-up to BITB-250
 - 2026-10-28: BITB-252 created — Android read aloud stays on Pause when the TTS engine never starts; follow-up to BITB-247
 - 2026-10-28: BITB-251 created — read-aloud fallback voice (Azure Speech or Piper), decided from BITB-247 data; follow-up to BITB-247/248
@@ -38,10 +40,12 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-27: BITB-223 fix — first apply failed: `verse_grounding_paraphrase_brackets` look-back 72h > Azure's 48h cap; gate moved to 2+ hot hourly bins/day (1-of-1 periods) + look-back regression test (PR pending)
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
+- 2026-10-27: BITB-243 renumbered from BITB-241 — that ID was claimed two days earlier by open PR #1203 (web read-aloud, Linux Firefox); content unchanged (PR #1215)
 - 2026-10-27: BITB-235 in review — story-ID duplicate-claim CI check added (PR #1221)
 - 2026-10-27: BITB-235 in progress — ID-allocation rule codified in AGENTS.md (origin/main + every open PR's story files, claim = open PR, first-claimant keeps on collision); BITB-241 double-claim resolved: #1203 keeps 241, #1215 renumbered to 243; CI duplicate-ID check still open (PR #1220)
 - 2026-10-26: BITB-242 created — platform-selective feature flags: server-driven per-platform (web/android) flag registry on GET /config, explicit per-flag fail policies, parity fixture, follow-ups pilot (PR #1220)
 - 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
+- 2026-10-26: BITB-243 opened — fast pre-commit commit stage (slow hooks moved to pre-push) (PR #1215)
 - 2026-10-25: BITB-182 done — KubeOpenCode controller RBAC missing (leader election + CRD access); agents not starting (PR #1204)
 - 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
 - 2026-10-24: BITB-241 in progress — web read aloud stuck on Pause with no audio on Linux Firefox: no idle cancel, start watchdog with retry and notice (PR #1203)
@@ -307,6 +311,20 @@ and the server re-attaches a sanitized trailer; the verse filter accepts refs fr
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-254-follow-up-chips-stop-after-few-turns.md`
 
+### 🎯 BITB-243: Fast Pre-commit Commit Stage (Slow Hooks → pre-push)
+
+**Status:** 🚧 In Progress · **Size:** M · **Opened:** 2026-10-26
+
+Every `git commit` waits on ~16 hooks (MyPy, Bandit, hadolint, Prettier ×2,
+yamllint, ESLint, shellcheck, markdownlint, detect-secrets) that already run
+in CI on every PR. Move the slow ones to the `pre-push` stage so commits are
+seconds-fast; CI and `make pre-commit` behavior unchanged.
+
+**Acceptance:** same hook set in `--all-files`, `install-hooks` installs the
+pre-push hook type, docs updated, timing before/after in the PR description.
+
+Full story: [`BITB-243-fast-commit-hooks.md`](BACKLOG_STORIES/BITB-243-fast-commit-hooks.md)
+
 ---
 
 ### 🔄 BITB-244: Bible Version / Language Selects Overflow the Mobile Menu
@@ -340,21 +358,22 @@ unchanged. GitHub issue #1224.
 
 ---
 
-### 🎯 BITB-224: Availability Web Tests Are Silently Disabled in Production
+### 🚧 BITB-224: Availability Web Tests Are Silently Disabled in Production
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-23
 
 BITB-150's evidence collection caught both availability web tests (`backend_availability`,
-`backend_preflight`) showing `"Enabled": false` in production while Terraform defines them
-as active — and `azurerm_application_insights_standard_web_test` does not manage the ARM
-`Enabled` flag, so neither Terraform nor `prod-deploy-drift.yml` can see or fix this drift.
-The BITB-064 safety net (built after the 2026-07-05 browser-only outage fired no monitor)
-is currently off. Verify when/how they were disabled, decide keep-or-retire deliberately
-(re-enable cost is immaterial), and add a drift guard on the `Enabled` property so a
-future silent disablement pages.
+`backend_preflight`) showing `"Enabled": false` in production while Terraform defines them.
+Root cause (2026-10-29): `azurerm_application_insights_standard_web_test.enabled` is Optional
+with no default (=> false) and `main.tf` never set it, so every apply kept both tests off. The
+`*-availability-failed` / `*-preflight-failed` alerts therefore could not fire. Fix: pin
+`enabled = true` + `retry_enabled = true` in Terraform and add a scheduled `webtests-enabled`
+guard job in `prod-deploy-drift.yml` that pages if a test is ever disabled or missing.
+`backend_probe_failures` is unaffected (it reads `ContainerAppSystemLogs_CL`). Owner-only:
+confirm keep decision, verify `Enabled: true` in production after deploy.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-224-availability-webtests-disabled.md`
 
@@ -5475,10 +5494,11 @@ shipped as native Kotlin). Gates BITB-087 and BITB-088.
 
 ---
 
-### 🚧 BITB-086: Server-Emitted Citation Spans — Linkify Verses Without a Client Regex
+### ✅ BITB-086: Server-Emitted Citation Spans — Linkify Verses Without a Client Regex
 
-**Status:** 🚧 In Progress — backend contract shipped (PR #985); web reference consumer is a
-deliberate fast-follow (see Notes)
+**Status:** ✅ Done (2026-10-28, completed via BITB-109) — backend contract shipped in PR #985;
+web reference consumer + corrupt-span degradation shipped in BITB-109 (PR #1055); story file moved
+to `docs/DONE/` by this PR
 **Size:** L
 **Created:** 2026-07-29
 
@@ -5504,10 +5524,13 @@ revisit — a fourth client is the revisit trigger.
 - [x] Offset unit specified (UTF-16 code units) and asserted with Arabic marks, Devanagari, CJK, emoji
 - [x] `text` + `occurrence` make the contract self-verifying so a Swift client can use substring
       search and ignore offsets
-- [ ] Corrupt spans degrade to plain text, never crash or duplicate — client-side, deferred to the
-      web/iOS consumer work
-- [ ] Web becomes the reference consumer **behind a flag**, regex retained as fallback; parity with
-      the regex path over the shared corpus from `tests/fixtures/` (PR #906)
+- [x] Corrupt spans degrade to plain text, never crash or duplicate — done in BITB-109 (PR #1055):
+      adversarial cases (offsets past end-of-string, mismatched `text`, overlapping ranges) in
+      `frontend/src/lib/citationSpans.test.ts`
+- [x] Web becomes the reference consumer **behind a flag**, regex retained as fallback; parity with
+      the regex path over the shared corpus from `tests/fixtures/` (PR #906) — done in BITB-109
+      (PR #1055): `frontend/src/lib/citationSpans.ts` + `citationSpans.test.ts`, gated by
+      `citationSpansEnabled()` (`frontend/src/lib/featureFlags.ts`)
 - [x] Old clients (no `citations`) provably unaffected — purely additive field, existing
       `verses_cited`/`resolved_verses` tests pass unchanged
 - [x] Does **not** delete the existing three parsers — that stays BITB-059 Phase 3
@@ -5523,7 +5546,15 @@ is now excluded from `citations` — the trailer is invisible-but-present text t
 already treats as a protected region (`linkifyVerses.ts`'s `PROTECTED_REGION_SOURCE`), and without
 this the backend would double-report the same reference as a second, spurious span.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-086-server-emitted-citation-spans.md`
+**Completed (2026-10-28, via BITB-109):** the deferred web-consumer work shipped as BITB-109
+(PR #1055) — `frontend/src/lib/citationSpans.ts`'s `linkifyWithCitations` behind
+`NEXT_PUBLIC_CITATION_SPANS_ENABLED`, per-gap regex fallback (which also covers the documented
+vocalized-Arabic gap), and adversarial corrupt-span tests in `citationSpans.test.ts`. With both
+client-side ACs ticked the story is closed; its full story file moved to `docs/DONE/` (this PR).
+BITB-087's citation dependency is now satisfied — see the ticked prerequisite rows in
+`docs/BACKLOG_STORIES/BITB-085-ios-delivery-approach-decision.md` and `docs/ios/delivery-approach.md`.
+
+**Full Story:** `docs/DONE/BITB-086-server-emitted-citation-spans.md`
 
 ---
 

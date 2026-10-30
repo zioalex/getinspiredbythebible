@@ -1668,7 +1668,8 @@ class TestChatServiceChatStream:
         """Regression guard: citation spans must be computed AFTER grounding
         rewrites a fabricated quote, against corrected_message — not against the
         pre-correction streamed text. Getting this order wrong is the exact bug
-        the story calls out (docs/BACKLOG_STORIES/BITB-086.md)."""
+        the story calls out
+        (docs/DONE/BITB-086-server-emitted-citation-spans.md)."""
         service, llm, _ = _make_chat_service()
         service.search_service = AsyncMock()
         service.search_service.search = AsyncMock(

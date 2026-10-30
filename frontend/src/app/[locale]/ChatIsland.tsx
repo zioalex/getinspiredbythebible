@@ -14,6 +14,7 @@ import {
   Smartphone,
   ArrowRight,
 } from "lucide-react";
+import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import ChatFooterLinks from "@/components/ChatFooterLinks";
@@ -1180,7 +1181,7 @@ export default function ChatIsland({
                 href="/app"
                 className="group mt-8 flex items-center gap-3 sm:gap-4 max-w-lg mx-auto px-4 py-3 sm:px-5 sm:py-4 bg-teal-50 border border-teal-200 rounded-xl hover:border-teal-400 hover:bg-teal-100/70 transition-colors text-left"
               >
-                <img
+                <Image
                   src="/app-icon.png"
                   alt={tWelcome("appTitle")}
                   width={40}

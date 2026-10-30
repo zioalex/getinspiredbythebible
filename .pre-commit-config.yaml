@@ -6,32 +6,42 @@
 repos:
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        stages: [pre-commit]
         exclude: ^frontend/
       - id: end-of-file-fixer
+        stages: [pre-commit]
         exclude: ^frontend/
       - id: check-yaml
+        stages: [pre-commit]
       - id: check-json
+        stages: [pre-commit]
         exclude: ^frontend/
       - id: check-added-large-files
+        stages: [pre-commit]
         args: ["--maxkb=1000"]
         # luther1912.json and hindi.json are committed Bibles (~4-9.5 MB) with
         # no downloadable source; exempt them from the 1 MB cap. See BITB-046
         # and data/bible/LICENSES.md.
         exclude: ^data/bible/translations/(luther1912|hindi)\.json$
       - id: check-merge-conflict
+        stages: [pre-commit]
       - id: check-case-conflict
+        stages: [pre-commit]
       - id: mixed-line-ending
+        stages: [pre-commit]
         args: ["--fix=lf"]
       - id: detect-private-key
+        stages: [pre-commit]
 
   # Python - Black (code formatting)
   - repo: https://github.com/psf/black
     rev: 26.1.0
     hooks:
       - id: black
+        stages: [pre-commit]
         files: ^api/
         args: ["--line-length=100"]
 
@@ -40,6 +50,7 @@ repos:
     rev: v0.2.0
     hooks:
       - id: ruff
+        stages: [pre-commit]
         files: ^api/
         args: ["--select", "E,F,W,C90,I,N", "--ignore", "E501", "--fix", "--exit-non-zero-on-fix"]
 
@@ -48,6 +59,7 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
+        stages: [pre-push]
         files: ^api/
         # api/alembic/ (Alembic's own scaffold, no __init__.py) is excluded from this
         # pinned mypy 1.8.0 hook only: mypy resolves it as a namespace package literally
@@ -70,6 +82,7 @@ repos:
     rev: 1.7.6
     hooks:
       - id: bandit
+        stages: [pre-push]
         files: ^api/
         args: ["-ll", "-i", "--skip", "B101,B601,B608"]
 
@@ -78,6 +91,7 @@ repos:
     rev: v2.12.0
     hooks:
       - id: hadolint-docker
+        stages: [pre-push]
         args: ["--ignore", "DL3008", "--ignore", "DL3018"]
         exclude: .
 
@@ -86,6 +100,7 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
+        stages: [pre-push]
         name: prettier-yaml
         types: [yaml]
         args: ["--prose-wrap", "always", "--print-width", "120"]
@@ -98,6 +113,7 @@ repos:
     rev: v1.33.0
     hooks:
       - id: yamllint
+        stages: [pre-push]
         args:
           - --strict
           - -d
@@ -109,6 +125,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
+        stages: [pre-push]
         args: ["--baseline", ".secrets.baseline"]
         exclude: package-lock.json
 
@@ -117,6 +134,7 @@ repos:
     rev: v0.9.0.6
     hooks:
       - id: shellcheck
+        stages: [pre-push]
         files: \.(sh|bash)$
 
   # Markdown linting
@@ -124,6 +142,7 @@ repos:
     rev: v0.39.0
     hooks:
       - id: markdownlint
+        stages: [pre-push]
         args: ["--fix"]
 
   # Frontend - Prettier (formatting)
@@ -131,6 +150,7 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
+        stages: [pre-push]
         files: ^frontend/
         types_or: [javascript, jsx, ts, tsx, json, yaml, markdown, css]
         exclude: 'package-lock.json|\.next/'
@@ -141,6 +161,7 @@ repos:
   - repo: local
     hooks:
       - id: eslint
+        stages: [pre-push]
         name: eslint
         entry:
           bash -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; cd frontend && npx

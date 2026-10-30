@@ -1,7 +1,10 @@
 # BITB-086: Server-Emitted Citation Spans — Let a Client Linkify Verses Without Its Own Regex
 
-**Status:** 🚧 In Progress — backend contract shipped; web reference consumer deferred as a
-fast-follow once PR #983 (BITB-059) merges (see `docs/BACKLOG.md` Notes for this story)
+**Status:** ✅ Done (completed via BITB-109, 2026-10-28) — backend contract shipped in PR #985
+(2026-08-22); the two deferred client-side acceptance criteria (web reference consumer +
+corrupt-span degradation) were completed by BITB-109 (PR #1055, merged 2026-09-18). Story closed
+and moved to `docs/DONE/` by this PR (this PR's number is unknown at authoring time, so it is
+referenced here rather than guessed).
 **Priority:** P2 (raise to P1 if BITB-087 is scheduled — it is a hard prerequisite)
 **Size:** L (backend contract + web reference consumer + cross-language corpus)
 **Created:** 2026-07-29
@@ -151,15 +154,25 @@ reads badly.
       excludes the surrounding punctuation.
 - [x] A client on the **old** contract (no `citations` field) is provably unaffected — purely
       additive; the full existing chat-stream test suite passes unchanged.
-- [ ] Web consumes `citations` behind a flag, produces byte-identical rendered output to the regex
-      path for the shared corpus, and falls back cleanly when the field is absent. **Deferred** —
-      PR #983 (BITB-059, unmerged) already touches `verseExtraction.ts`/`versePatterns.ts`; this
-      ships as the immediate fast-follow once #983 merges rather than fighting it for the same files.
-- [ ] A client given deliberately corrupt spans (offsets past end-of-string, mismatched `text`,
-      overlapping ranges) renders plain text and does not crash or duplicate content. **Deferred**
-      with the web consumer above — it's a client-side guarantee.
+- [x] Web consumes `citations` behind a flag, produces byte-identical rendered output to the regex
+      path for the shared corpus, and falls back cleanly when the field is absent. **Completed by
+      BITB-109 (PR #1055, 2026-09-18), ticked here 2026-10-28:** `frontend/src/lib/citationSpans.ts`
+      (`linkifyWithCitations`) prefers each valid span and re-runs the regex linkifier over every
+      gap a span doesn't validly cover, gated by `citationSpansEnabled()`
+      (`frontend/src/lib/featureFlags.ts`, `NEXT_PUBLIC_CITATION_SPANS_ENABLED`, default off) and
+      wired through `frontend/src/lib/api.ts` and `ChatMessage`. Corpus parity (byte-identical vs.
+      the regex path), absent-field fallback, and empty-array fallback are asserted in
+      `frontend/src/lib/citationSpans.test.ts`.
+- [x] A client given deliberately corrupt spans (offsets past end-of-string, mismatched `text`,
+      overlapping ranges) renders plain text and does not crash or duplicate content. **Completed
+      by BITB-109 (PR #1055, 2026-09-18), ticked here 2026-10-28:** the adversarial block of
+      `frontend/src/lib/citationSpans.test.ts` asserts that an end past end-of-string, an
+      unrecoverable mismatched `text`, and two spans overlapping the same text all degrade to the
+      plain regex path — no crash, no duplicated link — and that occurrence-index recovery locates
+      a span whose offsets are wrong but whose `text`/`occurrence` are right.
 - [x] `docs/AUDIT_PLAYBOOK.md`'s parity-ledger entry for the verse regex records that a
-      server-authoritative path now exists and which clients use it (backend only, so far).
+      server-authoritative path now exists and which clients use it (backend + web since
+      BITB-109; the playbook row cites `citationSpans.ts` and the default-off flag).
 
 **Also fixed during implementation, not in the original AC list:** a citation located inside the
 `<!-- VERSES: ... -->` structured-citation trailer the system prompt asks the LLM to append (or
