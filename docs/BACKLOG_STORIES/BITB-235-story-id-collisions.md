@@ -1,6 +1,6 @@
 # BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P3
 **Size:** S
 **Created:** 2026-10-23
@@ -32,6 +32,6 @@ add one. That only sees `main`, so PRs open at the same time pick the same numbe
 
 ## Acceptance Criteria
 
-- [ ] Two PRs can no longer merge stories with the same ID unnoticed
+- [x] Two PRs can no longer merge stories with the same ID unnoticed
 - [ ] `AGENTS.md` Backlog Hygiene describes the chosen rule
 - [ ] Decide whether to correct the 1.58.0 `CHANGELOG.md` line for #1195 (BITB-214 → BITB-218) by hand
