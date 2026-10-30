@@ -21,11 +21,18 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-10-29: BITB-255 in review — crisis card on web + Android, Cloudflare country, self-curated registry; passed independent verify after 2 fix rounds
-- 2026-10-29: BITB-257/254 opened — follow-ups from BITB-255 verification (keyword-fallback Bible-narrative card; Llama Guard S11 combos get no card)
+- 2026-10-29: BITB-257/258 opened — follow-ups from BITB-255 verification (keyword-fallback Bible-narrative card; Llama Guard S11 combos get no card)
 - 2026-10-29: BITB-255 in progress — plan approved (crisis overrides profanity filter, directed_harm excluded, unverified numbers shown + flagged, Android Room migration)
 - 2026-10-29: BITB-255 spec revised — country from Cloudflare IP geolocation, self-curated hotline registry with source + staleness checks (ThroughLine evaluated); BITB-256 threshold/retention confirmed
 - 2026-10-28: BITB-256 spec — privacy-safe RAG retrieval-miss logging (derived signals only, no prompt text)
 - 2026-10-28: BITB-255 spec — emergency critical path: deterministic hotline card first for threats to self or others
+- 2026-10-28: BITB-253 created — Integration Tests intermittently fail at "Load CI test data"; follow-up to BITB-250
+- 2026-10-28: BITB-252 created — Android read aloud stays on Pause when the TTS engine never starts; follow-up to BITB-247
+- 2026-10-28: BITB-251 created — read-aloud fallback voice (Azure Speech or Piper), decided from BITB-247 data; follow-up to BITB-247/248
+- 2026-10-28: BITB-250 done — cross-browser read-aloud e2e green on Chromium, Firefox, WebKit and Mobile Safari (#1226)
+- 2026-10-28: BITB-249 done — iPhone reads the whole answer: chunks spoken one at a time from onend (#1226)
+- 2026-10-28: BITB-248 done — Snap Firefox shows the "didn't respond" notice instead of a stuck Pause (#1226)
+- 2026-10-28: BITB-247 done — read-aloud telemetry funnel on web and Android, weekly report and workbook (#1226)
 - 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
 - 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
@@ -37,6 +44,8 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
 - 2026-10-27: BITB-235 in review — story-ID duplicate-claim CI check added (PR #1221)
+- 2026-10-27: BITB-235 in progress — ID-allocation rule codified in AGENTS.md (origin/main + every open PR's story files, claim = open PR, first-claimant keeps on collision); BITB-241 double-claim resolved: #1203 keeps 241, #1215 renumbered to 243; CI duplicate-ID check still open (PR #1220)
+- 2026-10-26: BITB-242 created — platform-selective feature flags: server-driven per-platform (web/android) flag registry on GET /config, explicit per-flag fail policies, parity fixture, follow-ups pilot (PR #1220)
 - 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
 - 2026-10-25: BITB-182 done — KubeOpenCode controller RBAC missing (leader election + CRD access); agents not starting (PR #1204)
 - 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
@@ -3297,6 +3306,46 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-242: Platform-Selective Feature Flags — Server-Driven Per-Platform (Web/Android) Flag Registry
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M (cross-cutting: api + frontend + android + deployment)
+**Created:** 2026-10-26
+
+No way exists to enable a client-facing feature on Web but not Android (or vice versa):
+backend flags (`api/config.py`) are global for all clients, web flags
+(`frontend/src/lib/featureFlags.ts`, `NEXT_PUBLIC_*`) are build-time (flip = rebuild),
+and Android has only compile-time `BuildConfig` fields plus one runtime server flag
+(`features.tts_enabled`, BITB-119). The live case is BITB-080 follow-up chips (PR #1216,
+web-only behind a build-arg) whose contract parks Android behind "its own default-off
+flag" — a fourth ad-hoc mechanism. Fix: generalize the proven `GET /config` pattern into
+a declarative client-flag registry with per-platform maps (`features.web` / `features.android`),
+explicit per-flag fail policies (today folklore: tts fails open, follow-ups fail closed),
+and a shared parity fixture on the verse-grammar model so a server flag without its client
+legs fails CI. Flip = Terraform apply → next `/config` fetch — no web rebuild, no Play
+release. `GET /config` stays additive-only (shipped APKs read it for months; legacy flat
+`features.tts_enabled` untouched). Pilot: follow-ups (generation stays behind global
+`chat_follow_ups_enabled`; rendering becomes per-platform).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Registry (single source of truth) drives `/config` `features.web`/`features.android`;
+      legacy `features.tts_enabled` bit-identical (contract test)
+- [ ] Every flag declares fail policy; shared fixture + generated web artifact + Android
+      parity test + api fixture test (verse-grammar model)
+- [ ] Web `featureEnabled(key)`: server map authoritative, `NEXT_PUBLIC_FOLLOW_UPS_ENABLED`
+      demoted to compiled fallback; unreachable-config case tested
+- [ ] Android `FeatureFlags` holder from `ConfigResponseDto`: offline-safe compiled
+      defaults, unknown/missing keys tolerated
+- [ ] Pilot: follow-up chips resolve per-platform; Android runtime-controllable, no APK release
+- [ ] Old-shaped and future-shaped `/config` both parse on all three clients
+- [ ] Terraform vars + `env-manifest.yaml` rows per flag × platform; flags are public booleans only
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-242-platform-selective-feature-flags.md`
+
+---
+
 ### 🎯 BITB-237: Free-Fleet Expansion — Pre-Gate Verifier for Nemotron, Family-Matched Tier-1 Failovers
 
 **Status:** 🎯 Todo (blocked by PR #1202 merge — same files)
@@ -4046,14 +4095,20 @@ non-`shrink-0` menu wrapper can overflow again. Pick a minimum width and guarant
 
 ### 🔍 BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status:** 🔍 In Review (PR #1221)
+**Status:** 🔍 In Review (allocation rule: PR #1220; CI check: PR #1221)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-10-23
 
 Follow-up of BITB-218/219: "highest ID + 1" only sees `main`, so concurrent PRs pick the same number
 (the header story went 206 → 212 → 213 → 219; this story itself went 223 → 235; #1195 merged titled
-with a stale ID that the 1.58.0 changelog repeats). Add a CI check or reservation rule.
+with a stale ID that the 1.58.0 changelog repeats). **Struck again 2026-10-26:** open PRs #1203
+and #1215 both claimed BITB-241 — the rule still said "check the highest number" without saying
+to look at open PRs; resolved 2026-10-27 (#1203 keeps 241, #1215 renumbered to 243). The
+allocation rule now lives in `AGENTS.md` Backlog Hygiene: highest across `origin/main` **and
+every open PR's story files**, **claim = the open PR**, first-claimant keeps on collision,
+renumber before merge. Remaining: the CI check that fails a PR adding a story file whose ID is
+already claimed on the base or by another open PR.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-235-story-id-collisions.md`
 
@@ -4356,9 +4411,9 @@ BITB-241 follow-up: the notice's absolute placement beside the sticky rail was o
 
 ---
 
-### 🚧 BITB-247: Read-Aloud Telemetry — Attempts, Completions and Failures (Web + Android)
+### ✅ BITB-247: Read-Aloud Telemetry — Attempts, Completions and Failures (Web + Android)
 
-**Status:** 🚧 In Progress (spec confirmed 2026-10-27)
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-27
@@ -4369,16 +4424,19 @@ report section, and the OTel counter feeds a workbook tile. This data decides on
 
 **Acceptance Criteria (summary):**
 
-- [ ] Endpoint, daily aggregate and migration; web and Android events; weekly report section and workbook tile
-- [ ] Privacy policy sentence in 11 locales; owner sees non-zero counts after deploy
+- [x] Endpoint, daily aggregate and migration; web and Android events; weekly report section and workbook tile
+- [x] Privacy policy sentence in 11 locales
+- [ ] Owner sees non-zero counts after deploy
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-247-tts-start-failed-telemetry.md`
+**Follow-ups:** BITB-251, BITB-252
+
+**Full Story:** `docs/DONE/BITB-247-tts-start-failed-telemetry.md`
 
 ---
 
-### 🚧 BITB-248: Web Read Aloud Still Stuck on Pause on Snap Firefox (Start Watchdog Trusted `speaking`)
+### ✅ BITB-248: Web Read Aloud Still Stuck on Pause on Snap Firefox (Start Watchdog Trusted `speaking`)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-27
@@ -4391,13 +4449,15 @@ The start watchdog took `speaking` as a start, so it never gave up. Only events 
 - [x] Regression test with the exact Snap Firefox signature
 - [ ] Owner check: the notice shows instead of a stuck Pause
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-248-start-watchdog-trusts-speaking-flag.md`
+**Follow-ups:** BITB-251
+
+**Full Story:** `docs/DONE/BITB-248-start-watchdog-trusts-speaking-flag.md`
 
 ---
 
-### 🚧 BITB-249: Read Aloud Stops After the First Chunk on iPhone (Web)
+### ✅ BITB-249: Read Aloud Stops After the First Chunk on iPhone (Web)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-27
@@ -4407,16 +4467,16 @@ utterances after the first, so only about two sentences were read. Fix: speak on
 
 **Acceptance Criteria (summary):**
 
-- [ ] Sequential chunk speaking with retained utterances; pause/resume/stop/watchdog unchanged
+- [x] Sequential chunk speaking with retained utterances; pause/resume/stop/watchdog unchanged
 - [ ] Owner check on iPhone Firefox and Safari
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-249-ios-read-aloud-stops-after-first-chunk.md`
+**Full Story:** `docs/DONE/BITB-249-ios-read-aloud-stops-after-first-chunk.md`
 
 ---
 
-### 🚧 BITB-250: Cross-Browser Read-Aloud E2E Tests with Browser-Quirk Engine Profiles (Web)
+### ✅ BITB-250: Cross-Browser Read-Aloud E2E Tests with Browser-Quirk Engine Profiles (Web)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-28
@@ -4427,10 +4487,65 @@ no voices), so read-aloud regressions fail CI before they ship.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Fake engine and profiles; the spec fails when BITB-248/249 fixes are reverted
-- [ ] Passes on all three engines; CI job on frontend PRs; README on adding profiles
+- [x] Fake engine and profiles; the spec fails when BITB-248/249 fixes are reverted
+- [x] Passes on all three engines; CI job on frontend PRs; README on adding profiles
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-250-cross-browser-read-aloud-e2e.md`
+**Follow-ups:** BITB-253
+
+**Full Story:** `docs/DONE/BITB-250-cross-browser-read-aloud-e2e.md`
+
+---
+
+### 🎯 BITB-251: Read-Aloud Fallback Voice When the Browser's Speech Engine Is Missing or Broken (Web)
+
+**Status:** 🎯 Todo (decision pending data)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-28
+
+BITB-247/248 follow-up: where `speechSynthesis` is broken (Snap Firefox) or has no voices, the app can only
+explain it. Decide between Azure Speech and in-page Piper from the BITB-247 telemetry, then build it if chosen.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Owner decision recorded with the telemetry numbers; if built, used only after the watchdog gives up
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-251-read-aloud-fallback-voice.md`
+
+---
+
+### 🎯 BITB-252: Android Read Aloud Stays on Pause When the TTS Engine Never Starts
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-28
+
+BITB-247 follow-up: the Android start watchdog only reports `tts_start_failed`; the reading is left running, so
+a silent engine keeps the Pause control up forever with no message.
+
+**Acceptance Criteria (summary):**
+
+- [ ] After the watchdog and a grace period, stop, return to Listen and show a localized notice (11 locales)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-252-android-tts-never-starts-stays-on-pause.md`
+
+---
+
+### 🎯 BITB-253: Integration Tests Intermittently Fail at "Load CI Test Data"
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-28
+
+Seen twice on PR #1226 before any test ran (Bible load plus Ollama embeddings setup step); one re-run passed.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Root cause from the logs; the step waits or retries the specific operation
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-253-integration-tests-load-ci-data-flake.md`
 
 ---
 

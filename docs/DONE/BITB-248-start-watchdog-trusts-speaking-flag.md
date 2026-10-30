@@ -1,6 +1,6 @@
 # BITB-248: Web Read Aloud Still Stuck on Pause on Snap Firefox (Start Watchdog Trusted `speaking`)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-27
@@ -39,3 +39,7 @@ didn't respond" notice shows.
 
 - Making audio play when the browser's speech engine itself is broken; that is a separate product
   decision (in-page TTS or server TTS)
+
+## Follow-ups
+
+- BITB-251
