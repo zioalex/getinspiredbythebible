@@ -3257,6 +3257,7 @@ never changes routing.
 - [ ] Findings with a go/no-go per language; Jev compared or marked "no access"
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-259-decision-model-intent-routing-spike.md`
+
 ### 🎯 BITB-242: Platform-Selective Feature Flags — Server-Driven Per-Platform (Web/Android) Flag Registry
 
 **Status:** 🎯 Todo
