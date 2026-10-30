@@ -200,6 +200,20 @@
     <string name="error_content_blocked">Auf diese Nachricht konnte ich nicht antworten — unser Sicherheitssystem hat sie zurückgehalten und hat deine Worte vielleicht einfach missverstanden. Versuch bitte, deinen Gedanken anders zu formulieren. Wenn sich etwas falsch anfühlt, melde dich gerne bei uns unter contact@voxquieta.org. Schön, dass du hier bist.</string>
     <string name="chat_follow_ups_label">Vorgeschlagene Anschlussfragen</string>
 
+    <!-- BITB-255: crisis resources card -->
+    <string name="crisis_heading">Du musst das nicht allein durchstehen — sprich jetzt mit jemandem</string>
+    <string name="crisis_emergency_label">Notrufnummer</string>
+    <string name="crisis_emergency_aria">Notrufnummer %1$s anrufen</string>
+    <string name="crisis_call">Anrufen</string>
+    <string name="crisis_text">SMS senden</string>
+    <string name="crisis_international">Weitere Hilfetelefone weltweit</string>
+    <string name="crisis_not_in_country">Nicht in %1$s?</string>
+    <string name="crisis_choose_country">Wähle dein Land</string>
+    <string name="crisis_call_line_aria">%1$s anrufen</string>
+    <string name="crisis_text_line_aria">SMS an %1$s senden</string>
+    <string name="crisis_region_saved">Ab deiner nächsten Nachricht verwenden wir die Nummern für %1$s.</string>
+    <string name="crisis_local_emergency_hint">Rufen Sie die örtliche Notrufnummer an (die %1$s funktioniert von den meisten Mobiltelefonen aus).</string>
+
     <!-- Actions -->
     <string name="action_select_language">Sprache auswählen</string>
     <string name="action_continue_conversation">Diese Unterhaltung fortsetzen</string>

@@ -359,6 +359,16 @@ az containerapp update \
 
 ---
 
+## Crisis card (BITB-255)
+
+When the safety pipeline sees someone threatening to hurt themselves or someone else, the API sends
+a structured `crisis_resources` payload (emergency number + crisis lines for the user's country)
+as the first stream event, before any AI text. The numbers come from
+`api/utils/crisis_resources.json`, not from the model or the prompts. Maintenance and
+re-verification: `docs/HOW-TO-VERIFY-CRISIS-RESOURCES.md`.
+
+---
+
 ## Questions?
 
 **Product Owner:** Review monitoring data before each phase

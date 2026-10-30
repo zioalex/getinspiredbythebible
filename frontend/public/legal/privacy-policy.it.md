@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-27
+lastUpdated: 2026-10-29
 ---
 
 # Informativa sulla privacy
 
 > _Questa traduzione è stata generata dall'intelligenza artificiale ed è fornita esclusivamente per comodità. In caso di omissioni, ambiguità o contraddizioni rispetto all'originale inglese, prevale la versione inglese, che resta canonica._
 
-Ultimo aggiornamento: 27 ottobre 2026
+Ultimo aggiornamento: 29 ottobre 2026
 
 ## Chi siamo
 
@@ -38,6 +38,7 @@ Il testo del tuo messaggio viene utilizzato da questi fornitori **esclusivamente
 - Non richiediamo la registrazione di un account.
 - Non raccogliamo nome, indirizzo e-mail o numero di telefono.
 - Non tracciamo la tua posizione.
+- **Paese approssimativo, solo per i numeri di emergenza**: se il tuo messaggio fa pensare che tu o qualcun altro possiate essere in pericolo, deduciamo il tuo paese dalla connessione (l'intestazione del paese di Cloudflare) o dalla lingua del dispositivo, al solo scopo di mostrarti i numeri di emergenza e di supporto locali corretti. Non viene mai memorizzato sui nostri server; la scheda viene salvata solo insieme alla tua conversazione, sul tuo dispositivo. Se scegli un altro paese sulla scheda, quel paese ci viene inviato solo per cercarne i numeri e non viene memorizzato sui nostri server.
 - Non vendiamo i tuoi dati a terze parti.
 
 ## Cronologia delle conversazioni

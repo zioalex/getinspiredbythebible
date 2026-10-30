@@ -21,6 +21,7 @@ from chat.prompts import _map_reason_to_category, get_blocked_response
 from providers.base import LLMResponse
 from utils import safety_second_opinion
 from utils.content_safety import AMBIGUOUS_REASON, ContentSafetyService
+from utils.crisis_resources import CrisisKind, build_crisis_payload, render_markdown_fallback
 from utils.safety_second_opinion import classify_self_harm_vs_violence, parse_verdict
 
 LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
@@ -242,15 +243,19 @@ def test_ambiguous_reason_maps_to_crisis_template():
 
 @pytest.mark.parametrize("language", LANGUAGES)
 def test_blocked_response_for_ambiguous_reason_has_crisis_resources(language):
+    """The template carries no numbers (BITB-255); the registry fallback adds them."""
     text = get_blocked_response(AMBIGUOUS_REASON, language)
-    assert "findahelpline" in text
     assert text == get_blocked_response("self_harm_blocked", language)
+    assert "findahelpline" not in text
+    fallback = render_markdown_fallback(
+        build_crisis_payload(CrisisKind.SELF_HARM, None, "none", language), language
+    )
+    assert "findahelpline" in get_blocked_response(AMBIGUOUS_REASON, language, fallback)
 
 
 @pytest.mark.parametrize("language", ["ru", "zh", "hi", "ko"])
-def test_new_crisis_templates_are_localized_with_988(language):
+def test_new_crisis_templates_are_localized(language):
     text = get_blocked_response(AMBIGUOUS_REASON, language)
-    assert "988" in text
     assert text != get_blocked_response(AMBIGUOUS_REASON, "en")
 
 
@@ -359,7 +364,7 @@ async def test_ambiguous_classifier_down_gives_crisis_template(
 ):
     result, _ = await _run(service, monkeypatch, None, text=text, language=language)
     assert result.allowed is False
-    assert "findahelpline" in get_blocked_response(result.reason, language)
+    assert "findahelpline" not in get_blocked_response(result.reason, language)
     assert get_blocked_response(result.reason, language) == get_blocked_response(
         "self_harm_blocked", language
     )

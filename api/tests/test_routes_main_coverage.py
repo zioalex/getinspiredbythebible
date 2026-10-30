@@ -1076,7 +1076,7 @@ class TestChatStreamRoute:
         return mock_req
 
     @staticmethod
-    def _mock_gen(req):
+    def _mock_gen(req, **kwargs):
         async def gen(_req):
             yield {
                 "type": "metadata",

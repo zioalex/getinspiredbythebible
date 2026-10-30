@@ -70,7 +70,9 @@ async def chat(
     service = ChatService(db, llm, embedding)
 
     try:
-        response = await service.chat(request)
+        response = await service.chat(
+            request, client_country=http_request.headers.get("CF-IPCountry")
+        )
 
         # Record metrics
         elapsed_ms = (time.monotonic() - start) * 1000
@@ -138,10 +140,12 @@ async def chat_stream(
     language = _session_language(request.language, http_request.headers.get("accept-language"))
 
     service = ChatService(db, llm, embedding)
+    # BITB-255: Cloudflare's IP-geolocation header, used only to pick local emergency numbers.
+    client_country = http_request.headers.get("CF-IPCountry")
 
     async def generate():
         try:
-            async for chunk in service.chat_stream(request):
+            async for chunk in service.chat_stream(request, client_country=client_country):
                 # chunk is now a dict with 'type' field
                 # SSE format: data: {json}\n\n
                 yield f"data: {json.dumps(chunk)}\n\n"

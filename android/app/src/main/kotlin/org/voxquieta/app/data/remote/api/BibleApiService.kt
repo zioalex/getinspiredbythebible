@@ -8,6 +8,8 @@ import org.voxquieta.app.data.remote.models.ChurchSearchResponseDto
 import org.voxquieta.app.data.remote.models.ConfigResponseDto
 import org.voxquieta.app.data.remote.models.ContactRequestDto
 import org.voxquieta.app.data.remote.models.ContactResponseDto
+import org.voxquieta.app.data.remote.models.CrisisResourcesDto
+import org.voxquieta.app.data.remote.models.CrisisResourcesRequestDto
 import org.voxquieta.app.data.remote.models.FeedbackRequestDto
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.TranslationsResponseDto
@@ -56,6 +58,17 @@ interface BibleApiService {
         @Query("translation") translation: String? = null,
         @Query("lang") lang: String? = null,
     ): ChapterResponseDto
+
+    /**
+     * Re-fetches the crisis card payload for the country the user picked in the card's
+     * "Not in X?" picker (BITB-255). Public data; the request is a POST with a JSON body
+     * (never a query string) so the picked country stays out of the URL and request
+     * telemetry. [CrisisResourcesRequestDto.kind] is "self_harm" or "threat_to_others".
+     */
+    @POST("api/v1/crisis-resources")
+    suspend fun getCrisisResources(
+        @Body request: CrisisResourcesRequestDto,
+    ): CrisisResourcesDto
 
     /**
      * Fetches non-sensitive runtime configuration published by the backend

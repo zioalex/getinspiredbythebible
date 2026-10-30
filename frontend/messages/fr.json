@@ -416,5 +416,19 @@
     "title": "Vous êtes hors ligne",
     "description": "Vox Quieta a besoin d'une connexion internet pour répondre à vos questions. Vérifiez votre connexion et réessayez.",
     "retry": "Réessayer"
+  },
+  "Crisis": {
+    "heading": "Vous n'avez pas à traverser cela seul(e) — parlez à quelqu'un maintenant",
+    "emergencyLabel": "Numéro d'urgence",
+    "call": "Appeler",
+    "text": "Envoyer un SMS",
+    "international": "Autres lignes d'aide dans le monde",
+    "notInCountry": "Pas en {country} ?",
+    "chooseCountry": "Choisissez votre pays",
+    "callLineAria": "Appeler {name}",
+    "textLineAria": "Envoyer un SMS à {name}",
+    "regionSaved": "Dès votre prochain message, nous utiliserons les numéros de {country}.",
+    "emergencyNumberAria": "Appeler le numéro d'urgence {number}",
+    "localEmergencyHint": "Appelez le numéro d'urgence local (le <dial>112</dial> fonctionne depuis la plupart des téléphones mobiles)."
   }
 }

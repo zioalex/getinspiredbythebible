@@ -200,6 +200,20 @@
     <string name="error_content_blocked">لم أتمكن من الرد على هذه الرسالة — فقد أوقفها نظام السلامة لدينا، وربما يكون قد أساء فهم كلماتك. حاول إعادة صياغة فكرتك من فضلك، وإذا شعرت أن هناك خطأً، تواصل معنا على contact@voxquieta.org. سعداء بوجودك هنا.</string>
     <string name="chat_follow_ups_label">أسئلة متابعة مقترحة</string>
 
+    <!-- BITB-255: crisis resources card -->
+    <string name="crisis_heading">لست مضطرًا لمواجهة هذا وحدك — تحدّث مع شخص الآن</string>
+    <string name="crisis_emergency_label">رقم الطوارئ</string>
+    <string name="crisis_emergency_aria">الاتصال برقم الطوارئ %1$s</string>
+    <string name="crisis_call">اتصل</string>
+    <string name="crisis_text">أرسل رسالة نصية</string>
+    <string name="crisis_international">المزيد من خطوط المساعدة حول العالم</string>
+    <string name="crisis_not_in_country">لست في %1$s؟</string>
+    <string name="crisis_choose_country">اختر بلدك</string>
+    <string name="crisis_call_line_aria">الاتصال بـ %1$s</string>
+    <string name="crisis_text_line_aria">إرسال رسالة نصية إلى %1$s</string>
+    <string name="crisis_region_saved">سنستخدم أرقام %1$s ابتداءً من رسالتك التالية.</string>
+    <string name="crisis_local_emergency_hint">اتصل برقم الطوارئ المحلي (يعمل الرقم %1$s من معظم الهواتف المحمولة).</string>
+
     <!-- Actions -->
     <string name="action_select_language">اختر اللغة</string>
     <string name="action_continue_conversation">متابعة هذه المحادثة</string>

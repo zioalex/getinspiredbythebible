@@ -45,6 +45,7 @@ from routes import (  # noqa: E402
     admin_router,
     chat_router,
     church_router,
+    crisis_router,
     feedback_router,
     health_router,
     scripture_router,
@@ -352,6 +353,7 @@ app.add_middleware(AccessAuditMiddleware)
 
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(church_router, prefix="/api/v1")
+app.include_router(crisis_router, prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1")
 app.include_router(health_router)  # Health endpoints at root level
 app.include_router(scripture_router, prefix="/api/v1")

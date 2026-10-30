@@ -1,6 +1,10 @@
 package org.voxquieta.app.data.local.mappers
 
 import org.voxquieta.app.data.local.MessageEntity
+import org.voxquieta.app.data.remote.mappers.toDomain
+import org.voxquieta.app.data.remote.mappers.toDto
+import org.voxquieta.app.data.remote.models.CrisisResourcesDto
+import org.voxquieta.app.domain.models.CrisisResources
 import org.voxquieta.app.domain.models.Message
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -24,6 +28,7 @@ fun Message.toEntity(
     content = content,
     versesJson = json.encodeToString(verses.map { it.toSerializable() }),
     createdAt = createdAt,
+    crisisJson = crisisResources?.let { json.encodeToString(it.toDto()) },
 )
 
 /**
@@ -45,4 +50,16 @@ fun MessageEntity.toDomain(): Message = Message(
         emptyList()
     },
     isStreaming = false,
+    crisisResources = crisisJson?.let { decodeCrisisResources(id, it) },
 )
+
+/**
+ * Decodes the persisted crisis card. Malformed JSON degrades to "no card" (with a warning)
+ * rather than failing the whole conversation load.
+ */
+internal fun decodeCrisisResources(messageId: String, raw: String): CrisisResources? = try {
+    json.decodeFromString<CrisisResourcesDto>(raw).toDomain()
+} catch (e: Exception) {
+    Timber.w(e, "Failed to deserialize crisisJson for message %s; dropping card", messageId)
+    null
+}
