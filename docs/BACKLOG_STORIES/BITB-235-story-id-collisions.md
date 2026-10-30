@@ -1,6 +1,6 @@
 # BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status:** 🚧 In Progress — allocation rule codified in AGENTS.md (2026-10-27, PR #1220); CI duplicate-ID check still open
+**Status:** 🔍 In Review (allocation rule: PR #1220; CI check: PR #1221)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-10-23
@@ -46,6 +46,6 @@ collision happened *while the old rule was already in AGENTS.md*.
 
 ## Acceptance Criteria
 
-- [ ] Two PRs can no longer merge stories with the same ID unnoticed (CI duplicate-ID check — still open)
+- [x] Two PRs can no longer merge stories with the same ID unnoticed (PR #1221)
 - [x] `AGENTS.md` Backlog Hygiene describes the chosen rule (PR #1220, 2026-10-27)
 - [ ] Decide whether to correct the 1.58.0 `CHANGELOG.md` line for #1195 (BITB-214 → BITB-218) by hand

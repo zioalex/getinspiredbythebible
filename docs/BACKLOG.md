@@ -30,6 +30,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-27: BITB-223 fix — first apply failed: `verse_grounding_paraphrase_brackets` look-back 72h > Azure's 48h cap; gate moved to 2+ hot hourly bins/day (1-of-1 periods) + look-back regression test (PR pending)
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
+- 2026-10-27: BITB-235 in review — story-ID duplicate-claim CI check added (PR #1221)
 - 2026-10-27: BITB-235 in progress — ID-allocation rule codified in AGENTS.md (origin/main + every open PR's story files, claim = open PR, first-claimant keeps on collision); BITB-241 double-claim resolved: #1203 keeps 241, #1215 renumbered to 243; CI duplicate-ID check still open (PR #1220)
 - 2026-10-26: BITB-242 created — platform-selective feature flags: server-driven per-platform (web/android) flag registry on GET /config, explicit per-flag fail policies, parity fixture, follow-ups pilot (PR #1220)
 - 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
@@ -4010,9 +4011,9 @@ non-`shrink-0` menu wrapper can overflow again. Pick a minimum width and guarant
 
 ---
 
-### 🚧 BITB-235: Story IDs Collide Between Concurrent PRs
+### 🔍 BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status:** 🚧 In Progress — allocation rule codified in AGENTS.md (2026-10-27, PR #1220); CI duplicate-ID check still open
+**Status:** 🔍 In Review (allocation rule: PR #1220; CI check: PR #1221)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-10-23
