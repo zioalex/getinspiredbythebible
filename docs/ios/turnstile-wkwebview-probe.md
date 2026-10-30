@@ -35,6 +35,29 @@ probe below remains **REQUIRED and UNRUN**. A runnable probe package now exists 
 `tools/ios-probe/` (see its README) so the probe is pure execution on the maintainer's
 first Mac session; reading this observation does not replace running it.
 
+## Official vendor documentation (2026-10-30)
+
+Researched today against Cloudflare's "Mobile implementation" page —
+<https://developers.cloudflare.com/turnstile/get-started/mobile-implementation/>
+(last updated 2026-05-05, fetched 2026-10-30):
+
+- Turnstile does **not** run natively in mobile apps. Cloudflare's documented pattern for native
+  iOS apps is exactly ours — a WebView inside the app hosting a page with the widget — and
+  Cloudflare ships an iOS WKWebView (Swift) example implementing it.
+- Cloudflare's stated WebView requirements, and how the runnable probe (`tools/ios-probe/`,
+  PR #1235) meets each: **JavaScript enabled** and **DOM storage** — WKWebView defaults, untouched
+  in the probe; **access to `challenges.cloudflare.com`**, including `about:blank`/`about:srcdoc`
+  connections — the probe applies no URL filtering; **consistent User Agent across the session** —
+  a mid-session UA change fails the challenge, and the probe sets no `customUserAgent`, so the
+  default UA stays stable; **CSP must not block Cloudflare domains** — the probe's widget page
+  ships no restrictive CSP; **cookie/localStorage persistence** — the probe uses the default
+  `WKWebsiteDataStore` and loads the widget page with the production domain
+  `https://voxquieta.org` as `baseURL`.
+- **Conclusion:** vendor documentation supports the WKWebView pattern — strengthening the
+  provisional Option C recommendation in `docs/ios/delivery-approach.md` — but it does **not**
+  satisfy this gate. As stated above, reading documentation does not count: the observed
+  physical-device probe run remains **REQUIRED and UNRUN**.
+
 ## Result log (observations only)
 
 - [ ] **UNRUN** — no observed result. Record date, device model, iOS version, site-key environment,
