@@ -285,6 +285,9 @@ resource "azurerm_application_insights" "main" {
 # Standard availability test — pings the backend /health/ready endpoint every
 # 5 minutes from multiple Azure locations.  This populates the "Availability"
 # tab in Application Insights (which is 0% without an explicit test).
+# BITB-224: `enabled` is Optional with no default in the azurerm provider, so
+# omitting it created (and on every apply re-set) the test as DISABLED — both
+# availability tests sat at Enabled=false in production. Pin it explicitly.
 resource "azurerm_application_insights_standard_web_test" "backend_availability" {
   count                   = var.enable_application_insights ? 1 : 0
   name                    = "${local.name_prefix}-availability"
@@ -297,6 +300,9 @@ resource "azurerm_application_insights_standard_web_test" "backend_availability"
     "emea-gb-db3-azr", # UK South
     "us-va-ash-azr",   # East US
   ]
+
+  enabled       = true # BITB-224: provider default is false; omitting this kept both tests off
+  retry_enabled = true
 
   frequency = 300 # every 5 minutes
 
@@ -331,6 +337,9 @@ resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
     "emea-gb-db3-azr", # UK South
     "us-va-ash-azr",   # East US
   ]
+
+  enabled       = true # BITB-224: provider default is false; omitting this kept both tests off
+  retry_enabled = true
 
   frequency = 300 # every 5 minutes
 

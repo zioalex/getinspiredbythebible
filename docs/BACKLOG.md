@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-28
+**Last Updated:** 2026-10-29
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-29: BITB-224 in progress — root cause: azurerm standard web test enabled defaults to false and main.tf never set it; pin enabled=true + scheduled webtests-enabled guard in prod-deploy-drift.yml (PR pending)
 - 2026-10-28: BITB-086 ✅ Done — both deferred client-side ACs (web reference consumer + corrupt-span degradation) completed via BITB-109 (PR #1055); backend contract shipped in PR #985; story moved to docs/DONE/ (this PR)
 - 2026-10-28: BITB-253 created — Integration Tests intermittently fail at "Load CI test data"; follow-up to BITB-250
 - 2026-10-28: BITB-252 created — Android read aloud stays on Pause when the TTS engine never starts; follow-up to BITB-247
@@ -334,21 +335,22 @@ unchanged. GitHub issue #1224.
 
 ---
 
-### 🎯 BITB-224: Availability Web Tests Are Silently Disabled in Production
+### 🚧 BITB-224: Availability Web Tests Are Silently Disabled in Production
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-23
 
 BITB-150's evidence collection caught both availability web tests (`backend_availability`,
-`backend_preflight`) showing `"Enabled": false` in production while Terraform defines them
-as active — and `azurerm_application_insights_standard_web_test` does not manage the ARM
-`Enabled` flag, so neither Terraform nor `prod-deploy-drift.yml` can see or fix this drift.
-The BITB-064 safety net (built after the 2026-07-05 browser-only outage fired no monitor)
-is currently off. Verify when/how they were disabled, decide keep-or-retire deliberately
-(re-enable cost is immaterial), and add a drift guard on the `Enabled` property so a
-future silent disablement pages.
+`backend_preflight`) showing `"Enabled": false` in production while Terraform defines them.
+Root cause (2026-10-29): `azurerm_application_insights_standard_web_test.enabled` is Optional
+with no default (=> false) and `main.tf` never set it, so every apply kept both tests off. The
+`*-availability-failed` / `*-preflight-failed` alerts therefore could not fire. Fix: pin
+`enabled = true` + `retry_enabled = true` in Terraform and add a scheduled `webtests-enabled`
+guard job in `prod-deploy-drift.yml` that pages if a test is ever disabled or missing.
+`backend_probe_failures` is unaffected (it reads `ContainerAppSystemLogs_CL`). Owner-only:
+confirm keep decision, verify `Enabled: true` in production after deploy.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-224-availability-webtests-disabled.md`
 
