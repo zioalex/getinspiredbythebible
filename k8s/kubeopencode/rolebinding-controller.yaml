@@ -1,0 +1,17 @@
+# Binds the controller Role to the controller service account.
+# The controller SA is created by the KubeOpenCode Helm chart.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubeopencode-controller-lease
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: kubeopencode
+subjects:
+  - kind: ServiceAccount
+    name: kubeopencode-controller
+    namespace: kubeopencode-system
+roleRef:
+  kind: Role
+  name: kubeopencode-controller-lease
+  apiGroup: rbac.authorization.k8s.io

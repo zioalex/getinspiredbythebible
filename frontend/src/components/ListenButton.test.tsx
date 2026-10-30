@@ -93,7 +93,11 @@ describe("ListenButton visibility", () => {
     const { container } = render(ui("m1", "Hello"));
     await waitFor(() =>
       expect(eventPosts()).toEqual([
-        { event: "tts_unavailable", locale: "en" },
+        expect.objectContaining({
+          event: "tts_unavailable",
+          locale: "en",
+          platform: "web",
+        }),
       ]),
     );
     expect(container.querySelector("button")).toBeNull();
@@ -169,7 +173,15 @@ describe("ListenButton behaviour", () => {
       "Read John chapter 3, verse 16 today.",
     ]);
     expect(synth.spoken[0].voice?.lang).toBe("en-US");
-    expect(eventPosts()).toEqual([{ event: "tts_started", locale: "en" }]);
+    expect(eventPosts()).toEqual([
+      expect.objectContaining({
+        event: "tts_started",
+        locale: "en",
+        platform: "web",
+        browser: expect.any(String),
+        os: expect.any(String),
+      }),
+    ]);
   });
 
   it("flips to Pause with aria-pressed, then Resume when paused, then back to Pause", async () => {
@@ -315,7 +327,13 @@ describe("ListenButton online voices (BITB-210)", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(getSpeakingId()).toBe("m1");
     expect(synth.spoken[0].voice?.localService).toBe(false);
-    expect(eventPosts()).toContainEqual({ event: "tts_started", locale: "en" });
+    expect(eventPosts()).toContainEqual(
+      expect.objectContaining({
+        event: "tts_started",
+        locale: "en",
+        platform: "web",
+      }),
+    );
     // pause / resume work like a local voice
     fireEvent.click(screen.getByRole("button", { name: PAUSE }));
     expect(getPausedId()).toBe("m1");
@@ -597,5 +615,71 @@ describe("ListenButton silent engine (BITB-241)", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       itMessages.Chat.speechEngineNoResponse,
     );
+  });
+});
+
+describe("ListenButton read-aloud outcome telemetry (BITB-247)", () => {
+  const names = () => eventPosts().map((e) => e.event);
+
+  it("sends tts_completed once when the last chunk ends, with platform/browser/os", async () => {
+    render(ui("m1", "Hello there."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    act(() => {
+      synth.spoken[0].onstart?.();
+      synth.spoken[0].onend?.();
+    });
+    expect(names()).toEqual(["tts_started", "tts_completed"]);
+    expect(eventPosts()[1]).toMatchObject({
+      event: "tts_completed",
+      locale: "en",
+      platform: "web",
+    });
+    expect(eventPosts()[1].browser).toEqual(expect.any(String));
+    expect(eventPosts()[1].os).toEqual(expect.any(String));
+  });
+
+  it("sends tts_start_failed once when the engine never starts", async () => {
+    vi.useFakeTimers();
+    try {
+      render(ui("m1", "Hello there."));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      fireEvent.click(screen.getByRole("button", { name: LISTEN }));
+      act(() => {
+        vi.advanceTimersByTime(START_WATCHDOG_MS * 3);
+      });
+      expect(names()).toEqual(["tts_started", "tts_start_failed"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends tts_error once for onerror after the reading started", async () => {
+    render(ui("m1", "Hello there."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    act(() => {
+      synth.spoken[0].onstart?.();
+      synth.spoken[0].onerror?.();
+    });
+    expect(names()).toEqual(["tts_started", "tts_error"]);
+  });
+
+  it("pause and resume do not resend tts_started", async () => {
+    render(ui("m1", "Hello there."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    fireEvent.click(screen.getByRole("button", { name: PAUSE }));
+    fireEvent.click(screen.getByRole("button", { name: RESUME }));
+    expect(names()).toEqual(["tts_started"]);
+  });
+
+  it("ignores outcomes of other answers", async () => {
+    render(ui("m1", "Hello there."));
+    fireEvent.click(await screen.findByRole("button", { name: LISTEN }));
+    render(ui("m2", "Other answer."));
+    act(() => {
+      synth.spoken[0].onend?.();
+    });
+    expect(names()).toEqual(["tts_started", "tts_completed"]);
   });
 });
