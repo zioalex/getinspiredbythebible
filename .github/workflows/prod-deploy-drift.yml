@@ -22,6 +22,13 @@ name: Prod Deploy Drift
 #   ARM_CLIENT_ID / ARM_CLIENT_SECRET / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID
 #   TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID
 #
+# BITB-224: the `webtests-enabled` job below also guards the Application Insights
+# availability web tests. `azurerm_application_insights_standard_web_test.enabled`
+# defaults to false and main.tf never set it, so both tests sat disabled in prod
+# and the *-availability-failed / *-preflight-failed alerts could never fire.
+# Terraform now pins enabled=true; this job pages if a test is ever disabled or
+# missing again (scripts/monitor/check_webtests_enabled.py).
+#
 # Manual run:
 #   Actions → Prod Deploy Drift → Run workflow
 #   (force_alert=true exercises the Telegram path without needing real drift)
@@ -50,6 +57,9 @@ env:
   FRONTEND_APP_NAME: bible-app-frontend
   RESOURCE_GROUP: bible-app-rg
   STATE_BRANCH: gh-monitor-state
+  # BITB-224: web tests that must exist and be Enabled (<project_name>-availability
+  # / -preflight, from deployment/main.tf name_prefix).
+  EXPECTED_WEBTESTS: bible-app-availability,bible-app-preflight
   # A component is only reported as drifted once its expected commit has been
   # sitting undeployed longer than this — a deploy already in flight (build +
   # terraform apply routinely take several minutes) must not trip a false
@@ -145,6 +155,39 @@ jobs:
         with:
           job_status: ${{ job.status }}
           job_name: deploy-drift
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}
+
+  webtests-enabled:
+    name: Availability web tests enabled
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Check availability web tests are enabled
+        id: webtests
+        run: python3 scripts/monitor/check_webtests_enabled.py --detail-out "$RUNNER_TEMP/detail.txt"
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: webtests-enabled
           state_branch: ${{ env.STATE_BRANCH }}
           telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}

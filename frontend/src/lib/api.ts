@@ -350,6 +350,8 @@ export interface Message {
   role: "user" | "assistant";
   content: string;
   citations?: CitationSpan[];
+  /** BITB-254: chips shown under this assistant message, echoed back so the server can restore the trailer. */
+  follow_ups?: string[];
 }
 
 export interface Verse {

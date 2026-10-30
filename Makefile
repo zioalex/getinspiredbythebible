@@ -86,6 +86,7 @@ install-hooks: venv ## Install pre-commit hooks
 	@$(PIP) install -q pre-commit
 	@$(VENV_DIR)/bin/pre-commit install
 	@$(VENV_DIR)/bin/pre-commit install --hook-type commit-msg
+	@$(VENV_DIR)/bin/pre-commit install --hook-type pre-push
 	@echo "$(GREEN)✓ Pre-commit hooks installed$(NC)"
 
 setup-dev: venv install-hooks ## Setup development environment
