@@ -12,6 +12,8 @@
  * than throwing, matching the localStorage guard style in src/lib/api.ts.
  */
 
+import type { CrisisResources } from "./api";
+
 const DB_NAME = "voxquieta";
 const DB_VERSION = 1;
 const CONVERSATIONS_STORE = "conversations";
@@ -34,6 +36,12 @@ export interface StoredMessage {
   content: string;
   /** Verse references cited by an assistant message (web analog of Android versesJson). */
   versesCited: string[];
+  /**
+   * BITB-255: the crisis contacts card shown above this assistant reply.
+   * Absent on older rows and on non-crisis turns. Rides along in
+   * export/import because those operate on whole StoredMessage rows.
+   */
+  crisisResources?: CrisisResources;
   /** BITB-254: chips shown under an assistant message, echoed back to the API as history. */
   follow_ups?: string[];
   createdAt: number;
@@ -50,12 +58,14 @@ export function storedToChatMessage(m: StoredMessage): {
   content: string;
   versesCited: string[];
   follow_ups?: string[];
+  crisisResources?: CrisisResources;
 } {
   return {
     role: m.role,
     content: m.content,
     versesCited: m.versesCited,
     ...(m.follow_ups?.length ? { follow_ups: m.follow_ups } : {}),
+    ...(m.crisisResources ? { crisisResources: m.crisisResources } : {}),
   };
 }
 
@@ -354,6 +364,7 @@ export async function saveFullConversation(
     role: "user" | "assistant";
     content: string;
     versesCited?: string[];
+    crisisResources?: CrisisResources;
     follow_ups?: string[];
   }>,
 ): Promise<void> {
@@ -393,6 +404,7 @@ export async function saveFullConversation(
         role: m.role,
         content: m.content,
         versesCited: m.versesCited ?? [],
+        ...(m.crisisResources ? { crisisResources: m.crisisResources } : {}),
         ...(m.follow_ups?.length ? { follow_ups: m.follow_ups } : {}),
         createdAt: now + i,
       });

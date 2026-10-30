@@ -416,5 +416,19 @@
     "title": "Estás sin conexión",
     "description": "Vox Quieta necesita una conexión a internet para responder tus preguntas. Comprueba tu conexión e inténtalo de nuevo.",
     "retry": "Reintentar"
+  },
+  "Crisis": {
+    "heading": "No tienes que pasar por esto a solas — habla con alguien ahora",
+    "emergencyLabel": "Número de emergencias",
+    "call": "Llamar",
+    "text": "Enviar SMS",
+    "international": "Más líneas de ayuda en el mundo",
+    "notInCountry": "¿No estás en {country}?",
+    "chooseCountry": "Elige tu país",
+    "callLineAria": "Llamar a {name}",
+    "textLineAria": "Enviar SMS a {name}",
+    "regionSaved": "Desde tu próximo mensaje usaremos los números de {country}.",
+    "emergencyNumberAria": "Llamar al número de emergencias {number}",
+    "localEmergencyHint": "Llama al número de emergencias de tu país (el <dial>112</dial> funciona desde la mayoría de los teléfonos móviles)."
   }
 }

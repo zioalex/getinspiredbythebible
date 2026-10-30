@@ -14,13 +14,16 @@ import org.voxquieta.app.data.preferences.ThemePreferences
 import org.voxquieta.app.data.preferences.TtsPreferences
 import org.voxquieta.app.data.preferences.TranslationPreferences
 import org.voxquieta.app.data.remote.api.BibleApiService
+import org.voxquieta.app.data.remote.mappers.toDomain
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.ChapterResponseDto
 import org.voxquieta.app.data.remote.models.ClientEventRequestDto
 import org.voxquieta.app.data.remote.models.ContactSubject
+import org.voxquieta.app.data.remote.models.CrisisResourcesRequestDto
 import org.voxquieta.app.data.remote.models.TranslationDto
 import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Church
+import org.voxquieta.app.domain.models.CrisisResources
 import org.voxquieta.app.domain.models.FeedbackRating
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
@@ -711,12 +714,19 @@ class ChatViewModel @Inject constructor(
             val translation = preferredTranslation.value.ifBlank { null }
             val sessionId = sessionPreferences.getOrCreateSessionId()
 
+            // BITB-255: pick local crisis contacts by country. An explicit pick in the crisis
+            // card wins (region_override); otherwise the device locale's country.
+            val regionOverride = sessionPreferences.getCrisisRegionOverride()?.takeIf { it.isNotBlank() }
+            val region = regionOverride ?: Locale.getDefault().country.takeIf { it.length == 2 }
+
             val request = ChatRequest(
                 message = trimmed,
                 conversationHistory = history,
                 preferredTranslation = translation,
                 sessionId = sessionId,
                 language = _uiState.value.currentLocale.ifBlank { null },
+                region = region,
+                regionOverride = regionOverride != null,
             )
 
             // Show warm-up hint if the backend hasn't responded within 3 seconds.
@@ -734,6 +744,8 @@ class ChatViewModel @Inject constructor(
             var finalResolvedVerses: List<Verse> = emptyList()
             var didError = false
             var metadataMessageId = ""
+            // BITB-255: crisis card from the first stream event; attached to the saved message.
+            var crisisResources: CrisisResources? = null
 
             repository
                 .chatStream(request)
@@ -810,6 +822,7 @@ class ChatViewModel @Inject constructor(
                             isStreaming = false,
                             messageId = metadataMessageId,
                             versesCited = finalVersesCited,
+                            crisisResources = crisisResources,
                             followUps = finalFollowUps,
                         )
                         // Use NonCancellable so that DB writes and the isLoading reset always
@@ -876,6 +889,23 @@ class ChatViewModel @Inject constructor(
                     if (accumulatedContent.isEmpty() && chunk.content.isNotEmpty()) {
                         warmUpJob.cancel()
                         _uiState.update { it.copy(isBackendWarming = false) }
+                    }
+
+                    // BITB-255: the crisis card is the FIRST event of a crisis turn, before metadata.
+                    // Attach it to the in-flight assistant message straight away. The card lives on
+                    // the message itself, so it survives a stop or a later stream error.
+                    if (chunk.type == "crisis_resources") {
+                        chunk.crisisResources?.let { card ->
+                            crisisResources = card
+                            _uiState.update { state ->
+                                state.copy(
+                                    messages = state.messages.map { msg ->
+                                        if (msg.id == assistantId) msg.copy(crisisResources = card) else msg
+                                    },
+                                )
+                            }
+                        }
+                        return@collect
                     }
 
                     // Handle metadata events (sent before content chunks).
@@ -1082,6 +1112,53 @@ class ChatViewModel @Inject constructor(
                 isSessionLimitReached = false,
                 interactionCount = 0,
             )
+        }
+    }
+
+    /**
+     * BITB-255: stores the country the user picked in the crisis card's "Not in X?" picker.
+     * Used (with `region_override = true`) from the next message on; stays on this device.
+     */
+    fun setCrisisRegionOverride(code: String) {
+        viewModelScope.launch { sessionPreferences.setCrisisRegionOverride(code) }
+    }
+
+    /**
+     * BITB-255: the user picked [code] in the crisis card of message [messageLocalId].
+     * Saves the override for future requests, then fetches that country's numbers and swaps
+     * them into the card already on screen (and into the saved message, so history keeps the
+     * new card). On any failure the old card stays and the card's own "from your next
+     * message" note applies. A card still streaming is left alone: its final save would
+     * overwrite the swap, so only the override is stored.
+     */
+    fun onCrisisCountrySelected(messageLocalId: String, code: String) {
+        setCrisisRegionOverride(code)
+        val target = _uiState.value.messages.firstOrNull { it.id == messageLocalId }
+        val current = target?.crisisResources ?: return
+        if (target.isStreaming) return
+        viewModelScope.launch {
+            val language = _uiState.value.currentLocale.ifBlank { Locale.getDefault().toLanguageTag() }
+            val fresh = try {
+                bibleApiService.getCrisisResources(
+                    CrisisResourcesRequestDto(country = code, language = language, kind = current.kind),
+                ).toDomain()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.w(e, "Crisis card refresh failed; keeping the existing card")
+                return@launch
+            }
+            _uiState.update { state ->
+                state.copy(
+                    messages = state.messages.map { msg ->
+                        if (msg.id == messageLocalId) msg.copy(crisisResources = fresh) else msg
+                    },
+                )
+            }
+            val conversationId = _uiState.value.currentConversationId ?: return@launch
+            _uiState.value.messages.firstOrNull { it.id == messageLocalId }?.let { updated ->
+                if (!updated.isStreaming) repository.saveMessage(conversationId, updated)
+            }
         }
     }
 

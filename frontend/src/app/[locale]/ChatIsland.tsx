@@ -24,6 +24,7 @@ import ChapterModal from "@/components/ChapterModal";
 import ChurchFinderBanner from "@/components/ChurchFinderBanner";
 import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import FollowUpSuggestions from "@/components/FollowUpSuggestions";
+import CrisisResourcesCard from "@/components/CrisisResourcesCard";
 import { followUpsEnabled } from "@/lib/featureFlags";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
@@ -54,6 +55,8 @@ import {
   warmupBackend,
   StreamChunk,
   StreamMetadata,
+  CrisisResources,
+  getCrisisResources,
 } from "@/lib/api";
 
 import {
@@ -99,6 +102,9 @@ interface ChatMessage {
   // produced them.
   citations?: CitationSpan[];
   model?: string;
+  // BITB-255: crisis contacts card, shown above this assistant bubble. Unlike
+  // citations this IS persisted, so the card stays attached to the saved turn.
+  crisisResources?: CrisisResources;
 }
 
 export default function ChatIsland({
@@ -360,6 +366,7 @@ export default function ChatIsland({
         role: m.role,
         content: m.content,
         versesCited: m.versesCited,
+        crisisResources: m.crisisResources,
         follow_ups: m.follow_ups,
       })),
     ).then(() => setHistoryRefresh((n) => n + 1));
@@ -373,6 +380,29 @@ export default function ChatIsland({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // BITB-255: the user picked another country in a crisis card. Re-fetch that
+  // country's numbers and swap them into the message in place (the persistence
+  // effect then saves the new card with the conversation). Resolves false on any
+  // failure so the card keeps its old numbers and shows the "next message" note.
+  const handleCrisisRegionChange = async (
+    index: number,
+    region: string,
+  ): Promise<boolean> => {
+    const current = messages[index]?.crisisResources;
+    if (!current) return false;
+    try {
+      const fresh = await getCrisisResources(region, locale, current.kind);
+      setMessages((prev) =>
+        prev.map((m, i) =>
+          i === index ? { ...m, crisisResources: fresh } : m,
+        ),
+      );
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleScrollToBottomClick = () => {
@@ -550,7 +580,25 @@ export default function ChatIsland({
           throw new Error(chunk.error || "Stream error");
         }
 
-        if (chunk.type === "metadata") {
+        if (chunk.type === "crisis_resources") {
+          // BITB-255: first event of a crisis turn. Attach to the placeholder
+          // assistant message; it is spread-preserved by every later update,
+          // including the stop/error paths, so the card never disappears.
+          if (chunk.resources) {
+            const resources = chunk.resources;
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  crisisResources: resources,
+                };
+              }
+              return updated;
+            });
+          }
+        } else if (chunk.type === "metadata") {
           // Received metadata - update state with verses and message_id
           metadata = {
             message_id: chunk.message_id!,
@@ -1203,6 +1251,15 @@ export default function ChatIsland({
             <div className="space-y-6">
               {messages.map((message, index) => (
                 <div key={index}>
+                  {/* BITB-255: crisis contacts pinned ABOVE the reply. */}
+                  {message.role === "assistant" && message.crisisResources && (
+                    <CrisisResourcesCard
+                      resources={message.crisisResources}
+                      onRegionChange={(region) =>
+                        handleCrisisRegionChange(index, region)
+                      }
+                    />
+                  )}
                   <ChatMessage
                     message={{
                       role: message.role,

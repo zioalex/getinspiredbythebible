@@ -122,12 +122,19 @@ class ContentFilter:
             re.IGNORECASE,
         )
 
-    def check(self, message: str) -> tuple[bool, ViolationType | None, str | None]:
+    def check(
+        self,
+        message: str,
+        skip: frozenset[ViolationType] = frozenset(),
+    ) -> tuple[bool, ViolationType | None, str | None]:
         """
         Check message content for violations.
 
         Args:
             message: The message to check
+            skip: Violation types to ignore. ``check`` returns only the FIRST violation, so a
+                caller that deliberately tolerates one type (the BITB-255 crisis bypass) uses
+                this to still surface any later, non-tolerated violation (e.g. a URL).
 
         Returns:
             Tuple of (allowed, violation_type, reason)
@@ -136,17 +143,17 @@ class ContentFilter:
             return True, None, None
 
         # Check profanity
-        if settings.content_filter_block_profanity:
+        if settings.content_filter_block_profanity and ViolationType.PROFANITY not in skip:
             if self._profanity_regex.search(message):
                 return False, ViolationType.PROFANITY, "Message contains inappropriate language"
 
         # Check URLs
-        if settings.content_filter_max_urls == 0:
+        if settings.content_filter_max_urls == 0 and ViolationType.URL_DETECTED not in skip:
             if self.URL_PATTERN.search(message):
                 return False, ViolationType.URL_DETECTED, "URLs are not allowed in messages"
 
         # Check repeated characters
-        if settings.content_filter_block_spam:
+        if settings.content_filter_block_spam and ViolationType.REPEATED_CHARS not in skip:
             max_repeat = settings.content_filter_max_repeated_chars
             # Only flag stretched *word* characters (e.g. "Hellooooooo", "aaaaaa").
             # Punctuation/whitespace/emoji repetition — ellipses "......", "!!!",
@@ -263,6 +270,40 @@ async def require_rate_limit(request: Request) -> None:
         )
 
 
+# Cosmetic violations that must never pre-empt the crisis path (BITB-255).
+_CRISIS_BYPASS_VIOLATIONS = frozenset({ViolationType.PROFANITY, ViolationType.REPEATED_CHARS})
+
+_crisis_keyword_filter: "MultiLanguageContentFilter | None" = None
+_REPEAT_RUN = re.compile(r"(\w)\1{2,}", re.UNICODE)
+
+
+def _has_crisis_wording(message: str) -> bool:
+    """True when the text contains self-harm, violence or murder-suicide wording (any language).
+
+    Deliberately broad: it only decides whether the *cosmetic* route filter steps aside; the
+    real safety pipeline (ChatService._check_content_safety) still decides allow/block.
+    """
+    global _crisis_keyword_filter
+    if _crisis_keyword_filter is None:
+        _crisis_keyword_filter = MultiLanguageContentFilter()
+    normalized = normalize_text(message)
+    flt = _crisis_keyword_filter
+    # A stretched word ("morireeeeee", "nooooo I want to die") is exactly what trips the
+    # repeated-chars filter, so also try the text with every 3+ run collapsed to one/two.
+    variants = (
+        normalized,
+        _REPEAT_RUN.sub(r"\1", normalized),
+        _REPEAT_RUN.sub(r"\1\1", normalized),
+    )
+    return any(
+        flt.find_all_self_harm_spans(text)
+        or flt.find_violence_matches(text)
+        or flt.find_hard_violence_matches(text)
+        or flt.find_murder_suicide_matches(text)
+        for text in dict.fromkeys(variants)
+    )
+
+
 async def check_content_filter(request: Request) -> None:
     """
     FastAPI dependency to check content against filter.
@@ -288,6 +329,23 @@ async def check_content_filter(request: Request) -> None:
 
     content_filter = get_content_filter()
     allowed, violation_type, reason = content_filter.check(message)
+
+    if not allowed and violation_type in _CRISIS_BYPASS_VIOLATIONS and _has_crisis_wording(message):
+        # BITB-255: "f*** this, I want to kill myself" / "nooooo I want to die" must reach
+        # the safety pipeline so the crisis card is shown, not the generic blocked toast.
+        # Only the cosmetic filters (profanity, repeated chars) yield. `check` reports just
+        # the first violation, so re-run it ignoring those two: a URL / spam hidden behind
+        # the profanity must still block. Never log message text.
+        rest_allowed, rest_type, rest_reason = content_filter.check(
+            message, skip=_CRISIS_BYPASS_VIOLATIONS
+        )
+        if rest_allowed:
+            logger.info(
+                "Content filter bypassed for crisis wording",
+                extra={"violation_type": violation_type.value if violation_type else None},
+            )
+            return
+        allowed, violation_type, reason = rest_allowed, rest_type, rest_reason
 
     if not allowed:
         ip_address = get_client_ip(request)

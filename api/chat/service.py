@@ -21,6 +21,14 @@ from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from providers.embedding_resilience import CircuitOpenError as EmbeddingCircuitOpenError
 from scripture import ScriptureSearchService, SearchResults
 from utils.content_safety import get_content_safety_service
+from utils.crisis_resources import (
+    build_crisis_payload,
+    build_minimal_crisis_payload,
+    classify_crisis,
+    normalize_country_code,
+    render_markdown_fallback,
+    resolve_country,
+)
 from utils.db_retry import is_disconnection_error, run_with_disconnect_retry
 from utils.language import (
     detect_language,
@@ -32,6 +40,7 @@ from utils.language import (
 from utils.logging_config import get_logger
 from utils.metrics import (
     chat_clarification_requested_counter,
+    chat_crisis_card_shown_counter,
     chat_cultural_tone_applied_counter,
     chat_follow_ups_suppressed_counter,
     chat_scripture_unavailable_counter,
@@ -125,6 +134,19 @@ class ChatRequest(BaseModel):
     )  # Explicit language code from the client (e.g. "it", "de"). When present,
     # overrides server-side language detection so responses are always in the
     # user's chosen language regardless of what language they type in.
+    # BITB-255: ISO 3166-1 alpha-2 country the client believes the user is in (locale region
+    # or the user's pick in the crisis card). Only used to choose emergency / crisis numbers;
+    # never stored. Invalid values are dropped (not rejected) so a malformed region can never
+    # turn a crisis message into an HTTP 422.
+    region: str | None = None
+    region_override: bool = False  # True when the user picked `region` in the crisis card
+    supports_crisis_card: bool = False  # Client renders `crisis_resources`; skip markdown fallback
+
+    @field_validator("region", mode="before")
+    @classmethod
+    def normalize_region(cls, v: object) -> str | None:
+        """Upper-case a valid alpha-2 region; anything else becomes None."""
+        return normalize_country_code(v) if isinstance(v, str) else None
 
     @field_validator("message")
     @classmethod
@@ -148,6 +170,7 @@ class ChatResponse(BaseModel):
     translation_info: dict | None = None
     language_suggestion: str | None = None  # Detected language differs from selected UI language
     follow_ups: list[str] = []  # BITB-080: suggested next questions, in the user's voice
+    crisis_resources: dict | None = None  # BITB-255: hotline card payload on a crisis turn
 
 
 @dataclass
@@ -158,6 +181,9 @@ class _SafetyOutcome:
     compassionate: bool
     reason: str
     categories: dict[str, int]
+    is_help_seeking: bool = (
+        False  # BITB-255: safety pipeline flagged help-seeking (even if blocked)
+    )
 
 
 class ChatService:
@@ -284,6 +310,7 @@ class ChatService:
                 compassionate=False,
                 reason=safety_result.reason,
                 categories=safety_result.categories,
+                is_help_seeking=safety_result.is_help_seeking,
             )
 
         if safety_result.compassionate_response_needed:
@@ -297,7 +324,71 @@ class ChatService:
             compassionate=safety_result.compassionate_response_needed,
             reason=safety_result.reason,
             categories=safety_result.categories,
+            is_help_seeking=safety_result.is_help_seeking,
         )
+
+    def _crisis_payload(
+        self,
+        safety: _SafetyOutcome,
+        request: ChatRequest,
+        language: str,
+        client_country: str | None,
+    ) -> dict | None:
+        """BITB-255: build the crisis-card payload for a self-harm / threat turn, else None.
+
+        Never raises (a registry problem degrades to the international link only) and never
+        logs message text or the country.
+        """
+        kind = classify_crisis(safety)
+        if kind is None:
+            return None
+        country_source = "none"
+        try:
+            country, country_source = resolve_country(
+                client_country, request.region, language, request.region_override
+            )
+            payload = build_crisis_payload(kind, country, country_source, language)
+        except Exception:
+            logger.exception("Crisis registry unavailable; sending international link only")
+            payload = build_minimal_crisis_payload(kind)
+        chat_crisis_card_shown_counter.add(
+            1,
+            {
+                "kind": kind.value,
+                "language": language,
+                "country_source": country_source,
+                "path": "llm" if safety.allowed else "blocked",
+            },
+        )
+        logger.info(
+            "Crisis card attached",
+            extra={
+                "kind": kind.value,
+                "language": language,
+                "country_source": country_source,
+                "path": "llm" if safety.allowed else "blocked",
+            },
+        )
+        return payload
+
+    @staticmethod
+    def _crisis_fallback_markdown(crisis: dict | None, language: str, request: ChatRequest) -> str:
+        """Registry-rendered hotline list for clients that do not render the card."""
+        if not crisis or request.supports_crisis_card:
+            return ""
+        return render_markdown_fallback(crisis, language)
+
+    @classmethod
+    def _crisis_fallback_suffix(
+        cls, crisis: dict | None, language: str, request: ChatRequest
+    ) -> str:
+        """Text appended after LLM output on a crisis turn for clients without the card.
+
+        Empty when there is no crisis or the client renders the structured card. Old clients
+        would otherwise lose every number on the allowed (compassionate) path.
+        """
+        markdown = cls._crisis_fallback_markdown(crisis, language, request)
+        return f"\n\n{markdown}" if markdown else ""
 
     async def _expand_query(
         self, user_message: str, language: str, model_override: str | None = None
@@ -429,7 +520,9 @@ Keep it under 120 words."""
             )
         return topics
 
-    async def chat(self, request: ChatRequest) -> ChatResponse:
+    async def chat(
+        self, request: ChatRequest, *, client_country: str | None = None
+    ) -> ChatResponse:
         """
         Process a chat request and generate a Bible-grounded response.
 
@@ -494,9 +587,17 @@ Keep it under 120 words."""
         safety = await self._check_content_safety(
             request.message, effective_language, request.session_id, context="chat"
         )
+        # BITB-255: decide the hotline card right after the safety check so every
+        # return path below carries it (and a later failure cannot lose it).
+        crisis = self._crisis_payload(safety, request, effective_language, client_country)
         if not safety.allowed:
             return self._build_blocked_response(
-                safety, effective_language, translation, translation_info
+                safety,
+                effective_language,
+                translation,
+                translation_info,
+                crisis=crisis,
+                crisis_markdown=self._crisis_fallback_markdown(crisis, effective_language, request),
             )
 
         # Intent detection: classify before scripture search
@@ -512,6 +613,8 @@ Keep it under 120 words."""
                     total_start,
                     model_override,
                     compassionate_mode=safety.compassionate,
+                    crisis_resources=crisis,
+                    crisis_suffix=self._crisis_fallback_suffix(crisis, effective_language, request),
                 )
 
         # Check if this is a verse/prayer lookup request
@@ -543,6 +646,8 @@ Keep it under 120 words."""
                 total_start,
                 model_override,
                 language_suggestion,
+                crisis_resources=crisis,
+                crisis_suffix=self._crisis_fallback_suffix(crisis, effective_language, request),
             )
 
         # Step 1: Search for relevant scripture (if enabled; timed via @timed_stage)
@@ -570,13 +675,15 @@ Keep it under 120 words."""
             record_stage(timings, "total", (time.time() - total_start) * 1000, stage_attrs)
             return ChatResponse(
                 message_id=str(uuid.uuid4()),
-                message=get_scripture_unavailable_response(effective_language),
+                message=get_scripture_unavailable_response(effective_language)
+                + self._crisis_fallback_suffix(crisis, effective_language, request),
                 scripture_context=None,
                 provider=settings.llm_provider,
                 model=settings.llm_model,
                 detected_translation=translation,
                 translation_info=translation_info,
                 language_suggestion=language_suggestion,
+                crisis_resources=crisis,
             )
 
         # Step 2: Build the message list
@@ -590,6 +697,7 @@ Keep it under 120 words."""
             language_code=effective_language,
             prompt_type=prompt_type,
             compassionate_mode=safety.compassionate,
+            supports_crisis_card=request.supports_crisis_card,
             follow_ups_enabled=self._wants_follow_ups(safety.compassionate),
             cultural_tone_enabled=cultural_tone,
         )
@@ -652,6 +760,9 @@ Keep it under 120 words."""
         message, _ = await self._apply_verse_grounding(
             body, scripture_context, translation, effective_language
         )
+        # BITB-255: clients without the crisis card get the verified numbers appended
+        # after grounding, so neither the model nor grounding can drop them.
+        message += self._crisis_fallback_suffix(crisis, effective_language, request)
 
         cited_set = {str(ref) for ref in extract_all_references(message)}
         cited_set |= self._history_cited_refs(request.conversation_history)
@@ -694,6 +805,7 @@ Keep it under 120 words."""
             translation_info=translation_info,
             language_suggestion=language_suggestion,
             follow_ups=follow_ups,
+            crisis_resources=crisis,
         )
 
     def _scripture_grounding_unavailable(
@@ -732,6 +844,8 @@ Keep it under 120 words."""
         total_start: float,
         model_override: str | None = None,
         compassionate_mode: bool = False,
+        crisis_resources: dict | None = None,
+        crisis_suffix: str = "",
     ) -> ChatResponse:
         """Generate a warm redirect response for off-topic messages, skipping scripture search."""
         logger.info("Off-topic message detected, skipping scripture search")
@@ -742,6 +856,7 @@ Keep it under 120 words."""
             language_code=detected_language,
             prompt_type="off_topic",
             compassionate_mode=compassionate_mode,
+            supports_crisis_card=request.supports_crisis_card,
         )
         response = await self.llm.chat(
             messages=messages,
@@ -757,12 +872,13 @@ Keep it under 120 words."""
         )
         return ChatResponse(
             message_id=message_id,
-            message=response.content,
+            message=response.content + crisis_suffix,
             scripture_context=None,
             provider=response.provider,
             model=response.model,
             detected_translation=translation,
             translation_info=translation_info,
+            crisis_resources=crisis_resources,
         )
 
     def _wants_clarification(
@@ -908,6 +1024,8 @@ Keep it under 120 words."""
         total_start: float,
         model_override: str | None = None,
         language_suggestion: str | None = None,
+        crisis_resources: dict | None = None,
+        crisis_suffix: str = "",
     ) -> "ChatResponse":
         """Ask one gentle clarifying question, skipping scripture search entirely."""
         logger.info("Message needs clarification, skipping scripture search")
@@ -933,13 +1051,14 @@ Keep it under 120 words."""
         )
         return ChatResponse(
             message_id=message_id,
-            message=response.content,
+            message=response.content + crisis_suffix,
             scripture_context=None,
             provider=response.provider,
             model=response.model,
             detected_translation=translation,
             translation_info=translation_info,
             language_suggestion=language_suggestion,
+            crisis_resources=crisis_resources,
         )
 
     def _build_blocked_response(
@@ -948,9 +1067,11 @@ Keep it under 120 words."""
         language: str,
         translation: str,
         translation_info: dict | None,
+        crisis: dict | None = None,
+        crisis_markdown: str = "",
     ) -> "ChatResponse":
         """Return a warm pre-written ChatResponse for blocked content (no LLM call)."""
-        message = get_blocked_response(outcome.reason, language)
+        message = get_blocked_response(outcome.reason, language, crisis_markdown)
         logger.info(
             "Returning synthetic blocked-content response",
             extra={"reason": outcome.reason, "language": language},
@@ -963,6 +1084,7 @@ Keep it under 120 words."""
             model="content_safety",
             detected_translation=translation,
             translation_info=translation_info,
+            crisis_resources=crisis,
         )
 
     async def _stream_blocked_response(
@@ -972,9 +1094,10 @@ Keep it under 120 words."""
         language: str,
         translation: str,
         translation_info: dict | None,
+        crisis_markdown: str = "",
     ) -> AsyncIterator[dict]:
         """Yield SSE-compatible chunks for a blocked-content synthetic response."""
-        text = get_blocked_response(outcome.reason, language)
+        text = get_blocked_response(outcome.reason, language, crisis_markdown)
         logger.info(
             "Streaming synthetic blocked-content response",
             extra={"reason": outcome.reason, "language": language},
@@ -1501,7 +1624,9 @@ Keep it under 120 words."""
                 scripture_context.verses.insert(0, dv)
                 existing_refs.add((dv.book, dv.chapter, dv.verse))
 
-    async def chat_stream(self, request: ChatRequest) -> AsyncIterator[dict]:  # noqa: C901
+    async def chat_stream(  # noqa: C901
+        self, request: ChatRequest, *, client_country: str | None = None
+    ) -> AsyncIterator[dict]:
         """
         Stream a chat response for real-time display.
 
@@ -1551,9 +1676,19 @@ Keep it under 120 words."""
         safety = await self._check_content_safety(
             request.message, effective_language, request.session_id, context="chat stream"
         )
+        # BITB-255: the hotline card is the FIRST event after the safety check -- before
+        # intent detection, retrieval and the LLM -- so a later failure cannot lose it.
+        crisis = self._crisis_payload(safety, request, effective_language, client_country)
+        if crisis:
+            yield {"type": "crisis_resources", "resources": crisis}
         if not safety.allowed:
             async for chunk in self._stream_blocked_response(
-                safety, message_id, effective_language, translation, translation_info
+                safety,
+                message_id,
+                effective_language,
+                translation,
+                translation_info,
+                crisis_markdown=self._crisis_fallback_markdown(crisis, effective_language, request),
             ):
                 yield chunk
             return
@@ -1584,6 +1719,7 @@ Keep it under 120 words."""
                     language_code=effective_language,
                     prompt_type="off_topic",
                     compassionate_mode=safety.compassionate,
+                    supports_crisis_card=request.supports_crisis_card,
                 )
                 async for token in self.llm.chat_stream(
                     messages=messages,
@@ -1592,6 +1728,9 @@ Keep it under 120 words."""
                     model_override=model_override,
                 ):
                     yield {"type": "content", "content": token}
+                suffix = self._crisis_fallback_suffix(crisis, effective_language, request)
+                if suffix:
+                    yield {"type": "content", "content": suffix}
                 yield {"type": "completion", "verses_cited": []}
                 return
 
@@ -1633,6 +1772,9 @@ Keep it under 120 words."""
             ):
                 yield {"type": "content", "content": token}
             chat_clarification_requested_counter.add(1, {"language": effective_language})
+            suffix = self._crisis_fallback_suffix(crisis, effective_language, request)
+            if suffix:
+                yield {"type": "content", "content": suffix}
             yield {"type": "completion", "verses_cited": []}
             return
 
@@ -1672,7 +1814,9 @@ Keep it under 120 words."""
                 extra={"intent": detected_intent, "language": effective_language},
             )
             record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
-            unavailable_msg = get_scripture_unavailable_response(effective_language)
+            unavailable_msg = get_scripture_unavailable_response(
+                effective_language
+            ) + self._crisis_fallback_suffix(crisis, effective_language, request)
             yield {"type": "content", "content": unavailable_msg}
             yield {
                 "type": "completion",
@@ -1693,6 +1837,7 @@ Keep it under 120 words."""
             language_code=effective_language,
             prompt_type=prompt_type,
             compassionate_mode=safety.compassionate,
+            supports_crisis_card=request.supports_crisis_card,
             follow_ups_enabled=self._wants_follow_ups(safety.compassionate),
             cultural_tone_enabled=cultural_tone,
         )
@@ -1713,6 +1858,11 @@ Keep it under 120 words."""
                 record_stage(timings, "ttft", (first_token_at - total_start) * 1000, stage_attrs)
             full_response += token
             yield {"type": "content", "content": token}
+        # BITB-255: clients without the crisis card get the verified numbers as a final
+        # content chunk; `crisis_suffix` is re-appended to any corrected_message below.
+        crisis_suffix = self._crisis_fallback_suffix(crisis, effective_language, request)
+        if crisis_suffix:
+            yield {"type": "content", "content": crisis_suffix}
         if first_token_at is not None:
             record_stage(
                 timings, "generation", (time.perf_counter() - first_token_at) * 1000, stage_attrs
@@ -1808,7 +1958,7 @@ Keep it under 120 words."""
         # a FOLLOWUPS trailer (BITB-080) was stripped from it. `corrections` keeps
         # its own narrower meaning (only present when a quote was actually rewritten).
         if corrections or trailer_stripped:
-            completion["corrected_message"] = corrected_message
+            completion["corrected_message"] = corrected_message + crisis_suffix
         if corrections:
             completion["corrections"] = [
                 {"reference": c.reference, "reason": c.reason} for c in corrections
@@ -1821,7 +1971,7 @@ Keep it under 120 words."""
         # against pre-correction content. Purely additive; older clients
         # ignore the field and keep linkifying with their own regex.
         completion["citations"] = [
-            asdict(span) for span in extract_citation_spans(corrected_message)
+            asdict(span) for span in extract_citation_spans(corrected_message + crisis_suffix)
         ]
 
         # BITB-080: never offer a suggestion that cites a verse reference outside
@@ -1871,6 +2021,7 @@ Keep it under 120 words."""
         compassionate_mode: bool = False,
         follow_ups_enabled: bool = False,
         cultural_tone_enabled: bool = False,
+        supports_crisis_card: bool = True,
     ) -> list[ChatMessage]:
         """
         Build the message list for the LLM.
@@ -1882,7 +2033,9 @@ Keep it under 120 words."""
             language_code: Detected language code for response language
             prompt_type: Type of prompt ("default", "verse_lookup", "prayer_lookup", "off_topic",
                 "clarification")
-            compassionate_mode: When True, appends COMPASSIONATE_RESPONSE_ADDENDUM to system prompt
+            compassionate_mode: When True, appends the compassionate addendum to the system prompt
+            supports_crisis_card: Selects the addendum variant (card shown above vs. verified
+                numbers appended below the reply for clients without the card)
             follow_ups_enabled: When True, appends FOLLOW_UP_SUGGESTIONS_GUIDANCE (BITB-080) so the
                 model appends a "<!-- FOLLOWUPS: ... -->" trailer. Callers for off_topic and
                 clarification prompt types must never pass True (see _wants_follow_ups).
@@ -1928,7 +2081,7 @@ Keep it under 120 words."""
             system_prompt = system_prompt + get_pastoral_register_note(language_code)
 
         if compassionate_mode:
-            system_prompt = system_prompt + get_compassionate_addendum()
+            system_prompt = system_prompt + get_compassionate_addendum(supports_crisis_card)
 
         if follow_ups_enabled:
             system_prompt = system_prompt + FOLLOW_UP_SUGGESTIONS_GUIDANCE

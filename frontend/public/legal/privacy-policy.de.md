@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-27
+lastUpdated: 2026-10-29
 ---
 
 # Datenschutzrichtlinie
 
 > _Diese Übersetzung wurde von einer KI erstellt und dient ausschließlich der Bequemlichkeit. Bei Auslassungen, Unklarheiten oder Widersprüchen zum englischen Original ist die englische Fassung verbindlich und vorrangig._
 
-Letzte Aktualisierung: 27. Oktober 2026
+Letzte Aktualisierung: 29. Oktober 2026
 
 ## Wer wir sind
 
@@ -38,6 +38,7 @@ Dein Nachrichtentext wird von diesen Anbietern **ausschließlich** verwendet, um
 - Wir verlangen keine Kontoregistrierung.
 - Wir erheben nicht deinen Namen, deine E-Mail-Adresse oder Telefonnummer.
 - Wir verfolgen deinen Standort nicht.
+- **Ungefähres Land, nur für Notrufnummern**: Wenn deine Nachricht darauf hindeutet, dass du oder jemand anderes in Gefahr sein könnte, leiten wir dein Land aus deiner Verbindung (dem Länder-Header von Cloudflare) oder der Sprache deines Geräts ab – ausschließlich, um die richtigen örtlichen Notruf- und Krisennummern anzuzeigen. Es wird niemals auf unseren Servern gespeichert; die Karte wird nur zusammen mit deiner Unterhaltung auf deinem Gerät gespeichert. Wählst du auf der Karte ein anderes Land aus, wird dieses nur an uns gesendet, um dessen Nummern nachzuschlagen, und nicht auf unseren Servern gespeichert.
 - Wir verkaufen deine Daten nicht an Dritte.
 
 ## Gesprächsverlauf

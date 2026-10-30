@@ -1,0 +1,894 @@
+{
+  "schema_version": 1,
+  "_comment": "BITB-255 crisis-resources registry. Every entry needs an official source_url; verified_on stays null until a human verifies the number against that source (docs/HOW-TO-VERIFY-CRISIS-RESOURCES.md). threat_to_others_number, when present, replaces number for a threat-to-others card.",
+  "international_url": "https://findahelpline.com",
+  "region_aliases": {
+    "UK": "GB"
+  },
+  "language_defaults": {
+    "en": "US",
+    "it": "IT",
+    "de": "DE",
+    "es": "ES",
+    "fr": "FR",
+    "pt": "BR",
+    "ar": null,
+    "ru": "RU",
+    "zh": "CN",
+    "hi": "IN",
+    "ko": "KR"
+  },
+  "emergency": {
+    "AE": {
+      "number": "998",
+      "threat_to_others_number": "999",
+      "source_url": "https://u.ae",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "AR": {
+      "number": "911",
+      "source_url": "https://www.argentina.gob.ar",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "AT": {
+      "number": "112",
+      "source_url": "https://www.oesterreich.gv.at",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "AU": {
+      "number": "000",
+      "source_url": "https://www.triplezero.gov.au",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "BE": {
+      "number": "112",
+      "source_url": "https://www.belgium.be",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "BR": {
+      "number": "192",
+      "threat_to_others_number": "190",
+      "source_url": "https://www.gov.br",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "CA": {
+      "number": "911",
+      "source_url": "https://www.canada.ca",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "CH": {
+      "number": "112",
+      "source_url": "https://www.ch.ch",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "CN": {
+      "number": "120",
+      "threat_to_others_number": "110",
+      "source_url": "https://www.gov.cn",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "DE": {
+      "number": "112",
+      "threat_to_others_number": "110",
+      "source_url": "https://www.bmi.bund.de",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "EG": {
+      "number": "123",
+      "threat_to_others_number": "122",
+      "source_url": "https://www.egypt.gov.eg",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "ES": {
+      "number": "112",
+      "source_url": "https://www.interior.gob.es",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "FR": {
+      "number": "112",
+      "source_url": "https://www.service-public.fr",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "GB": {
+      "number": "999",
+      "source_url": "https://www.nhs.uk",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "HK": {
+      "number": "999",
+      "source_url": "https://www.gov.hk",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "IE": {
+      "number": "112",
+      "source_url": "https://www.citizensinformation.ie",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "IN": {
+      "number": "112",
+      "source_url": "https://www.india.gov.in",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "IT": {
+      "number": "112",
+      "source_url": "https://www.interno.gov.it",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "JO": {
+      "number": "911",
+      "source_url": "https://www.gov.jo",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "KR": {
+      "number": "119",
+      "threat_to_others_number": "112",
+      "source_url": "https://www.mois.go.kr",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "LB": {
+      "number": "140",
+      "threat_to_others_number": "112",
+      "source_url": "https://www.pcm.gov.lb",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "MA": {
+      "number": "15",
+      "threat_to_others_number": "19",
+      "source_url": "https://www.maroc.ma",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "MX": {
+      "number": "911",
+      "source_url": "https://www.gob.mx",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "PT": {
+      "number": "112",
+      "source_url": "https://www.portugal.gov.pt",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "RU": {
+      "number": "112",
+      "source_url": "https://www.mchs.gov.ru",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "SA": {
+      "number": "911",
+      "source_url": "https://www.my.gov.sa",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "TW": {
+      "number": "119",
+      "threat_to_others_number": "110",
+      "source_url": "https://www.gov.tw",
+      "verified_on": null,
+      "verified_by": null
+    },
+    "US": {
+      "number": "911",
+      "source_url": "https://www.911.gov",
+      "verified_on": null,
+      "verified_by": null
+    }
+  },
+  "lines": {
+    "AR": [
+      {
+        "id": "ar-135",
+        "name": {
+          "en": "Centro de Asistencia al Suicida (135)",
+          "es": "Centro de Asistencia al Suicida (135)"
+        },
+        "phone": "135",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.asistenciaalsuicida.org.ar",
+        "source_url": "https://www.asistenciaalsuicida.org.ar",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "AT": [
+      {
+        "id": "at-telefonseelsorge",
+        "name": {
+          "en": "Telefonseelsorge 142",
+          "de": "Telefonseelsorge 142"
+        },
+        "phone": "142",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.telefonseelsorge.at",
+        "source_url": "https://www.telefonseelsorge.at",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "AU": [
+      {
+        "id": "au-lifeline",
+        "name": {
+          "en": "Lifeline"
+        },
+        "phone": "13 11 14",
+        "sms": "+61 477 13 11 14",
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.lifeline.org.au",
+        "source_url": "https://www.lifeline.org.au",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "BE": [
+      {
+        "id": "be-cps",
+        "name": {
+          "en": "Centre de Prévention du Suicide",
+          "fr": "Centre de Prévention du Suicide"
+        },
+        "phone": "+32 800 32 123",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.preventionsuicide.be",
+        "source_url": "https://www.preventionsuicide.be",
+        "verified_on": null,
+        "verified_by": null
+      },
+      {
+        "id": "be-1813",
+        "name": {
+          "en": "Zelfmoordlijn 1813 (Flanders, Dutch)"
+        },
+        "phone": "1813",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.zelfmoord1813.be",
+        "source_url": "https://www.zelfmoord1813.be",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "BR": [
+      {
+        "id": "br-cvv",
+        "name": {
+          "en": "CVV - Centro de Valorização da Vida",
+          "pt": "CVV - Centro de Valorização da Vida"
+        },
+        "phone": "188",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.cvv.org.br",
+        "source_url": "https://www.cvv.org.br",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "CA": [
+      {
+        "id": "ca-988",
+        "name": {
+          "en": "988 Suicide Crisis Helpline",
+          "fr": "Ligne d'aide 988 en cas de crise suicidaire"
+        },
+        "phone": "988",
+        "sms": "988",
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://988.ca",
+        "source_url": "https://988.ca",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "CH": [
+      {
+        "id": "ch-143",
+        "name": {
+          "en": "143 - The Helping Hand",
+          "de": "143 - Die Dargebotene Hand",
+          "fr": "143 - La Main Tendue",
+          "it": "143 - La Mano Tesa"
+        },
+        "phone": "143",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.143.ch",
+        "source_url": "https://www.143.ch",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "CN": [
+      {
+        "id": "cn-12356",
+        "name": {
+          "en": "12356 national mental-health helpline",
+          "zh": "全国心理援助热线 12356"
+        },
+        "phone": "12356",
+        "sms": null,
+        "hours": null,
+        "url": "https://www.nhc.gov.cn",
+        "source_url": "https://www.nhc.gov.cn",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "DE": [
+      {
+        "id": "de-telefonseelsorge",
+        "name": {
+          "en": "TelefonSeelsorge",
+          "de": "TelefonSeelsorge"
+        },
+        "phone": "+49 800 111 0 111",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.telefonseelsorge.de",
+        "source_url": "https://www.telefonseelsorge.de",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "ES": [
+      {
+        "id": "es-024",
+        "name": {
+          "en": "024 suicide-prevention line",
+          "es": "Línea 024 de atención a la conducta suicida"
+        },
+        "phone": "024",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.sanidad.gob.es",
+        "source_url": "https://www.sanidad.gob.es",
+        "verified_on": null,
+        "verified_by": null
+      },
+      {
+        "id": "es-telefono-esperanza",
+        "name": {
+          "en": "Teléfono de la Esperanza",
+          "es": "Teléfono de la Esperanza"
+        },
+        "phone": "+34 717 003 717",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://telefonodelaesperanza.org",
+        "source_url": "https://telefonodelaesperanza.org",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "FR": [
+      {
+        "id": "fr-3114",
+        "name": {
+          "en": "3114 - National suicide-prevention number",
+          "fr": "3114 - Numéro national de prévention du suicide"
+        },
+        "phone": "3114",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://3114.fr",
+        "source_url": "https://3114.fr",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "GB": [
+      {
+        "id": "gb-samaritans",
+        "name": {
+          "en": "Samaritans"
+        },
+        "phone": "116 123",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.samaritans.org",
+        "source_url": "https://www.samaritans.org",
+        "verified_on": null,
+        "verified_by": null
+      },
+      {
+        "id": "gb-shout",
+        "name": {
+          "en": "Shout (text support)"
+        },
+        "phone": null,
+        "sms": "85258",
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://giveusashout.org",
+        "source_url": "https://giveusashout.org",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "HK": [
+      {
+        "id": "hk-samaritans",
+        "name": {
+          "en": "The Samaritans Hong Kong",
+          "zh": "香港撒瑪利亞防止自殺會"
+        },
+        "phone": "+852 2389 2222",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.samaritans.org.hk",
+        "source_url": "https://www.samaritans.org.hk",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "IE": [
+      {
+        "id": "ie-samaritans",
+        "name": {
+          "en": "Samaritans Ireland"
+        },
+        "phone": "116 123",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.samaritans.org",
+        "source_url": "https://www.samaritans.org",
+        "verified_on": null,
+        "verified_by": null
+      },
+      {
+        "id": "ie-text-about-it",
+        "name": {
+          "en": "Text About It"
+        },
+        "phone": null,
+        "sms": "50808",
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://text50808.ie",
+        "source_url": "https://text50808.ie",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "IN": [
+      {
+        "id": "in-tele-manas",
+        "name": {
+          "en": "Tele-MANAS",
+          "hi": "टेली-मानस"
+        },
+        "phone": "14416",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://telemanas.mohfw.gov.in",
+        "source_url": "https://telemanas.mohfw.gov.in",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "IT": [
+      {
+        "id": "it-telefono-amico",
+        "name": {
+          "en": "Telefono Amico Italia",
+          "it": "Telefono Amico"
+        },
+        "phone": "+39 02 2327 2327",
+        "sms": null,
+        "hours": {
+          "en": "Every day, 10:00-24:00",
+          "it": "Tutti i giorni, 10-24",
+          "de": "Täglich 10-24 Uhr",
+          "es": "Todos los días, 10-24 h",
+          "fr": "Tous les jours, 10h-24h",
+          "pt": "Todos os dias, 10-24 h",
+          "ar": "يومياً من 10 صباحاً حتى منتصف الليل",
+          "ru": "Ежедневно, 10:00-24:00",
+          "zh": "每天 10:00-24:00",
+          "hi": "प्रतिदिन, 10:00-24:00",
+          "ko": "매일 10:00-24:00"
+        },
+        "url": "https://www.telefonoamico.it",
+        "source_url": "https://www.telefonoamico.it",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "KR": [
+      {
+        "id": "kr-109",
+        "name": {
+          "en": "109 Suicide Prevention Hotline",
+          "ko": "자살예방상담전화 109"
+        },
+        "phone": "109",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.mohw.go.kr",
+        "source_url": "https://www.mohw.go.kr",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "MX": [
+      {
+        "id": "mx-linea-de-la-vida",
+        "name": {
+          "en": "Línea de la Vida",
+          "es": "Línea de la Vida"
+        },
+        "phone": "+52 800 911 2000",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.gob.mx/salud",
+        "source_url": "https://www.gob.mx/salud",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "PT": [
+      {
+        "id": "pt-sos-voz-amiga",
+        "name": {
+          "en": "SOS Voz Amiga",
+          "pt": "SOS Voz Amiga"
+        },
+        "phone": "+351 213 544 545",
+        "sms": null,
+        "hours": null,
+        "url": "https://www.sosvozamiga.org",
+        "source_url": "https://www.sosvozamiga.org",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "RU": [
+      {
+        "id": "ru-doveria",
+        "name": {
+          "en": "Helpline 8 800 2000 122 (children and teens)",
+          "ru": "Телефон доверия 8-800-2000-122 (для детей и подростков)"
+        },
+        "phone": "+7 800 2000 122",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://telefon-doveria.ru",
+        "source_url": "https://telefon-doveria.ru",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "TW": [
+      {
+        "id": "tw-1925",
+        "name": {
+          "en": "1925 Suicide Prevention Hotline",
+          "zh": "安心專線 1925"
+        },
+        "phone": "1925",
+        "sms": null,
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://www.mohw.gov.tw",
+        "source_url": "https://www.mohw.gov.tw",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ],
+    "US": [
+      {
+        "id": "us-988",
+        "name": {
+          "en": "988 Suicide & Crisis Lifeline",
+          "es": "Línea 988 de Prevención del Suicidio y Crisis"
+        },
+        "phone": "988",
+        "sms": "988",
+        "hours": {
+          "en": "24/7",
+          "it": "24 ore su 24",
+          "de": "Rund um die Uhr",
+          "es": "24 horas",
+          "fr": "24h/24",
+          "pt": "24 horas",
+          "ar": "على مدار الساعة",
+          "ru": "Круглосуточно",
+          "zh": "全天候",
+          "hi": "24/7",
+          "ko": "24시간"
+        },
+        "url": "https://988lifeline.org",
+        "source_url": "https://988lifeline.org",
+        "verified_on": null,
+        "verified_by": null
+      }
+    ]
+  }
+}

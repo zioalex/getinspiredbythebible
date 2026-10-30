@@ -6,6 +6,7 @@ package org.voxquieta.app.domain.models
 data class ChatResponse(
     val message: String,
     val verses: List<Verse> = emptyList(),
+    val crisisResources: CrisisResources? = null,
 )
 
 /**
@@ -23,6 +24,7 @@ data class ChatResponse(
  *   mismatched inline verse quote; null when nothing was corrected.
  * @param languageSuggestion ISO 639-1 code suggested for UI locale switch (null when no mismatch).
  * @param followUps Suggested follow-up questions from the completion event (BITB-149).
+ * @param crisisResources Emergency/crisis contacts; set only on a `crisis_resources` event (BITB-255).
  */
 data class StreamChunk(
     val content: String = "",
@@ -37,4 +39,5 @@ data class StreamChunk(
     val correctedMessage: String? = null,
     val followUps: List<String> = emptyList(),
     val languageSuggestion: String? = null,
+    val crisisResources: CrisisResources? = null,
 )
