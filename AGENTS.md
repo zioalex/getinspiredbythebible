@@ -451,7 +451,29 @@ avoid stale entries accumulating in `.git/worktrees/`.
   The previous format (one giant narrative line that every PR rewrote) made
   this file conflict on nearly every PR; one-entry-per-line keeps each PR's
   change on its own line so git merges cleanly.
-- **Story IDs are sequential.** Before creating a new story, check the highest existing `BITB-NNN` number in `docs/BACKLOG_STORIES/` and increment by one.
+- **Story IDs are sequential — allocate across `main` *and* open PRs (BITB-235).** Before
+  creating a new story:
+  1. `git fetch origin` and check `docs/BACKLOG_STORIES/` on **`origin/main`** — never just
+     the local checkout (worktrees and parallel sessions hold stale copies; observed
+     2026-10-26: PR #1215 took 241 from a stale view while open PR #1203 had claimed it two
+     days earlier).
+  2. Check every **open PR's** story files too — `gh pr list --state open --json number,files`
+     and inspect each PR's `docs/BACKLOG_STORIES/BITB-*` additions. An open PR claiming an
+     ID **owns** it even though `main` hasn't seen it yet.
+  3. Take **highest claimed anywhere + 1**.
+  4. **The claim is the open PR.** A story holds its ID only once its PR exists — push the
+     story branch and open the PR immediately; never let a numbered story sit on a local
+     branch.
+- **If a collision is discovered later:** the earlier claimant (earliest PR/changelog date)
+  keeps the ID; the later PR renumbers *before* merge — `git mv` the story file, fix its
+  title, rewrite your own *unmerged* changelog/summary lines in `docs/BACKLOG.md` **and** add
+  a new changelog line recording the renumber (citing the winner PR), and update **every
+  in-repo `BITB-NNN` reference** (repo-wide grep, as with file renames — see Documentation
+  Completeness). Commit subjects keep their historical IDs; never rewrite pushed history.
+  Worked examples: 206→219, 214→218, 223..233, 236/237→239/240, 241→243. The allocation rule is
+  mechanically enforced by the path-filtered `story-id-check` CI workflow (BITB-235, PR #1221),
+  which fails a PR adding a story file whose ID is already claimed on the base or by another
+  open PR.
 
 ### Branch & PR Hygiene
 
