@@ -1,4 +1,4 @@
-# BITB-251: Spike — Decision Model (Clef / Jev) for Intent Routing and Topic Detection
+# BITB-259: Spike — Decision Model (Clef / Jev) for Intent Routing and Topic Detection
 
 **Status:** 🎯 Todo (spec confirmed 2026-10-29)
 **Priority:** P2

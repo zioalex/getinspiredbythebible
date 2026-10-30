@@ -20,7 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-10-29: BITB-251 created — spike: decision model (Clef-flash, Jev if access) for intent routing + topic detection, offline 11-language eval + shadow mode
+- 2026-10-29: BITB-259 created — spike: decision model (Clef-flash, Jev if access) for intent routing + topic detection, offline 11-language eval + shadow mode
 - 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
 - 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
@@ -3223,7 +3223,7 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
-### 🎯 BITB-251: Spike — Decision Model (Clef / Jev) for Intent Routing and Topic Detection
+### 🎯 BITB-259: Spike — Decision Model (Clef / Jev) for Intent Routing and Topic Detection
 
 **Status:** 🎯 Todo
 **Priority:** P2
@@ -3247,7 +3247,7 @@ never changes routing.
 - [ ] Shadow mode (`decision_shadow_enabled`, off by default): routing unchanged, a failure or timeout adds no latency, no message text in logs; tested via `chat()` + `chat_stream()` across 11 languages
 - [ ] Findings with a go/no-go per language; Jev compared or marked "no access"
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-251-decision-model-intent-routing-spike.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-259-decision-model-intent-routing-spike.md`
 
 ---
 
