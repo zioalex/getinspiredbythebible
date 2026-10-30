@@ -826,7 +826,7 @@ describe("Home page responsive layout", () => {
       ).not.toBeInTheDocument();
     });
 
-    // BITB-251: the server restores the FOLLOWUPS trailer on earlier turns from
+    // BITB-254: the server restores the FOLLOWUPS trailer on earlier turns from
     // the chips echoed back in conversation_history.
     async function runTwoTurnsAndGetSecondHistory() {
       vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
@@ -854,7 +854,7 @@ describe("Home page responsive layout", () => {
       return vi.mocked(api.streamMessage).mock.calls.at(-1)![1];
     }
 
-    it("echoes the previous turn's follow_ups in the next request's history (BITB-251)", async () => {
+    it("echoes the previous turn's follow_ups in the next request's history (BITB-254)", async () => {
       const history = await runTwoTurnsAndGetSecondHistory();
       expect(history).toEqual([
         { role: "user", content: "First question" },
@@ -866,7 +866,7 @@ describe("Home page responsive layout", () => {
       ]);
     });
 
-    it("still echoes follow_ups in history when the chip flag is off (BITB-251)", async () => {
+    it("still echoes follow_ups in history when the chip flag is off (BITB-254)", async () => {
       delete process.env[flagKey];
       try {
         const history = await runTwoTurnsAndGetSecondHistory();

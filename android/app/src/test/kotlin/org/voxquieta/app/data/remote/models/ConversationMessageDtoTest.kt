@@ -14,7 +14,7 @@ import org.voxquieta.app.data.remote.api.ApiClient
 import org.voxquieta.app.data.remote.mappers.toConversationMessageDto
 import org.voxquieta.app.domain.models.Message
 
-/** BITB-251: follow-up chips are echoed back in conversation_history. */
+/** BITB-254: follow-up chips are echoed back in conversation_history. */
 class ConversationMessageDtoTest {
 
     private fun msg(role: Message.Role, followUps: List<String> = emptyList()) =

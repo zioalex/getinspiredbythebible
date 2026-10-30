@@ -20,7 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-10-28: BITB-251 in progress — follow-up chips stop after a few turns: clients echo chips back so the model keeps seeing the trailer; history-aware verse filter; suppressed-chips counter (PR pending)
+- 2026-10-28: BITB-254 in progress — follow-up chips stop after a few turns: clients echo chips back so the model keeps seeing the trailer; history-aware verse filter; suppressed-chips counter (PR pending)
 - 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
 - 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
@@ -276,7 +276,7 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🚧 BITB-251: Follow-Up Chips Stop Appearing After a Few Turns (Web + Android)
+### 🚧 BITB-254: Follow-Up Chips Stop Appearing After a Few Turns (Web + Android)
 
 **Status:** 🚧 In Progress
 **Priority:** P1
@@ -296,7 +296,7 @@ and the server re-attaches a sanitized trailer; the verse filter accepts refs fr
 - [ ] Web and Android send `follow_ups` on assistant history messages
 - [ ] Owner: check the suppressed rate by `history_turns` bucket after deploy
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-251-follow-up-chips-stop-after-few-turns.md`
+**Full Story:** `docs/BACKLOG_STORIES/BITB-254-follow-up-chips-stop-after-few-turns.md`
 
 ---
 

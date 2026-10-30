@@ -3052,7 +3052,7 @@ class ChatViewModelTest {
         assertEquals(listOf("a", "b"), viewModel.uiState.value.followUps)
     }
 
-    // ── BITB-251: chips are echoed back in conversation_history ──────────────
+    // ── BITB-254: chips are echoed back in conversation_history ──────────────
 
     private fun followUpTurnsRequests(): List<ChatRequest> {
         val requests = mutableListOf<ChatRequest>()

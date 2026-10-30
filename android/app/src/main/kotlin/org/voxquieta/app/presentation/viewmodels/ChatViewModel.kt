@@ -937,7 +937,7 @@ class ChatViewModel @Inject constructor(
                         // Gated by the default-off rollout flag (BITB-080): when the
                         // flag is off Android ignores the field entirely — no chips,
                         // no crash, no empty row (the existing degrade-silently contract).
-                        // BITB-251: keep them on the assistant message regardless of the
+                        // BITB-254: keep them on the assistant message regardless of the
                         // flag -- they are echoed back in conversation_history so the
                         // model keeps writing the trailer, even when chips are hidden.
                         if (chunk.followUps.isNotEmpty()) {

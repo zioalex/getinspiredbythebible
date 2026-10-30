@@ -421,7 +421,7 @@ class TestChatNonStreamingFollowUps:
 
 
 # ---------------------------------------------------------------------------
-# 6. BITB-251 -- sanitize_follow_ups / format_follow_ups_trailer
+# 6. BITB-254 -- sanitize_follow_ups / format_follow_ups_trailer
 # ---------------------------------------------------------------------------
 
 # (language, localized John 3:16 as the backend parser accepts it)
@@ -493,7 +493,7 @@ class TestSanitizeFollowUps:
 
 
 # ---------------------------------------------------------------------------
-# 7. BITB-251 -- _build_messages echoes history chips back as a trailer
+# 7. BITB-254 -- _build_messages echoes history chips back as a trailer
 # ---------------------------------------------------------------------------
 
 
@@ -583,7 +583,7 @@ class TestBuildMessagesHistoryEcho:
 
 
 # ---------------------------------------------------------------------------
-# 8. BITB-251 -- history-verse filter, parametrized over 11 languages
+# 8. BITB-254 -- history-verse filter, parametrized over 11 languages
 # ---------------------------------------------------------------------------
 
 
@@ -700,7 +700,7 @@ class TestHistoryVerseFilter:
 
 
 # ---------------------------------------------------------------------------
-# 9. BITB-251 -- chat_follow_ups_suppressed counter reasons
+# 9. BITB-254 -- chat_follow_ups_suppressed counter reasons
 # ---------------------------------------------------------------------------
 
 _COUNTER = "chat.service.chat_follow_ups_suppressed_counter"

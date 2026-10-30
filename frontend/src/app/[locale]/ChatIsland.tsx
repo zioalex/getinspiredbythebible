@@ -89,7 +89,7 @@ interface ChatMessage {
   messageId?: string; // Only present for assistant messages
   userMessage?: string; // User message that prompted this response
   versesCited?: string[];
-  // BITB-251: the chips shown under this assistant message. Persisted and sent
+  // BITB-254: the chips shown under this assistant message. Persisted and sent
   // back in conversation_history so the model sees its own earlier trailers.
   follow_ups?: string[];
   // Live-render-only (BITB-109): deliberately not persisted to conversation

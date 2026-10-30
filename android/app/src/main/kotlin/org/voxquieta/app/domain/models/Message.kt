@@ -14,7 +14,7 @@ package org.voxquieta.app.domain.models
  * @param feedbackRating In-memory only (not persisted to Room). Set after the user
  *   taps 👍 or 👎. Null means no feedback has been given yet.
  * @param followUps Suggested follow-up questions the server returned with this assistant
- *   message (BITB-251). In-memory only (not persisted to Room). Echoed back in
+ *   message (BITB-254). In-memory only (not persisted to Room). Echoed back in
  *   `conversation_history` so the model keeps writing the trailer on later turns.
  */
 data class Message(

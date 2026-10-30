@@ -83,7 +83,7 @@ describe("conversationStore", () => {
     expect(stored[1].versesCited).toEqual(["John 3:16"]);
   });
 
-  it("saveFullConversation persists follow_ups on assistant messages (BITB-251)", async () => {
+  it("saveFullConversation persists follow_ups on assistant messages (BITB-254)", async () => {
     await saveFullConversation("f", "T", [
       { role: "user", content: "q" },
       { role: "assistant", content: "a", follow_ups: ["One?", "Two?"] },
@@ -93,7 +93,7 @@ describe("conversationStore", () => {
     expect(stored[1].follow_ups).toEqual(["One?", "Two?"]);
   });
 
-  it("storedToChatMessage keeps follow_ups through a save/restore round trip (BITB-251)", async () => {
+  it("storedToChatMessage keeps follow_ups through a save/restore round trip (BITB-254)", async () => {
     await saveFullConversation("r", "T", [
       { role: "user", content: "q", versesCited: [] },
       {

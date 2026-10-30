@@ -1,4 +1,4 @@
-# BITB-251: Follow-Up Chips Stop Appearing After a Few Turns (Web + Android)
+# BITB-254: Follow-Up Chips Stop Appearing After a Few Turns (Web + Android)
 
 **Status:** 🚧 In Progress
 **Priority:** P1

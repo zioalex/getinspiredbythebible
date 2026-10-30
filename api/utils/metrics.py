@@ -102,7 +102,7 @@ chat_cultural_tone_applied_counter = meter.create_counter(
     unit="1",
 )  # attributes: language, intent
 
-# BITB-251: turns where suggested follow-ups were enabled but none were sent.
+# BITB-254: turns where suggested follow-ups were enabled but none were sent.
 # `reason` separates a model that omitted the trailer (no_trailer), one whose
 # trailer had <2 valid suggestions (too_few_valid) and the verse-fabrication
 # filter emptying the list (fabrication_filter); `history_turns` is a bucket

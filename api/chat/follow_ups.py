@@ -81,7 +81,7 @@ def split_follow_ups(text: str) -> tuple[str, list[str]]:
 def sanitize_follow_ups(candidates: Iterable[str]) -> list[str]:
     """Clean, casefold-dedupe and cap candidate suggestions; ``[]`` if fewer than 2 survive.
 
-    Shared by ``split_follow_ups`` (model output) and the BITB-251 history echo
+    Shared by ``split_follow_ups`` (model output) and the BITB-254 history echo
     (untrusted client input), so both obey identical rules and a client can never
     smuggle ``-->`` or markup into the prompt.
     """
@@ -107,5 +107,5 @@ def sanitize_follow_ups(candidates: Iterable[str]) -> list[str]:
 
 
 def format_follow_ups_trailer(suggestions: list[str]) -> str:
-    """Render *suggestions* as the ``<!-- FOLLOWUPS: a|b|c -->`` trailer (BITB-251)."""
+    """Render *suggestions* as the ``<!-- FOLLOWUPS: a|b|c -->`` trailer (BITB-254)."""
     return f"<!-- FOLLOWUPS: {'|'.join(suggestions)} -->"

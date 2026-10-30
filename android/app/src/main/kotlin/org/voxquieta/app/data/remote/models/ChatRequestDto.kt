@@ -17,6 +17,6 @@ data class ChatRequestDto(
 data class ConversationMessageDto(
     @SerialName("role") val role: String,
     @SerialName("content") val content: String,
-    /** BITB-251: chips shown under an assistant message; omitted when null (encodeDefaults=false). */
+    /** BITB-254: chips shown under an assistant message; omitted when null (encodeDefaults=false). */
     @SerialName("follow_ups") val followUps: List<String>? = null,
 )

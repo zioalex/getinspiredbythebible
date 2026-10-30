@@ -104,7 +104,7 @@ class ConversationMessage(BaseModel):
 
     role: str  # 'user' or 'assistant'
     content: str
-    # BITB-251: the chips shown under this assistant message, echoed back by the
+    # BITB-254: the chips shown under this assistant message, echoed back by the
     # client so the server can re-attach the FOLLOWUPS trailer to history. Untrusted
     # input -- re-sanitized in _build_messages. Optional: old clients omit it.
     follow_ups: list[str] | None = None
@@ -849,7 +849,7 @@ Keep it under 120 words."""
 
     @staticmethod
     def _history_content(msg: ConversationMessage, follow_ups_enabled: bool) -> str:
-        """BITB-251: LLM-facing content of one history message.
+        """BITB-254: LLM-facing content of one history message.
 
         When follow-ups are on for this turn, an assistant message that had chips gets
         its FOLLOWUPS trailer re-attached (sanitized -- the echo is untrusted client
@@ -864,7 +864,7 @@ Keep it under 120 words."""
 
     @staticmethod
     def _history_cited_refs(history: list[ConversationMessage]) -> set[str]:
-        """BITB-251: verse refs in the history window ``_build_messages`` actually sends.
+        """BITB-254: verse refs in the history window ``_build_messages`` actually sends.
 
         A follow-up question in a longer conversation often points at a verse
         discussed a turn or two earlier; that is not a fabrication.
@@ -884,7 +884,7 @@ Keep it under 120 words."""
         language: str,
         history: list[ConversationMessage],
     ) -> None:
-        """BITB-251: count a turn where follow-ups were enabled but none were sent."""
+        """BITB-254: count a turn where follow-ups were enabled but none were sent."""
         if not enabled or follow_ups:
             return
         if candidates:
