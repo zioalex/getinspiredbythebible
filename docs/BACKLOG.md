@@ -37,10 +37,12 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-27: BITB-223 fix — first apply failed: `verse_grounding_paraphrase_brackets` look-back 72h > Azure's 48h cap; gate moved to 2+ hot hourly bins/day (1-of-1 periods) + look-back regression test (PR pending)
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
+- 2026-10-27: BITB-243 renumbered from BITB-241 — that ID was claimed two days earlier by open PR #1203 (web read-aloud, Linux Firefox); content unchanged (PR #1215)
 - 2026-10-27: BITB-235 in review — story-ID duplicate-claim CI check added (PR #1221)
 - 2026-10-27: BITB-235 in progress — ID-allocation rule codified in AGENTS.md (origin/main + every open PR's story files, claim = open PR, first-claimant keeps on collision); BITB-241 double-claim resolved: #1203 keeps 241, #1215 renumbered to 243; CI duplicate-ID check still open (PR #1220)
 - 2026-10-26: BITB-242 created — platform-selective feature flags: server-driven per-platform (web/android) flag registry on GET /config, explicit per-flag fail policies, parity fixture, follow-ups pilot (PR #1220)
 - 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
+- 2026-10-26: BITB-243 opened — fast pre-commit commit stage (slow hooks moved to pre-push) (PR #1215)
 - 2026-10-25: BITB-182 done — KubeOpenCode controller RBAC missing (leader election + CRD access); agents not starting (PR #1204)
 - 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
 - 2026-10-24: BITB-241 in progress — web read aloud stuck on Pause with no audio on Linux Firefox: no idle cancel, start watchdog with retry and notice (PR #1203)
@@ -283,6 +285,22 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-243: Fast Pre-commit Commit Stage (Slow Hooks → pre-push)
+
+**Status:** 🚧 In Progress · **Size:** M · **Opened:** 2026-10-26
+
+Every `git commit` waits on ~16 hooks (MyPy, Bandit, hadolint, Prettier ×2,
+yamllint, ESLint, shellcheck, markdownlint, detect-secrets) that already run
+in CI on every PR. Move the slow ones to the `pre-push` stage so commits are
+seconds-fast; CI and `make pre-commit` behavior unchanged.
+
+**Acceptance:** same hook set in `--all-files`, `install-hooks` installs the
+pre-push hook type, docs updated, timing before/after in the PR description.
+
+Full story: [`BITB-243-fast-commit-hooks.md`](BACKLOG_STORIES/BITB-243-fast-commit-hooks.md)
+
+---
 
 ### 🔄 BITB-244: Bible Version / Language Selects Overflow the Mobile Menu
 
