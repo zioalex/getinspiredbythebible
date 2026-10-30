@@ -31,6 +31,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-27: BITB-223 fix — first apply failed: `verse_grounding_paraphrase_brackets` look-back 72h > Azure's 48h cap; gate moved to 2+ hot hourly bins/day (1-of-1 periods) + look-back regression test (PR pending)
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
+- 2026-10-27: BITB-235 in review — story-ID duplicate-claim CI check added (PR #1221)
 - 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
 - 2026-10-25: BITB-182 done — KubeOpenCode controller RBAC missing (leader election + CRD access); agents not starting (PR #1204)
 - 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
@@ -3997,9 +3998,9 @@ non-`shrink-0` menu wrapper can overflow again. Pick a minimum width and guarant
 
 ---
 
-### 🎯 BITB-235: Story IDs Collide Between Concurrent PRs
+### 🔍 BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (PR #1221)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-10-23

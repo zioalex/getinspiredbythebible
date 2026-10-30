@@ -4,17 +4,28 @@
 
 Most workflows are path-filtered so they only run when relevant files change:
 
-| Workflow           | Runs when these paths change                                                    |
-| ------------------ | ------------------------------------------------------------------------------- |
-| `android-ci.yml`   | `android/**`, the workflow file itself                                          |
-| `azure-deploy.yml` | `api/**`, `frontend/**`, `scripts/**`, `deployment/**`, the workflow file       |
-| `test_update.yml`  | `api/**`, `frontend/**`, `docker-compose*.yml`, `scripts/**`, the workflow file |
-| `pre-commit.yml`   | every PR (lints docs, configs, and code)                                        |
-| `commitlint.yml`   | every PR (lints commit messages)                                                |
+| Workflow             | Runs when these paths change                                                      |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `android-ci.yml`     | `android/**`, the workflow file itself                                            |
+| `azure-deploy.yml`   | `api/**`, `frontend/**`, `scripts/**`, `deployment/**`, the workflow file        |
+| `test_update.yml`    | `api/**`, `frontend/**`, `docker-compose*.yml`, `scripts/**`, the workflow file  |
+| `pre-commit.yml`     | every PR (lints docs, configs, and code)                                          |
+| `commitlint.yml`     | every PR (lints commit messages)                                                  |
+| `story-id-check.yml` | `docs/BACKLOG_STORIES/**`, `scripts/check_story_ids.py`, the workflow file        |
 
 A PR that changes **only** files under `docs/` (e.g. a backlog story) will skip
-`android-ci.yml`, `azure-deploy.yml`, and `test_update.yml`. Only
-`pre-commit.yml` and `commitlint.yml` will run.
+`android-ci.yml`, `azure-deploy.yml`, and `test_update.yml`. Only `pre-commit.yml`,
+`commitlint.yml`, and — when it touches `docs/BACKLOG_STORIES/` — `story-id-check.yml`
+will run.
+
+### Story-ID duplicate-claim check (BITB-235)
+
+`story-id-check.yml` fails a PR that adds a `docs/BACKLOG_STORIES/BITB-NNN-*.md`
+file whose number is already claimed on the base branch or added by another open
+PR against the same base. Deleting the old story file in the same PR releases its
+claim (renumbers are fine); adding two files with one number in a single PR is not.
+When it fails, renumber this PR's story per `AGENTS.md` -> *Backlog Hygiene*: the
+first claimant keeps the ID, the later PR renumbers before merging.
 
 ### Branch-protection and skipped checks
 
