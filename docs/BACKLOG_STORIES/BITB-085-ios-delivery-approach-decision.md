@@ -152,6 +152,9 @@ The remaining rows below are maintainer-owned Apple/account items and stay open:
       WKWebView can obtain a token against the production site key before committing to a native
       client** — if it cannot, every POST endpoint is unreachable and the whole plan changes.
       **Owner:** Maintainer. **Target:** 2026-09-12.
+      *(2026-10-30)* Cloudflare's official docs support exactly this WebView pattern — see
+      *Official vendor documentation* in `docs/ios/turnstile-wkwebview-probe.md`; the probe run
+      itself is still required.
 - [ ] **Donation-link decision recorded.** BITB-074 plans an in-app "Support us" link to Ko-fi.
       Apple treats donations far more restrictively than Google Play's carve-out that BITB-074
       relies on (Guideline 3.2.1(vi) limits donation collection to approved nonprofit
