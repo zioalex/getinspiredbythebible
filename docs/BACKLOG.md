@@ -38,6 +38,8 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-27: BITB-245 in review — pin the chat composer to the bottom on mobile; footer links and Get in Touch move to the main menu (#1224, PR #1225)
 - 2026-10-27: BITB-244 in review — Bible version and language selects no longer overflow the mobile menu (#1223, PR #1225)
 - 2026-10-27: BITB-235 in review — story-ID duplicate-claim CI check added (PR #1221)
+- 2026-10-27: BITB-235 in progress — ID-allocation rule codified in AGENTS.md (origin/main + every open PR's story files, claim = open PR, first-claimant keeps on collision); BITB-241 double-claim resolved: #1203 keeps 241, #1215 renumbered to 243; CI duplicate-ID check still open (PR #1220)
+- 2026-10-26: BITB-242 created — platform-selective feature flags: server-driven per-platform (web/android) flag registry on GET /config, explicit per-flag fail policies, parity fixture, follow-ups pilot (PR #1220)
 - 2026-10-26: BITB-223 in progress — alert-rule rationalization: 4 redundant rules removed, 7 demoted (PT1H/P1D/PT15M), 2 noisy rules recalibrated with sustained-window gating; matrix finalized for all 32 rules (PR pending)
 - 2026-10-25: BITB-182 done — KubeOpenCode controller RBAC missing (leader election + CRD access); agents not starting (PR #1204)
 - 2026-10-24: BITB-241 renumbered from 238 — that ID was taken on main by PR #1199 (stage-1 English "kill yourself" patterns); content unchanged (PR #1203)
@@ -3229,6 +3231,46 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-242: Platform-Selective Feature Flags — Server-Driven Per-Platform (Web/Android) Flag Registry
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M (cross-cutting: api + frontend + android + deployment)
+**Created:** 2026-10-26
+
+No way exists to enable a client-facing feature on Web but not Android (or vice versa):
+backend flags (`api/config.py`) are global for all clients, web flags
+(`frontend/src/lib/featureFlags.ts`, `NEXT_PUBLIC_*`) are build-time (flip = rebuild),
+and Android has only compile-time `BuildConfig` fields plus one runtime server flag
+(`features.tts_enabled`, BITB-119). The live case is BITB-080 follow-up chips (PR #1216,
+web-only behind a build-arg) whose contract parks Android behind "its own default-off
+flag" — a fourth ad-hoc mechanism. Fix: generalize the proven `GET /config` pattern into
+a declarative client-flag registry with per-platform maps (`features.web` / `features.android`),
+explicit per-flag fail policies (today folklore: tts fails open, follow-ups fail closed),
+and a shared parity fixture on the verse-grammar model so a server flag without its client
+legs fails CI. Flip = Terraform apply → next `/config` fetch — no web rebuild, no Play
+release. `GET /config` stays additive-only (shipped APKs read it for months; legacy flat
+`features.tts_enabled` untouched). Pilot: follow-ups (generation stays behind global
+`chat_follow_ups_enabled`; rendering becomes per-platform).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Registry (single source of truth) drives `/config` `features.web`/`features.android`;
+      legacy `features.tts_enabled` bit-identical (contract test)
+- [ ] Every flag declares fail policy; shared fixture + generated web artifact + Android
+      parity test + api fixture test (verse-grammar model)
+- [ ] Web `featureEnabled(key)`: server map authoritative, `NEXT_PUBLIC_FOLLOW_UPS_ENABLED`
+      demoted to compiled fallback; unreachable-config case tested
+- [ ] Android `FeatureFlags` holder from `ConfigResponseDto`: offline-safe compiled
+      defaults, unknown/missing keys tolerated
+- [ ] Pilot: follow-up chips resolve per-platform; Android runtime-controllable, no APK release
+- [ ] Old-shaped and future-shaped `/config` both parse on all three clients
+- [ ] Terraform vars + `env-manifest.yaml` rows per flag × platform; flags are public booleans only
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-242-platform-selective-feature-flags.md`
+
+---
+
 ### 🎯 BITB-237: Free-Fleet Expansion — Pre-Gate Verifier for Nemotron, Family-Matched Tier-1 Failovers
 
 **Status:** 🎯 Todo (blocked by PR #1202 merge — same files)
@@ -3978,14 +4020,20 @@ non-`shrink-0` menu wrapper can overflow again. Pick a minimum width and guarant
 
 ### 🔍 BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status:** 🔍 In Review (PR #1221)
+**Status:** 🔍 In Review (allocation rule: PR #1220; CI check: PR #1221)
 **Priority:** P3
 **Size:** S
 **Created:** 2026-10-23
 
 Follow-up of BITB-218/219: "highest ID + 1" only sees `main`, so concurrent PRs pick the same number
 (the header story went 206 → 212 → 213 → 219; this story itself went 223 → 235; #1195 merged titled
-with a stale ID that the 1.58.0 changelog repeats). Add a CI check or reservation rule.
+with a stale ID that the 1.58.0 changelog repeats). **Struck again 2026-10-26:** open PRs #1203
+and #1215 both claimed BITB-241 — the rule still said "check the highest number" without saying
+to look at open PRs; resolved 2026-10-27 (#1203 keeps 241, #1215 renumbered to 243). The
+allocation rule now lives in `AGENTS.md` Backlog Hygiene: highest across `origin/main` **and
+every open PR's story files**, **claim = the open PR**, first-claimant keeps on collision,
+renumber before merge. Remaining: the CI check that fails a PR adding a story file whose ID is
+already claimed on the base or by another open PR.
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-235-story-id-collisions.md`
 
