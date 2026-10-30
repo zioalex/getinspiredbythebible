@@ -1,6 +1,6 @@
 # BITB-249: Read Aloud Stops After the First Chunk on iPhone (Web)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-27
@@ -36,10 +36,10 @@ Follow-up to BITB-205 / BITB-241.
 
 ## Acceptance criteria
 
-- [ ] Only one utterance is queued at a time; the next chunk is spoken from the previous chunk's
+- [x] Only one utterance is queued at a time; the next chunk is spoken from the previous chunk's
       `onend`, and all chunks are read in order (Vitest)
-- [ ] Utterances are referenced from the current call while it is active
-- [ ] Pause/resume (native and fallback), stop, switching answers and the start watchdog tests stay
+- [x] Utterances are referenced from the current call while it is active
+- [x] Pause/resume (native and fallback), stop, switching answers and the start watchdog tests stay
       green; added tests for stop or pause between two chunks
 - [ ] Owner check on iPhone (Firefox and Safari): the whole answer is read
 
