@@ -33,6 +33,7 @@ fun Message.toConversationMessageDto(): ConversationMessageDto = ConversationMes
         Message.Role.ASSISTANT -> "assistant"
     },
     content = content,
+    followUps = if (role == Message.Role.ASSISTANT) followUps.takeIf { it.isNotEmpty() } else null,
 )
 
 fun ChatResponseDto.toDomain(): ChatResponse = ChatResponse(

@@ -42,6 +42,7 @@ from utils.metrics import (
     chat_clarification_requested_counter,
     chat_crisis_card_shown_counter,
     chat_cultural_tone_applied_counter,
+    chat_follow_ups_suppressed_counter,
     chat_scripture_unavailable_counter,
     chat_verseless_responses_counter,
     scripture_pipeline_errors_counter,
@@ -61,7 +62,7 @@ from utils.verse_parser import (
     parse_structured_citations,
 )
 
-from .follow_ups import split_follow_ups
+from .follow_ups import format_follow_ups_trailer, sanitize_follow_ups, split_follow_ups
 from .prompts import (
     CLARIFICATION_PROMPT,
     FOLLOW_UP_SUGGESTIONS_GUIDANCE,
@@ -112,6 +113,10 @@ class ConversationMessage(BaseModel):
 
     role: str  # 'user' or 'assistant'
     content: str
+    # BITB-254: the chips shown under this assistant message, echoed back by the
+    # client so the server can re-attach the FOLLOWUPS trailer to history. Untrusted
+    # input -- re-sanitized in _build_messages. Optional: old clients omit it.
+    follow_ups: list[str] | None = None
 
 
 class ChatRequest(BaseModel):
@@ -760,8 +765,17 @@ Keep it under 120 words."""
         message += self._crisis_fallback_suffix(crisis, effective_language, request)
 
         cited_set = {str(ref) for ref in extract_all_references(message)}
+        cited_set |= self._history_cited_refs(request.conversation_history)
         follow_ups = self._filter_fabricated_follow_ups(
             follow_up_candidates, cited_set, safety.compassionate
+        )
+        self._record_follow_ups_outcome(
+            enabled=self._wants_follow_ups(safety.compassionate),
+            trailer_present=body != response.content,
+            candidates=follow_up_candidates,
+            follow_ups=follow_ups,
+            language=effective_language,
+            history=request.conversation_history,
         )
 
         # AC2 (BITB-055): emit the same silent-degradation SLI as the streaming
@@ -948,6 +962,58 @@ Keep it under 120 words."""
             if all(str(ref) in cited_refs for ref in extract_all_references(s))
         ]
         return follow_ups if len(follow_ups) >= 2 else []
+
+    @staticmethod
+    def _history_content(msg: ConversationMessage, follow_ups_enabled: bool) -> str:
+        """BITB-254: LLM-facing content of one history message.
+
+        When follow-ups are on for this turn, an assistant message that had chips gets
+        its FOLLOWUPS trailer re-attached (sanitized -- the echo is untrusted client
+        input) so the model sees the format it is asked to keep writing, rather than
+        imitating trailer-less history. Otherwise the content passes through unchanged.
+        """
+        if follow_ups_enabled and msg.role == "assistant" and msg.follow_ups:
+            echoed = sanitize_follow_ups(msg.follow_ups)
+            if echoed:
+                return f"{msg.content}\n\n{format_follow_ups_trailer(echoed)}"
+        return msg.content
+
+    @staticmethod
+    def _history_cited_refs(history: list[ConversationMessage]) -> set[str]:
+        """BITB-254: verse refs in the history window ``_build_messages`` actually sends.
+
+        A follow-up question in a longer conversation often points at a verse
+        discussed a turn or two earlier; that is not a fabrication.
+        """
+        refs: set[str] = set()
+        for msg in history[-settings.max_conversation_history :]:
+            refs.update(str(ref) for ref in extract_all_references(msg.content))
+        return refs
+
+    @staticmethod
+    def _record_follow_ups_outcome(
+        *,
+        enabled: bool,
+        trailer_present: bool,
+        candidates: list[str],
+        follow_ups: list[str],
+        language: str,
+        history: list[ConversationMessage],
+    ) -> None:
+        """BITB-254: count a turn where follow-ups were enabled but none were sent."""
+        if not enabled or follow_ups:
+            return
+        if candidates:
+            reason = "fabrication_filter"
+        elif trailer_present:
+            reason = "too_few_valid"
+        else:
+            reason = "no_trailer"
+        turns = len(history[-settings.max_conversation_history :])
+        bucket = "0" if turns == 0 else "1-2" if turns <= 2 else "3-5" if turns <= 5 else "6+"
+        chat_follow_ups_suppressed_counter.add(
+            1, {"reason": reason, "language": language, "history_turns": bucket}
+        )
 
     async def _handle_needs_clarification(
         self,
@@ -1913,7 +1979,17 @@ Keep it under 120 words."""
         # post-grounding set) -- a fabricated reference in a suggestion is exactly
         # as unacceptable as one in the answer body itself.
         follow_ups = self._filter_fabricated_follow_ups(
-            follow_up_candidates, set(verses_cited), safety.compassionate
+            follow_up_candidates,
+            set(verses_cited) | self._history_cited_refs(request.conversation_history),
+            safety.compassionate,
+        )
+        self._record_follow_ups_outcome(
+            enabled=self._wants_follow_ups(safety.compassionate),
+            trailer_present=trailer_stripped,
+            candidates=follow_up_candidates,
+            follow_ups=follow_ups,
+            language=effective_language,
+            history=request.conversation_history,
         )
         if follow_ups:
             completion["follow_ups"] = follow_ups
@@ -2019,7 +2095,8 @@ Keep it under 120 words."""
         # Add conversation history (limited to max)
         recent_history = history[-settings.max_conversation_history :]
         for msg in recent_history:
-            messages.append(ChatMessage(role=msg.role, content=msg.content))
+            content = self._history_content(msg, follow_ups_enabled)
+            messages.append(ChatMessage(role=msg.role, content=content))
 
         # Add current user message
         messages.append(ChatMessage(role="user", content=user_message))

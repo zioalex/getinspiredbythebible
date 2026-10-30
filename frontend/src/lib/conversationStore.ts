@@ -42,7 +42,31 @@ export interface StoredMessage {
    * export/import because those operate on whole StoredMessage rows.
    */
   crisisResources?: CrisisResources;
+  /** BITB-254: chips shown under an assistant message, echoed back to the API as history. */
+  follow_ups?: string[];
   createdAt: number;
+}
+
+/**
+ * Rebuild the in-memory chat message from a stored one. Shared by every restore
+ * path (resume-latest on mount and opening a past conversation) so none of them
+ * drops a field -- BITB-254: losing `follow_ups` here stops the echo-back and the
+ * next autosave would overwrite the stored chips.
+ */
+export function storedToChatMessage(m: StoredMessage): {
+  role: "user" | "assistant";
+  content: string;
+  versesCited: string[];
+  follow_ups?: string[];
+  crisisResources?: CrisisResources;
+} {
+  return {
+    role: m.role,
+    content: m.content,
+    versesCited: m.versesCited,
+    ...(m.follow_ups?.length ? { follow_ups: m.follow_ups } : {}),
+    ...(m.crisisResources ? { crisisResources: m.crisisResources } : {}),
+  };
 }
 
 /** Portable snapshot used by export/import (before encryption). */
@@ -341,6 +365,7 @@ export async function saveFullConversation(
     content: string;
     versesCited?: string[];
     crisisResources?: CrisisResources;
+    follow_ups?: string[];
   }>,
 ): Promise<void> {
   try {
@@ -380,6 +405,7 @@ export async function saveFullConversation(
         content: m.content,
         versesCited: m.versesCited ?? [],
         ...(m.crisisResources ? { crisisResources: m.crisisResources } : {}),
+        ...(m.follow_ups?.length ? { follow_ups: m.follow_ups } : {}),
         createdAt: now + i,
       });
     });

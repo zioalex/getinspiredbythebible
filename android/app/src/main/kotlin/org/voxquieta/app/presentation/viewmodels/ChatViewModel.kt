@@ -740,6 +740,7 @@ class ChatViewModel @Inject constructor(
             var accumulatedContent = ""
             var finalVerses: List<Verse> = emptyList()
             var finalVersesCited: List<String> = emptyList()
+            var finalFollowUps: List<String> = emptyList()
             var finalResolvedVerses: List<Verse> = emptyList()
             var didError = false
             var metadataMessageId = ""
@@ -822,6 +823,7 @@ class ChatViewModel @Inject constructor(
                             messageId = metadataMessageId,
                             versesCited = finalVersesCited,
                             crisisResources = crisisResources,
+                            followUps = finalFollowUps,
                         )
                         // Use NonCancellable so that DB writes and the isLoading reset always
                         // complete even when the coroutine was cancelled by the Stop button.
@@ -965,6 +967,12 @@ class ChatViewModel @Inject constructor(
                         // Gated by the default-off rollout flag (BITB-080): when the
                         // flag is off Android ignores the field entirely — no chips,
                         // no crash, no empty row (the existing degrade-silently contract).
+                        // BITB-254: keep them on the assistant message regardless of the
+                        // flag -- they are echoed back in conversation_history so the
+                        // model keeps writing the trailer, even when chips are hidden.
+                        if (chunk.followUps.isNotEmpty()) {
+                            finalFollowUps = chunk.followUps
+                        }
                         if (followUpsEnabled && chunk.followUps.isNotEmpty()) {
                             _uiState.update { state -> state.copy(followUps = chunk.followUps) }
                         }

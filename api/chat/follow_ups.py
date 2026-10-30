@@ -12,6 +12,7 @@ trivially testable, mirroring verse_grounding.py's shape.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 
 # Matches every FOLLOWUPS trailer in the text (DOTALL so a suggestion
 # containing a stray newline doesn't truncate the match), defensively -- the
@@ -29,7 +30,7 @@ _MAX_FOLLOW_UP_LEN = 120
 # A raw markdown/HTML fragment slipping into a suggestion (the model echoing
 # its own formatting) would render literally inside a plain chip button, so
 # any suggestion containing one of these is dropped rather than sanitized.
-_MARKUP_PATTERN = re.compile(r"[<>]|\*\*|__|`")
+_MARKUP_PATTERN = re.compile(r"[<>|｜]|\*\*|__|`")
 
 # Leading list markers ("- ", "1. ", "* ") the model sometimes adds despite
 # the "|"-separated instruction.
@@ -74,9 +75,21 @@ def split_follow_ups(text: str) -> tuple[str, list[str]]:
     payload = matches[0].group(1)
     parts = re.split(r"[|｜]", payload) if re.search(r"[|｜]", payload) else payload.splitlines()
 
+    return body, sanitize_follow_ups(parts)
+
+
+def sanitize_follow_ups(candidates: Iterable[str]) -> list[str]:
+    """Clean, casefold-dedupe and cap candidate suggestions; ``[]`` if fewer than 2 survive.
+
+    Shared by ``split_follow_ups`` (model output) and the BITB-254 history echo
+    (untrusted client input), so both obey identical rules and a client can never
+    smuggle ``-->`` or markup into the prompt.
+    """
     seen: set[str] = set()
     suggestions: list[str] = []
-    for part in parts:
+    for part in candidates:
+        if not isinstance(part, str):
+            continue
         cleaned = _clean_suggestion(part)
         if cleaned is None:
             continue
@@ -89,5 +102,10 @@ def split_follow_ups(text: str) -> tuple[str, list[str]]:
             break
 
     if len(suggestions) < 2:
-        return body, []
-    return body, suggestions
+        return []
+    return suggestions
+
+
+def format_follow_ups_trailer(suggestions: list[str]) -> str:
+    """Render *suggestions* as the ``<!-- FOLLOWUPS: a|b|c -->`` trailer (BITB-254)."""
+    return f"<!-- FOLLOWUPS: {'|'.join(suggestions)} -->"

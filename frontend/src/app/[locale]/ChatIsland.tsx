@@ -14,6 +14,7 @@ import {
   Smartphone,
   ArrowRight,
 } from "lucide-react";
+import Image from "next/image";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import ChatFooterLinks from "@/components/ChatFooterLinks";
@@ -76,6 +77,7 @@ import ConversationSidebar from "@/components/ConversationSidebar";
 import {
   listConversations,
   getMessages,
+  storedToChatMessage,
   saveFullConversation,
 } from "@/lib/conversationStore";
 import {
@@ -91,6 +93,9 @@ interface ChatMessage {
   messageId?: string; // Only present for assistant messages
   userMessage?: string; // User message that prompted this response
   versesCited?: string[];
+  // BITB-254: the chips shown under this assistant message. Persisted and sent
+  // back in conversation_history so the model sees its own earlier trailers.
+  follow_ups?: string[];
   // Live-render-only (BITB-109): deliberately not persisted to conversation
   // history/storage, so a restored conversation falls back to the regex
   // linkifier — correct, since offsets are only valid for the response that
@@ -335,14 +340,7 @@ export default function ChatIsland({
         const latest = list[0];
         const stored = await getMessages(latest.id);
         if (cancelled || stored.length === 0) return;
-        setMessages(
-          stored.map((m) => ({
-            role: m.role,
-            content: m.content,
-            versesCited: m.versesCited,
-            crisisResources: m.crisisResources,
-          })),
-        );
+        setMessages(stored.map(storedToChatMessage));
         setConversationId(latest.id);
       } catch {
         // No usable local history: start fresh.
@@ -369,6 +367,7 @@ export default function ChatIsland({
         content: m.content,
         versesCited: m.versesCited,
         crisisResources: m.crisisResources,
+        follow_ups: m.follow_ups,
       })),
     ).then(() => setHistoryRefresh((n) => n + 1));
   }, [messages, isLoading, conversationId]);
@@ -545,6 +544,9 @@ export default function ChatIsland({
       const apiMessages: Message[] = messages.map((m) => ({
         role: m.role,
         content: m.content,
+        ...(m.role === "assistant" && m.follow_ups?.length
+          ? { follow_ups: m.follow_ups }
+          : {}),
       }));
 
       // Streaming metadata and content
@@ -708,7 +710,19 @@ export default function ChatIsland({
           // BITB-080: absent when suppressed (crisis/off-topic/error turns) or
           // on an older backend -- render nothing rather than an empty row.
           if (chunk.follow_ups?.length) {
-            setFollowUps(chunk.follow_ups);
+            const turnFollowUps = chunk.follow_ups;
+            setFollowUps(turnFollowUps);
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  follow_ups: turnFollowUps,
+                };
+              }
+              return updated;
+            });
           }
           if (chunk.citations) {
             setMessages((prev) => {
@@ -939,14 +953,7 @@ export default function ChatIsland({
     setMobileVersesOpen(false);
     setShowSessionLimitButton(false);
     setConversationId(id);
-    setMessages(
-      stored.map((m) => ({
-        role: m.role,
-        content: m.content,
-        versesCited: m.versesCited,
-        crisisResources: m.crisisResources,
-      })),
-    );
+    setMessages(stored.map(storedToChatMessage));
   };
 
   // BITB-118: the non-destructive default for a session-limit hit. Rotates
@@ -1222,7 +1229,7 @@ export default function ChatIsland({
                 href="/app"
                 className="group mt-8 flex items-center gap-3 sm:gap-4 max-w-lg mx-auto px-4 py-3 sm:px-5 sm:py-4 bg-teal-50 border border-teal-200 rounded-xl hover:border-teal-400 hover:bg-teal-100/70 transition-colors text-left"
               >
-                <img
+                <Image
                   src="/app-icon.png"
                   alt={tWelcome("appTitle")}
                   width={40}
