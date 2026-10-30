@@ -39,6 +39,7 @@ echo -e "${GREEN}✓ Pre-commit installed${NC}"
 echo -e "${BLUE}Installing git hooks...${NC}"
 pre-commit install
 pre-commit install --hook-type commit-msg
+pre-commit install --hook-type pre-push
 echo -e "${GREEN}✓ Git hooks installed${NC}"
 
 # Install additional Python tools

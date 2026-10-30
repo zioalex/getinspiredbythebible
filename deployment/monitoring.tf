@@ -119,8 +119,10 @@
 #     gap #5). Sustained-window gating preferred over time-of-day suppression —
 #     deploy windows vary.
 #   - content_safety_fallback_rate — 30 minutes sustained (see above).
-#   - backend_probe_failures — left unchanged: its fate is decided by BITB-224
-#     (its input, the availability web tests, is currently disabled).
+#   - backend_probe_failures — kept (BITB-224): it reads ContainerAppSystemLogs_CL
+#     ReplicaUnhealthy, not the availability web tests. The two web-test metric alerts
+#     (backend_availability, backend_preflight_availability) only fire while the web
+#     test is Enabled; that is guarded by prod-deploy-drift.yml `webtests-enabled`.
 #   - rate_limiter_fail_closed — untouched security fail-closed insurance (BITB-061).
 #
 # NOT added here: a db.connections.active pool-saturation alert. That metric

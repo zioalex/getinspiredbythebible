@@ -159,6 +159,19 @@ On a normal laptop or CI runner (no `/opt/pre-commit-seed`), `pre-commit`
 falls back to its own default cache location and behaves exactly as it did
 before this image existed.
 
+**Stage renames vs rev bumps (BITB-243):** pre-commit ≥3.2 renamed the
+`commit`/`push` stages to `pre-commit`/`pre-push`; renaming `stages:` entries
+in `.pre-commit-config.yaml` does **not** touch the hook envs -- `install-hooks`
+builds the identical set either way, so a seed baked from the old names stays
+valid. A **rev bump** is different: the seed is baked from the config *at
+image build time*, so when a hook repo's pin moves (pre-commit-hooks
+`v4.5.0` → `v6.0.0`, whose old tag's manifest still carried the deprecated
+`commit`/`push` names and tripped pre-commit's deprecation warning), the
+baked env for that one repo is stale against the new pin until the image is
+rebuilt (`kubeopencode-dev-image.yml` triggers on `.pre-commit-config.yaml`
+changes). Until then, the first `install-hooks` in a pod re-initializes just
+that repo (one network fetch); the other hook envs stay cache hits.
+
 **What's still not fully offline:** `make pre-commit` depends on
 `install-hooks` (see `Makefile`), which runs `pip install -q pre-commit`
 into `.venv` -- an unpinned install from PyPI, separate from this image's own

@@ -826,6 +826,60 @@ describe("Home page responsive layout", () => {
       ).not.toBeInTheDocument();
     });
 
+    // BITB-254: the server restores the FOLLOWUPS trailer on earlier turns from
+    // the chips echoed back in conversation_history.
+    async function runTwoTurnsAndGetSecondHistory() {
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        yield { type: "content" as const, content: "First answer." };
+        yield {
+          type: "completion" as const,
+          verses_cited: [],
+          follow_ups: ["What next?", "Tell me more about this"],
+        };
+      });
+      vi.mocked(api.streamMessage).mockImplementationOnce(async function* () {
+        yield { type: "content" as const, content: "Second answer." };
+        yield { type: "completion" as const, verses_cited: [] };
+      });
+
+      renderWithIntl(<Home />);
+      await submit("First question");
+      await waitFor(() => {
+        expect(screen.getByText("First answer.")).toBeInTheDocument();
+      });
+      await submit("Second question");
+      await waitFor(() => {
+        expect(screen.getByText("Second answer.")).toBeInTheDocument();
+      });
+      return vi.mocked(api.streamMessage).mock.calls.at(-1)![1];
+    }
+
+    it("echoes the previous turn's follow_ups in the next request's history (BITB-254)", async () => {
+      const history = await runTwoTurnsAndGetSecondHistory();
+      expect(history).toEqual([
+        { role: "user", content: "First question" },
+        {
+          role: "assistant",
+          content: "First answer.",
+          follow_ups: ["What next?", "Tell me more about this"],
+        },
+      ]);
+    });
+
+    it("still echoes follow_ups in history when the chip flag is off (BITB-254)", async () => {
+      delete process.env[flagKey];
+      try {
+        const history = await runTwoTurnsAndGetSecondHistory();
+        expect(history[1]).toEqual({
+          role: "assistant",
+          content: "First answer.",
+          follow_ups: ["What next?", "Tell me more about this"],
+        });
+      } finally {
+        process.env[flagKey] = "true";
+      }
+    });
+
     it("hides chips when NEXT_PUBLIC_FOLLOW_UPS_ENABLED is unset (flag off)", async () => {
       delete process.env[flagKey];
       try {

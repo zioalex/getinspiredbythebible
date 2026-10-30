@@ -24,6 +24,17 @@ satisfy it. Do not mark native SwiftUI committed until every pass criterion has 
 
 Full Android reference: `TurnstileInterceptor.kt:26-80` (single-use consume + 403-retry-once + fail-open), `TurnstileManager.kt` (token/reset/error flows), `TurnstileWebView.kt` (hidden WebView + `window.resetWidget()` + reload-with-backoff recovery).
 
+### Preliminary observation (2026-10-30)
+
+The maintainer verified **today** that the production Turnstile widget renders, solves,
+and its POSTs succeed end-to-end in **mobile Safari on their physical iPhone** (device
+model / iOS version TBD by maintainer). This is a **de-risking observation only — it
+does NOT satisfy this gate**: the gate specifically requires the widget running inside
+a `WKWebView` embedded in a native iOS app on a physical device. The in-app WKWebView
+probe below remains **REQUIRED and UNRUN**. A runnable probe package now exists at
+`tools/ios-probe/` (see its README) so the probe is pure execution on the maintainer's
+first Mac session; reading this observation does not replace running it.
+
 ## Result log (observations only)
 
 - [ ] **UNRUN** — no observed result. Record date, device model, iOS version, site-key environment,
