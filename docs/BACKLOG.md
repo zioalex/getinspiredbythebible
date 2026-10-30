@@ -20,6 +20,13 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-28: BITB-253 created — Integration Tests intermittently fail at "Load CI test data"; follow-up to BITB-250
+- 2026-10-28: BITB-252 created — Android read aloud stays on Pause when the TTS engine never starts; follow-up to BITB-247
+- 2026-10-28: BITB-251 created — read-aloud fallback voice (Azure Speech or Piper), decided from BITB-247 data; follow-up to BITB-247/248
+- 2026-10-28: BITB-250 done — cross-browser read-aloud e2e green on Chromium, Firefox, WebKit and Mobile Safari (#1226)
+- 2026-10-28: BITB-249 done — iPhone reads the whole answer: chunks spoken one at a time from onend (#1226)
+- 2026-10-28: BITB-248 done — Snap Firefox shows the "didn't respond" notice instead of a stuck Pause (#1226)
+- 2026-10-28: BITB-247 done — read-aloud telemetry funnel on web and Android, weekly report and workbook (#1226)
 - 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
 - 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
@@ -4329,9 +4336,9 @@ BITB-241 follow-up: the notice's absolute placement beside the sticky rail was o
 
 ---
 
-### 🚧 BITB-247: Read-Aloud Telemetry — Attempts, Completions and Failures (Web + Android)
+### ✅ BITB-247: Read-Aloud Telemetry — Attempts, Completions and Failures (Web + Android)
 
-**Status:** 🚧 In Progress (spec confirmed 2026-10-27)
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-27
@@ -4342,16 +4349,19 @@ report section, and the OTel counter feeds a workbook tile. This data decides on
 
 **Acceptance Criteria (summary):**
 
-- [ ] Endpoint, daily aggregate and migration; web and Android events; weekly report section and workbook tile
-- [ ] Privacy policy sentence in 11 locales; owner sees non-zero counts after deploy
+- [x] Endpoint, daily aggregate and migration; web and Android events; weekly report section and workbook tile
+- [x] Privacy policy sentence in 11 locales
+- [ ] Owner sees non-zero counts after deploy
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-247-tts-start-failed-telemetry.md`
+**Follow-ups:** BITB-251, BITB-252
+
+**Full Story:** `docs/DONE/BITB-247-tts-start-failed-telemetry.md`
 
 ---
 
-### 🚧 BITB-248: Web Read Aloud Still Stuck on Pause on Snap Firefox (Start Watchdog Trusted `speaking`)
+### ✅ BITB-248: Web Read Aloud Still Stuck on Pause on Snap Firefox (Start Watchdog Trusted `speaking`)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-27
@@ -4364,13 +4374,15 @@ The start watchdog took `speaking` as a start, so it never gave up. Only events 
 - [x] Regression test with the exact Snap Firefox signature
 - [ ] Owner check: the notice shows instead of a stuck Pause
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-248-start-watchdog-trusts-speaking-flag.md`
+**Follow-ups:** BITB-251
+
+**Full Story:** `docs/DONE/BITB-248-start-watchdog-trusts-speaking-flag.md`
 
 ---
 
-### 🚧 BITB-249: Read Aloud Stops After the First Chunk on iPhone (Web)
+### ✅ BITB-249: Read Aloud Stops After the First Chunk on iPhone (Web)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-27
@@ -4380,16 +4392,16 @@ utterances after the first, so only about two sentences were read. Fix: speak on
 
 **Acceptance Criteria (summary):**
 
-- [ ] Sequential chunk speaking with retained utterances; pause/resume/stop/watchdog unchanged
+- [x] Sequential chunk speaking with retained utterances; pause/resume/stop/watchdog unchanged
 - [ ] Owner check on iPhone Firefox and Safari
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-249-ios-read-aloud-stops-after-first-chunk.md`
+**Full Story:** `docs/DONE/BITB-249-ios-read-aloud-stops-after-first-chunk.md`
 
 ---
 
-### 🚧 BITB-250: Cross-Browser Read-Aloud E2E Tests with Browser-Quirk Engine Profiles (Web)
+### ✅ BITB-250: Cross-Browser Read-Aloud E2E Tests with Browser-Quirk Engine Profiles (Web)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-28
@@ -4400,10 +4412,65 @@ no voices), so read-aloud regressions fail CI before they ship.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Fake engine and profiles; the spec fails when BITB-248/249 fixes are reverted
-- [ ] Passes on all three engines; CI job on frontend PRs; README on adding profiles
+- [x] Fake engine and profiles; the spec fails when BITB-248/249 fixes are reverted
+- [x] Passes on all three engines; CI job on frontend PRs; README on adding profiles
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-250-cross-browser-read-aloud-e2e.md`
+**Follow-ups:** BITB-253
+
+**Full Story:** `docs/DONE/BITB-250-cross-browser-read-aloud-e2e.md`
+
+---
+
+### 🎯 BITB-251: Read-Aloud Fallback Voice When the Browser's Speech Engine Is Missing or Broken (Web)
+
+**Status:** 🎯 Todo (decision pending data)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-28
+
+BITB-247/248 follow-up: where `speechSynthesis` is broken (Snap Firefox) or has no voices, the app can only
+explain it. Decide between Azure Speech and in-page Piper from the BITB-247 telemetry, then build it if chosen.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Owner decision recorded with the telemetry numbers; if built, used only after the watchdog gives up
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-251-read-aloud-fallback-voice.md`
+
+---
+
+### 🎯 BITB-252: Android Read Aloud Stays on Pause When the TTS Engine Never Starts
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-28
+
+BITB-247 follow-up: the Android start watchdog only reports `tts_start_failed`; the reading is left running, so
+a silent engine keeps the Pause control up forever with no message.
+
+**Acceptance Criteria (summary):**
+
+- [ ] After the watchdog and a grace period, stop, return to Listen and show a localized notice (11 locales)
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-252-android-tts-never-starts-stays-on-pause.md`
+
+---
+
+### 🎯 BITB-253: Integration Tests Intermittently Fail at "Load CI Test Data"
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-28
+
+Seen twice on PR #1226 before any test ran (Bible load plus Ollama embeddings setup step); one re-run passed.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Root cause from the logs; the step waits or retries the specific operation
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-253-integration-tests-load-ci-data-flake.md`
 
 ---
 
