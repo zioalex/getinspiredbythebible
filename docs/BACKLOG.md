@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-28: BITB-086 ✅ Done — both deferred client-side ACs (web reference consumer + corrupt-span degradation) completed via BITB-109 (PR #1055); backend contract shipped in PR #985; story moved to docs/DONE/ (this PR)
 - 2026-10-28: BITB-253 created — Integration Tests intermittently fail at "Load CI test data"; follow-up to BITB-250
 - 2026-10-28: BITB-252 created — Android read aloud stays on Pause when the TTS engine never starts; follow-up to BITB-247
 - 2026-10-28: BITB-251 created — read-aloud fallback voice (Azure Speech or Piper), decided from BITB-247 data; follow-up to BITB-247/248
@@ -5468,10 +5469,11 @@ shipped as native Kotlin). Gates BITB-087 and BITB-088.
 
 ---
 
-### 🚧 BITB-086: Server-Emitted Citation Spans — Linkify Verses Without a Client Regex
+### ✅ BITB-086: Server-Emitted Citation Spans — Linkify Verses Without a Client Regex
 
-**Status:** 🚧 In Progress — backend contract shipped (PR #985); web reference consumer is a
-deliberate fast-follow (see Notes)
+**Status:** ✅ Done (2026-10-28, completed via BITB-109) — backend contract shipped in PR #985;
+web reference consumer + corrupt-span degradation shipped in BITB-109 (PR #1055); story file moved
+to `docs/DONE/` by this PR
 **Size:** L
 **Created:** 2026-07-29
 
@@ -5497,10 +5499,13 @@ revisit — a fourth client is the revisit trigger.
 - [x] Offset unit specified (UTF-16 code units) and asserted with Arabic marks, Devanagari, CJK, emoji
 - [x] `text` + `occurrence` make the contract self-verifying so a Swift client can use substring
       search and ignore offsets
-- [ ] Corrupt spans degrade to plain text, never crash or duplicate — client-side, deferred to the
-      web/iOS consumer work
-- [ ] Web becomes the reference consumer **behind a flag**, regex retained as fallback; parity with
-      the regex path over the shared corpus from `tests/fixtures/` (PR #906)
+- [x] Corrupt spans degrade to plain text, never crash or duplicate — done in BITB-109 (PR #1055):
+      adversarial cases (offsets past end-of-string, mismatched `text`, overlapping ranges) in
+      `frontend/src/lib/citationSpans.test.ts`
+- [x] Web becomes the reference consumer **behind a flag**, regex retained as fallback; parity with
+      the regex path over the shared corpus from `tests/fixtures/` (PR #906) — done in BITB-109
+      (PR #1055): `frontend/src/lib/citationSpans.ts` + `citationSpans.test.ts`, gated by
+      `citationSpansEnabled()` (`frontend/src/lib/featureFlags.ts`)
 - [x] Old clients (no `citations`) provably unaffected — purely additive field, existing
       `verses_cited`/`resolved_verses` tests pass unchanged
 - [x] Does **not** delete the existing three parsers — that stays BITB-059 Phase 3
@@ -5516,7 +5521,15 @@ is now excluded from `citations` — the trailer is invisible-but-present text t
 already treats as a protected region (`linkifyVerses.ts`'s `PROTECTED_REGION_SOURCE`), and without
 this the backend would double-report the same reference as a second, spurious span.
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-086-server-emitted-citation-spans.md`
+**Completed (2026-10-28, via BITB-109):** the deferred web-consumer work shipped as BITB-109
+(PR #1055) — `frontend/src/lib/citationSpans.ts`'s `linkifyWithCitations` behind
+`NEXT_PUBLIC_CITATION_SPANS_ENABLED`, per-gap regex fallback (which also covers the documented
+vocalized-Arabic gap), and adversarial corrupt-span tests in `citationSpans.test.ts`. With both
+client-side ACs ticked the story is closed; its full story file moved to `docs/DONE/` (this PR).
+BITB-087's citation dependency is now satisfied — see the ticked prerequisite rows in
+`docs/BACKLOG_STORIES/BITB-085-ios-delivery-approach-decision.md` and `docs/ios/delivery-approach.md`.
+
+**Full Story:** `docs/DONE/BITB-086-server-emitted-citation-spans.md`
 
 ---
 

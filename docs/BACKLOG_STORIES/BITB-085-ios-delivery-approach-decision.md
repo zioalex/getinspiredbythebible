@@ -105,6 +105,27 @@ live Android app is a bigger near-term risk than duplicated view models.
 
 These are lead-time items; discovering them during BITB-087 wastes days.
 
+The two engineering prerequisites are now satisfied (ticked 2026-10-28; evidence re-verified in
+code on that date):
+
+- [x] **BITB-086 — server-emitted citation contract** (shipped in PR #985, merged 2026-08-22):
+      `api/chat/service.py` emits the additive `citations` array on the streaming `completion`
+      event, computed post-grounding by `extract_citation_spans`
+      (`api/utils/verse_parser.py:911`) and covered by `api/tests/test_chat_citation_spans.py`
+      (11-language parametrized offsets round-trip, UTF-16 code-unit offsets, punctuation/range/
+      occurrence/surrogate-pair cases). BITB-086 is ✅ Done (completed via BITB-109, 2026-10-28);
+      story file at `docs/DONE/BITB-086-server-emitted-citation-spans.md`.
+- [x] **BITB-109 — web reference consumer + parity/corrupt-span tests** (shipped in PR #1055,
+      merged 2026-09-18): `frontend/src/lib/citationSpans.ts` (`linkifyWithCitations`) consumes
+      the spans behind `citationSpansEnabled()` (`frontend/src/lib/featureFlags.ts`,
+      `NEXT_PUBLIC_CITATION_SPANS_ENABLED`, default off), wired through `frontend/src/lib/api.ts`
+      and `ChatMessage`; `frontend/src/lib/citationSpans.test.ts` asserts corpus parity vs. the
+      regex path, absent-field/empty-array fallback, occurrence-index recovery, and the adversarial
+      corrupt-span cases (offsets past end-of-string, mismatched `text`, overlapping ranges →
+      plain text, no crash, no duplication).
+
+The remaining rows below are maintainer-owned Apple/account items and stay open:
+
 - [ ] **Apple Developer Program** enrolment (US$99/yr, individual or organization — note the
       organization route needs a D-U-N-S number and takes materially longer). Record which was
       chosen and the developer-name string that will appear on the listing. **Owner:** Maintainer.

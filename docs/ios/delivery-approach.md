@@ -5,8 +5,10 @@
 not a framework commitment or authorization to start BITB-087.
 **Sequence:** BITB-084 → **BITB-085** → BITB-086 → BITB-109 → BITB-087 → BITB-088.
 
-BITB-087 remains unscheduled. It cannot start until BITB-085 closes, BITB-086 and BITB-109 are done,
-and the Turnstile WKWebView probe records an observed pass on a physical iPhone.
+BITB-087 remains unscheduled. It cannot start until BITB-085 closes and the Turnstile WKWebView
+probe records an observed pass on a physical iPhone. The BITB-086 and BITB-109 hard prerequisites
+are complete (2026-10-28 — see the ticked rows in *Hard prerequisites* below), so the remaining
+gates are BITB-085 closure and the Turnstile probe.
 
 ## Why this exists
 
@@ -41,7 +43,7 @@ implementation starts.
 
 | Criterion | Weight | Evidence | A: PWA | B: WebView | C: SwiftUI | D: KMP |
 |---|---:|---|---:|---:|---:|---:|
-| Avoid a fourth parser | 25% | Three regex dialects already drift; `api/chat/service.py` emits spans, but no client proves them yet | 5 / 25 | 5 / 25 | 5 / 25* | 5 / 25 |
+| Avoid a fourth parser | 25% | Three regex dialects already drift; `api/chat/service.py` emits spans, and web now consumes them (BITB-109, PR #1055 — `frontend/src/lib/citationSpans.ts`) | 5 / 25 | 5 / 25 | 5 / 25* | 5 / 25 |
 | App Store 4.2 risk | 20% | A has no listing; B resembles a repackaged site; C/D provide native chat, history, accessibility, and settings | 0 / 0 | 1 / 4 | 5 / 20 | 5 / 20 |
 | Time to maintainable TestFlight | 15% | B needs either a static-export refactor or native mitigations; C ports a bounded API; D migrates Android first | 5 / 15 | 3 / 9 | 3 / 9 | 1 / 3 |
 | Ongoing feature cost | 15% | A/B reuse web; C duplicates view models; D shares domain/data code | 5 / 15 | 3 / 9 | 3 / 9 | 5 / 15 |
@@ -51,7 +53,9 @@ implementation starts.
 | **Total** | **100%** | | **80.0 (ineligible)** | **69.2** | **81.8*** | **72.8** |
 
 `*` Option C receives the parser score only after BITB-086 ships the contract and BITB-109 proves it
-in the web client. Option A is a useful baseline but is ineligible because it does not meet the App
+in the web client — both conditions are now met (BITB-086 contract: PR #985; BITB-109 web consumer:
+PR #1055; recorded 2026-10-28), so C's parser score is earned rather than conditional. Option A is
+a useful baseline but is ineligible because it does not meet the App
 Store-distribution objective. The narrow lead for C over that baseline is not a commitment; the
 unexecuted Turnstile probe can still disqualify C.
 
@@ -63,8 +67,8 @@ project. Dates are targets, not claims of completion.
 | State | Prerequisite | Owner | Target date |
 |---|---|---|---|
 | [ ] | Execute and record the physical-iPhone Turnstile probe in `turnstile-wkwebview-probe.md`; no result has been observed yet | Maintainer | 2026-09-12 |
-| [ ] | Complete BITB-086's server-emitted citation contract | Maintainer | 2026-09-18 |
-| [ ] | Complete BITB-109's web consumer and parity/corrupt-span tests; this is a hard prerequisite, not a fast-follow for iOS | Maintainer | 2026-10-02 |
+| [x] | Complete BITB-086's server-emitted citation contract — done (PR #985, merged 2026-08-22; ticked 2026-10-28): `api/chat/service.py` emits the additive `citations` array on the streaming `completion` event, computed post-grounding by `extract_citation_spans` (`api/utils/verse_parser.py:911`); tested in `api/tests/test_chat_citation_spans.py` (11 languages, UTF-16 offsets, punctuation/range/occurrence/surrogate cases) | Maintainer | 2026-09-18 (done) |
+| [x] | Complete BITB-109's web consumer and parity/corrupt-span tests; this is a hard prerequisite, not a fast-follow for iOS — done (PR #1055, merged 2026-09-18; ticked 2026-10-28): `frontend/src/lib/citationSpans.ts` (`linkifyWithCitations`) with per-gap regex fallback, gated by `citationSpansEnabled()` (`frontend/src/lib/featureFlags.ts`), wired via `frontend/src/lib/api.ts` and `ChatMessage`; corpus parity, absent-field/empty-array fallback, and adversarial corrupt-span cases (past-end offsets, mismatched `text`, overlapping ranges) in `frontend/src/lib/citationSpans.test.ts` | Maintainer | 2026-10-02 (done) |
 | [ ] | Enroll in the Individual Apple Developer Program and record the listing developer name | Maintainer | 2026-09-19 |
 | [ ] | Reserve the App Store Connect record and candidate bundle `org.voxquieta.app` | Maintainer | 2026-09-26 |
 | [ ] | Record hosted macOS runner cost and confirm the budget | Maintainer | 2026-09-12 |
@@ -73,7 +77,7 @@ project. Dates are targets, not claims of completion.
 
 ## Fourth-parser answer
 
-BITB-086 **and BITB-109** are hard prerequisites of BITB-087. iOS ships **no verse regex** (CI grep-enforced per BITB-087), consuming `citations` spans via substring search and degrading to plain text when absent. BITB-109 must first prove parity, fallback, and corrupt-span behavior in the web client; backend-only tests are not sufficient evidence for an iOS dependency.
+BITB-086 **and BITB-109** are hard prerequisites of BITB-087 — both complete (2026-10-28; PRs #985 and #1055). iOS ships **no verse regex** (CI grep-enforced per BITB-087), consuming `citations` spans via substring search and degrading to plain text when absent. BITB-109 has now proven parity, fallback, and corrupt-span behavior in the web client (`frontend/src/lib/citationSpans.ts` + `citationSpans.test.ts`), which was the required evidence for an iOS dependency; backend-only tests would not have been sufficient.
 
 ## What would reverse this
 
