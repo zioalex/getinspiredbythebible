@@ -32,4 +32,10 @@ data class MessageEntity(
     /** JSON-serialised [List<SerializableVerse>]. */
     val versesJson: String,
     val createdAt: Long,
+    /**
+     * JSON-serialised [org.voxquieta.app.data.remote.models.CrisisResourcesDto] for the crisis
+     * contacts card shown above this message (BITB-255). Null for ordinary messages and for rows
+     * written before DB version 2.
+     */
+    val crisisJson: String? = null,
 )

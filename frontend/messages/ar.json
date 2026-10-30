@@ -416,5 +416,19 @@
     "title": "أنت غير متصل بالإنترنت",
     "description": "يحتاج Vox Quieta إلى اتصال بالإنترنت للإجابة عن أسئلتك. تحقق من اتصالك وحاول مرة أخرى.",
     "retry": "إعادة المحاولة"
+  },
+  "Crisis": {
+    "heading": "لست مضطرًا لمواجهة هذا وحدك — تحدّث مع شخص الآن",
+    "emergencyLabel": "رقم الطوارئ",
+    "call": "اتصل",
+    "text": "أرسل رسالة نصية",
+    "international": "المزيد من خطوط المساعدة حول العالم",
+    "notInCountry": "لست في {country}؟",
+    "chooseCountry": "اختر بلدك",
+    "callLineAria": "الاتصال بـ {name}",
+    "textLineAria": "إرسال رسالة نصية إلى {name}",
+    "regionSaved": "سنستخدم أرقام {country} ابتداءً من رسالتك التالية.",
+    "emergencyNumberAria": "الاتصال برقم الطوارئ {number}",
+    "localEmergencyHint": "اتصل برقم الطوارئ المحلي (يعمل الرقم <dial>112</dial> من معظم الهواتف المحمولة)."
   }
 }

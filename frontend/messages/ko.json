@@ -416,5 +416,19 @@
     "title": "오프라인 상태입니다",
     "description": "Vox Quieta가 질문에 답하려면 인터넷 연결이 필요합니다. 연결 상태를 확인하고 다시 시도해 주세요.",
     "retry": "다시 시도"
+  },
+  "Crisis": {
+    "heading": "혼자 감당하지 않아도 됩니다 — 지금 누군가와 이야기해 보세요",
+    "emergencyLabel": "긴급 전화번호",
+    "call": "전화",
+    "text": "문자",
+    "international": "전 세계 다른 상담 전화",
+    "notInCountry": "{country}에 계시지 않나요?",
+    "chooseCountry": "국가를 선택하세요",
+    "callLineAria": "{name}에 전화하기",
+    "textLineAria": "{name}에 문자 보내기",
+    "regionSaved": "다음 메시지부터 {country}의 번호를 사용합니다.",
+    "emergencyNumberAria": "긴급 전화번호 {number}에 전화하기",
+    "localEmergencyHint": "현지 응급 전화번호로 전화하세요 (대부분의 휴대전화에서 <dial>112</dial>번으로 연결됩니다)."
   }
 }

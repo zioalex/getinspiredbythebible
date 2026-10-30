@@ -5,6 +5,7 @@
 import { reportClientError } from "./clientErrorReporter";
 import { getSmokeSecret } from "./smoke";
 import { CitationSpan } from "./citationSpans";
+import { crisisRequestFields } from "./crisisRegion";
 
 // In production builds, NEXT_PUBLIC_API_URL must be set at build time.
 // The fallback is only for local development.
@@ -388,6 +389,49 @@ export interface TranslationInfo {
   year?: number;
 }
 
+/** BITB-255: structured emergency/crisis contacts sent ahead of the reply. */
+export interface CrisisLine {
+  name: string;
+  phone: string | null;
+  sms: string | null;
+  hours: string | null;
+  url: string | null;
+  verified?: boolean;
+}
+
+export interface CrisisResources {
+  kind: "self_harm" | "threat_to_others";
+  country: string | null;
+  country_source: "override" | "ip" | "locale" | "language_default" | "none";
+  emergency: { number: string } | null;
+  lines: CrisisLine[];
+  international_url: string;
+  available_countries: string[];
+}
+
+/**
+ * BITB-255: re-fetch the crisis card payload for a country the user picked in
+ * the card's picker, so the card already on screen can be re-rendered in place.
+ * Public data, sent as a POST body so the country stays out of the URL; throws on any non-2xx so the caller can keep the old card.
+ */
+export async function getCrisisResources(
+  country: string,
+  language: string,
+  kind: CrisisResources["kind"],
+): Promise<CrisisResources> {
+  // POST + JSON body (not a query string): the picked country is location data and a URL
+  // would be recorded by request telemetry.
+  const response = await fetch(`${API_URL}/api/v1/crisis-resources`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({ country, language, kind }),
+  });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+  return response.json();
+}
+
 export interface ChatResponse {
   message_id: string;
   message: string;
@@ -399,6 +443,8 @@ export interface ChatResponse {
   /** BITB-080: suggested follow-up questions, in the user's own voice. Absent
    * when suppressed (crisis/off-topic/error turns) or on an older backend. */
   follow_ups?: string[];
+  /** BITB-255: crisis contacts card payload (self-harm / threat turns). */
+  crisis_resources?: CrisisResources | null;
 }
 
 export interface FeedbackRequest {
@@ -512,6 +558,7 @@ export async function sendMessage(
         include_search: true,
         preferred_translation: preferredTranslation,
         session_id: sessionId,
+        ...crisisRequestFields(),
       },
       { signal: controller.signal },
     );
@@ -584,7 +631,9 @@ export interface StreamMetadata {
 }
 
 export interface StreamChunk {
-  type: "metadata" | "content" | "error" | "completion";
+  type: "metadata" | "content" | "error" | "completion" | "crisis_resources";
+  // For crisis_resources type (BITB-255): first event of a crisis turn.
+  resources?: CrisisResources;
   // For metadata type:
   message_id?: string;
   scripture_context?: ScriptureContext;
@@ -657,6 +706,7 @@ export async function* streamMessage(
       preferred_translation: preferredTranslation,
       session_id: sessionId,
       language,
+      ...crisisRequestFields(language),
     }),
     signal,
   });
@@ -678,6 +728,7 @@ export async function* streamMessage(
           preferred_translation: preferredTranslation,
           session_id: sessionId,
           language,
+          ...crisisRequestFields(language),
         }),
         signal,
       });

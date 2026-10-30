@@ -25,6 +25,21 @@ class SessionPreferences @Inject constructor(
     companion object {
         private val SESSION_ID_KEY = stringPreferencesKey("session_id")
         private val INTERACTION_COUNT_KEY = intPreferencesKey("interaction_count")
+        private val CRISIS_REGION_OVERRIDE_KEY = stringPreferencesKey("crisis_region_override")
+    }
+
+    /**
+     * The country the user picked in the crisis card's "Not in X?" picker (BITB-255), or null
+     * when they never corrected it. Kept on-device only; sent as `region` + `region_override`.
+     */
+    suspend fun getCrisisRegionOverride(): String? =
+        dataStore.data.first()[CRISIS_REGION_OVERRIDE_KEY]?.takeIf { it.length == 2 }
+
+    /** Persists the user's crisis-card country pick (ISO 3166-1 alpha-2; invalid codes are ignored). */
+    suspend fun setCrisisRegionOverride(code: String) {
+        val normalized = code.trim().uppercase()
+        if (normalized.length != 2 || !normalized.all { it in 'A'..'Z' }) return
+        dataStore.edit { prefs -> prefs[CRISIS_REGION_OVERRIDE_KEY] = normalized }
     }
 
     /**

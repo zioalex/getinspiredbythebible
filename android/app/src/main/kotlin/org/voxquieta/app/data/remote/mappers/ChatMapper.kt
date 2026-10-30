@@ -6,7 +6,12 @@ import org.voxquieta.app.data.remote.models.ConversationMessageDto
 import org.voxquieta.app.data.remote.models.StreamChunkDto
 import org.voxquieta.app.data.remote.models.VerseDto
 import org.voxquieta.app.domain.models.ChatRequest
+import org.voxquieta.app.data.remote.models.CrisisEmergencyDto
+import org.voxquieta.app.data.remote.models.CrisisLineDto
+import org.voxquieta.app.data.remote.models.CrisisResourcesDto
 import org.voxquieta.app.domain.models.ChatResponse
+import org.voxquieta.app.domain.models.CrisisLine
+import org.voxquieta.app.domain.models.CrisisResources
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.StreamChunk
 import org.voxquieta.app.domain.models.Verse
@@ -18,6 +23,8 @@ fun ChatRequest.toDto(): ChatRequestDto = ChatRequestDto(
     includeSearch = includeSearch,
     sessionId = sessionId,
     language = language,
+    region = region?.trim()?.takeIf { it.length == 2 && it.all { c -> c.isLetter() } }?.uppercase(),
+    regionOverride = regionOverride,
 )
 
 fun Message.toConversationMessageDto(): ConversationMessageDto = ConversationMessageDto(
@@ -32,6 +39,27 @@ fun Message.toConversationMessageDto(): ConversationMessageDto = ConversationMes
 fun ChatResponseDto.toDomain(): ChatResponse = ChatResponse(
     message = message,
     verses = verses.map { it.toDomain() },
+    crisisResources = crisisResources?.toDomain(),
+)
+
+fun CrisisResourcesDto.toDomain(): CrisisResources = CrisisResources(
+    kind = kind,
+    country = country,
+    countrySource = countrySource,
+    emergencyNumber = emergency?.number?.takeIf { it.isNotBlank() },
+    lines = lines.map { CrisisLine(it.name, it.phone, it.sms, it.hours, it.url) },
+    internationalUrl = internationalUrl,
+    availableCountries = availableCountries,
+)
+
+fun CrisisResources.toDto(): CrisisResourcesDto = CrisisResourcesDto(
+    kind = kind,
+    country = country,
+    countrySource = countrySource,
+    emergency = emergencyNumber?.let { CrisisEmergencyDto(it) },
+    lines = lines.map { CrisisLineDto(it.name, it.phone, it.sms, it.hours, it.url) },
+    internationalUrl = internationalUrl,
+    availableCountries = availableCountries,
 )
 
 fun VerseDto.toDomain(): Verse = Verse(
@@ -57,4 +85,5 @@ fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
     correctedMessage = correctedMessage,
     followUps = followUps,
     languageSuggestion = languageSuggestion,
+    crisisResources = crisisResources?.toDomain(),
 )

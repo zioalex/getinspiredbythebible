@@ -119,7 +119,7 @@ class TestRouteMapsTypedError:
         mock_http = self._mock_http_request()
         request = ChatRequest(message="Hello")
 
-        async def mock_gen(req):
+        async def mock_gen(req, **kwargs):
             raise AllModelsExhaustedError(
                 "All models unavailable in streaming",
                 reason="rate_limited",

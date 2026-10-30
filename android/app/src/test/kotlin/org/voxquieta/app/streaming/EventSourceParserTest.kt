@@ -443,4 +443,63 @@ class EventSourceParserTest {
         assertEquals(1, chunks.size)
         assertTrue(chunks[0].followUps.isEmpty())
     }
+
+    // ── BITB-255: crisis_resources ────────────────────────────────────────────
+
+    @Test
+    fun `crisis_resources event is parsed into a chunk with the resources`() = runTest {
+        val body = bodyOf(
+            "data: ${org.voxquieta.app.testing.CRISIS_EVENT_JSON}\n" +
+                """data: {"type":"metadata","message_id":"m1","model":"x"}""" + "\n" +
+                "data: [DONE]\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        // The card is the FIRST event, ahead of metadata.
+        assertEquals(listOf("crisis_resources", "metadata"), chunks.map { it.type })
+        val card = chunks[0].crisisResources!!
+        assertEquals("self_harm", card.kind)
+        assertEquals("IT", card.country)
+        assertEquals("112", card.emergency?.number)
+        assertEquals(2, card.lines.size)
+        assertEquals("Telefono Amico", card.lines[0].name)
+        assertEquals("+39 02 2327 2327", card.lines[0].phone)
+        assertEquals(listOf("AT", "IT", "US"), card.availableCountries)
+    }
+
+    @Test
+    fun `crisis_resources with null emergency and no lines still parses`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"crisis_resources","resources":{"kind":"threat_to_others","country":null,""" +
+                """"country_source":"none","emergency":null,"lines":[],""" +
+                """"international_url":"https://findahelpline.com","available_countries":[]}}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertNull(chunks[0].crisisResources!!.emergency)
+        assertEquals("threat_to_others", chunks[0].crisisResources!!.kind)
+    }
+
+    @Test
+    fun `malformed crisis_resources is ignored and later events still arrive`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"crisis_resources","resources":"oops"}""" + "\n" +
+                """data: {"type":"crisis_resources","resources":{"emergency":{"nope":1},"lines":5}}""" + "\n" +
+                """data: {"type":"crisis_resources"}""" + "\n" +
+                """data: {"type":"crisis_resources","resources":null}""" + "\n" +
+                """data: {"content":"still here","done":false}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        // Must not throw and must not stop the stream.
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("still here", chunks[0].content)
+    }
 }

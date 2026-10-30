@@ -200,6 +200,20 @@
     <string name="error_content_blocked">Não consegui responder a essa mensagem — nosso sistema de segurança a reteve e pode simplesmente ter interpretado mal suas palavras. Tente reformular sua ideia e, se algo ainda parecer estranho, escreva para nós em contact@voxquieta.org. Ficamos felizes por você estar aqui.</string>
     <string name="chat_follow_ups_label">Perguntas de acompanhamento sugeridas</string>
 
+    <!-- BITB-255: crisis resources card -->
+    <string name="crisis_heading">Você não precisa enfrentar isso sozinho(a) — fale com alguém agora</string>
+    <string name="crisis_emergency_label">Número de emergência</string>
+    <string name="crisis_emergency_aria">Ligar para o número de emergência %1$s</string>
+    <string name="crisis_call">Ligar</string>
+    <string name="crisis_text">Enviar SMS</string>
+    <string name="crisis_international">Mais linhas de ajuda no mundo</string>
+    <string name="crisis_not_in_country">Não está em %1$s?</string>
+    <string name="crisis_choose_country">Escolha o seu país</string>
+    <string name="crisis_call_line_aria">Ligar para %1$s</string>
+    <string name="crisis_text_line_aria">Enviar SMS para %1$s</string>
+    <string name="crisis_region_saved">A partir da sua próxima mensagem, usaremos os números de %1$s.</string>
+    <string name="crisis_local_emergency_hint">Ligue para o número de emergência local (o %1$s funciona na maioria dos telemóveis).</string>
+
     <!-- Actions -->
     <string name="action_select_language">Selecionar idioma</string>
     <string name="action_retry">Tentar novamente</string>

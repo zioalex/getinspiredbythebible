@@ -80,6 +80,7 @@ import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.presentation.components.ChatInputField
 import org.voxquieta.app.presentation.components.ChatMessageItem
 import org.voxquieta.app.presentation.components.ChatViewportBounds
+import org.voxquieta.app.presentation.components.CrisisResourcesCard
 import org.voxquieta.app.presentation.components.LocalChatViewportBounds
 import org.voxquieta.app.presentation.components.ChurchFinderBanner
 import org.voxquieta.app.presentation.components.LanguageSwitchBanner
@@ -514,6 +515,13 @@ fun ChatScreen(
                         val userMsg = if (message.role == Message.Role.ASSISTANT && index > 0) {
                             uiState.messages[index - 1].content
                         } else ""
+                        // BITB-255: emergency/crisis contacts pinned ABOVE the reply.
+                        message.crisisResources?.let { card ->
+                            CrisisResourcesCard(
+                                resources = card,
+                                onCountrySelected = { code -> viewModel.onCrisisCountrySelected(message.id, code) },
+                            )
+                        }
                         ChatMessageItem(
                             message = message,
                             userMessage = userMsg,

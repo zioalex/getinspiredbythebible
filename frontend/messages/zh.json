@@ -416,5 +416,19 @@
     "title": "您已离线",
     "description": "Vox Quieta 需要连接互联网才能回答您的问题。请检查网络连接后重试。",
     "retry": "重试"
+  },
+  "Crisis": {
+    "heading": "你不必独自面对这一切——现在就和某个人谈谈",
+    "emergencyLabel": "紧急电话",
+    "call": "拨打",
+    "text": "发短信",
+    "international": "全球更多求助热线",
+    "notInCountry": "不在{country}？",
+    "chooseCountry": "选择你所在的国家或地区",
+    "callLineAria": "拨打 {name}",
+    "textLineAria": "给 {name} 发短信",
+    "regionSaved": "从你的下一条消息开始，我们将使用{country}的号码。",
+    "emergencyNumberAria": "拨打紧急电话 {number}",
+    "localEmergencyHint": "请拨打当地的紧急电话（大多数手机都可以拨打 <dial>112</dial>）。"
   }
 }
