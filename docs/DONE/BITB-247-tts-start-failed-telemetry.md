@@ -1,6 +1,6 @@
 # BITB-247: Read-Aloud Telemetry — Attempts, Completions and Failures (Web + Android)
 
-**Status:** 🚧 In Progress (spec confirmed 2026-10-27)
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-27
@@ -75,21 +75,26 @@ users try the play button, how many fail and how many succeed", to decide on a f
 
 ## Acceptance criteria
 
-- [ ] Backend:
+- [x] Backend:
   - The endpoint accepts the new events and fields, normalizes unknown values to `other`, and still
     returns 422 for unknown events or extra fields.
   - The counter attributes and the daily upsert are tested.
   - The migration round-trips (upgrade, then downgrade).
-- [ ] Web: each event fires once at the right moment (Vitest with the speech mock), and the browser/OS
+- [x] Web: each event fires once at the right moment (Vitest with the speech mock), and the browser/OS
       family is detected for Chrome, Firefox, Safari, Edge, Samsung, iOS Firefox and Linux Firefox
       user agents
-- [ ] Android: the new Firebase events plus the backend POST (ViewModel/engine tests with fakes), and
+- [x] Android: the new Firebase events plus the backend POST (ViewModel/engine tests with fakes), and
       the POST never blocks or crashes speech
-- [ ] Weekly report "Read aloud" section, tested with seeded rows; workbook tile added
-- [ ] Privacy policy sentence in 11 locales
+- [x] Weekly report "Read aloud" section, tested with seeded rows; workbook tile added
+- [x] Privacy policy sentence in 11 locales
 - [ ] Owner: after deploy, the workbook and weekly report show non-zero counts
 
 ## Out of scope
 
 - Fallback voices (Azure Speech or Piper): decided after this data exists
 - Firebase/GA4 Android engagement beyond these events
+
+## Follow-ups
+
+- BITB-251
+- BITB-252
