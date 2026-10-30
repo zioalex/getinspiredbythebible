@@ -18,7 +18,7 @@ import org.robolectric.annotation.Config
 import org.voxquieta.app.di.DatabaseModule
 
 /**
- * BITB-251: Room v1 -> v2 (`messages.crisisJson`).
+ * BITB-255: Room v1 -> v2 (`messages.crisisJson`).
  *
  * Builds a genuine v1 database with raw SQL (the exact DDL from schemas/.../1.json), then opens it
  * through the PRODUCTION [DatabaseModule.provideDatabase] so the test also proves the migration is

@@ -61,7 +61,7 @@ interface BibleApiService {
 
     /**
      * Re-fetches the crisis card payload for the country the user picked in the card's
-     * "Not in X?" picker (BITB-251). Public data; the request is a POST with a JSON body
+     * "Not in X?" picker (BITB-255). Public data; the request is a POST with a JSON body
      * (never a query string) so the picked country stays out of the URL and request
      * telemetry. [CrisisResourcesRequestDto.kind] is "self_harm" or "threat_to_others".
      */

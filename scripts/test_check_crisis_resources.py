@@ -1,4 +1,4 @@
-"""Tests for scripts/check_crisis_resources.py (BITB-251)."""
+"""Tests for scripts/check_crisis_resources.py (BITB-255)."""
 
 import json
 import sys

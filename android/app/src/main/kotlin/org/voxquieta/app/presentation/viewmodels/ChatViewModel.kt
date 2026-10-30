@@ -714,7 +714,7 @@ class ChatViewModel @Inject constructor(
             val translation = preferredTranslation.value.ifBlank { null }
             val sessionId = sessionPreferences.getOrCreateSessionId()
 
-            // BITB-251: pick local crisis contacts by country. An explicit pick in the crisis
+            // BITB-255: pick local crisis contacts by country. An explicit pick in the crisis
             // card wins (region_override); otherwise the device locale's country.
             val regionOverride = sessionPreferences.getCrisisRegionOverride()?.takeIf { it.isNotBlank() }
             val region = regionOverride ?: Locale.getDefault().country.takeIf { it.length == 2 }
@@ -743,7 +743,7 @@ class ChatViewModel @Inject constructor(
             var finalResolvedVerses: List<Verse> = emptyList()
             var didError = false
             var metadataMessageId = ""
-            // BITB-251: crisis card from the first stream event; attached to the saved message.
+            // BITB-255: crisis card from the first stream event; attached to the saved message.
             var crisisResources: CrisisResources? = null
 
             repository
@@ -889,7 +889,7 @@ class ChatViewModel @Inject constructor(
                         _uiState.update { it.copy(isBackendWarming = false) }
                     }
 
-                    // BITB-251: the crisis card is the FIRST event of a crisis turn, before metadata.
+                    // BITB-255: the crisis card is the FIRST event of a crisis turn, before metadata.
                     // Attach it to the in-flight assistant message straight away. The card lives on
                     // the message itself, so it survives a stop or a later stream error.
                     if (chunk.type == "crisis_resources") {
@@ -1108,7 +1108,7 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * BITB-251: stores the country the user picked in the crisis card's "Not in X?" picker.
+     * BITB-255: stores the country the user picked in the crisis card's "Not in X?" picker.
      * Used (with `region_override = true`) from the next message on; stays on this device.
      */
     fun setCrisisRegionOverride(code: String) {
@@ -1116,7 +1116,7 @@ class ChatViewModel @Inject constructor(
     }
 
     /**
-     * BITB-251: the user picked [code] in the crisis card of message [messageLocalId].
+     * BITB-255: the user picked [code] in the crisis card of message [messageLocalId].
      * Saves the override for future requests, then fetches that country's numbers and swaps
      * them into the card already on screen (and into the saved message, so history keeps the
      * new card). On any failure the old card stays and the card's own "from your next

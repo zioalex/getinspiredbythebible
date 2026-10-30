@@ -20,12 +20,12 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-10-29: BITB-251 in review — crisis card on web + Android, Cloudflare country, self-curated registry; passed independent verify after 2 fix rounds
-- 2026-10-29: BITB-253/254 opened — follow-ups from BITB-251 verification (keyword-fallback Bible-narrative card; Llama Guard S11 combos get no card)
-- 2026-10-29: BITB-251 in progress — plan approved (crisis overrides profanity filter, directed_harm excluded, unverified numbers shown + flagged, Android Room migration)
-- 2026-10-29: BITB-251 spec revised — country from Cloudflare IP geolocation, self-curated hotline registry with source + staleness checks (ThroughLine evaluated); BITB-252 threshold/retention confirmed
-- 2026-10-28: BITB-252 spec — privacy-safe RAG retrieval-miss logging (derived signals only, no prompt text)
-- 2026-10-28: BITB-251 spec — emergency critical path: deterministic hotline card first for threats to self or others
+- 2026-10-29: BITB-255 in review — crisis card on web + Android, Cloudflare country, self-curated registry; passed independent verify after 2 fix rounds
+- 2026-10-29: BITB-257/254 opened — follow-ups from BITB-255 verification (keyword-fallback Bible-narrative card; Llama Guard S11 combos get no card)
+- 2026-10-29: BITB-255 in progress — plan approved (crisis overrides profanity filter, directed_harm excluded, unverified numbers shown + flagged, Android Room migration)
+- 2026-10-29: BITB-255 spec revised — country from Cloudflare IP geolocation, self-curated hotline registry with source + staleness checks (ThroughLine evaluated); BITB-256 threshold/retention confirmed
+- 2026-10-28: BITB-256 spec — privacy-safe RAG retrieval-miss logging (derived signals only, no prompt text)
+- 2026-10-28: BITB-255 spec — emergency critical path: deterministic hotline card first for threats to self or others
 - 2026-10-28: BITB-250 in progress — cross-browser read-aloud Playwright tests (Chromium, Firefox, WebKit) with browser-quirk speech engine profiles (PR #1226)
 - 2026-10-27: BITB-247 in progress — widened to full read-aloud telemetry funnel (web + Android) with browser/OS family, daily aggregate, weekly report and workbook (PR #1226)
 - 2026-10-27: BITB-249 in progress — read aloud stops after the first chunk on iPhone: speak chunks one at a time from onend (PR #1226)
@@ -127,7 +127,7 @@ re-litigating a settled rule.
 
 ## P0 - Critical (Ship Now)
 
-### 🔍 BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
+### 🔍 BITB-255: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
 
 **Status:** 🔍 In Review — verified, awaiting PR CI + owner number verification
 **Size:** L
@@ -144,7 +144,7 @@ compassionate path, and a threat to others gets no contacts at all.
 - [ ] Self-curated registry: every entry has an official source + `verified_on` (CI-enforced), weekly 180-day staleness check; owner signs off the numbers
 - [ ] Crisis card on web and Android (tel:/sms:, RTL, accessible); old clients keep a markdown fallback
 
-**Full Story:** [`BITB-251-emergency-critical-path-hotlines.md`](BACKLOG_STORIES/BITB-251-emergency-critical-path-hotlines.md)
+**Full Story:** [`BITB-255-emergency-critical-path-hotlines.md`](BACKLOG_STORIES/BITB-255-emergency-critical-path-hotlines.md)
 
 ---
 
@@ -302,34 +302,34 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🎯 BITB-253: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
+### 🎯 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
 
 **Status:** 🎯 Todo
 **Size:** M
 **Created:** 2026-10-29
 
-Follow-up to BITB-251. With ML safety down, "Why did Cain kill Abel?" (en, ar) is blocked as violence
+Follow-up to BITB-255. With ML safety down, "Why did Cain kill Abel?" (en, ar) is blocked as violence
 and now also gets a threat crisis card. Unblock third-person Bible narrative in the keyword fallback,
-in 11 languages, and flip the BITB-251 xfails.
+in 11 languages, and flip the BITB-255 xfails.
 
-**Full Story:** [`BITB-253-keyword-fallback-bible-narrative-violence.md`](BACKLOG_STORIES/BITB-253-keyword-fallback-bible-narrative-violence.md)
+**Full Story:** [`BITB-257-keyword-fallback-bible-narrative-violence.md`](BACKLOG_STORIES/BITB-257-keyword-fallback-bible-narrative-violence.md)
 
 ---
 
-### 🎯 BITB-254: Crisis Card for Llama Guard S11 Combined with Other Categories
+### 🎯 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
 **Status:** 🎯 Todo
 **Size:** S
 **Created:** 2026-10-29
 
-Follow-up to BITB-251. Llama Guard S11 together with S6 or S10 maps to a generic or hate reason, so
+Follow-up to BITB-255. Llama Guard S11 together with S6 or S10 maps to a generic or hate reason, so
 the user gets no crisis numbers. Show the self-harm card whenever S11 is present.
 
-**Full Story:** [`BITB-254-llama-guard-s11-combo-crisis-card.md`](BACKLOG_STORIES/BITB-254-llama-guard-s11-combo-crisis-card.md)
+**Full Story:** [`BITB-258-llama-guard-s11-combo-crisis-card.md`](BACKLOG_STORIES/BITB-258-llama-guard-s11-combo-crisis-card.md)
 
 ---
 
-### 🎯 BITB-252: RAG Retrieval-Miss Insights — Privacy-Safe Logging
+### 🎯 BITB-256: RAG Retrieval-Miss Insights — Privacy-Safe Logging
 
 **Status:** 🎯 Todo — spec awaiting owner confirmation
 **Size:** M
@@ -346,7 +346,7 @@ terms, language, translation, scores, refs). No user text is ever stored.
 - [ ] Dedup by signature, TTL, feature flag, migration, export script + docs
 - [ ] One-line privacy-policy update in all 11 languages
 
-**Full Story:** [`BITB-252-rag-retrieval-miss-insights.md`](BACKLOG_STORIES/BITB-252-rag-retrieval-miss-insights.md)
+**Full Story:** [`BITB-256-rag-retrieval-miss-insights.md`](BACKLOG_STORIES/BITB-256-rag-retrieval-miss-insights.md)
 
 ---
 

@@ -85,7 +85,7 @@ private fun launchSafely(context: Context, intent: Intent) {
 
 /**
  * Deterministic emergency / crisis contacts pinned above the assistant reply on self-harm and
- * threat-to-others turns (BITB-251). Mirrors the web `CrisisResourcesCard`.
+ * threat-to-others turns (BITB-255). Mirrors the web `CrisisResourcesCard`.
  *
  * - Dial and SMS go through `ACTION_DIAL` / `ACTION_SENDTO` (no permission needed).
  * - The card is a polite live region so TalkBack announces it when it appears.

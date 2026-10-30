@@ -135,7 +135,7 @@ class SessionPreferencesTest {
         assertTrue("resetSessionId must issue a new session id", newId != oldId)
     }
 
-    // ── BITB-251: crisis-card country override ───────────────────────────────
+    // ── BITB-255: crisis-card country override ───────────────────────────────
 
     @Test
     fun `crisis region override is null until the user picks a country`() = runTest(testDispatcher) {

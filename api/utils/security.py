@@ -133,7 +133,7 @@ class ContentFilter:
         Args:
             message: The message to check
             skip: Violation types to ignore. ``check`` returns only the FIRST violation, so a
-                caller that deliberately tolerates one type (the BITB-251 crisis bypass) uses
+                caller that deliberately tolerates one type (the BITB-255 crisis bypass) uses
                 this to still surface any later, non-tolerated violation (e.g. a URL).
 
         Returns:
@@ -270,7 +270,7 @@ async def require_rate_limit(request: Request) -> None:
         )
 
 
-# Cosmetic violations that must never pre-empt the crisis path (BITB-251).
+# Cosmetic violations that must never pre-empt the crisis path (BITB-255).
 _CRISIS_BYPASS_VIOLATIONS = frozenset({ViolationType.PROFANITY, ViolationType.REPEATED_CHARS})
 
 _crisis_keyword_filter: "MultiLanguageContentFilter | None" = None
@@ -331,7 +331,7 @@ async def check_content_filter(request: Request) -> None:
     allowed, violation_type, reason = content_filter.check(message)
 
     if not allowed and violation_type in _CRISIS_BYPASS_VIOLATIONS and _has_crisis_wording(message):
-        # BITB-251: "f*** this, I want to kill myself" / "nooooo I want to die" must reach
+        # BITB-255: "f*** this, I want to kill myself" / "nooooo I want to die" must reach
         # the safety pipeline so the crisis card is shown, not the generic blocked toast.
         # Only the cosmetic filters (profanity, repeated chars) yield. `check` reports just
         # the first violation, so re-run it ignoring those two: a URL / spam hidden behind

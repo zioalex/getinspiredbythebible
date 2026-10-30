@@ -1064,7 +1064,7 @@ without a token.
 
 **Symptom if wrong:** Error 526 (Invalid SSL Certificate) when set to "Full (Strict)" without a valid origin cert installed.
 
-### IP Geolocation (crisis card, BITB-251)
+### IP Geolocation (crisis card, BITB-255)
 
 The API reads Cloudflare's `CF-IPCountry` header to show the emergency and crisis numbers
 of the country the user is actually in (see `docs/HOW-TO-VERIFY-CRISIS-RESOURCES.md`).

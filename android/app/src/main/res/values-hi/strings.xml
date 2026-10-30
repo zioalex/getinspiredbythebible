@@ -200,7 +200,7 @@
     <string name="error_content_blocked">मैं इस संदेश का उत्तर नहीं दे सका — हमारी सुरक्षा प्रणाली ने इसे रोक लिया, और हो सकता है उसने आपके शब्दों को गलत समझा हो। कृपया अपनी बात को थोड़े अलग शब्दों में फिर से लिखें, और यदि कुछ सही नहीं लगे तो हमें contact@voxquieta.org पर लिखें। आपका यहाँ होना अच्छा लगा।</string>
     <string name="chat_follow_ups_label">सुझाए गए अनुवर्ती प्रश्न</string>
 
-    <!-- BITB-251: crisis resources card -->
+    <!-- BITB-255: crisis resources card -->
     <string name="crisis_heading">आपको इसका सामना अकेले नहीं करना है — अभी किसी से बात करें</string>
     <string name="crisis_emergency_label">आपातकालीन नंबर</string>
     <string name="crisis_emergency_aria">आपातकालीन नंबर %1$s पर कॉल करें</string>

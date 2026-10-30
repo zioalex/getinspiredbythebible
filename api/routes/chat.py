@@ -140,7 +140,7 @@ async def chat_stream(
     language = _session_language(request.language, http_request.headers.get("accept-language"))
 
     service = ChatService(db, llm, embedding)
-    # BITB-251: Cloudflare's IP-geolocation header, used only to pick local emergency numbers.
+    # BITB-255: Cloudflare's IP-geolocation header, used only to pick local emergency numbers.
     client_country = http_request.headers.get("CF-IPCountry")
 
     async def generate():

@@ -157,13 +157,13 @@ chat_scripture_unavailable_counter = meter.create_counter(
 
 chat_crisis_card_shown_counter = meter.create_counter(
     name="chat.crisis_card_shown",
-    description="Crisis hotline cards sent for threats to self or others (BITB-251)",
+    description="Crisis hotline cards sent for threats to self or others (BITB-255)",
     unit="1",
 )  # attributes: kind (self_harm|threat_to_others), language, country_source, path (blocked|llm)
 
 crisis_resources_lookup_counter = meter.create_counter(
     name="crisis.resources_lookup",
-    description="Crisis card country re-lookups after the user picked a country (BITB-251)",
+    description="Crisis card country re-lookups after the user picked a country (BITB-255)",
     unit="1",
 )  # attributes: kind, language (no country: it is user location data)
 

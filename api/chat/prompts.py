@@ -842,7 +842,7 @@ emotional pain or thoughts of self-harm. Respond with EXTRA warmth and care:
    (Psalm 34:18, Psalm 46:1, Matthew 11:28, Isaiah 41:10)
 5. Gently encourage them to reach out to a trusted person, counselor, or pastor"""
 
-# BITB-251: variant for clients that cannot render the crisis card (the verified numbers are
+# BITB-255: variant for clients that cannot render the crisis card (the verified numbers are
 # appended below the reply by the service instead of shown in a card above it).
 COMPASSIONATE_RESPONSE_ADDENDUM_NO_CARD = """
 
@@ -1382,7 +1382,7 @@ def get_blocked_response(reason: str, language_code: str = "en", crisis_markdown
         reason: ContentSafetyCheckResult.reason string
         language_code: ISO 639-1 language code (en, it, de, es, fr, pt, ar, ru, zh, hi, ko;
             the self_harm_blocked template covers all 11)
-        crisis_markdown: Registry-rendered hotline list (BITB-251). Appended for clients that
+        crisis_markdown: Registry-rendered hotline list (BITB-255). Appended for clients that
             do not render the structured crisis card; empty when the card is supported.
 
     Returns:

@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Wire shape of the `crisis_resources` payload (BITB-251). Every field has a default so a
+ * Wire shape of the `crisis_resources` payload (BITB-255). Every field has a default so a
  * partially-populated payload still renders instead of being dropped. The same shape is
  * stored in Room (`MessageEntity.crisisJson`).
  */
@@ -36,7 +36,7 @@ data class CrisisLineDto(
 )
 
 /**
- * Request body for `POST api/v1/crisis-resources` (BITB-251). A body rather than query
+ * Request body for `POST api/v1/crisis-resources` (BITB-255). A body rather than query
  * parameters so the user's picked country is never part of the request URL.
  */
 @Serializable

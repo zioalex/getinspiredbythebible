@@ -97,7 +97,7 @@ interface ChatMessage {
   // produced them.
   citations?: CitationSpan[];
   model?: string;
-  // BITB-251: crisis contacts card, shown above this assistant bubble. Unlike
+  // BITB-255: crisis contacts card, shown above this assistant bubble. Unlike
   // citations this IS persisted, so the card stays attached to the saved turn.
   crisisResources?: CrisisResources;
 }
@@ -383,7 +383,7 @@ export default function ChatIsland({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // BITB-251: the user picked another country in a crisis card. Re-fetch that
+  // BITB-255: the user picked another country in a crisis card. Re-fetch that
   // country's numbers and swap them into the message in place (the persistence
   // effect then saves the new card with the conversation). Resolves false on any
   // failure so the card keeps its old numbers and shows the "next message" note.
@@ -579,7 +579,7 @@ export default function ChatIsland({
         }
 
         if (chunk.type === "crisis_resources") {
-          // BITB-251: first event of a crisis turn. Attach to the placeholder
+          // BITB-255: first event of a crisis turn. Attach to the placeholder
           // assistant message; it is spread-preserved by every later update,
           // including the stop/error paths, so the card never disappears.
           if (chunk.resources) {
@@ -1244,7 +1244,7 @@ export default function ChatIsland({
             <div className="space-y-6">
               {messages.map((message, index) => (
                 <div key={index}>
-                  {/* BITB-251: crisis contacts pinned ABOVE the reply. */}
+                  {/* BITB-255: crisis contacts pinned ABOVE the reply. */}
                   {message.role === "assistant" && message.crisisResources && (
                     <CrisisResourcesCard
                       resources={message.crisisResources}

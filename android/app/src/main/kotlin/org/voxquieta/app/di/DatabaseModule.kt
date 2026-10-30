@@ -22,7 +22,7 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext ctx: Context): VoxQuietaDatabase =
         Room.databaseBuilder(ctx, VoxQuietaDatabase::class.java, "bible_inspiration.db") // Historical DB name - do not rename without migration
             // Explicit migrations first so a normal upgrade keeps the user's saved
-            // conversations (BITB-251: v1 -> v2). The destructive fallback stays only for
+            // conversations (BITB-255: v1 -> v2). The destructive fallback stays only for
             // versions with no registered migration path.
             .addMigrations(MIGRATION_1_2)
             .fallbackToDestructiveMigration()

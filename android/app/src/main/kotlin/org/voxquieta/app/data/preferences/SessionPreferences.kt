@@ -29,7 +29,7 @@ class SessionPreferences @Inject constructor(
     }
 
     /**
-     * The country the user picked in the crisis card's "Not in X?" picker (BITB-251), or null
+     * The country the user picked in the crisis card's "Not in X?" picker (BITB-255), or null
      * when they never corrected it. Kept on-device only; sent as `region` + `region_override`.
      */
     suspend fun getCrisisRegionOverride(): String? =

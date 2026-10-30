@@ -1,10 +1,10 @@
-# BITB-254: Crisis Card for Llama Guard S11 Combined with Other Categories
+# BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
 **Status:** 🎯 Todo
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-29
-**Prompted by:** BITB-251 verification (2026-10-29)
+**Prompted by:** BITB-255 verification (2026-10-29)
 
 ## Problem (verified in code)
 

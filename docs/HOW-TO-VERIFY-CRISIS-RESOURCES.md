@@ -1,4 +1,4 @@
-# How to verify the crisis resources registry (BITB-251)
+# How to verify the crisis resources registry (BITB-255)
 
 When someone threatens to hurt themselves or another person, Vox Quieta shows a card with the
 emergency number and crisis lines for their country, ahead of any AI text. **A wrong number in a

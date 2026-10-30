@@ -15,7 +15,7 @@ import { NextIntlClientProvider } from "next-intl";
 import arMessages from "../../messages/ar.json";
 import itMessages from "../../messages/it.json";
 
-describe("CrisisResourcesCard (BITB-251)", () => {
+describe("CrisisResourcesCard (BITB-255)", () => {
   beforeEach(() => {
     window.localStorage.clear();
   });

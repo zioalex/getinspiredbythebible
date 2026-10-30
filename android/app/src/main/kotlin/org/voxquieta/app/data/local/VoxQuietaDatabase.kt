@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
  *
  * Version history:
  *   1 — initial schema (conversations + messages tables)
- *   2 — messages.crisisJson (BITB-251); see [MIGRATION_1_2]
+ *   2 — messages.crisisJson (BITB-255); see [MIGRATION_1_2]
  */
 @Database(
     entities = [ConversationEntity::class, MessageEntity::class],

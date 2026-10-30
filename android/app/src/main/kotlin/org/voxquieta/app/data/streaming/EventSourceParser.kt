@@ -139,7 +139,7 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                         )
                     }
                     "crisis_resources" -> {
-                        // BITB-251: first event of a self-harm / threat turn. A malformed
+                        // BITB-255: first event of a self-harm / threat turn. A malformed
                         // payload is logged and ignored -- it must never take the stream down
                         // (the reply that follows still has to render).
                         val resources: CrisisResourcesDto? = try {

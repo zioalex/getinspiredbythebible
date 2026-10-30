@@ -1,4 +1,4 @@
-"""BITB-251: schema, provenance and source-host checks for the crisis-resources registry.
+"""BITB-255: schema, provenance and source-host checks for the crisis-resources registry.
 
 A wrong number in a crisis is worse than none, so every entry must carry an official source.
 These tests fail the PR gate on structure and provenance; whether `verified_on` is recent

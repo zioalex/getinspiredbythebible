@@ -387,7 +387,7 @@ export interface TranslationInfo {
   year?: number;
 }
 
-/** BITB-251: structured emergency/crisis contacts sent ahead of the reply. */
+/** BITB-255: structured emergency/crisis contacts sent ahead of the reply. */
 export interface CrisisLine {
   name: string;
   phone: string | null;
@@ -408,7 +408,7 @@ export interface CrisisResources {
 }
 
 /**
- * BITB-251: re-fetch the crisis card payload for a country the user picked in
+ * BITB-255: re-fetch the crisis card payload for a country the user picked in
  * the card's picker, so the card already on screen can be re-rendered in place.
  * Public data, sent as a POST body so the country stays out of the URL; throws on any non-2xx so the caller can keep the old card.
  */
@@ -441,7 +441,7 @@ export interface ChatResponse {
   /** BITB-080: suggested follow-up questions, in the user's own voice. Absent
    * when suppressed (crisis/off-topic/error turns) or on an older backend. */
   follow_ups?: string[];
-  /** BITB-251: crisis contacts card payload (self-harm / threat turns). */
+  /** BITB-255: crisis contacts card payload (self-harm / threat turns). */
   crisis_resources?: CrisisResources | null;
 }
 
@@ -630,7 +630,7 @@ export interface StreamMetadata {
 
 export interface StreamChunk {
   type: "metadata" | "content" | "error" | "completion" | "crisis_resources";
-  // For crisis_resources type (BITB-251): first event of a crisis turn.
+  // For crisis_resources type (BITB-255): first event of a crisis turn.
   resources?: CrisisResources;
   // For metadata type:
   message_id?: string;

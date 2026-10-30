@@ -7,7 +7,7 @@ import type { CrisisResources } from "@/lib/api";
 import { setCrisisRegionOverride } from "@/lib/crisisRegion";
 
 /**
- * BITB-251: deterministic emergency / crisis contacts, rendered ABOVE the
+ * BITB-255: deterministic emergency / crisis contacts, rendered ABOVE the
  * assistant reply on self-harm and threat-to-others turns. The server picks
  * the contacts by the caller's country; a "Not in {country}?" picker lets a
  * VPN user or traveller correct it (stored on this device only, sent as

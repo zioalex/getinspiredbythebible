@@ -249,7 +249,7 @@ class ChatMapperTest {
         assertNull(verse.localizedBook)
     }
 
-    // ── BITB-251: region + crisis card contract ──────────────────────────────
+    // ── BITB-255: region + crisis card contract ──────────────────────────────
 
     @Test
     fun `ChatRequest toDto maps a 2-letter region upper-cased and the override flag`() {

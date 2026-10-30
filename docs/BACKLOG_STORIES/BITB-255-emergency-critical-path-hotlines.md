@@ -1,4 +1,4 @@
-# BITB-251: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
+# BITB-255: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
 
 **Status:** 🔍 In Review — verified (3 verify rounds) 2026-10-29
 **Priority:** P0
@@ -361,4 +361,4 @@ Sources: [ThroughLine developer docs](https://developer.throughlinecare.com/gene
 - Cards with no `emergency` show a localized "call your local emergency number (112 ...)" line with
   112 as a dial target.
 - Real keyword-fallback test for Bible-narrative phrasings: en and ar misfire (xfail strict,
-  BITB-253; safety keyword tables unchanged).
+  BITB-257; safety keyword tables unchanged).

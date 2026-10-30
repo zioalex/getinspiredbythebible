@@ -14,7 +14,7 @@ import {
 import { crisisFixture } from "@/test/crisisFixtures";
 import { getCrisisRegionOverride } from "@/lib/crisisRegion";
 
-// BITB-251: the crisis card renders above the reply and survives stop/error.
+// BITB-255: the crisis card renders above the reply and survives stop/error.
 Element.prototype.scrollIntoView = vi.fn();
 
 vi.mock("react-markdown", () => ({
@@ -87,7 +87,7 @@ async function send(text: string) {
   fireEvent.submit(form);
 }
 
-describe("ChatIsland crisis card (BITB-251)", () => {
+describe("ChatIsland crisis card (BITB-255)", () => {
   beforeEach(async () => {
     vi.mocked(streamMessage).mockReset();
     window.localStorage.clear();

@@ -3497,7 +3497,7 @@ class ChatViewModelTest {
         verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_UNAVAILABLE, any()) }
     }
 
-    // ── BITB-251: crisis resources card ──────────────────────────────────────
+    // ── BITB-255: crisis resources card ──────────────────────────────────────
 
     @Test
     fun `crisis_resources chunk attaches the card to the assistant message and keeps it after completion`() = runTest {
@@ -3583,7 +3583,7 @@ class ChatViewModelTest {
         coVerify { sessionPreferences.setCrisisRegionOverride("AT") }
     }
 
-    // ── BITB-251: picking a country re-renders the card already shown ─────────
+    // ── BITB-255: picking a country re-renders the card already shown ─────────
 
     private fun austriaCard() = org.voxquieta.app.data.remote.models.CrisisResourcesDto(
         kind = "self_harm",

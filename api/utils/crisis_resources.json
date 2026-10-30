@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_comment": "BITB-251 crisis-resources registry. Every entry needs an official source_url; verified_on stays null until a human verifies the number against that source (docs/HOW-TO-VERIFY-CRISIS-RESOURCES.md). threat_to_others_number, when present, replaces number for a threat-to-others card.",
+  "_comment": "BITB-255 crisis-resources registry. Every entry needs an official source_url; verified_on stays null until a human verifies the number against that source (docs/HOW-TO-VERIFY-CRISIS-RESOURCES.md). threat_to_others_number, when present, replaces number for a threat-to-others card.",
   "international_url": "https://findahelpline.com",
   "region_aliases": {
     "UK": "GB"

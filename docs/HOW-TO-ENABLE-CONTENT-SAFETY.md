@@ -359,7 +359,7 @@ az containerapp update \
 
 ---
 
-## Crisis card (BITB-251)
+## Crisis card (BITB-255)
 
 When the safety pipeline sees someone threatening to hurt themselves or someone else, the API sends
 a structured `crisis_resources` payload (emergency number + crisis lines for the user's country)

@@ -37,7 +37,7 @@ export interface StoredMessage {
   /** Verse references cited by an assistant message (web analog of Android versesJson). */
   versesCited: string[];
   /**
-   * BITB-251: the crisis contacts card shown above this assistant reply.
+   * BITB-255: the crisis contacts card shown above this assistant reply.
    * Absent on older rows and on non-crisis turns. Rides along in
    * export/import because those operate on whole StoredMessage rows.
    */

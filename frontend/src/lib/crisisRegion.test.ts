@@ -6,7 +6,7 @@ import {
   setCrisisRegionOverride,
 } from "./crisisRegion";
 
-describe("crisisRegion (BITB-251)", () => {
+describe("crisisRegion (BITB-255)", () => {
   beforeEach(() => window.localStorage.clear());
   afterEach(() => vi.restoreAllMocks());
 

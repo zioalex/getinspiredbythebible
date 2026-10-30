@@ -4,7 +4,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * v1 -> v2 (BITB-251): adds the nullable `crisisJson` column that stores the emergency/crisis
+ * v1 -> v2 (BITB-255): adds the nullable `crisisJson` column that stores the emergency/crisis
  * contacts card shown above an assistant message.
  *
  * An explicit migration is required: [org.voxquieta.app.di.DatabaseModule] keeps

@@ -146,7 +146,7 @@ describe("conversationStore", () => {
   });
 });
 
-describe("conversationStore crisisResources (BITB-251)", () => {
+describe("conversationStore crisisResources (BITB-255)", () => {
   const card = {
     kind: "self_harm" as const,
     country: "DE",

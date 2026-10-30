@@ -515,7 +515,7 @@ fun ChatScreen(
                         val userMsg = if (message.role == Message.Role.ASSISTANT && index > 0) {
                             uiState.messages[index - 1].content
                         } else ""
-                        // BITB-251: emergency/crisis contacts pinned ABOVE the reply.
+                        // BITB-255: emergency/crisis contacts pinned ABOVE the reply.
                         message.crisisResources?.let { card ->
                             CrisisResourcesCard(
                                 resources = card,

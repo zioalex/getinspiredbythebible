@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 data class ChatResponseDto(
     @SerialName("message") val message: String,
     @SerialName("verses") val verses: List<VerseDto> = emptyList(),
-    /** Crisis contacts on a self-harm / threat turn (BITB-251); null otherwise. */
+    /** Crisis contacts on a self-harm / threat turn (BITB-255); null otherwise. */
     @SerialName("crisis_resources") val crisisResources: CrisisResourcesDto? = null,
 )
 
@@ -53,7 +53,7 @@ data class StreamChunkDto(
     @SerialName("language_suggestion") val languageSuggestion: String? = null,
     /** Suggested follow-up questions from the completion event (BITB-149). Absent/empty when suppressed. */
     @SerialName("follow_ups") val followUps: List<String> = emptyList(),
-    /** Emergency/crisis contacts (BITB-251). Set only on a `crisis_resources` event. */
+    /** Emergency/crisis contacts (BITB-255). Set only on a `crisis_resources` event. */
     @SerialName("resources") val crisisResources: CrisisResourcesDto? = null,
 )
 

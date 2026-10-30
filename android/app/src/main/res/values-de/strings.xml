@@ -200,7 +200,7 @@
     <string name="error_content_blocked">Auf diese Nachricht konnte ich nicht antworten — unser Sicherheitssystem hat sie zurückgehalten und hat deine Worte vielleicht einfach missverstanden. Versuch bitte, deinen Gedanken anders zu formulieren. Wenn sich etwas falsch anfühlt, melde dich gerne bei uns unter contact@voxquieta.org. Schön, dass du hier bist.</string>
     <string name="chat_follow_ups_label">Vorgeschlagene Anschlussfragen</string>
 
-    <!-- BITB-251: crisis resources card -->
+    <!-- BITB-255: crisis resources card -->
     <string name="crisis_heading">Du musst das nicht allein durchstehen — sprich jetzt mit jemandem</string>
     <string name="crisis_emergency_label">Notrufnummer</string>
     <string name="crisis_emergency_aria">Notrufnummer %1$s anrufen</string>

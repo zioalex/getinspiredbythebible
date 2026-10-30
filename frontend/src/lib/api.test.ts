@@ -28,7 +28,7 @@ import {
   type ChurchSearchResponse,
 } from "./api";
 
-// BITB-251: fields every chat request now carries (jsdom navigator = en-US).
+// BITB-255: fields every chat request now carries (jsdom navigator = en-US).
 const CRISIS_DEFAULTS = {
   region: "US",
   region_override: false,
@@ -1223,7 +1223,7 @@ describe("submitContactForm", () => {
   });
 });
 
-describe("crisis card request fields (BITB-251)", () => {
+describe("crisis card request fields (BITB-255)", () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
@@ -1315,7 +1315,7 @@ describe("crisis card request fields (BITB-251)", () => {
   });
 });
 
-describe("getCrisisResources (BITB-251)", () => {
+describe("getCrisisResources (BITB-255)", () => {
   it("POSTs country, language and kind in a JSON body, never in the URL", async () => {
     const payload = { kind: "self_harm", country: "US" };
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({

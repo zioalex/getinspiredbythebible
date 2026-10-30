@@ -199,7 +199,7 @@ class MessageEntityMapperTest {
         assertTrue("Expected empty verses list for 'null' string JSON", domain.verses.isEmpty())
     }
 
-    // ── BITB-251: crisis card persistence ────────────────────────────────────
+    // ── BITB-255: crisis card persistence ────────────────────────────────────
 
     @Test
     fun `crisis card round-trips through the entity`() {

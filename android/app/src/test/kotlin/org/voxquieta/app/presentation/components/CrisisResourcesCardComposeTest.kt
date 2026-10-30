@@ -17,7 +17,7 @@ import org.voxquieta.app.testing.ComposeTestHarness
 import org.voxquieta.app.testing.crisisFixture
 
 /**
- * Robolectric-backed Compose UI tests for [CrisisResourcesCard] (BITB-251).
+ * Robolectric-backed Compose UI tests for [CrisisResourcesCard] (BITB-255).
  *
  * Runs in the English default locale under Robolectric, on a tall phone-sized screen: the
  * card is taller than Robolectric's default 320x470dp viewport, which would leave its lower

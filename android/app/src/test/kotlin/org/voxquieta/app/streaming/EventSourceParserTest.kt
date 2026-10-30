@@ -444,7 +444,7 @@ class EventSourceParserTest {
         assertTrue(chunks[0].followUps.isEmpty())
     }
 
-    // ── BITB-251: crisis_resources ────────────────────────────────────────────
+    // ── BITB-255: crisis_resources ────────────────────────────────────────────
 
     @Test
     fun `crisis_resources event is parsed into a chunk with the resources`() = runTest {

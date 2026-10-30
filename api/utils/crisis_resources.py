@@ -1,5 +1,5 @@
 """
-Crisis resources (BITB-251): deterministic hotline card for threats to self or others.
+Crisis resources (BITB-255): deterministic hotline card for threats to self or others.
 
 Single source of truth for the emergency / crisis numbers shown when the content-safety
 pipeline detects someone threatening to hurt themselves or someone else. The data lives
@@ -289,7 +289,7 @@ def build_crisis_payload(
     language: str | None,
     provider: CrisisResourceProvider | None = None,
 ) -> dict[str, Any]:
-    """Build the ``crisis_resources`` wire payload (see BITB-251 contract)."""
+    """Build the ``crisis_resources`` wire payload (see BITB-255 contract)."""
     provider = provider or get_provider()
     lang = _primary_language(language)
 

@@ -1,6 +1,6 @@
 name: Crisis Resources Staleness
 
-# BITB-251: weekly check of the emergency / crisis-line registry
+# BITB-255: weekly check of the emergency / crisis-line registry
 # (api/utils/crisis_resources.json). Fails when any entry has verified_on null or
 # older than 180 days, or when any source_url no longer answers 2xx/3xx.
 #

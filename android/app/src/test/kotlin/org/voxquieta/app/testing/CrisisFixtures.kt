@@ -3,7 +3,7 @@ package org.voxquieta.app.testing
 import org.voxquieta.app.domain.models.CrisisLine
 import org.voxquieta.app.domain.models.CrisisResources
 
-/** Shared BITB-251 crisis card fixture (an Italian turn resolved from the IP country). */
+/** Shared BITB-255 crisis card fixture (an Italian turn resolved from the IP country). */
 val crisisFixture = CrisisResources(
     kind = "self_harm",
     country = "IT",

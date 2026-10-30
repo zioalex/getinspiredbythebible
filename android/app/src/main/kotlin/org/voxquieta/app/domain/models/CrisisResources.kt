@@ -1,7 +1,7 @@
 package org.voxquieta.app.domain.models
 
 /**
- * One crisis line shown in the [CrisisResources] card (BITB-251). [name] and [hours] are
+ * One crisis line shown in the [CrisisResources] card (BITB-255). [name] and [hours] are
  * already localized by the server; [phone] / [sms] are display strings (dialable form is
  * derived at tap time).
  */
@@ -15,7 +15,7 @@ data class CrisisLine(
 
 /**
  * Emergency + crisis-line contacts the backend sends as the first event of a self-harm or
- * threat-to-others turn (BITB-251). Mirrors the web `CrisisResources` type.
+ * threat-to-others turn (BITB-255). Mirrors the web `CrisisResources` type.
  *
  * @param kind "self_harm" or "threat_to_others".
  * @param country ISO 3166-1 alpha-2 the contacts were picked for; null when international only.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Staleness check for the crisis-resources registry (BITB-251).
+"""Staleness check for the crisis-resources registry (BITB-255).
 
 Fails (exit 1) when, in ``api/utils/crisis_resources.json``:
 

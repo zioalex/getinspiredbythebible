@@ -13,7 +13,7 @@ package org.voxquieta.app.domain.models
  *   the backend uses this instead of auto-detecting the language from the message text, so
  *   responses are always in the user's chosen language regardless of what language they type in.
  * @param region ISO 3166-1 alpha-2 country used only to pick local emergency/crisis contacts
- *   (BITB-251). Never stored server-side.
+ *   (BITB-255). Never stored server-side.
  * @param regionOverride True only when the user corrected the country in the crisis card picker.
  */
 data class ChatRequest(
@@ -23,8 +23,8 @@ data class ChatRequest(
     val includeSearch: Boolean = true,
     val sessionId: String,
     val language: String? = null,
-    /** BITB-251: ISO 3166-1 alpha-2 region (device locale, or the user's picker choice). */
+    /** BITB-255: ISO 3166-1 alpha-2 region (device locale, or the user's picker choice). */
     val region: String? = null,
-    /** BITB-251: true when [region] is the user's explicit crisis-card picker choice. */
+    /** BITB-255: true when [region] is the user's explicit crisis-card picker choice. */
     val regionOverride: Boolean = false,
 )

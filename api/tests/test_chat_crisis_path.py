@@ -1,4 +1,4 @@
-"""BITB-251: the deterministic crisis-card path through chat() and chat_stream().
+"""BITB-255: the deterministic crisis-card path through chat() and chat_stream().
 
 Integration tests (mocked safety / LLM / search) -- not pure-function tests -- because the
 card must survive every return path of both entry points and must be the FIRST stream event.
@@ -380,7 +380,7 @@ async def test_bible_narrative_kill_phrasing_gets_no_card(language):
 
 
 # Languages whose keyword fallback still blocks third-person Bible narrative as violence;
-# tracked by BITB-253 (the safety keyword tables are deliberately NOT changed by BITB-251).
+# tracked by BITB-257 (the safety keyword tables are deliberately NOT changed by BITB-255).
 _KEYWORD_FALLBACK_MISFIRES = {"en", "ar"}
 
 
@@ -392,7 +392,7 @@ def _narrative_cases():
                 marks.append(
                     pytest.mark.xfail(
                         strict=True,
-                        reason="BITB-253: keyword fallback blocks third-person Bible narrative "
+                        reason="BITB-257: keyword fallback blocks third-person Bible narrative "
                         "as violence",
                     )
                 )

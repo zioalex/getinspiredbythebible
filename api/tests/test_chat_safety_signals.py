@@ -69,7 +69,7 @@ class TestGetCompassionateAddendum:
         assert result is COMPASSIONATE_RESPONSE_ADDENDUM
 
     def test_points_to_card_and_forbids_writing_numbers(self):
-        """BITB-251: numbers come from the crisis card, never from the model."""
+        """BITB-255: numbers come from the crisis card, never from the model."""
         result = get_compassionate_addendum()
         assert "crisis card" in result
         assert "NEVER write phone numbers" in result

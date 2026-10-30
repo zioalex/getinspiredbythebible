@@ -1,4 +1,4 @@
-# BITB-252: RAG Retrieval-Miss Insights — Privacy-Safe Logging of Weak or Failed Retrieval
+# BITB-256: RAG Retrieval-Miss Insights — Privacy-Safe Logging of Weak or Failed Retrieval
 
 **Status:** 🎯 Todo — spec awaiting owner confirmation (2026-10-28)
 **Priority:** P1

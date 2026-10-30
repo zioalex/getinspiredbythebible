@@ -200,7 +200,7 @@
     <string name="error_content_blocked">لم أتمكن من الرد على هذه الرسالة — فقد أوقفها نظام السلامة لدينا، وربما يكون قد أساء فهم كلماتك. حاول إعادة صياغة فكرتك من فضلك، وإذا شعرت أن هناك خطأً، تواصل معنا على contact@voxquieta.org. سعداء بوجودك هنا.</string>
     <string name="chat_follow_ups_label">أسئلة متابعة مقترحة</string>
 
-    <!-- BITB-251: crisis resources card -->
+    <!-- BITB-255: crisis resources card -->
     <string name="crisis_heading">لست مضطرًا لمواجهة هذا وحدك — تحدّث مع شخص الآن</string>
     <string name="crisis_emergency_label">رقم الطوارئ</string>
     <string name="crisis_emergency_aria">الاتصال برقم الطوارئ %1$s</string>

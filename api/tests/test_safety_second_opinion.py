@@ -243,7 +243,7 @@ def test_ambiguous_reason_maps_to_crisis_template():
 
 @pytest.mark.parametrize("language", LANGUAGES)
 def test_blocked_response_for_ambiguous_reason_has_crisis_resources(language):
-    """The template carries no numbers (BITB-251); the registry fallback adds them."""
+    """The template carries no numbers (BITB-255); the registry fallback adds them."""
     text = get_blocked_response(AMBIGUOUS_REASON, language)
     assert text == get_blocked_response("self_harm_blocked", language)
     assert "findahelpline" not in text
