@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-29: BITB-259 created — spike: decision model (Clef-flash, Jev if access) for intent routing + topic detection, offline 11-language eval + shadow mode
 - 2026-10-28: BITB-254 in progress — follow-up chips stop after a few turns: clients echo chips back so the model keeps seeing the trailer; history-aware verse filter; suppressed-chips counter (PR pending)
 - 2026-10-29: BITB-224 in progress — root cause: azurerm standard web test enabled defaults to false and main.tf never set it; pin enabled=true + scheduled webtests-enabled guard in prod-deploy-drift.yml (PR pending)
 - 2026-10-28: BITB-086 ✅ Done — both deferred client-side ACs (web reference consumer + corrupt-span degradation) completed via BITB-109 (PR #1055); backend contract shipped in PR #985; story moved to docs/DONE/ (this PR)
@@ -3274,6 +3275,32 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-259: Spike — Decision Model (Clef / Jev) for Intent Routing and Topic Detection
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-29
+
+Can a decision model (Cloudflare Clef-flash; TypeSafe Jev if early access
+arrives) replace the generative LLM call in `_detect_intent`, which runs on
+every chat request before search? It would answer the 7-way intent question
+and the 13 topic yes/no questions in one call, with probabilities. Build a
+`DecisionProvider` interface, a labelled set in all 11 languages and an
+offline runner (accuracy, macro-F1, calibration/ECE, threshold sweep,
+p50/p95, cost), plus a flag-gated shadow mode that logs both verdicts and
+never changes routing.
+
+**Acceptance criteria:**
+
+- [ ] Labelled set: ≥30 cases × 11 languages, every intent label in every language
+- [ ] `DecisionProvider` + Clef client + factory + config, with mocked-transport tests
+- [ ] Offline runner + dated per-language report (LLM baseline vs Clef-flash)
+- [ ] Shadow mode (`decision_shadow_enabled`, off by default): routing unchanged, a failure or timeout adds no latency, no message text in logs; tested via `chat()` + `chat_stream()` across 11 languages
+- [ ] Findings with a go/no-go per language; Jev compared or marked "no access"
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-259-decision-model-intent-routing-spike.md`
 
 ### 🎯 BITB-242: Platform-Selective Feature Flags — Server-Driven Per-Platform (Web/Android) Flag Registry
 
