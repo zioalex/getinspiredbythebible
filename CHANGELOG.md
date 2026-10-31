@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.59.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.58.0...v1.59.0) (2026-10-30)
+
+
+### Features
+
+* **android:** gate follow-up question chips behind default-off rollout flag (BITB-080) ([#1217](https://github.com/zioalex/getinspiredbythebible/issues/1217)) ([dd48af5](https://github.com/zioalex/getinspiredbythebible/commit/dd48af5afb49c606f3c4849b3dfd3ddd404515d8))
+* **android:** implement first-run feature spotlight coach-marks (BITB-142) ([#1192](https://github.com/zioalex/getinspiredbythebible/issues/1192)) ([89b0e1d](https://github.com/zioalex/getinspiredbythebible/commit/89b0e1d7706f06d85bfcc2ec44b6451b4748be02))
+* **cost:** add BITB-150 phase 0 cost-evidence toolchain, analysis, and follow-up stories ([#1189](https://github.com/zioalex/getinspiredbythebible/issues/1189)) ([86e02bd](https://github.com/zioalex/getinspiredbythebible/commit/86e02bd74cab53f4d3620e0b5eeac9851c6e5c44))
+* **deploy:** enable follow-up suggestions for web in prod (BITB-080) ([#1219](https://github.com/zioalex/getinspiredbythebible/issues/1219)) ([16396ed](https://github.com/zioalex/getinspiredbythebible/commit/16396ed6c1227fd57d2ac0e02b22f7ee78816f8d))
+* emergency crisis card with local hotlines for threats to self or others (BITB-255) ([#1233](https://github.com/zioalex/getinspiredbythebible/issues/1233)) ([d117670](https://github.com/zioalex/getinspiredbythebible/commit/d11767033e40d5c6605b618824aed1e4bd428ad3))
+* **frontend,android:** update app hero and Play Store feature graphic with LinkedIn profile image ([#1200](https://github.com/zioalex/getinspiredbythebible/issues/1200)) ([139a70b](https://github.com/zioalex/getinspiredbythebible/commit/139a70b67af4906da0d24935977183c8406cdece))
+* **frontend:** fit menu selects and pin chat composer to the bottom on mobile ([#1225](https://github.com/zioalex/getinspiredbythebible/issues/1225)) ([e83f2c8](https://github.com/zioalex/getinspiredbythebible/commit/e83f2c8b9b638d3e5b245d6a92c4889822d919fd))
+* **frontend:** gate BITB-080 follow-up chips behind NEXT_PUBLIC_FOLLOW_UPS_ENABLED (web-only enablement) ([#1216](https://github.com/zioalex/getinspiredbythebible/issues/1216)) ([d39411b](https://github.com/zioalex/getinspiredbythebible/commit/d39411bbe94877e8ec0d4812391c6c1f490b23ba))
+* **ios:** runnable Turnstile WKWebView probe package + preliminary Safari observation ([#1235](https://github.com/zioalex/getinspiredbythebible/issues/1235)) ([8630d0e](https://github.com/zioalex/getinspiredbythebible/commit/8630d0e916f31d393e32720354c89ac8b4777215))
+* read-aloud telemetry, iPhone and Snap Firefox fixes, cross-browser e2e (BITB-247/248/249/250) ([#1226](https://github.com/zioalex/getinspiredbythebible/issues/1226)) ([02412ac](https://github.com/zioalex/getinspiredbythebible/commit/02412ac92bee584688b195e330961dc5264d8163))
+
+
+### Bug Fixes
+
+* **api:** check directed harm in every language at Stage 1 (BITB-193) ([#1199](https://github.com/zioalex/getinspiredbythebible/issues/1199)) ([2900b31](https://github.com/zioalex/getinspiredbythebible/commit/2900b31e72a396bd97437b9e49c95dcbd5396c13))
+* **build:** audit make targets and repair broken recipes ([#1196](https://github.com/zioalex/getinspiredbythebible/issues/1196)) ([f68c1f1](https://github.com/zioalex/getinspiredbythebible/commit/f68c1f112ae4945010a7217880a53f8dbd820f29))
+* **frontend:** stop web read aloud hanging on Pause with no audio on Linux Firefox (BITB-241) ([#1203](https://github.com/zioalex/getinspiredbythebible/issues/1203)) ([2c4b670](https://github.com/zioalex/getinspiredbythebible/commit/2c4b670df22a61eaf81aefd010502e8ba8dfd6cf))
+* **frontend:** use next/image for app-icon on welcome screen ([#1222](https://github.com/zioalex/getinspiredbythebible/issues/1222)) ([ae137d3](https://github.com/zioalex/getinspiredbythebible/commit/ae137d33dc2e5e0d87b30b515547e83f2db1a9d8))
+* **infra:** keep paraphrase-brackets alert look-back within azure's 48h cap (BITB-223) ([#1227](https://github.com/zioalex/getinspiredbythebible/issues/1227)) ([7a56cd4](https://github.com/zioalex/getinspiredbythebible/commit/7a56cd4cda096d24d733b21f5515924a1585eea1))
+* **infra:** pin availability web tests enabled and add enabled-guard (BITB-224) ([#1232](https://github.com/zioalex/getinspiredbythebible/issues/1232)) ([899aa69](https://github.com/zioalex/getinspiredbythebible/commit/899aa69c735e850c84d23cb14e60e2d34b039c04))
+* keep follow-up chips coming after the first few turns (BITB-254) ([#1231](https://github.com/zioalex/getinspiredbythebible/issues/1231)) ([8746703](https://github.com/zioalex/getinspiredbythebible/commit/8746703c51a02d300e55ace0629a18c20aba6487))
+* **kubeopencode:** add controller RBAC for leader election and CRD access ([#1204](https://github.com/zioalex/getinspiredbythebible/issues/1204)) ([0543c5a](https://github.com/zioalex/getinspiredbythebible/commit/0543c5a9020221b2fea3652934859f25e25ffaeb))
+
+
+### Documentation
+
+* add BITB-242 story — platform-selective feature flags (server-driven per-platform registry) ([#1220](https://github.com/zioalex/getinspiredbythebible/issues/1220)) ([7a561a3](https://github.com/zioalex/getinspiredbythebible/commit/7a561a337920a1e0bbef95d09fc86e94cb1bfbd8))
+* add BITB-259 decision-model spike for intent routing ([#1234](https://github.com/zioalex/getinspiredbythebible/issues/1234)) ([4a0e662](https://github.com/zioalex/getinspiredbythebible/commit/4a0e66248bf8bee1f4d4aaebf675624743e669ae))
+* **bitb-080:** add follow-ups enablement eval — latency A/B + quality findings ([#1214](https://github.com/zioalex/getinspiredbythebible/issues/1214)) ([02c72a5](https://github.com/zioalex/getinspiredbythebible/commit/02c72a5327117758496800da19bf964c8e08df68))
+* close BITB-218/219 and file follow-ups BITB-221, BITB-222, BITB-235 ([#1197](https://github.com/zioalex/getinspiredbythebible/issues/1197)) ([6a7b735](https://github.com/zioalex/getinspiredbythebible/commit/6a7b7355db8855c104974fcd3845ee469682ab7f))
+* close BITB-247/248/249/250 and file follow-ups BITB-251/252/253 ([#1230](https://github.com/zioalex/getinspiredbythebible/issues/1230)) ([737d352](https://github.com/zioalex/getinspiredbythebible/commit/737d352fc03575bec49089eaf5739867ccbbc6b5))
+* **ios:** mark BITB-086/109 prerequisites complete in BITB-085 gates ([#1229](https://github.com/zioalex/getinspiredbythebible/issues/1229)) ([f615625](https://github.com/zioalex/getinspiredbythebible/commit/f6156251c4f9f84b1f12c44d2ff18c97d9abebba))
+* **ios:** record Cloudflare-documented WKWebView support in Turnstile probe gate ([#1236](https://github.com/zioalex/getinspiredbythebible/issues/1236)) ([bffa2e6](https://github.com/zioalex/getinspiredbythebible/commit/bffa2e6f75e2a1b0b84fd97980eb2de02aed72c0))
+* mark BITB-212 done — orchestrator delegation discipline enforced (PR [#1193](https://github.com/zioalex/getinspiredbythebible/issues/1193)) ([#1198](https://github.com/zioalex/getinspiredbythebible/issues/1198)) ([48618df](https://github.com/zioalex/getinspiredbythebible/commit/48618dfe2216906ba68aabd6391a1808dcf872de))
+
 ## [1.58.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.57.0...v1.58.0) (2026-10-23)
 
 ### Features
