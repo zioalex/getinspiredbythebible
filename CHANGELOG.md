@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.59.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.59.0...v1.59.1) (2026-10-31)
+
+
+### Documentation
+
+* add cross-client parity knowledge-graph decision record and stage stories (BITB-260..263) ([#1237](https://github.com/zioalex/getinspiredbythebible/issues/1237)) ([6016b8d](https://github.com/zioalex/getinspiredbythebible/commit/6016b8d241f777ef5f199282055532170b92436f))
+
 ## [1.59.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.58.0...v1.59.0) (2026-10-30)
 
 
