@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-29
+**Last Updated:** 2026-10-30
 
 ## Changelog
 
@@ -20,6 +20,10 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
+- 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
+- 2026-10-30: BITB-262 created — Stage 2: capability×client parity registry, living successor of docs/WIP/android-feature-parity-plan.md; first red row expected: BITB-042; gated on BITB-261
+- 2026-10-30: BITB-263 created — Stage 3: on-demand local Neo4j lens for the development laptop (owner-requested; disposable view over the git artifact, no CI dependency); gated on BITB-262
 - 2026-10-29: BITB-255 in review — crisis card on web + Android, Cloudflare country, self-curated registry; passed independent verify after 2 fix rounds
 - 2026-10-29: BITB-257/258 opened — follow-ups from BITB-255 verification (keyword-fallback Bible-narrative card; Llama Guard S11 combos get no card)
 - 2026-10-29: BITB-255 in progress — plan approved (crisis overrides profanity filter, directed_harm excluded, unverified numbers shown + flagged, Android Room migration)
@@ -3350,6 +3354,86 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-260: Cross-Client Parity Knowledge Graph — Decision Record
+
+**Status:** 🎯 Decision recorded 2026-10-30 — implementation gated per stage stories
+**Priority:** P2
+**Size:** S (record only)
+**Created:** 2026-10-30
+
+Four clients of one backend (api, web, android, ios-planned) must stay behaviorally in sync.
+Decision: build a parity knowledge graph — a validated registry of capabilities, contracts, and
+per-client parity status — as a committed git artifact (store of record) with an on-demand,
+local-only Neo4j lens, built on adopted open-source tools per layer (OpenAPI+oasdiff; registry +
+Mermaid landscape; Pact/Weblate as gated candidates; Backstage and AST mining rejected with
+reasoning). Predecessor to absorb: `docs/WIP/android-feature-parity-plan.md`. Stages:
+BITB-261 → BITB-262 → BITB-263.
+
+**Full Story:** [`BITB-260-cross-client-parity-knowledge-graph-decision.md`](BACKLOG_STORIES/BITB-260-cross-client-parity-knowledge-graph-decision.md)
+
+### 🎯 BITB-261: Parity KG Stage 1 — OpenAPI Contract Artifact & Breaking-Change CI
+
+**Status:** 🎯 Todo — dispatchable immediately
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-30
+
+Export the FastAPI OpenAPI spec to a committed artifact (`docs/parity/openapi.json`) with an
+offline export script; CI fails when the artifact is stale and posts an oasdiff breaking-change
+report on PRs (warn-level first; policy documented with its flip condition).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Offline `make parity-export` on a fresh clone; `--check` fails CI on a stale artifact
+- [ ] oasdiff breaking-change report per PR; `docs/parity/README.md` zero-to-running
+- [ ] No application behavior changes
+
+**Full Story:** [`BITB-261-parity-kg-stage1-openapi-contract-ci.md`](BACKLOG_STORIES/BITB-261-parity-kg-stage1-openapi-contract-ci.md)
+
+### 🎯 BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
+
+**Status:** 🎯 Todo — gated on BITB-261
+**Priority:** P2
+**Size:** L
+**Created:** 2026-10-30
+
+`docs/parity/registry.yaml`: capabilities × clients (api/web/android/ios) with
+`parity_status` + evidence, contracts (SSE schema, citations spans, verse-grammar fixtures,
+strings catalog, telemetry enums, platform flags) and first-class negative obligations
+(ios no-verse-regex, no-donate-entry). `tools/parity-graph/` validates, renders the Mermaid
+landscape + `graph.json`, and freshness-checks in CI — drifted rows stay visible until their
+story closes. Seeds: the WIP android-feature-parity plan GAPs (re-verified against current
+code), BITB-087's Tier tables, a web inventory. Trust gate: an independent verifier re-checks
+a ≥10-row sample against the code.
+
+**Acceptance Criteria (summary):**
+
+- [ ] BITB-042 surfaces as a `drifted` Android row with its story link
+- [ ] Strings cross-check shares `translation-validation`'s source of truth (no forked validator)
+- [ ] `graph.json` + `landscape.md` emitted and freshness-checked
+
+**Full Story:** [`BITB-262-parity-kg-stage2-parity-registry.md`](BACKLOG_STORIES/BITB-262-parity-kg-stage2-parity-registry.md)
+
+### 🎯 BITB-263: Parity KG Stage 3 — On-Demand Local Neo4j Lens
+
+**Status:** 🎯 Todo — gated on BITB-262
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-30
+
+Owner-requested lens: docker-compose Neo4j Community Edition on the development laptop — never
+CI, never hosted, a disposable view over the git artifact. Idempotent import script + Makefile
+targets (`graph-lens-up` / `import` / `down` / `purge`) + `docs/parity/cypher-recipes.md`
+(drifted capabilities, contract blast radius, capabilities with no iOS obligation, test
+coverage gaps).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Fresh clone → up + import → recipes answer; the drift query lists BITB-042's row
+- [ ] Idempotent re-import; teardown loses nothing; no CI dependency on Neo4j
+
+**Full Story:** [`BITB-263-parity-kg-stage3-on-demand-neo4j-lens.md`](BACKLOG_STORIES/BITB-263-parity-kg-stage3-on-demand-neo4j-lens.md)
 
 ### 🎯 BITB-259: Spike — Decision Model (Clef / Jev) for Intent Routing and Topic Detection
 
