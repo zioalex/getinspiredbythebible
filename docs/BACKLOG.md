@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-29
+**Last Updated:** 2026-10-31
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-10-31: BITB-257 in review — keyword fallback exempts third-person past-tense Bible narrative (en/it/de/es/fr/pt/ar frames + first-person veto); BITB-255 en/ar and BITB-194 kill-verb xfails flipped (PR #TBD)
 - 2026-10-29: BITB-255 in review — crisis card on web + Android, Cloudflare country, self-curated registry; passed independent verify after 2 fix rounds
 - 2026-10-29: BITB-257/258 opened — follow-ups from BITB-255 verification (keyword-fallback Bible-narrative card; Llama Guard S11 combos get no card)
 - 2026-10-29: BITB-255 in progress — plan approved (crisis overrides profanity filter, directed_harm excluded, unverified numbers shown + flagged, Android Room migration)
@@ -317,9 +318,9 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🎯 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
+### 🚧 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Size:** M
 **Created:** 2026-10-29
 

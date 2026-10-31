@@ -12,7 +12,7 @@ import hashlib
 import re
 import unicodedata
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, ClassVar
 
 from fastapi import Depends, HTTPException, Request
 
@@ -685,6 +685,9 @@ class MultiLanguageContentFilter:
             r"\bgranadas? de m[aã]o\b",
             r"\bmolotov\b",
         ],
+        # BITB-257: the bare "قتل" below would block Bible narrative ("لماذا قتل قايين هابيل")
+        # and "هجوم"; find_violence_matches exempts third-person past-tense frames
+        # (NARRATIVE_FRAME_PATTERNS) unless a first-person / intent marker is in the clause.
         "ar": [
             r"قنبلة",
             r"متفجر",
@@ -964,6 +967,112 @@ class MultiLanguageContentFilter:
         re.IGNORECASE,
     )
 
+    # BITB-257: third-person, past-tense / modal "narrative frames" for kill/attack verbs
+    # (never bomb/gun/weapon/terror). A VIOLENCE_PATTERNS match that a frame fully covers is
+    # exempt ("Why did Cain kill Abel?", "Perché Saul voleva uccidere Davide?") unless the same
+    # clause contains a first-person / intent marker (NARRATIVE_VETO_PATTERNS).
+    NARRATIVE_FRAME_PATTERNS: ClassVar[dict[str, list[str]]] = {
+        "en": [
+            (
+                r"\bdid\s+(?:(?!(?:i|we)\b)[\w'’-]+\s+){1,4}?"
+                r"(?:(?:try|want|plan|decide|seek|attempt|have|need)\s+to\s+)?"
+                r"(?:kill|murder|slaughter|stab|shoot|attack)\b"
+            ),
+            (
+                r"\b(?:wanted|tried|sought|attempted|plotted|planned|conspired|decided|resolved|"
+                r"intended|meant|refused|failed|(?:was|were)\s+(?:going|about|commanded|told|sent|"
+                r"ordered)|(?:commanded|ordered|told|sent)(?:\s+[\w'’-]+){1,3})\s+to\s+"
+                r"(?:kill|murder|slaughter|stab|shoot|attack)\b"
+            ),
+        ],
+        "it": [
+            (
+                r"\b(?:volle|vollero|voleva|volevano|cercò|cercava|cercavano|cercarono|tentò|"
+                r"tentarono|provò|decise|decisero|ordinò|comandò|(?:ha|hanno|aveva|avevano)\s+"
+                r"(?:voluto|cercato|tentato|deciso))\s+(?:di\s+)?(?:uccidere|sparare|accoltellare)\b"
+            ),
+        ],
+        "de": [
+            (
+                r"\b(?:wollte|wollten|versuchte|versuchten|beschloss|beschlossen|plante|planten|"
+                r"befahl|befahlen)\b(?:\s+[\w-]+){0,6}?\s+(?:zu\s+)?"
+                r"(?:töten|schießen|stechen)\b"
+            ),
+            (
+                r"\b(?:hat|hatte|haben|hatten)\b(?:\s+[\w-]+){0,6}?\s+(?:töten|schießen|stechen)"
+                r"\s+(?:wollen|lassen|sollen)\b"
+            ),
+        ],
+        "es": [
+            (
+                r"\b(?:quiso|quisieron|quería|querían|intentó|intentaron|procuraba|procuraban|"
+                r"buscaba|buscaban|decidió|decidieron|planeó|mandó|ordenó|iba\s+a|iban\s+a|"
+                r"trató\s+de|trataron\s+de)\s+(?:a\s+)?(?:matar|disparar|apuñalar)\b"
+            ),
+        ],
+        "pt": [
+            (
+                r"\b(?:quis|quiseram|queria|queriam|tentou|tentaram|procurava|procuravam|procurou|"
+                r"decidiu|decidiram|planejou|mandou|ordenou)\s+(?:a\s+|de\s+)?"
+                r"(?:matar|atirar|esfaquear)\b"
+            ),
+        ],
+        "fr": [
+            (
+                r"\b(?:voulut|voulurent|voulait|voulaient|essaya|tenta|tentait|chercha|cherchait|"
+                r"cherchaient|décida|allait|allaient|ordonna|commanda|"
+                r"(?:a-t-(?:il|elle)|ont-(?:ils|elles)|a|ont|avait|avaient)\s+"
+                r"(?:voulu|essayé|tenté|cherché|décidé))(?:-(?:t-)?(?:il|elle|ils|elles))?"
+                r"\s+(?:de\s+|d['’]\s*)?"
+                r"(?:(?:le|la|les)\s+|l['’]\s*)?(?:tuer|tirer|poignarder)\b"
+            ),
+        ],
+        "ar": [
+            # bare third-person past "killed" (not قتلت/قتلنا) and "to kill" after أن/كي
+            r"(?<![؀-ۿ])[وف]?قتل(?:ه|ها|هم|هما|وا|وه|وها|وهم)?(?![؀-ۿ])",
+            r"(?<![؀-ۿ])(?:أن|ان|كي|لكي)\s*[لو]?يقتل(?:ه|ها|هم|وا|وه|وهم)?(?![؀-ۿ])",
+        ],
+    }
+
+    # First-person / intent / future-time markers: any of these in the same clause cancels the
+    # exemption. The patterns of ALL languages are OR-ed into ONE shared veto (so "Yo queria
+    # matar" cannot slip through the pt frame). en note: normalize_text turns "1 Samuel 17" into
+    # "i samuel i7", so a bare "I" followed by a numbered-book name is not a pronoun.
+    NARRATIVE_VETO_PATTERNS: ClassVar[dict[str, str]] = {
+        "en": (
+            r"\bi\b(?!\s+(?:samuel|sam|kings|kgs|chronicles|chr|corinthians|cor|thessalonians|"
+            r"thess|timothy|tim|peter|pet|john|jn)\b)|\b(?:i['’]?(?:m|ll|d|ve)|we|we['’](?:ll|re|d|ve)"
+            r"|my|our|myself|ourselves|me|us|you|u|ya|yourself|anyone|someone|somebody|everyone|"
+            r"nobody|tomorrow|tonight|today|next|soon|now)\b"
+        ),
+        "it": r"\b(?:io|noi|mio|mia|miei|mie|nostro|nostra|nostri|nostre|domani|stasera|stanotte)\b",
+        "de": r"\b(?:ich|wir|mein\w*|unser\w*|morgen|heute)\b",
+        "es": (r"\b(?:yo|nosotros|nosotras|mi|mis|nuestr[oa]s?|ma[ñn]ana|hoy|esta\s+noche)\b"),
+        "pt": r"\b(?:eu|nós|meus?|minhas?|noss[oa]s?|amanh[ãa]|hoje)\b",
+        "fr": r"\b(?:je|j['’]|nous|mon|ma|mes|notre|nos|demain|ce\s+soir)\b",
+        "ar": (
+            r"(?<![؀-ۿ])(?:أريد|اريد|أود|اود|أرغب|ارغب|أنوي|انوي|أخطط|اخطط|أحاول|احاول|"
+            r"سوف|أنا|انا|نريد|بدي|ودي|حاب|كيفية|طريقة|طرق|شخص|شخصا|إنسان|انسان|أحدا|احدا|"
+            r"الناس|يجب|ينبغي|لازم|علينا|سأ\w*|سن(?!ة|وات)\w*|أفكر|افكر|قررت|نويت|حاولت)"
+            r"(?![؀-ۿ])"
+            # first-person possessive ي-suffix (جاري, أخي): any 3+ letter word ending in ي
+            # except في
+            r"|(?<![؀-ۿ])(?!في(?![؀-ۿ]))[؀-ۿ]{2,}ي(?![؀-ۿ])"
+        ),
+    }
+    # Arabic bare past "killed" is only exempt in a question ("لماذا قتل ...") or next to a
+    # known Bible name.
+    NARRATIVE_REQUIRE_PATTERNS: ClassVar[dict[str, str]] = {
+        "ar": (
+            r"^\s*[وف]?(?:لماذا|كيف|متى|من|هل|ما)(?![؀-ۿ])|(?<![؀-ۿ])[وبلف]?(?:قايين|هابيل|قاين|"
+            r"داود|داوود|جليات|جلياط|شاول|هيرودس|هيرود|يهوذا|موسى|ابراهيم|إبراهيم|اسحق|إسحق|"
+            r"يعقوب|عيسو|يوسف|أبشالوم|ابشالوم|اخاب|أخاب|إيزابل|ايزابل|بيلاطس|يوحنا|بطرس|"
+            r"استفانوس|إستفانوس|الفلسطينيين|الفلسطينيون|فرعون|يشوع|جدعون|شمشون|إيليا|ايليا)"
+            r"(?![؀-ۿ])"
+        ),
+    }
+    _NARRATIVE_CLAUSE_BREAK = re.compile(r"[.!?;\n؟。！？]")
+
     # Self-harm patterns by language
     SELF_HARM_PATTERNS = {
         "en": [
@@ -1190,6 +1299,20 @@ class MultiLanguageContentFilter:
         for lang, patterns in self.VIOLENCE_PATTERNS.items():
             self._violence_regex[lang] = re.compile("|".join(patterns), re.IGNORECASE | re.UNICODE)
 
+        # BITB-257: narrative frames + first-person vetoes
+        self._narrative_frames = {
+            lang: re.compile("|".join(pats), re.IGNORECASE | re.UNICODE)
+            for lang, pats in self.NARRATIVE_FRAME_PATTERNS.items()
+        }
+        self._narrative_veto = re.compile(
+            "|".join(f"(?:{pat})" for pat in self.NARRATIVE_VETO_PATTERNS.values()),
+            re.IGNORECASE | re.UNICODE,
+        )
+        self._narrative_require = {
+            lang: re.compile(pat, re.IGNORECASE | re.UNICODE)
+            for lang, pat in self.NARRATIVE_REQUIRE_PATTERNS.items()
+        }
+
         # Compile hard-violence patterns into ONE script-agnostic regex (BITB-185 v2)
         self._hard_violence_regex = re.compile(
             "|".join(p for pats in self.HARD_VIOLENCE_PATTERNS.values() for p in pats),
@@ -1262,8 +1385,36 @@ class MultiLanguageContentFilter:
         for lang in dict.fromkeys(langs):
             regex = self._violence_regex.get(lang)
             if regex:
-                matches.extend((m.start(), m.end(), m.group(0)) for m in regex.finditer(normalized))
+                matches.extend(
+                    (m.start(), m.end(), m.group(0))
+                    for m in regex.finditer(normalized)
+                    if not self._is_narrative_violence(normalized, m.start(), m.end())
+                )
         return matches
+
+    def _is_narrative_violence(self, normalized: str, start: int, end: int) -> bool:
+        """BITB-257: True when the match is a third-person past-tense Bible-narrative kill verb.
+
+        The clause around the match is cut at sentence punctuation. A frame of ANY language
+        must fully cover ``(start, end)`` and that language's first-person veto must not match
+        anywhere in the clause.
+        """
+        cs = 0
+        for b in self._NARRATIVE_CLAUSE_BREAK.finditer(normalized, 0, start):
+            cs = b.end()
+        brk = self._NARRATIVE_CLAUSE_BREAK.search(normalized, end)
+        ce = brk.start() if brk else len(normalized)
+        clause = normalized[cs:ce]
+        if self._narrative_veto.search(clause):
+            return False
+        for lang, frame in self._narrative_frames.items():
+            require = self._narrative_require.get(lang)
+            if require and not require.search(clause):
+                continue
+            for fm in frame.finditer(clause):
+                if fm.start() + cs <= start and fm.end() + cs >= end:
+                    return True
+        return False
 
     def find_hard_violence_matches(self, normalized: str) -> list[tuple[int, int, str]]:
         """Return ``(start, end, text)`` for every hard-violence term (bombs, terror, ...).

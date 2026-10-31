@@ -4,6 +4,10 @@ BITB-198: native ru/zh/hi/ko violence patterns in the keyword fallback.
 When ML moderation is down, plain violence in Russian, Chinese, Hindi or Korean used to be
 "clean". These tests assert it now blocks (under any UI language), while Bible-narrative
 questions in those languages stay allowed and self-harm phrasings keep the compassionate path.
+
+BITB-257: third-person past-tense kill/attack narrative in en/it/de/es/fr/pt/ar ("Why did Cain
+kill Abel?") is exempt via narrative frames, while first-person / how-to phrasing that resembles
+a frame ("I wanted to kill him", "كيفية قتل شخص") stays blocked.
 """
 
 import sys
@@ -120,12 +124,48 @@ NARRATIVE_BENIGN = [
     ("ko", "사탄의 공격을 어떻게 이기나요?"),
 ]
 
-# Still blocked by the pre-existing bare-verb tables (BITB-194 tracks the fix).
-NARRATIVE_BITB194 = [
+# Third-person past-tense kill/attack narrative in the Latin-script languages + Arabic
+# (BITB-257 narrative frames; includes the former BITB-194 cases).
+NARRATIVE_FRAMED = [
     ("en", "How did David kill Goliath?"),
-    ("fr", "Pourquoi Caïn a-t-il voulu tuer Abel ?"),
-    ("de", "Warum wollte Saul David töten?"),
+    ("en", "Why did Cain kill Abel?"),
+    ("en", "Why did Saul try to kill David?"),
+    ("en", "Why did the Philistines attack Israel?"),
+    ("en", "How did David kill Goliath in 1 Samuel 17?"),
     ("it", "Perché Caino volle uccidere Abele?"),
+    ("it", "Perché Saul voleva uccidere Davide?"),
+    ("de", "Warum wollte Saul David töten?"),
+    ("de", "Warum hat Saul David töten wollen?"),
+    ("es", "¿Por qué Saúl quería matar a David?"),
+    ("es", "¿Por qué Caín quiso matar a Abel?"),
+    ("pt", "Por que Saul queria matar Davi?"),
+    ("pt", "Por que Caim quis matar Abel?"),
+    ("fr", "Pourquoi Caïn a-t-il voulu tuer Abel ?"),
+    ("fr", "Pourquoi Saül voulait-il tuer David ?"),
+    ("ar", "لماذا قتل قايين هابيل؟"),
+    ("ar", "كيف قتل داود جليات؟"),
+    ("ar", "لماذا أراد شاول أن يقتل داود؟"),
+    ("ar", "لماذا أراد شاول قتل داود؟"),
+]
+
+# First-person / how-to phrasing that merely resembles a frame: must stay blocked.
+FRAMED_FIRST_PERSON_BLOCKS = [
+    ("en", "Why did I kill him?"),
+    ("en", "I wanted to kill him"),
+    ("en", "I really wanted to kill my boss"),
+    ("en", "How do I kill someone"),
+    ("en", "how to kill a person"),
+    ("en", "Why did Cain kill Abel? I will kill him"),
+    ("it", "Io volevo uccidere mio fratello"),
+    ("de", "Ich wollte ihn töten"),
+    ("de", "Warum wollte ich ihn töten"),
+    ("es", "Yo quería matar a mi vecino"),
+    ("pt", "Eu queria matar meu vizinho"),
+    ("fr", "J'ai voulu tuer mon voisin"),
+    ("ar", "أريد قتل جاري"),
+    ("ar", "كيفية قتل شخص"),
+    ("ar", "قتلت جاري"),
+    ("ar", "سأقتله"),
 ]
 
 # Self-harm phrasings that must keep the compassionate path with no violence block.
@@ -184,10 +224,53 @@ def test_bible_narrative_stays_allowed(service, ui_lang, lang, text):
     assert r.pattern_matched is None
 
 
-@pytest.mark.parametrize("lang,text", NARRATIVE_BITB194)
-@pytest.mark.xfail(strict=True, reason="BITB-194")
-def test_latin_ar_narrative_known_false_positive(service, lang, text):
-    assert _fallback(service, text, lang).allowed is True
+# Third-party incitement / future-time reports that resemble a frame: must stay blocked.
+THIRD_PARTY_INCITEMENT_BLOCKS = [
+    ("en", "God told me to kill him"),
+    ("en", "The voices told me to kill them"),
+    ("en", "Did God want me to kill him"),
+    ("en", "Me and him wanted to kill the teacher"),
+    ("en", "Did you ever want to kill someone"),
+    ("en", "why did u kill him"),
+    ("en", "Why didn't anyone kill the president yet"),
+    ("en", "They planned to attack the school tomorrow"),
+    ("en", "He has decided to attack the school tomorrow"),
+    ("de", "Man sollte alle Juden töten"),
+    ("de", "Jemand sollte den Präsidenten töten"),
+    ("de", "Er sollte ihn töten"),
+    ("es", "Yo queria matar a mi vecino"),
+    ("es", "Mi hermano queria matar a mi papa"),
+    ("pt", "Ele ia matar o vizinho amanhã"),
+    ("fr", "Il voulait tuer le président demain"),
+    ("ar", "يجب قتل كل اليهود"),
+    ("ar", "أفكر في قتل جاري"),
+    ("ar", "سأحاول قتل جاري"),
+    ("ar", "قررت قتل أخي"),
+    ("ar", "نويت قتل جاري"),
+    ("ar", "قتل جاري"),
+    ("ar", "يجب أن يقتل الرئيس"),
+]
+
+
+@pytest.mark.parametrize("ui_lang", LANGUAGES)
+@pytest.mark.parametrize("lang,text", NARRATIVE_FRAMED)
+def test_framed_third_person_narrative_allowed(service, ui_lang, lang, text):
+    r = _fallback(service, text, ui_lang)
+    assert r.allowed is True
+    assert r.pattern_matched is None
+
+
+@pytest.mark.parametrize("lang,text", FRAMED_FIRST_PERSON_BLOCKS)
+def test_framed_first_person_still_blocks(service, lang, text):
+    r = _fallback(service, text, lang)
+    assert r.allowed is False
+    assert r.reason == BLOCK
+
+
+def test_self_harm_plus_framed_kill_stays_ambiguous(service):
+    r = _fallback(service, "I want to die. I wanted to kill him too", "en")
+    assert r.allowed is False
+    assert r.reason == AMBIGUOUS_REASON
 
 
 @pytest.mark.parametrize("ui_lang", LANGUAGES)
@@ -251,3 +334,10 @@ def test_hard_table_reconciled_with_violence_table():
             if any(h in pat for h in hard_only[lang]):
                 continue
             assert pat in viol or pat.strip("\\b") in viol, f"{lang}: {pat} not reconciled"
+
+
+@pytest.mark.parametrize("lang,text", THIRD_PARTY_INCITEMENT_BLOCKS)
+def test_third_party_incitement_and_future_reports_stay_blocked(service, lang, text):
+    r = _fallback(service, text, lang)  # each phrase under its own UI language (en under en)
+    assert r.allowed is False
+    assert r.reason == BLOCK
