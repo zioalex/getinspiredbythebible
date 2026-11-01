@@ -77,6 +77,13 @@ AMBIGUOUS_BLOCKED = _SafetyOutcome(
 THREAT_BLOCKED = _SafetyOutcome(
     allowed=False, compassionate=False, reason="violence_or_threat_detected", categories={}
 )
+# BITB-258: Llama Guard S11 combined with S6/S10 is blocked with this reason.
+S11_COMBO_BLOCKED = _SafetyOutcome(
+    allowed=False,
+    compassionate=False,
+    reason="self_harm_detected",
+    categories={"S11": 1, "S6": 1},
+)
 CLEAN = _SafetyOutcome(allowed=True, compassionate=False, reason="clean", categories={})
 DIRECTED_BLOCKED = _SafetyOutcome(
     allowed=False,
@@ -91,6 +98,7 @@ _TRIGGER_CASES: list[tuple[_SafetyOutcome, str, str]] = [
     (SELF_HARM_BLOCKED, "self_harm", "self_harm_blocked"),
     (AMBIGUOUS_BLOCKED, "self_harm", "murder_suicide_ambiguous"),
     (THREAT_BLOCKED, "threat_to_others", "threat_to_others"),
+    (S11_COMBO_BLOCKED, "self_harm", "llama_guard_s11_combo"),
 ]
 TRIGGERS = [pytest.param(outcome, kind, id=id_) for outcome, kind, id_ in _TRIGGER_CASES]
 BLOCKED_TRIGGERS = [
@@ -306,10 +314,9 @@ async def test_stream_card_delivered_when_llm_raises():
 
     service.llm.chat_stream = MagicMock(side_effect=lambda **kw: _boom(**kw))
     events = []
-    with _patched(service, SELF_HARM_ALLOWED):
-        with pytest.raises(RuntimeError, match="llm down"):
-            async for event in service.chat_stream(_request(), client_country="IT"):
-                events.append(event)
+    with _patched(service, SELF_HARM_ALLOWED), pytest.raises(RuntimeError, match="llm down"):
+        async for event in service.chat_stream(_request(), client_country="IT"):
+            events.append(event)
     assert events[0]["type"] == "crisis_resources"
     assert events[1]["type"] == "metadata"
 
@@ -324,10 +331,9 @@ async def test_stream_card_delivered_when_llm_raises_mid_stream():
 
     service.llm.chat_stream = MagicMock(side_effect=lambda **kw: _partial(**kw))
     events = []
-    with _patched(service, SELF_HARM_ALLOWED):
-        with pytest.raises(RuntimeError):
-            async for event in service.chat_stream(_request(), client_country="IT"):
-                events.append(event)
+    with _patched(service, SELF_HARM_ALLOWED), pytest.raises(RuntimeError):
+        async for event in service.chat_stream(_request(), client_country="IT"):
+            events.append(event)
     assert events[0]["type"] == "crisis_resources"
     assert any(e["type"] == "content" for e in events)
 
