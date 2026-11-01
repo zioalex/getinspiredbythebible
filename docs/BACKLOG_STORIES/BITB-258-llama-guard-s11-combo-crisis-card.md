@@ -1,6 +1,6 @@
 # BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
-**Status:** 🎯 Todo
+**Status:** 🔄 In Review
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-29
@@ -20,7 +20,7 @@ reply and **no crisis numbers**.
 
 ## Acceptance criteria
 
-- [ ] The Llama Guard result exposes its violated S-categories on the safety outcome
-- [ ] `classify_crisis` returns `self_harm` whenever S11 is among them, whatever the other categories
-- [ ] The blocked reply for these cases uses the self-harm template, not the generic one
-- [ ] Tests cover the S11+S6 and S11+S10 combinations on both the blocking and streaming chat paths
+- [x] The Llama Guard result exposes its violated S-categories on the safety outcome
+- [x] `classify_crisis` returns `self_harm` whenever S11 is among them, whatever the other categories
+- [x] The blocked reply for these cases uses the self-harm template, not the generic one
+- [x] Tests cover the S11+S6 and S11+S10 combinations on both the blocking and streaming chat paths

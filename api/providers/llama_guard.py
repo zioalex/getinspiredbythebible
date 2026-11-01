@@ -204,6 +204,20 @@ class LlamaGuardProvider:
                 compassionate_response_needed=True,
             )
 
+        # S11 combined with any other category (e.g. "how many pills would kill me" flagged
+        # S11+S6): still a person at risk, so route to the self-harm block reason. That reason
+        # maps to the self-harm template and crisis card instead of a generic/hate reply (BITB-258).
+        if "S11" in violated_categories:
+            logger.warning(
+                "Llama Guard: self-harm combined with other categories",
+                extra={"text_hash": text_hash, "categories": violated_categories},
+            )
+            return ContentSafetyResult(
+                allowed=False,
+                reason="self_harm_detected",
+                categories={cat: 1 for cat in violated_categories},
+            )
+
         # Block all other unsafe content
         # Determine specific reason based on categories
         if any(cat in violated_categories for cat in ["S1", "S2", "S9"]):
