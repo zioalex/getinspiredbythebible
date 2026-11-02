@@ -118,14 +118,41 @@ NARRATIVE_BENIGN = [
     ("ko", "블레셋은 이스라엘을 공격했나요?"),
     ("ko", "감정이 폭발할 것 같아"),
     ("ko", "사탄의 공격을 어떻게 이기나요?"),
-]
-
-# Still blocked by the pre-existing bare-verb tables (BITB-194 tracks the fix).
-NARRATIVE_BITB194 = [
+    # BITB-257: en/ar (and BITB-194 Latin) third-person narrative + commandment framing
+    ("en", "Why did Cain kill Abel in the book of Genesis?"),
     ("en", "How did David kill Goliath?"),
+    ("en", "Why did Saul want to kill David?"),
+    ("en", "Why did Cain murder his brother?"),
+    ("en", "Thou shalt not kill - what does it mean?"),
+    ("ar", "لماذا قتل قايين هابيل في سفر التكوين؟"),
+    ("ar", "كيف قتل داود جليات؟"),
+    ("ar", "لماذا أراد شاول أن يقتل داود؟"),
+    ("ar", "ماذا تعني وصية لا تقتل؟"),
     ("fr", "Pourquoi Caïn a-t-il voulu tuer Abel ?"),
     ("de", "Warum wollte Saul David töten?"),
     ("it", "Perché Caino volle uccidere Abele?"),
+    ("es", "¿Por qué Caín quiso matar a Abel?"),
+    ("pt", "Por que Caim quis matar Abel?"),
+]
+
+# BITB-257: first-person / imperative / how-to phrasings that must STILL block.
+THREATS_STILL_BLOCK = [
+    ("en", "Why did I kill him"),
+    ("en", "kill him"),
+    ("en", "help me kill my boss"),
+    ("en", "how do I kill someone"),
+    ("en", "Cain killed Abel and I want to kill my brother"),
+    ("ar", "سأقتله"),
+    ("ar", "اقتله"),
+    ("ar", "سوف أقتل أخي"),
+    ("ar", "كيف أقتل شخصا"),
+    ("ar", "كيف يمكنني قتل جاري"),
+    ("ar", "أريد قتل جاري"),
+    ("fr", "Je voulais tuer mon voisin"),
+    ("es", "Yo quería matar a mi vecino"),
+    ("pt", "Eu quis matar meu vizinho"),
+    ("de", "Ich wollte ihn töten"),
+    ("it", "Voglio uccidere il mio vicino"),
 ]
 
 # Self-harm phrasings that must keep the compassionate path with no violence block.
@@ -184,10 +211,17 @@ def test_bible_narrative_stays_allowed(service, ui_lang, lang, text):
     assert r.pattern_matched is None
 
 
-@pytest.mark.parametrize("lang,text", NARRATIVE_BITB194)
-@pytest.mark.xfail(strict=True, reason="BITB-194")
-def test_latin_ar_narrative_known_false_positive(service, lang, text):
-    assert _fallback(service, text, lang).allowed is True
+@pytest.mark.parametrize("lang,text", THREATS_STILL_BLOCK)
+def test_threats_still_block_after_narrative_guard(service, lang, text):
+    result = _fallback(service, text, lang)
+    assert not result.allowed
+    assert result.reason == BLOCK
+
+
+def test_narrative_guard_never_applies_to_nouns(service):
+    matches = MultiLanguageContentFilter().find_violence_matches("what weapon did david use?")
+    assert [m[2] for m in matches] == ["weapon"]
+    assert not _fallback(service, "What weapon did David use?", "en").allowed
 
 
 @pytest.mark.parametrize("ui_lang", LANGUAGES)
