@@ -133,8 +133,11 @@ async def _readiness_refresh_loop() -> None:
             logger.warning("Translation readiness refresh loop error: %s", e)
 
 
-async def _purge_blocked_samples_at_startup() -> None:
-    """Best-effort TTL sweep for blocked-message samples on app start."""
+TTL_PURGE_INTERVAL_SECONDS = 24 * 60 * 60
+
+
+async def _purge_ttl_samples() -> None:
+    """Best-effort TTL sweep for blocked-message and retrieval-miss samples."""
     try:
         from feedback.blocked_samples import purge_expired_blocked_samples
 
@@ -142,7 +145,39 @@ async def _purge_blocked_samples_at_startup() -> None:
         if deleted:
             logger.info("Purged expired blocked-message samples", extra={"deleted": deleted})
     except Exception as e:
-        logger.warning("Blocked-sample purge failed at startup: %s", e)
+        logger.warning("Blocked-sample purge failed: %s", e)
+
+    try:
+        from feedback.retrieval_misses import purge_expired_retrieval_misses
+
+        deleted = await purge_expired_retrieval_misses()
+        if deleted:
+            logger.info("Purged expired retrieval-miss samples", extra={"deleted": deleted})
+    except Exception as e:
+        logger.warning("Retrieval-miss purge failed: %s", e)
+
+
+async def _ttl_purge_loop() -> None:
+    """Re-run the TTL purge daily so expiry does not depend on a redeploy (BITB-256)."""
+    while True:
+        try:
+            await asyncio.sleep(TTL_PURGE_INTERVAL_SECONDS)
+            await _purge_ttl_samples()
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # never let the loop die on a transient error
+            logger.warning("TTL purge loop error: %s", e)
+
+
+async def _cancel_background_tasks(*tasks: asyncio.Task) -> None:
+    """Cancel long-running background loops and wait for them to unwind."""
+    for task in tasks:
+        task.cancel()
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 @asynccontextmanager
@@ -213,22 +248,19 @@ async def lifespan(app: FastAPI):
 
     await _check_translation_coverage_at_startup()
     await _warm_ready_translations()
-    await _purge_blocked_samples_at_startup()
+    await _purge_ttl_samples()
 
     # Keep the readiness cache fresh so a translation seeded after boot becomes
     # usable without a redeploy.
     readiness_task = asyncio.create_task(_readiness_refresh_loop())
+    purge_task = asyncio.create_task(_ttl_purge_loop())
 
     yield
 
     # Shutdown
     logger.info("Shutting down application")
 
-    readiness_task.cancel()
-    try:
-        await readiness_task
-    except asyncio.CancelledError:
-        pass
+    await _cancel_background_tasks(readiness_task, purge_task)
 
     await close_db()
 

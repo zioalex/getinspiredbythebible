@@ -82,6 +82,62 @@ def aggregate_by_language(
     return {lang: aggregate(by_lang[lang]) for lang in languages}
 
 
+def _percentile(sorted_values: list[float], pct: float) -> float:
+    """Linear-interpolated percentile of an ascending list (pct in 0..100)."""
+    if len(sorted_values) == 1:
+        return sorted_values[0]
+    rank = (len(sorted_values) - 1) * pct / 100
+    lo = int(rank)
+    hi = min(lo + 1, len(sorted_values) - 1)
+    return sorted_values[lo] + (sorted_values[hi] - sorted_values[lo]) * (rank - lo)
+
+
+def score_distribution(
+    results: list[QueryResult],
+) -> dict[str, dict[str, float | int | None]]:
+    """Per-config p10/p25/p50 of top-1 similarity over queries whose top-1 is a correct hit.
+
+    BITB-256: the p10 of this distribution is the evidence-based default for the
+    ``low_score`` retrieval-miss threshold (settings.retrieval_miss_low_score_thresholds).
+    Errored queries and queries without a score are ignored; a config with no
+    qualifying query reports ``n=0`` and ``None`` percentiles.
+    """
+    scores: dict[str, list[float]] = {}
+    for r in results:
+        scores.setdefault(r.config, [])
+        if r.error is None and r.top1_is_hit and r.top_score is not None:
+            scores[r.config].append(r.top_score)
+    out: dict[str, dict[str, float | int | None]] = {}
+    for config, values in scores.items():
+        values.sort()
+        if not values:
+            out[config] = {"p10": None, "p25": None, "p50": None, "n": 0}
+            continue
+        out[config] = {
+            "p10": round(_percentile(values, 10), 4),
+            "p25": round(_percentile(values, 25), 4),
+            "p50": round(_percentile(values, 50), 4),
+            "n": len(values),
+        }
+    return out
+
+
+def format_score_distribution(results: list[QueryResult]) -> str:
+    """Render the top-1 score distribution (correct hits only) as a text table."""
+    header = f"{'Config':<20} {'p10':>7} {'p25':>7} {'p50':>7} {'n':>5}"
+    lines = ["Top-1 score distribution (correct hits only):", header, "-" * len(header)]
+
+    def _cell(value: float | int | None) -> str:
+        return f"{'-':>7}" if value is None else f"{value:>7.3f}"
+
+    for config, stats in score_distribution(results).items():
+        lines.append(
+            f"{config:<20} {_cell(stats['p10'])} {_cell(stats['p25'])} {_cell(stats['p50'])} "
+            f"{stats['n']:>5}"
+        )
+    return "\n".join(lines)
+
+
 def format_table(aggregates: list[ConfigAggregate]) -> str:
     """Render the configs x P@5/R@10/MRR/FP@5 comparison table."""
     header = f"{'Config':<20} {'P@5':>7} {'R@10':>7} {'MRR':>7} {'FP@5':>6} {'n':>4}"

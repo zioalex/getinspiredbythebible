@@ -151,6 +151,10 @@ class QueryResult:
     boost_topics: list[str] = field(default_factory=list)
     topic_boost_applied: bool = False
     topic_boost_factor: float | None = None
+    # BITB-256: similarity of the top-1 retrieved verse and whether it matched a
+    # relevant matcher; feeds report.score_distribution() (low_score thresholds).
+    top_score: float | None = None
+    top1_is_hit: bool = False
 
 
 @dataclass
@@ -159,6 +163,15 @@ class RunResult:
 
     configs: list[str]
     query_results: list[QueryResult]
+
+
+def _top1_score_and_hit(verses: list, relevant: list) -> tuple[float | None, bool]:
+    """Similarity of the first parseable retrieved verse and whether it is a relevant hit."""
+    for verse in verses:
+        key = parse_verse_key(verse.reference)
+        if key is not None:
+            return verse.similarity, any(matcher.matches(key) for matcher in relevant)
+    return None, False
 
 
 async def run_query(
@@ -266,6 +279,8 @@ async def run_query(
         relevant = case.relevant_matchers()
         irrelevant = case.irrelevant_matchers()
 
+        top_score, top1_is_hit = _top1_score_and_hit(results.verses, relevant)
+
         return QueryResult(
             case_id=case.id,
             language=case.language,
@@ -280,6 +295,8 @@ async def run_query(
             boost_topics=boost_topics,
             topic_boost_applied=topic_boost_applied,
             topic_boost_factor=(config.topic_boost_factor if config.use_topic_boost else None),
+            top_score=top_score,
+            top1_is_hit=top1_is_hit,
         )
     except Exception as exc:  # noqa: BLE001 - fail-open per query, log and continue
         description = _describe_exception(exc)

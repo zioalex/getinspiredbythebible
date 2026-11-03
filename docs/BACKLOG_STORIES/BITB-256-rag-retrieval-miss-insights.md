@@ -1,6 +1,6 @@
 # BITB-256: RAG Retrieval-Miss Insights — Privacy-Safe Logging of Weak or Failed Retrieval
 
-**Status:** 🎯 Todo — spec awaiting owner confirmation (2026-10-28)
+**Status:** 🚧 In Progress (build started 2026-11-03)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-10-28
@@ -133,3 +133,31 @@ carve-out is safety-blocked samples.
 1. **Default `low_score` threshold.** Derived from the BITB-139 golden-set score distribution (e.g.
    the p10 of correct hits), and configurable per embedding model.
 2. **Retention.** 90 days.
+
+## Plan (2026-11-03)
+
+Design decisions beyond the spec:
+
+- **Fixed TTL, no refresh.** `expires_at` is set on first insert and is *not* touched by the
+  dedup upsert (unlike blocked samples), so "up to 90 days" in the privacy policy is literally
+  true. Because the app no longer only purges at startup, a daily `_ttl_purge_loop` in
+  `api/main.py` also runs `purge_expired_retrieval_misses()` (and the blocked-sample purge).
+- **Provisional thresholds.** `retrieval_miss_low_score_thresholds` ships per-model/mode
+  placeholders (`mxbai-embed-large:hybrid` 0.50, `text-embedding-3-small:hybrid` 0.45, ...).
+  They must be replaced by the p10 of top-1 scores of correct hits from the BITB-139 golden set
+  (`python scripts/run_search_eval.py --run --config hybrid --score-distribution`, added here);
+  this needs an embeddings database and has not been measured yet. Similarity semantics differ
+  per mode (semantic cosine; hybrid `0.7*sem + 0.3*kw`; boosted can exceed 1; direct lookups
+  have none), hence the model x mode key. `top_refs.source` is `direct` vs `search` only: the
+  hybrid score cannot be split into semantic/keyword (documented deviation from the spec).
+- **Sanitizer echo rule.** Beyond the spec's vocabulary/word-count rules, any expansion term that
+  appears verbatim in the user's message is dropped (it may be the user's own wording or a name);
+  allow-listed topic keywords and book names are exempt. The sanitizer, not a column, is the
+  privacy boundary; the expansion sentence itself is never stored or logged.
+- **Topics are empty for ru/zh/hi/ko.** `chat/topics.py` only covers en/it/de/es/fr/pt/ar. Those
+  languages still record every other field and aggregate under `(none)`; widening coverage
+  belongs to the topic-detection work in BITB-259.
+- **Scope of "miss".** `low_score` is skipped for GENERAL intent and verse lookups; `empty`
+  still fires for GENERAL. Crisis/compassionate turns are never recorded.
+- **Pre-existing files touched:** Alembic `r0009`; `ChatService` passes an in-memory
+  `RetrievalTrace` through `_search_scripture` (default `None`, existing callers unchanged).

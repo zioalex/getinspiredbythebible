@@ -348,6 +348,25 @@ class Settings(BaseSettings):
     blocked_sample_retention_days: int = 30
     blocked_sample_max_chars: int = 500
 
+    # Retrieval-miss insights (BITB-256). Stores only derived signals (topics,
+    # language, translation, scores, verse refs) for turns where retrieval came
+    # back empty/weak or the reply cited verses outside the retrieved context.
+    # Never stores message text. Default off -- operators opt in per environment.
+    retrieval_miss_capture_enabled: bool = False
+    retrieval_miss_retention_days: int = 90  # fixed from first sight, not refreshed
+    # Explicit low_score threshold; when None the per-model table below is used.
+    retrieval_miss_low_score_threshold: float | None = None
+    # PROVISIONAL placeholders keyed '{embedding model}:{hybrid|semantic}' (or just
+    # '{model}'), to be replaced by the p10 of top-1 scores of correct hits in the
+    # BITB-139 golden set: python scripts/run_search_eval.py --run --config hybrid
+    # --score-distribution. Not yet measured (no embeddings DB in the sandbox).
+    retrieval_miss_low_score_thresholds: dict[str, float] = {
+        "mxbai-embed-large:hybrid": 0.50,
+        "text-embedding-3-small:hybrid": 0.45,
+        "mxbai-embed-large:semantic": 0.55,
+        "text-embedding-3-small:semantic": 0.50,
+    }
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

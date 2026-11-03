@@ -26,6 +26,11 @@ Usage
 --smoke                Run --run against only the first 3 cases — a fast
                        plumbing check, not a real measurement.
 --json                 Print machine-readable JSON instead of the text report.
+--score-distribution   With --run, also report the p10/p25/p50 of top-1 similarity
+                       over queries whose top-1 verse is a correct hit, per config
+                       (BITB-256: p10 is the evidence-based low_score threshold for
+                       retrieval-miss capture). Added to the JSON output as
+                       "score_distribution".
 --probe-embedding      Diagnose the configured embedding provider directly
                        (BITB-107): no database required. Prints resolved
                        provider config (never secrets) and makes one real
@@ -232,7 +237,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
     import asyncio
 
     from search_eval.loader import load_golden_set
-    from search_eval.report import format_report, to_json
+    from search_eval.report import (
+        format_report,
+        format_score_distribution,
+        score_distribution,
+        to_json,
+    )
     from search_eval.runner import (
         DEFAULT_AB,
         EVAL_CONFIGS,
@@ -298,7 +308,20 @@ def _cmd_run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    print(to_json(run_result) if args.json else format_report(run_result))
+    if args.json:
+        if args.score_distribution:
+            import json as _json
+
+            payload = _json.loads(to_json(run_result))
+            payload["score_distribution"] = score_distribution(run_result.query_results)
+            print(_json.dumps(payload, indent=2))
+        else:
+            print(to_json(run_result))
+    else:
+        print(format_report(run_result))
+        if args.score_distribution:
+            print()
+            print(format_score_distribution(run_result.query_results))
 
     # run_eval() is fail-open per query (a few bad cases shouldn't abort a
     # partial report), but if EVERY case errored that's not partial
@@ -356,6 +379,11 @@ def main() -> int:
         help="With --run, use only the first 3 cases — a fast plumbing check.",
     )
     parser.add_argument("--json", action="store_true", help="With --run, print JSON output.")
+    parser.add_argument(
+        "--score-distribution",
+        action="store_true",
+        help="With --run, also print the top-1 score p10/p25/p50 per config (BITB-256).",
+    )
     parser.add_argument(
         "--probe-embedding",
         action="store_true",
