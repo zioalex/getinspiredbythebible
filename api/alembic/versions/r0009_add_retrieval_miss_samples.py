@@ -18,7 +18,8 @@ Lock / rewrite assessment (docs/MIGRATION_GUIDELINES.md):
   so no existing table is touched. The indexes are created on the empty new table,
   so they need no ``CONCURRENTLY``.
 * The table starts empty; growth is bounded by the dedup signature
-  (reasons x intent x language x translation x topic set) and the 90-day purge.
+  (reasons x intent x language x translation x topic set x retrieval
+  mode x embedding model) and the 90-day purge.
 * Backward-compatible (Rule #7, expand/contract): nothing in the currently deployed
   app reads or writes this table. The capture code is flag-gated
   (``RETRIEVAL_MISS_CAPTURE_ENABLED``, default off) and swallows write errors, so

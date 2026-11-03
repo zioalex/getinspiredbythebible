@@ -674,10 +674,10 @@ class TestPurgeTtlSamples:
 
 
 class TestTtlPurgeLoop:
-    """Tests for main.py's _ttl_purge_loop() (daily TTL sweep, BITB-256)."""
+    """Tests for main.py's _ttl_purge_loop() (hourly TTL sweep, BITB-256)."""
 
     @pytest.mark.asyncio
-    async def test_runs_daily_then_cancels(self):
+    async def test_runs_hourly_then_cancels(self):
         from main import TTL_PURGE_INTERVAL_SECONDS, _ttl_purge_loop
 
         with (

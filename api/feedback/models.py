@@ -205,7 +205,8 @@ class RetrievalMissSample(Base):
     """
     Privacy-safe record of a chat turn where scripture retrieval was weak (BITB-256).
 
-    One row per signature (reasons + intent + language + translation + topics);
+    One row per signature (reasons + intent + language + translation + topics + retrieval mode +
+    embedding model);
     repeats increment ``hit_count``. Holds only *derived* signals -- canonical
     topic ids, sanitized expansion keywords, verse references and scores -- and
     **no column holds user or model text**. ``expires_at`` is fixed at first

@@ -232,17 +232,36 @@ def _parse_topic_boost_factors(
     return factors, None
 
 
-def _cmd_run(args: argparse.Namespace) -> int:
-    """Run the golden set through the real search pipeline and print a report."""
-    import asyncio
-
-    from search_eval.loader import load_golden_set
+def _print_run_output(args: argparse.Namespace, run_result) -> None:
+    """Print the text report or JSON, plus the BITB-256 score distribution when requested."""
     from search_eval.report import (
         format_report,
         format_score_distribution,
         score_distribution,
         to_json,
     )
+
+    if args.json:
+        if args.score_distribution:
+            import json as _json
+
+            payload = _json.loads(to_json(run_result))
+            payload["score_distribution"] = score_distribution(run_result.query_results)
+            print(_json.dumps(payload, indent=2))
+        else:
+            print(to_json(run_result))
+    else:
+        print(format_report(run_result))
+        if args.score_distribution:
+            print()
+            print(format_score_distribution(run_result.query_results))
+
+
+def _cmd_run(args: argparse.Namespace) -> int:
+    """Run the golden set through the real search pipeline and print a report."""
+    import asyncio
+
+    from search_eval.loader import load_golden_set
     from search_eval.runner import (
         DEFAULT_AB,
         EVAL_CONFIGS,
@@ -308,20 +327,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    if args.json:
-        if args.score_distribution:
-            import json as _json
-
-            payload = _json.loads(to_json(run_result))
-            payload["score_distribution"] = score_distribution(run_result.query_results)
-            print(_json.dumps(payload, indent=2))
-        else:
-            print(to_json(run_result))
-    else:
-        print(format_report(run_result))
-        if args.score_distribution:
-            print()
-            print(format_score_distribution(run_result.query_results))
+    _print_run_output(args, run_result)
 
     # run_eval() is fail-open per query (a few bad cases shouldn't abort a
     # partial report), but if EVERY case errored that's not partial

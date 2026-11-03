@@ -83,7 +83,8 @@ MAX_OUTSIDE_REFS = 10
 MAX_POOL_KEYS = 200
 DEFAULT_LOW_SCORE_THRESHOLD = 0.5
 
-MAX_PENDING_WRITES = 50
+MAX_PENDING_WRITES = 10  # <= DB pool size
+MAX_CONCURRENT_WRITES = 3
 
 _SPLIT_RE = re.compile(r"[,;\n•·、，；،؛]| - ")
 _BULLET_RE = re.compile(r"^\s*(?:[-*•·]+|\d+[.)])\s*")
@@ -416,6 +417,18 @@ def build_retrieval_miss_upsert(**row: Any):
     )
 
 
+_SEMAPHORE: tuple[asyncio.AbstractEventLoop, asyncio.Semaphore] | None = None
+
+
+def _write_semaphore() -> asyncio.Semaphore:
+    """Per-event-loop semaphore limiting concurrent background DB writes."""
+    global _SEMAPHORE
+    loop = asyncio.get_running_loop()
+    if _SEMAPHORE is None or _SEMAPHORE[0] is not loop:
+        _SEMAPHORE = (loop, asyncio.Semaphore(MAX_CONCURRENT_WRITES))
+    return _SEMAPHORE[1]
+
+
 async def record_retrieval_miss(**fields: Any) -> None:
     """Upsert one miss row. Best-effort: gated by the flag and never raises."""
     if not settings.retrieval_miss_capture_enabled:
@@ -434,7 +447,8 @@ async def record_retrieval_miss(**fields: Any) -> None:
                     await db.rollback()
                     raise
 
-        await run_with_disconnect_retry(_do_record, op_name="record_retrieval_miss")
+        async with _write_semaphore():
+            await run_with_disconnect_retry(_do_record, op_name="record_retrieval_miss")
     except Exception as exc:  # noqa: BLE001 - capture must never affect the reply
         logger.warning("retrieval miss capture failed", extra={"error": type(exc).__name__})
 

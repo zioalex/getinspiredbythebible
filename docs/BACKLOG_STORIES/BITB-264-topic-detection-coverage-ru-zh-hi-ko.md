@@ -16,6 +16,9 @@ match). Consequences:
 - Topic boosting (`topic_boosting_enabled`) never applies for those four languages.
 - BITB-256 retrieval-miss rows for ru/zh/hi/ko always have `topics = []`, so the
   topic x language x reason report lumps every miss under `(none)`.
+- BITB-256 `expansion_terms` is also empty for ru/zh/hi/ko, nearly empty for ar (the vocabulary
+  lacks article/inflected forms such as `القلق`) and keeps only ~30-50% of terms for Latin scripts,
+  because the privacy sanitizer is allow-list only. Widening the vocabulary widens that signal too.
 - The search-eval report already footnotes these languages as "untaggable" (BITB-103/106).
 
 BITB-259 is an intent-routing spike, not a coverage story, and does not close this gap.

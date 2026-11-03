@@ -68,8 +68,8 @@ carve-out is safety-blocked samples.
    - Rows are deduplicated by signature: a repeat increments `hit_count`.
    - **No column holds user text.**
 3. **Sanitizing expansion terms.** Expansion terms come from the LLM and can echo user words, such
-   as a name. Keep only terms that match a topic vocabulary or a book name, or that are at most 3
-   words. Drop digits, emails and URLs. Cap at 10 terms of at most 40 characters each. Document this
+   as a name. Keep only terms that match a topic vocabulary or a book name (allow-list only; the
+   original "or at most 3 words" path was removed after verification, see the Plan). Drop digits, emails and URLs. Cap at 10 terms of at most 40 characters each. Document this
    as the privacy boundary.
 4. **Writes:**
    - Best-effort and fire-and-forget: they never block or fail the chat reply.

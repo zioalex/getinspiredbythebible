@@ -3,11 +3,12 @@ Application configuration using Pydantic Settings.
 Supports environment variables and .env files.
 """
 
+import json
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import field_validator, model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, NoDecode
 
 
 class Settings(BaseSettings):
@@ -360,7 +361,7 @@ class Settings(BaseSettings):
     # '{model}'), to be replaced by the p10 of top-1 scores of correct hits in the
     # BITB-139 golden set: python scripts/run_search_eval.py --run --config hybrid
     # --score-distribution. Not yet measured (no embeddings DB in the sandbox).
-    retrieval_miss_low_score_thresholds: dict[str, float] = {
+    retrieval_miss_low_score_thresholds: Annotated[dict[str, float], NoDecode] = {
         "mxbai-embed-large:hybrid": 0.50,
         "text-embedding-3-small:hybrid": 0.45,
         "mxbai-embed-large:semantic": 0.55,
@@ -373,6 +374,18 @@ class Settings(BaseSettings):
         """An empty env var (RETRIEVAL_MISS_LOW_SCORE_THRESHOLD=) means 'not set'."""
         if isinstance(v, str) and not v.strip():
             return None
+        return v
+
+    @field_validator("retrieval_miss_low_score_thresholds", mode="before")
+    @classmethod
+    def blank_thresholds_use_default(cls, v: object) -> object:
+        """An empty env var means 'use the shipped per-model defaults'."""
+        if isinstance(v, str):
+            # NoDecode: pydantic-settings hands us the raw env string (it would otherwise
+            # raise on an empty value before any validator runs), so parse JSON here.
+            if not v.strip():
+                return cls.model_fields["retrieval_miss_low_score_thresholds"].default
+            return json.loads(v)
         return v
 
     @field_validator("retrieval_miss_retention_days")

@@ -1142,3 +1142,47 @@ class TestConfigValidators:
 
         with pytest.raises(ValidationError):
             Settings(retrieval_miss_retention_days=days)
+
+
+class TestWriteConcurrency:
+    async def test_at_most_three_db_writes_run_concurrently(self):
+        running = 0
+        peak = 0
+
+        async def _slow_retry(fn, op_name=""):
+            nonlocal running, peak
+            running += 1
+            peak = max(peak, running)
+            await asyncio.sleep(0.02)
+            running -= 1
+
+        with (
+            patch.object(settings, "retrieval_miss_capture_enabled", True),
+            patch("scripture.database.async_session_factory", MagicMock()),
+            patch.object(rm, "run_with_disconnect_retry", _slow_retry),
+        ):
+            await asyncio.gather(*(rm.record_retrieval_miss(**_fields()) for _ in range(8)))
+        assert peak == rm.MAX_CONCURRENT_WRITES == 3
+
+    def test_pending_cap_not_above_pool_size(self):
+        assert rm.MAX_PENDING_WRITES <= 10
+
+
+class TestThresholdsEnv:
+    def test_blank_thresholds_env_uses_default(self):
+        from config import Settings
+
+        default = Settings().retrieval_miss_low_score_thresholds
+        assert (
+            Settings(retrieval_miss_low_score_thresholds="").retrieval_miss_low_score_thresholds
+            == default
+        )
+        assert default  # shipped defaults are non-empty
+
+    def test_json_thresholds_env_parsed(self, monkeypatch):
+        from config import Settings
+
+        monkeypatch.setenv("RETRIEVAL_MISS_LOW_SCORE_THRESHOLDS", '{"m:hybrid": 0.3}')
+        assert Settings().retrieval_miss_low_score_thresholds == {"m:hybrid": 0.3}
+        monkeypatch.setenv("RETRIEVAL_MISS_LOW_SCORE_THRESHOLDS", "")
+        assert Settings().retrieval_miss_low_score_thresholds

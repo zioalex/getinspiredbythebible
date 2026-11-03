@@ -169,6 +169,11 @@ per topic, so totals across groups exceed the row count. `signatures` counts dis
 - **`topics` is empty for ru, zh, hi and ko.** Topic detection (`chat/topics.py`) is a keyword
   map covering en, it, de, es, fr, pt, ar only. Those four languages still record every other
   field, and aggregate under `(none)`. Extending coverage is tracked as BITB-264.
+- **`expansion_terms` is a thin signal.** Because the sanitizer is allow-list only, it is
+  empty for ru, zh, hi and ko (the topic vocabulary has no entries for them; only book names
+  can match), nearly empty for ar (the vocabulary has no article/inflected forms such as
+  `القلق`), and keeps roughly 30-50% of expansion terms for Latin-script languages. Treat it as
+  a coarse hint, not a record of what the model searched for.
 - Topics come from the keyword map, not from the model, so a miss on an unmapped theme shows
   under `(none)`.
 
@@ -178,6 +183,10 @@ per topic, so totals across groups exceed the row count. `signatures` counts dis
 (1..90) and is **not** refreshed by repeats, so a row lives at most 90 days regardless of
 recurrence. An upsert never touches a row whose `expires_at` has passed, and the exporter only
 returns rows with `expires_at > now()`, so an expired row is invisible even before it is deleted.
+
+An expired-but-not-yet-purged row does not accept new hits: new misses with the same signature
+are dropped (log event and counter still fire) for up to one hour, until the purge removes the
+row and the next miss inserts a fresh one.
 
 Deletion is done by the API process itself (no `pg_cron` job, unlike blocked samples): once at
 startup and then **hourly** by a background loop in `api/main.py` (`_ttl_purge_loop`). A

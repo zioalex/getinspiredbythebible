@@ -69,6 +69,32 @@ class TestHelpers:
         # SQLAlchemy 2 look for psycopg (v3) and fail.
         assert exporter.sync_database_url(url) == "postgresql+psycopg2://u:p@h/db"
 
+    @pytest.mark.parametrize(
+        "url,expected",
+        [
+            ("postgresql://u:p@h/db?ssl=require", "postgresql+psycopg2://u:p@h/db?sslmode=require"),
+            (
+                "postgresql+asyncpg://u:p@h/db?ssl=verify-full",
+                "postgresql+psycopg2://u:p@h/db?sslmode=verify-full",
+            ),
+            (
+                "postgresql://u:p@h/db?sslmode=require&ssl=disable",
+                "postgresql+psycopg2://u:p@h/db?sslmode=require",
+            ),
+            (
+                "postgresql://u:p@h/db?sslmode=require",
+                "postgresql+psycopg2://u:p@h/db?sslmode=require",
+            ),
+        ],
+    )
+    def test_ssl_param_is_rewritten_for_psycopg2_in_both_exporters(self, url, expected):
+        path = Path(__file__).resolve().parent / "export_blocked_samples.py"
+        spec = importlib.util.spec_from_file_location("export_blocked_samples_ssl", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        assert exporter.sync_database_url(url) == expected
+        assert mod.sync_database_url(url) == expected
+
     def test_blocked_samples_exporter_has_the_same_mapping(self):
         path = Path(__file__).resolve().parent / "export_blocked_samples.py"
         spec = importlib.util.spec_from_file_location("export_blocked_samples", path)

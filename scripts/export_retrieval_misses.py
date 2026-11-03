@@ -29,6 +29,7 @@ import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
 # Reuse the SQLAlchemy model defined in the api package without forcing a
 # packaging change. The repo layout has api/ as a top-level directory.
@@ -91,8 +92,18 @@ def sync_database_url(url: str) -> str:
         "postgres://",
     ):
         if url.startswith(prefix):
-            return "postgresql+psycopg2://" + url[len(prefix) :]
-    return url
+            url = "postgresql+psycopg2://" + url[len(prefix) :]
+            break
+    else:
+        return url
+    # asyncpg-style ``ssl=`` -> psycopg2 ``sslmode=`` (mirrors api/scripture/database.py,
+    # where azure-deploy builds the URL with ``?ssl=``). ``sslmode`` wins when both exist.
+    parts = urlsplit(url)
+    query = parse_qs(parts.query, keep_blank_values=True)
+    ssl_value = query.pop("ssl", [None])[0]
+    if ssl_value and "sslmode" not in query:
+        query["sslmode"] = [ssl_value]
+    return urlunsplit(parts._replace(query=urlencode(query, doseq=True)))
 
 
 def row_to_dict(row: RetrievalMissSample) -> dict[str, Any]:
