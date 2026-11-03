@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-03: BITB-256 verification fixes — allow-list-only sanitizer, hourly purge + 1..90 day retention, bounded writes, wider signature, psycopg2 exporter URL
+- 2026-11-03: BITB-264/265 opened — follow-ups from BITB-256 verification (ru/zh/hi/ko topic detection coverage; query-expansion logging of user text)
 - 2026-11-03: BITB-256 in progress — retrieval_miss_samples (r0009), fixed 90-day TTL + daily purge, provisional per-model thresholds pending search-eval p10
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
@@ -346,6 +348,42 @@ Follow-up to BITB-255. Llama Guard S11 together with S6 or S10 maps to a generic
 the user gets no crisis numbers. Show the self-harm card whenever S11 is present.
 
 **Full Story:** [`BITB-258-llama-guard-s11-combo-crisis-card.md`](BACKLOG_STORIES/BITB-258-llama-guard-s11-combo-crisis-card.md)
+
+---
+
+### 🎯 BITB-265: Query Expansion Logs the User's Message and the Expanded Query
+
+**Status:** 🎯 Todo
+**Size:** S
+**Created:** 2026-11-03
+
+`_expand_query` logs `original_query` (user text) and `expanded_query` at info level on every turn,
+contradicting the privacy posture. Remove user text from logs, audit similar fields, add a sentinel test.
+
+**Acceptance Criteria:**
+
+- [ ] No info/warning log record from a normal chat turn contains the message or expansion text
+- [ ] Sentinel test on both chat paths
+
+**Full Story:** [`BITB-265-query-expansion-logs-user-text.md`](BACKLOG_STORIES/BITB-265-query-expansion-logs-user-text.md)
+
+---
+
+### 🎯 BITB-264: Topic Detection Coverage for ru, zh, hi and ko
+
+**Status:** 🎯 Todo
+**Size:** M
+**Created:** 2026-11-03
+
+`detect_topics` only knows en/it/de/es/fr/pt/ar, so topic boosting and BITB-256 topic reporting are empty
+for ru/zh/hi/ko. Add coverage for all 13 topics in those languages.
+
+**Acceptance Criteria:**
+
+- [ ] Native-sentence detection tests for ru/zh/hi/ko per topic; no regression elsewhere
+- [ ] Search-eval footnote and BITB-256 HOW-TO limitation updated
+
+**Full Story:** [`BITB-264-topic-detection-coverage-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-264-topic-detection-coverage-ru-zh-hi-ko.md)
 
 ---
 

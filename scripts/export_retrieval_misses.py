@@ -8,7 +8,7 @@ and prints rows to stdout (or --output) as JSON or CSV.
 The table is populated by the backend when settings.retrieval_miss_capture_enabled
 is true. It holds only derived signals (topic ids, sanitized expansion keywords,
 verse refs + scores, language, translation) and never message text. Rows expire a
-fixed retention_days (default 90) after first sight and are purged daily.
+fixed retention_days (default 90) after first sight and are purged hourly.
 See docs/HOW-TO-EXPORT-RETRIEVAL-MISSES.md.
 
 Usage:
@@ -36,7 +36,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "api"))
 
 from feedback.models import RetrievalMissSample  # noqa: E402
-from sqlalchemy import create_engine, select, text  # noqa: E402
+from sqlalchemy import create_engine, func, select, text  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 FIELDS = [
@@ -79,9 +79,19 @@ def parse_date(value: str) -> datetime:
 
 
 def sync_database_url(url: str) -> str:
-    """Strip the async asyncpg driver so the script can use sync SQLAlchemy."""
-    if url.startswith("postgresql+asyncpg://"):
-        return url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    """Map any Postgres URL to the sync psycopg2 driver (psycopg2-binary is what we install).
+
+    A bare ``postgresql://`` would make SQLAlchemy 2 look for psycopg (v3), which is not
+    installed, so it is rewritten too.
+    """
+    for prefix in (
+        "postgresql+asyncpg://",
+        "postgresql+psycopg2://",
+        "postgresql://",
+        "postgres://",
+    ):
+        if url.startswith(prefix):
+            return "postgresql+psycopg2://" + url[len(prefix) :]
     return url
 
 
@@ -96,7 +106,11 @@ def to_json_safe(value: Any) -> Any:
 
 
 def build_query(args: argparse.Namespace):
-    stmt = select(RetrievalMissSample).order_by(RetrievalMissSample.created_at.desc())
+    stmt = (
+        select(RetrievalMissSample)
+        .where(RetrievalMissSample.expires_at > func.now())
+        .order_by(RetrievalMissSample.created_at.desc())
+    )
     if args.language:
         stmt = stmt.where(RetrievalMissSample.language == args.language)
     if args.translation:
@@ -119,7 +133,7 @@ def build_aggregate_query(args: argparse.Namespace):
     ``topics`` array contributes a single '(none)' bucket (the LEFT JOIN LATERAL
     keeps rows with no topic).
     """
-    where = ["1=1"]
+    where = ["r.expires_at > now()"]
     params: dict[str, Any] = {}
     if args.language:
         where.append("r.language = :language")

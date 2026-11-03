@@ -133,7 +133,7 @@ async def _readiness_refresh_loop() -> None:
             logger.warning("Translation readiness refresh loop error: %s", e)
 
 
-TTL_PURGE_INTERVAL_SECONDS = 24 * 60 * 60
+TTL_PURGE_INTERVAL_SECONDS = 60 * 60
 
 
 async def _purge_ttl_samples() -> None:
@@ -158,7 +158,7 @@ async def _purge_ttl_samples() -> None:
 
 
 async def _ttl_purge_loop() -> None:
-    """Re-run the TTL purge daily so expiry does not depend on a redeploy (BITB-256)."""
+    """Re-run the TTL purge hourly so expiry does not depend on a redeploy (BITB-256)."""
     while True:
         try:
             await asyncio.sleep(TTL_PURGE_INTERVAL_SECONDS)

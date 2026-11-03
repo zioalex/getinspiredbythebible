@@ -140,8 +140,12 @@ Design decisions beyond the spec:
 
 - **Fixed TTL, no refresh.** `expires_at` is set on first insert and is *not* touched by the
   dedup upsert (unlike blocked samples), so "up to 90 days" in the privacy policy is literally
-  true. Because the app no longer only purges at startup, a daily `_ttl_purge_loop` in
+  true. Because the app no longer only purges at startup, an hourly `_ttl_purge_loop` in
   `api/main.py` also runs `purge_expired_retrieval_misses()` (and the blocked-sample purge).
+- **Hardening after verification.** Retention is validated to 1..90 days; an upsert never revives an
+  expired row and the exporter hides expired rows; the signature includes retrieval mode and embedding
+  model; pending background writes are capped at 50 and failed-search turns are telemetry-only; the
+  exporters map every Postgres URL to `postgresql+psycopg2://`.
 - **Provisional thresholds.** `retrieval_miss_low_score_thresholds` ships per-model/mode
   placeholders (`mxbai-embed-large:hybrid` 0.50, `text-embedding-3-small:hybrid` 0.45, ...).
   They must be replaced by the p10 of top-1 scores of correct hits from the BITB-139 golden set
@@ -150,14 +154,21 @@ Design decisions beyond the spec:
   per mode (semantic cosine; hybrid `0.7*sem + 0.3*kw`; boosted can exceed 1; direct lookups
   have none), hence the model x mode key. `top_refs.source` is `direct` vs `search` only: the
   hybrid score cannot be split into semantic/keyword (documented deviation from the spec).
-- **Sanitizer echo rule.** Beyond the spec's vocabulary/word-count rules, any expansion term that
-  appears verbatim in the user's message is dropped (it may be the user's own wording or a name);
-  allow-listed topic keywords and book names are exempt. The sanitizer, not a column, is the
+- **Sanitizer is allow-list only** (changed after verification). Only terms equal to a topic keyword or
+  a book name survive; the spec's 'at most 3 words' path and any word salvage were removed. Book names
+  that echo the user's message (people named Daniel, Mark, ...) are dropped unless the message cites
+  that book. The sanitizer, not a column, is the
   privacy boundary; the expansion sentence itself is never stored or logged.
 - **Topics are empty for ru/zh/hi/ko.** `chat/topics.py` only covers en/it/de/es/fr/pt/ar. Those
   languages still record every other field and aggregate under `(none)`; widening coverage
-  belongs to the topic-detection work in BITB-259.
+  belongs to the topic-detection work in BITB-264.
 - **Scope of "miss".** `low_score` is skipped for GENERAL intent and verse lookups; `empty`
   still fires for GENERAL. Crisis/compassionate turns are never recorded.
 - **Pre-existing files touched:** Alembic `r0009`; `ChatService` passes an in-memory
   `RetrievalTrace` through `_search_scripture` (default `None`, existing callers unchanged).
+
+## Follow-ups
+
+- BITB-264: topic detection coverage for ru/zh/hi/ko (topics are empty for those languages here).
+- BITB-265: `_expand_query` logs the user's message and the expanded query at info level,
+  contradicting this story's privacy posture.

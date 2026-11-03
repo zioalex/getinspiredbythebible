@@ -21,23 +21,28 @@ The prompt and the expanded query sentence are never stored or logged.
 
 The only free-form-derived field is ``expansion_terms``. Those come from an LLM
 and can echo user words (a name, a place, an id), so ``sanitize_expansion_terms``
-is the privacy boundary. It applies, in order:
+is the privacy boundary and is **allow-list only**: a term is kept solely if,
+after case-folding, it equals (as a whole term) an entry of the fixed topic
+vocabulary (``TOPIC_KEYWORD_MAP`` values, all supported languages) or a Bible book
+name in any language. Nothing else survives, however short: there is no
+word-count or length-based pass, so free text, names, places and ids are dropped
+by construction. Steps:
 
-1. Split the expansion on list separators (``, ; newline bullets`` and CJK
-   ``、，；`` and `` - ``), strip quotes/whitespace, case-fold.
-2. Drop any term containing a digit, ``@``, ``://`` or ``www.``.
-3. Keep a term outright if it is in the fixed topic vocabulary
-   (``TOPIC_KEYWORD_MAP`` values) or is a Bible book name in any language.
-   A multi-word chunk that is not itself allow-listed is also scanned
-   word-by-word, and only its allow-listed words are kept.
-4. Otherwise drop a run of >= 5 consonants/symbols (ids, hashes), drop terms of
-   more than 3 words, and drop any term that appears verbatim in the user's
-   message (the "echo" rule: it may be the user's own wording or a name).
+1. Split on list separators (``, ; newline • ·`` and CJK ``、，；`` and `` - ``),
+   strip leading bullet/numbering markers (``-``, ``*``, ``•``, ``1.``, ``1)``),
+   quotes and whitespace, case-fold.
+2. Drop terms containing a digit, ``@``, ``://``, ``www.`` or a bare domain.
+3. Keep only exact allow-list matches (works for unspaced scripts such as Han,
+   where only an exact whole-term match counts).
+4. A book-name term (Daniel, Mark, James, John ... are also people's names) is
+   dropped when it appears in the user's message as a standalone token, unless
+   the message contains a parsed verse reference to that same book.
 5. De-duplicate, cut each term to 40 characters, keep at most 10.
 
 Retention: rows get a fixed ``expires_at`` (``retrieval_miss_retention_days``)
 set on first insert and *not* refreshed by repeats, so "up to 90 days" is
-literally true. Expired rows are purged at startup and by a daily loop.
+literally true. Expired rows are purged at startup and by an hourly loop, and an
+upsert never revives an already-expired row.
 
 All writes are best-effort and fire-and-forget; they never raise to, or delay,
 the chat reply.
@@ -52,7 +57,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import delete
+from sqlalchemy import delete, func
 from sqlalchemy.dialects.postgresql import insert
 
 from config import settings
@@ -73,32 +78,34 @@ REASON_CITED_OUTSIDE_POOL = "cited_outside_pool"
 
 MAX_TERMS = 10
 MAX_TERM_CHARS = 40
-MAX_TERM_WORDS = 3
 MAX_TOP_REFS = 5
 MAX_OUTSIDE_REFS = 10
 MAX_POOL_KEYS = 200
 DEFAULT_LOW_SCORE_THRESHOLD = 0.5
 
-_SPLIT_RE = re.compile(r"[,;\n•·、，；]| - ")
+MAX_PENDING_WRITES = 50
+
+_SPLIT_RE = re.compile(r"[,;\n•·、，；،؛]| - ")
+_BULLET_RE = re.compile(r"^\s*(?:[-*•·]+|\d+[.)])\s*")
+_BARE_DOMAIN_RE = re.compile(r"\b\S+\.[a-z]{2,}\b", re.IGNORECASE)
+# Scripts written without spaces between words: echo checks must be substring-based.
+_UNSPACED_RE = re.compile(r"[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0e00-\u0e7f]")
 _QUOTES = " \t\r\"'`“”‘’«»「」『』《》()[]（）"
-# 5+ consecutive ASCII consonants/symbols inside one word (ids, hashes, keyboard
-# mash). Apostrophes and hyphens do not count, so "wouldn't" is not a run.
-_CONSONANT_RUN_RE = re.compile(r"[^aeiouy\s\u0080-\U0010ffff'’\-]{5,}")
 
-_ALLOW_LIST: frozenset[str] | None = None
+_TOPIC_TERMS: frozenset[str] | None = None
+_BOOK_TERMS: frozenset[str] | None = None
 
 
-def _allow_list() -> frozenset[str]:
-    """Topic vocabulary + book names (case-folded); built once."""
-    global _ALLOW_LIST
-    if _ALLOW_LIST is None:
+def _vocab() -> tuple[frozenset[str], frozenset[str]]:
+    """(topic keywords, book names), case-folded; built once."""
+    global _TOPIC_TERMS, _BOOK_TERMS
+    if _TOPIC_TERMS is None or _BOOK_TERMS is None:
         # Lazy: chat/__init__ imports chat.service, which imports this module.
         from chat.topics import TOPIC_KEYWORD_MAP
 
-        words = {kw.casefold() for kws in TOPIC_KEYWORD_MAP.values() for kw in kws}
-        words.update(name.casefold() for name in ALL_BOOK_NAMES)
-        _ALLOW_LIST = frozenset(words)
-    return _ALLOW_LIST
+        _TOPIC_TERMS = frozenset(kw.casefold() for kws in TOPIC_KEYWORD_MAP.values() for kw in kws)
+        _BOOK_TERMS = frozenset(name.casefold() for name in ALL_BOOK_NAMES)
+    return _TOPIC_TERMS, _BOOK_TERMS
 
 
 @dataclass
@@ -118,39 +125,59 @@ class RetrievalTrace:
 
 
 def _is_unsafe(term: str) -> bool:
-    """Hard drops: digits, emails, URLs."""
-    return any(ch.isdigit() for ch in term) or "@" in term or "://" in term or "www." in term
+    """Hard drops: digits, emails, URLs, bare domains."""
+    return (
+        any(ch.isdigit() for ch in term)
+        or "@" in term
+        or "://" in term
+        or "www." in term
+        or bool(_BARE_DOMAIN_RE.search(term))
+    )
 
 
-def _candidate_terms(term: str, allow: frozenset[str], message_folded: str) -> list[str]:
-    """Terms to keep from one cleaned chunk (empty list = drop it)."""
-    if term in allow:
-        return [term]
-    words = term.split()
-    if len(words) > MAX_TERM_WORDS:
-        # Free-form sentence: salvage only the individually allow-listed words.
-        salvaged = (word.strip(_QUOTES + ".!?:") for word in words)
-        return [word for word in salvaged if word in allow]
-    if _CONSONANT_RUN_RE.search(term) or term in message_folded:
-        return []
-    return [term]
+def _in_message(term: str, message_folded: str) -> bool:
+    """Whether ``term`` occurs in the message as a standalone token (substring if unspaced)."""
+    if _UNSPACED_RE.search(term):
+        return term in message_folded
+    return re.search(rf"(?<!\w){re.escape(term)}(?!\w)", message_folded) is not None
+
+
+def _message_books(user_message: str) -> set[str]:
+    """English book names of verse references parsed from the user's message."""
+    try:
+        return {ref.book for ref in extract_all_references(user_message)}
+    except Exception:  # noqa: BLE001 - parser trouble means "no reference": fail closed
+        return set()
+
+
+def _book_term_allowed(term: str, user_message: str, message_folded: str) -> bool:
+    """A book name is kept unless it echoes the message without a verse reference to that book."""
+    if not _in_message(term, message_folded):
+        return True
+    try:
+        return normalize_book_name(term) in _message_books(user_message)
+    except Exception:  # noqa: BLE001 - fail closed
+        return False
 
 
 def sanitize_expansion_terms(expanded: str | None, user_message: str) -> list[str]:
-    """Reduce an LLM query expansion to a short list of safe keywords. See module docstring."""
+    """Reduce an LLM query expansion to allow-listed keywords only. See module docstring."""
     if not expanded:
         return []
-    allow = _allow_list()
+    topics, books = _vocab()
     message_folded = (user_message or "").casefold()
     out: list[str] = []
     for chunk in _SPLIT_RE.split(expanded):
-        term = chunk.strip(_QUOTES).strip(" .!?:").casefold()
+        term = _BULLET_RE.sub("", chunk).strip(_QUOTES).strip(" .!?:").casefold()
         if not term or _is_unsafe(term):
             continue
-        for candidate in _candidate_terms(term, allow, message_folded):
-            candidate = candidate[:MAX_TERM_CHARS].strip()
-            if candidate and candidate not in out and len(out) < MAX_TERMS:
-                out.append(candidate)
+        if term not in topics and not (
+            term in books and _book_term_allowed(term, user_message, message_folded)
+        ):
+            continue
+        term = term[:MAX_TERM_CHARS].strip()
+        if term and term not in out and len(out) < MAX_TERMS:
+            out.append(term)
     return out
 
 
@@ -158,7 +185,7 @@ def topics_for_record(message: str) -> list[str]:
     """Canonical English topic ids detected in ``message`` (never free text).
 
     Backed by ``chat.topics.detect_topics``, which only knows en/it/de/es/fr/pt/ar;
-    ru/zh/hi/ko yield [] (tracked as BITB-259).
+    ru/zh/hi/ko yield [] (tracked as BITB-264).
     """
     try:
         from chat.topics import detect_topics
@@ -313,14 +340,20 @@ def compute_signature(
     language: str,
     translation: str,
     topics: list[str],
+    retrieval_mode: str,
+    embedding_model: str,
 ) -> str:
-    """Dedup key: reasons + intent + language + translation + sorted topics (order-insensitive)."""
+    """Dedup key: reasons, intent, language, translation, sorted topics, retrieval mode and
+    embedding model (reasons/topics order-insensitive). Scores are only comparable within one
+    mode/model, so rows must not merge across them."""
     parts = [
         ",".join(sorted(reasons)),
         intent,
         language,
         translation,
         ",".join(sorted(topics)),
+        retrieval_mode,
+        embedding_model,
     ]
     return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
 
@@ -349,6 +382,8 @@ def make_row(**fields: Any) -> dict[str, Any]:
         language=row["language"],
         translation=row["translation"],
         topics=row["topics"],
+        retrieval_mode=row["retrieval_mode"],
+        embedding_model=row["embedding_model"],
     )
     row["created_at"] = now
     row["last_seen_at"] = now
@@ -376,6 +411,8 @@ def build_retrieval_miss_upsert(**row: Any):
             "cited_outside_pool": stmt.excluded.cited_outside_pool,
             "expansion_terms": stmt.excluded.expansion_terms,
         },
+        # Never bump an already-expired row that the purge has not removed yet.
+        where=RetrievalMissSample.expires_at > func.now(),
     )
 
 
@@ -423,10 +460,17 @@ def emit_retrieval_miss(fields: dict[str, Any]) -> None:
 _PENDING: set[asyncio.Task] = set()
 
 
-def schedule_retrieval_miss(**fields: Any) -> None:
-    """Emit telemetry now and persist in a background task. Never raises, never awaits."""
+def schedule_retrieval_miss(*, persist: bool = True, **fields: Any) -> None:
+    """Emit telemetry now and persist in a background task. Never raises, never awaits.
+
+    The DB write is skipped (telemetry still emitted) when ``persist`` is False -- a failed
+    search usually means the database is struggling, so do not add write load -- or when too
+    many writes are already pending (bounded memory/connections during an outage).
+    """
     try:
         emit_retrieval_miss(fields)
+        if not persist or len(_PENDING) >= MAX_PENDING_WRITES:
+            return
         task = asyncio.create_task(record_retrieval_miss(**fields))
         _PENDING.add(task)
         task.add_done_callback(_PENDING.discard)

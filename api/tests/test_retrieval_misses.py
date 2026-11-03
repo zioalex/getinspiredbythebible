@@ -343,7 +343,7 @@ async def test_every_language_is_recorded_with_topics_where_supported(path, lang
     if language in SUPPORTED_TOPIC_LANGUAGES:
         assert "anxiety" in row["topics"], language
     else:
-        # ru/zh/hi/ko: detect_topics has no keywords for them (BITB-259).
+        # ru/zh/hi/ko: detect_topics has no keywords for them (BITB-264).
         assert row["topics"] == [], language
     assert ANXIOUS[language] not in json.dumps(row, ensure_ascii=False, default=str)
 
@@ -381,27 +381,56 @@ async def test_retrieval_mode_reflects_settings(path):
 # ---------------------------------------------------------------------------
 
 
+SENTINEL_CASES = [
+    pytest.param(
+        "en",
+        f"I feel anxious {SENTINEL} because my friend {NAME} left",
+        (
+            f"anxiety, peace, trust in God, {SENTINEL}, {NAME}, Bartholomew, "
+            f"bartholomew@example.com, https://example.com/{SENTINEL}, call 555 0100"
+        ),
+        ["anxiety", "peace"],
+        (SENTINEL, "Bartholomew", "Quillfeather", "example.com", "555 0100"),
+        id="en",
+    ),
+    pytest.param(
+        "zh",
+        f"我很焦虑 {SENTINEL}，朋友张伟的手术让我害怕",
+        f"anxiety\n- 张伟的手术\n- 张伟\n* {SENTINEL}\n1. 约翰福音\n2) 张伟医生",
+        ["anxiety", "约翰福音"],
+        (SENTINEL, "张伟", "手术", "医生"),
+        id="zh-bullets",
+    ),
+    pytest.param(
+        "en",
+        "My friend Daniel is scared about the surgery",
+        "- hope\n- Daniel\n- Maria\n- Lisbon hospital\n- see example.com",
+        ["hope"],
+        ("Daniel", "Maria", "Lisbon", "example.com"),
+        id="bullets-book-name-echo",
+    ),
+]
+
+
 @pytest.mark.parametrize("path", PATHS)
-async def test_sentinel_never_reaches_the_row_or_the_log(path, caplog):  # noqa: C901
-    message = f"I feel anxious {SENTINEL} because my friend {NAME} left"
-    expansion = (
-        f"anxiety, peace, trust in God, {SENTINEL}, {NAME}, Bartholomew, "
-        f"bartholomew@example.com, https://example.com/{SENTINEL}, call 555 0100"
-    )
+@pytest.mark.parametrize("language,message,expansion,expected_terms,secrets", SENTINEL_CASES)
+async def test_sentinel_never_reaches_the_row_or_the_log(  # noqa: C901
+    path, language, message, expansion, expected_terms, secrets, caplog
+):
     service = _service(expansion=expansion)
     _set_search(service, _ctx(_verse(similarity=0.1)))
     recorded = AsyncMock()
     caplog.set_level(logging.DEBUG)
     with patch.object(rm, "record_retrieval_miss", recorded):
-        await _run_real_schedule(path, service, message)
+        await _run_real_schedule(path, service, message, language)
         await asyncio.gather(*list(rm._PENDING))
 
     recorded.assert_awaited_once()
     row = recorded.await_args.kwargs
     blob = json.dumps(row, ensure_ascii=False, default=str)
-    for secret in (SENTINEL, "Bartholomew", "Quillfeather", "example.com", "555"):
+    for secret in secrets:
         assert secret not in blob, secret
-    assert row["expansion_terms"] == ["anxiety", "peace", "trust in god"]
+    assert row["expansion_terms"] == expected_terms
 
     miss_records = [r for r in caplog.records if r.getMessage() == "rag_retrieval_miss"]
     assert len(miss_records) == 1
@@ -410,19 +439,19 @@ async def test_sentinel_never_reaches_the_row_or_the_log(path, caplog):  # noqa:
         ensure_ascii=False,
         default=str,
     )
-    for secret in (SENTINEL, "Bartholomew", "Quillfeather", "example.com", "555"):
+    for secret in secrets:
         assert secret not in log_blob, secret
     assert "session_id_hash" not in miss_records[0].__dict__
 
 
-async def _run_real_schedule(path, service, message):
+async def _run_real_schedule(path, service, message, language="en"):
     """Like ``_run`` but leaves ``schedule_retrieval_miss`` real (record is patched by caller)."""
-    request = ChatRequest(message=message, language="en", session_id="sess-1")
+    request = ChatRequest(message=message, language=language, session_id="sess-1")
     with ExitStack() as stack:
         enter = stack.enter_context
         enter(patch.object(settings, "retrieval_miss_capture_enabled", True))
         enter(patch.object(settings, "retrieval_miss_low_score_threshold", 0.5))
-        enter(patch("chat.service.detect_language", return_value="en"))
+        enter(patch("chat.service.detect_language", return_value=language))
         enter(patch("chat.service.resolve_translation", return_value="kjv"))
         enter(patch("chat.service.get_translation_info", return_value=None))
         enter(patch("chat.service.is_verse_lookup_request", return_value=False))
@@ -520,75 +549,123 @@ async def test_scheduler_raising_inside_hook_never_affects_the_reply(path):
 # ---------------------------------------------------------------------------
 
 
+# One adversarial case per language: (expansion, user message, expected kept terms).
+# Everything not on the allow-list (topic vocabulary / book names) must vanish.
+SANITIZER_CASES = {
+    "en": (
+        "hope; Sarah Miller; Tom's surgery; peace",
+        "sarah miller has tom's surgery",
+        ["hope", "peace"],
+    ),
+    "it": (
+        "speranza, Maria Rossi, ansia, ospedale di Lisbona",
+        "Maria Rossi è in ospedale",
+        ["speranza", "ansia"],
+    ),
+    "de": ("Klaus Müller, angst, Krankenhaus", "klaus müller ist krank", ["angst"]),
+    "es": ("ansiedad, Juan Pérez; el hospital", "mi tío Juan Pérez", ["ansiedad"]),
+    "fr": ("anxiété, Jean-Luc Picard, hôpital", "Jean-Luc Picard", ["anxiété"]),
+    "pt": ("ansiedade, Ana Souza, cirurgia", "Ana Souza", ["ansiedade"]),
+    "ar": ("قلق، أحمد علي، مستشفى", "أحمد علي في المستشفى", ["قلق"]),
+    "ru": ("Иван Петров; больница", "Иван Петров", []),
+    "zh": ("anxiety、张伟的手术；平安", "张伟的手术", ["anxiety"]),
+    "hi": ("राहुल शर्मा, अस्पताल", "राहुल शर्मा", []),
+    "ko": ("anxiety，김민수의 수술", "김민수의 수술", ["anxiety"]),
+}
+
+
 class TestSanitizeExpansionTerms:
+    @pytest.mark.parametrize("language", LANGUAGES)
+    def test_allow_list_only_per_language(self, language):
+        expansion, message, expected = SANITIZER_CASES[language]
+        assert rm.sanitize_expansion_terms(expansion, message) == expected
+
     def test_keeps_topic_vocabulary_and_book_names(self):
-        out = rm.sanitize_expansion_terms("anxious, peace, Isaiah, Genesi, 平安", "hello there")
-        assert "anxious" in out and "peace" in out and "isaiah" in out and "genesi" in out
+        out = rm.sanitize_expansion_terms("anxious, peace, Isaiah, Genesi, 约翰福音", "hello there")
+        assert out == ["anxious", "peace", "isaiah", "genesi", "约翰福音"]
 
-    def test_drops_the_users_name_even_when_capitalised(self):
+    def test_short_free_text_is_dropped_even_if_not_echoed(self):
+        # The old '<= 3 words and not an echo' pass is gone: names the model invents or
+        # recalls from elsewhere in the conversation must not slip through either.
+        assert rm.sanitize_expansion_terms("Maria Lopez, grief counselor, my wife", "hi") == []
+
+    def test_no_word_salvage_from_sentences(self):
+        assert rm.sanitize_expansion_terms("a long phrase about Dolores and her anxiety", "x") == []
+
+    def test_bullet_lists_with_markers(self):
         out = rm.sanitize_expansion_terms(
-            "comfort, Bartholomew Quillfeather, hope",
-            "my friend bartholomew quillfeather died",
+            "hope\n- Maria\n- Lisbon hospital\n* peace\n• grief\n1. faith\n2) forgiveness",
+            "Maria in Lisbon",
         )
-        assert out == ["comfort", "hope"]
+        assert out == ["hope", "peace", "grief", "faith", "forgiveness"]
 
-    def test_echo_rule_is_a_substring_check_on_the_message(self):
-        out = rm.sanitize_expansion_terms(
-            "my sister Marta, faith", "I miss my sister Marta so much"
-        )
-        assert out == ["faith"]
+    @pytest.mark.parametrize(
+        "term", ["example.com", "visit example.com", "mail me", "a@b.org", "https://x.io", "www.x"]
+    )
+    def test_domains_emails_urls_dropped(self, term):
+        assert rm.sanitize_expansion_terms(f"hope, {term}", "msg") == ["hope"]
 
-    def test_drops_digits_emails_urls(self):
-        out = rm.sanitize_expansion_terms(
-            "grief, room 12b, a.b@c.org, https://x.io/p, www.site.com, john3, trust",
-            "unrelated",
-        )
-        assert out == ["grief", "trust"]
+    def test_digits_dropped(self):
+        assert rm.sanitize_expansion_terms("grief, room 12, john3", "msg") == ["grief"]
 
-    def test_drops_long_phrases_but_salvages_allow_listed_words(self):
-        out = rm.sanitize_expansion_terms(
-            "a long phrase about my neighbour Dolores and her anxiety", "something else"
-        )
-        assert out == ["anxiety"]
+    @pytest.mark.parametrize("book", ["Daniel", "Mark", "James", "John", "Ruth"])
+    def test_book_name_echoing_a_person_is_dropped(self, book):
+        assert rm.sanitize_expansion_terms(f"{book}, hope", f"my friend {book} is sick") == ["hope"]
 
-    def test_drops_consonant_runs(self):
-        assert rm.sanitize_expansion_terms("xkcdqz, hope", "msg") == ["hope"]
+    def test_book_name_in_email_style_message_is_dropped(self):
+        msg = "john dot doe at gmail dot com"
+        assert rm.sanitize_expansion_terms("john, hope", msg) == ["hope"]
 
-    def test_apostrophes_do_not_form_consonant_runs(self):
-        assert rm.sanitize_expansion_terms("shouldn't fear", "msg") == ["shouldn't fear"]
+    def test_book_name_kept_when_message_has_a_verse_reference_to_it(self):
+        assert rm.sanitize_expansion_terms("John, hope", "What does John 3:16 mean?") == [
+            "john",
+            "hope",
+        ]
+        # a reference to another book does not excuse the name
+        assert rm.sanitize_expansion_terms("John, hope", "what about Mark 3:1 and John") == ["hope"]
+
+    def test_unspaced_book_name_echo_uses_substring(self):
+        assert rm.sanitize_expansion_terms("路得, 平安", "我朋友路得病了") == []
+
+    def test_topic_keyword_echoed_by_user_is_fine(self):
+        assert rm.sanitize_expansion_terms("anxious", "I am anxious") == ["anxious"]
+
+    def test_exact_whole_term_only(self):
+        assert rm.sanitize_expansion_terms("peaceful neighbourhood, anxiou, hopele", "x") == []
 
     def test_caps_term_length_at_40(self):
-        long_term = "wisdom " + "a" * 60  # 2 words, not in message
-        out = rm.sanitize_expansion_terms(long_term, "msg")
+        from unittest.mock import patch as _p
+
+        long_book = "b" * 60
+        with _p.object(rm, "_vocab", return_value=(frozenset(), frozenset({long_book}))):
+            out = rm.sanitize_expansion_terms(long_book, "msg")
         assert len(out) == 1 and len(out[0]) == 40
 
     def test_caps_count_at_10_and_dedupes(self):
-        terms = ", ".join(w * 2 + "ing" for w in "abcdefghijklmno")
-        out = rm.sanitize_expansion_terms(terms + ", aaing", "msg")
-        assert len(out) == 10
-        assert len(set(out)) == 10
+        words = [f"w{chr(97 + i)}" for i in range(15)]
+        with patch.object(rm, "_vocab", return_value=(frozenset(words), frozenset())):
+            out = rm.sanitize_expansion_terms(", ".join(words + words[:2]), "msg")
+        assert out == words[:10]
 
     @pytest.mark.parametrize("sep", [",", ";", "\n", "•", "·", "、", "，", "；", " - "])
     def test_splits_on_ascii_and_cjk_separators(self, sep):
-        out = rm.sanitize_expansion_terms(f"hope{sep}forgiveness", "msg")
-        assert out == ["hope", "forgiveness"]
+        assert rm.sanitize_expansion_terms(f"hope{sep}forgiveness", "msg") == [
+            "hope",
+            "forgiveness",
+        ]
 
     def test_strips_quotes_and_brackets_around_terms(self):
-        assert rm.sanitize_expansion_terms('"hope", 「平安」, (grace)', "msg") == [
-            "hope",
-            "平安",
-            "grace",
-        ]
+        assert rm.sanitize_expansion_terms('"hope", 「平安」, (peace)', "msg") == ["hope", "peace"]
 
     @pytest.mark.parametrize("value", [None, "", "   ", ",,;;"])
     def test_empty_inputs(self, value):
         assert rm.sanitize_expansion_terms(value, "msg") == []
 
     def test_every_topic_keyword_is_allow_listed(self):
-        # Each keyword on its own survives (digits/echo aside), proving the vocabulary
-        # is what the allow-list is built from.
         for keywords in TOPIC_KEYWORD_MAP.values():
             keyword = keywords[0]
+            if any(ch.isdigit() for ch in keyword) or "." in keyword:
+                continue
             assert rm.sanitize_expansion_terms(keyword, "unrelated") == [keyword.casefold()]
 
 
@@ -773,6 +850,8 @@ class TestSignatureAndUpsert:
             language="en",
             translation="kjv",
             topics=["a", "b"],
+            retrieval_mode="hybrid",
+            embedding_model="m",
         )
         b = rm.compute_signature(
             reasons=["low_score", "empty"],
@@ -780,6 +859,8 @@ class TestSignatureAndUpsert:
             language="en",
             translation="kjv",
             topics=["b", "a"],
+            retrieval_mode="hybrid",
+            embedding_model="m",
         )
         assert a == b and len(a) == 64
 
@@ -791,10 +872,20 @@ class TestSignatureAndUpsert:
             {"language": "de"},
             {"translation": "web"},
             {"topics": ["a"]},
+            {"retrieval_mode": "semantic"},
+            {"embedding_model": "other-model"},
         ],
     )
     def test_signature_changes_with_each_component(self, change):
-        base = dict(reasons=["empty"], intent="X", language="en", translation="kjv", topics=[])
+        base = dict(
+            reasons=["empty"],
+            intent="X",
+            language="en",
+            translation="kjv",
+            topics=[],
+            retrieval_mode="hybrid",
+            embedding_model="m",
+        )
         assert rm.compute_signature(**base) != rm.compute_signature(**{**base, **change})
 
     def test_make_row_ttl_is_retention_days_from_now(self):
@@ -811,7 +902,9 @@ class TestSignatureAndUpsert:
         stmt = rm.build_retrieval_miss_upsert(**rm.make_row(**_fields()))
         sql = str(stmt.compile(dialect=postgresql.dialect()))
         assert "ON CONFLICT (signature_sha256) DO UPDATE" in sql
-        set_clause = sql.split("DO UPDATE SET", 1)[1]
+        set_clause, _, where_clause = sql.split("DO UPDATE SET", 1)[1].partition(" WHERE ")
+        # an already-expired (not yet purged) row must not be bumped back to life
+        assert "retrieval_miss_samples.expires_at > now()" in where_clause
         assert "hit_count = (retrieval_miss_samples.hit_count +" in set_clause
         assert "last_seen_at = excluded.last_seen_at" in set_clause
         for untouched in (
@@ -922,3 +1015,130 @@ class TestEmit:
             await asyncio.sleep(0)
         recorded.assert_awaited_once()
         assert not rm._PENDING
+
+
+# ---------------------------------------------------------------------------
+# cited_outside_pool across citation shapes (BITB-256 / AGENTS multilingual rule)
+# ---------------------------------------------------------------------------
+
+CITATIONS = [
+    pytest.param(
+        "es", "Dios te ama [Juan 3:16].", "El Señor es mi pastor [Salmos 23:1].", id="es-bracket"
+    ),
+    pytest.param(
+        "de",
+        "So sehr hat Gott die Welt geliebt (Johannes 3,16).",
+        "Der Herr ist mein Hirte (Psalm 23,1).",
+        id="de-comma",
+    ),
+    pytest.param(
+        "ar", "لأنه هكذا أحب الله العالم (يوحنا 3:16).", "الرب راعي (المزامير 23:1).", id="ar"
+    ),
+    pytest.param(
+        "hi",
+        "परमेश्वर ने जगत से प्रेम किया (यूहन्ना 3:16)।",
+        "यहोवा मेरा चरवाहा है (भजन संहिता 23:1)।",
+        id="hi-devanagari",
+    ),
+    pytest.param(
+        "zh", "神爱世人（约翰福音3：16）。", "耶和华是我的牧者（诗篇23：1）。", id="zh-fullwidth"
+    ),
+    pytest.param(
+        "ko",
+        "하나님이 세상을 사랑하사 (요한복음 3:16).",
+        "여호와는 나의 목자시니 (시편 23:1).",
+        id="ko",
+    ),
+]
+
+
+@pytest.mark.parametrize("path", PATHS)
+@pytest.mark.parametrize("language,inside_reply,outside_reply", CITATIONS)
+class TestCitationShapes:
+    async def test_citation_inside_pool_is_not_flagged(
+        self, path, language, inside_reply, outside_reply
+    ):
+        service = _service(reply=inside_reply)
+        _set_search(service, _ctx(_verse(similarity=0.9)))
+        _, scheduled = await _run(path, service, language=language, message=ANXIOUS[language])
+        scheduled.assert_not_called()
+
+    async def test_different_citation_is_flagged(self, path, language, inside_reply, outside_reply):
+        service = _service(reply=outside_reply)
+        _set_search(service, _ctx(_verse(similarity=0.9)))
+        _, scheduled = await _run(path, service, language=language, message=ANXIOUS[language])
+        row = _row(scheduled)
+        assert row["reasons"] == ["cited_outside_pool"]
+        assert row["cited_outside_pool"] == ["Psalms 23:1"]
+
+
+# ---------------------------------------------------------------------------
+# Write bounding, search-failure telemetry-only, config validators
+# ---------------------------------------------------------------------------
+
+
+class TestWriteBounding:
+    async def test_pending_cap_drops_db_write_but_keeps_telemetry(self):
+        recorded = AsyncMock()
+        with (
+            patch.object(rm, "record_retrieval_miss", recorded),
+            patch.object(rm, "emit_retrieval_miss") as emit,
+            patch.object(rm, "_PENDING", {object()}),
+            patch.object(rm, "MAX_PENDING_WRITES", 1),
+        ):
+            rm.schedule_retrieval_miss(**_fields())
+        emit.assert_called_once()
+        recorded.assert_not_called()
+
+    async def test_persist_false_is_telemetry_only(self):
+        recorded = AsyncMock()
+        with (
+            patch.object(rm, "record_retrieval_miss", recorded),
+            patch.object(rm, "emit_retrieval_miss") as emit,
+        ):
+            rm.schedule_retrieval_miss(persist=False, **_fields())
+            await asyncio.sleep(0)
+        emit.assert_called_once()
+        recorded.assert_not_called()
+
+    @pytest.mark.parametrize("path", PATHS)
+    async def test_failed_search_is_not_persisted(self, path):
+        service = _service()
+        _set_search(service, error=RuntimeError("db down"))
+        _, scheduled = await _run(path, service, intent="COMFORT")
+        assert _row(scheduled)["persist"] is False
+
+    @pytest.mark.parametrize("path", PATHS)
+    async def test_weak_results_are_persisted(self, path):
+        service = _service()
+        _set_search(service, _ctx(_verse(similarity=0.1)))
+        _, scheduled = await _run(path, service)
+        assert _row(scheduled)["persist"] is True
+
+
+class TestConfigValidators:
+    def test_blank_threshold_means_unset(self):
+        from config import Settings
+
+        for blank in ("", "  "):
+            s = Settings(retrieval_miss_low_score_threshold=blank)
+            assert s.retrieval_miss_low_score_threshold is None
+        assert (
+            Settings(retrieval_miss_low_score_threshold="0.4").retrieval_miss_low_score_threshold
+            == 0.4
+        )
+
+    @pytest.mark.parametrize("days", [1, 45, 90])
+    def test_retention_in_range_ok(self, days):
+        from config import Settings
+
+        assert Settings(retrieval_miss_retention_days=days).retrieval_miss_retention_days == days
+
+    @pytest.mark.parametrize("days", [0, -1, 91, 365])
+    def test_retention_outside_policy_rejected(self, days):
+        from pydantic import ValidationError
+
+        from config import Settings
+
+        with pytest.raises(ValidationError):
+            Settings(retrieval_miss_retention_days=days)

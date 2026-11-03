@@ -691,7 +691,7 @@ class TestTtlPurgeLoop:
             with pytest.raises(asyncio.CancelledError):
                 await _ttl_purge_loop()
 
-        assert TTL_PURGE_INTERVAL_SECONDS == 86400
+        assert TTL_PURGE_INTERVAL_SECONDS == 3600
         mock_sleep.assert_awaited_with(TTL_PURGE_INTERVAL_SECONDS)
         mock_purge.assert_awaited_once()
 

@@ -367,6 +367,22 @@ class Settings(BaseSettings):
         "text-embedding-3-small:semantic": 0.50,
     }
 
+    @field_validator("retrieval_miss_low_score_threshold", mode="before")
+    @classmethod
+    def blank_threshold_is_unset(cls, v: object) -> object:
+        """An empty env var (RETRIEVAL_MISS_LOW_SCORE_THRESHOLD=) means 'not set'."""
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator("retrieval_miss_retention_days")
+    @classmethod
+    def retention_within_policy(cls, v: int) -> int:
+        """The privacy policy promises retention of up to 90 days."""
+        if not 1 <= v <= 90:
+            raise ValueError("retrieval_miss_retention_days must be between 1 and 90")
+        return v
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str) -> str:

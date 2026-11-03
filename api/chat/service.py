@@ -917,6 +917,7 @@ Keep it under 120 words."""
                 embedding_provider=provider[:32],
                 embedding_model=model[:100],
                 session_id_hash=_hash_session_id(request.session_id),
+                persist=not trace.search_failed,
             )
         except Exception as exc:  # noqa: BLE001 - diagnostics must never affect the reply
             logger.debug("retrieval miss hook failed: %s", type(exc).__name__)

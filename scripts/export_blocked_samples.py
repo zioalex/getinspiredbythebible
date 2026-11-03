@@ -67,9 +67,19 @@ def parse_date(value: str) -> datetime:
 
 
 def sync_database_url(url: str) -> str:
-    """Strip the async asyncpg driver so the script can use sync SQLAlchemy."""
-    if url.startswith("postgresql+asyncpg://"):
-        return url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    """Map any Postgres URL to the sync psycopg2 driver (psycopg2-binary is what we install).
+
+    A bare ``postgresql://`` would make SQLAlchemy 2 look for psycopg (v3), which is not
+    installed, so it is rewritten too.
+    """
+    for prefix in (
+        "postgresql+asyncpg://",
+        "postgresql+psycopg2://",
+        "postgresql://",
+        "postgres://",
+    ):
+        if url.startswith(prefix):
+            return "postgresql+psycopg2://" + url[len(prefix) :]
     return url
 
 

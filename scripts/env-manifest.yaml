@@ -194,13 +194,13 @@ variables:
 
   RETRIEVAL_MISS_RETENTION_DAYS:
     required_in: none
-    description: Days a retrieval-miss row lives, fixed from first sight (BITB-256)
+    description: Days a retrieval-miss row lives, fixed from first sight; validated to 1..90 (BITB-256)
     default: "90"
 
   RETRIEVAL_MISS_LOW_SCORE_THRESHOLD:
     required_in: none
-    description: Explicit low_score threshold; unset uses the per-embedding-model table (BITB-256)
-    default: ""
+    description: Explicit low_score threshold; unset (or empty) uses the per-embedding-model table (BITB-256)
+    default: unset
 
   RETRIEVAL_MISS_LOW_SCORE_THRESHOLDS:
     required_in: none

@@ -55,10 +55,27 @@ class TestHelpers:
         with pytest.raises(argparse.ArgumentTypeError):
             exporter.parse_date("yesterday")
 
-    def test_sync_database_url_strips_asyncpg(self):
-        assert (
-            exporter.sync_database_url("postgresql+asyncpg://u:p@h/db") == "postgresql://u:p@h/db"
-        )
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "postgresql://u:p@h/db",
+            "postgresql+asyncpg://u:p@h/db",
+            "postgres://u:p@h/db",
+            "postgresql+psycopg2://u:p@h/db",
+        ],
+    )
+    def test_sync_database_url_always_selects_psycopg2(self, url):
+        # psycopg2-binary is the installed sync driver; a bare postgresql:// would make
+        # SQLAlchemy 2 look for psycopg (v3) and fail.
+        assert exporter.sync_database_url(url) == "postgresql+psycopg2://u:p@h/db"
+
+    def test_blocked_samples_exporter_has_the_same_mapping(self):
+        path = Path(__file__).resolve().parent / "export_blocked_samples.py"
+        spec = importlib.util.spec_from_file_location("export_blocked_samples", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        for url in ("postgresql://u:p@h/db", "postgresql+asyncpg://u:p@h/db"):
+            assert mod.sync_database_url(url) == "postgresql+psycopg2://u:p@h/db"
 
     def test_fields_never_include_text_columns(self):
         banned = {"message", "message_text", "prompt", "expansion_text", "response"}
@@ -70,7 +87,7 @@ class TestBuildQuery:
         sql = _compile(exporter.build_query(_args()))
         assert "FROM retrieval_miss_samples" in sql
         assert "ORDER BY retrieval_miss_samples.created_at DESC" in sql
-        assert "WHERE" not in sql
+        assert "retrieval_miss_samples.expires_at > now()" in sql  # never export expired rows
 
     def test_all_filters_applied(self):
         sql = _compile(
@@ -102,6 +119,7 @@ class TestAggregateQuery:
         assert "LEFT JOIN LATERAL" in sql  # keeps rows with empty topics
         assert "SUM(hit_count)" in sql
         assert "GROUP BY topic, language, reason" in sql
+        assert "r.expires_at > now()" in sql
         assert params == {}
 
     def test_filters_are_bound_parameters_not_interpolated(self):
@@ -184,7 +202,7 @@ class TestMain:
         ):
             rc = exporter.main(["--aggregate", "--language", "en", "--output", str(out)])
         assert rc == 0
-        mk_engine.assert_called_once_with("postgresql://u:p@h/db", future=True)
+        mk_engine.assert_called_once_with("postgresql+psycopg2://u:p@h/db", future=True)
         assert json.loads(out.read_text()) == [
             {
                 "topic": "anxiety",

@@ -47,7 +47,7 @@ Stored (derived signals only):
 | `retrieval_mode`       | `hybrid`, `hybrid_boosted`, `semantic`, `boosted`, or `none` (search failed). |
 | `embedding_provider`, `embedding_model` | Which embedding stack produced the scores.                   |
 | `session_id_hash`      | sha256 of the session id (never the raw id). Set on first insert only.        |
-| `signature_sha256`     | Dedup key: reasons + intent + language + translation + sorted topics.         |
+| `signature_sha256`     | Dedup key: reasons + intent + language + translation + sorted topics + retrieval mode + embedding model. |
 | `hit_count`            | How often this signature recurred.                                            |
 | `created_at`, `last_seen_at`, `expires_at` | First/last occurrence and the fixed expiry.               |
 
@@ -59,31 +59,50 @@ engine returns one blended score (`0.7*semantic + 0.3*keyword`), so only `direct
 `search` is recorded. Scores are not comparable across modes; always group by
 `retrieval_mode` and `embedding_model`.
 
-## Privacy boundary: expansion-term sanitizer
+## Privacy boundary: allow-list-only expansion terms
 
 The query expansion is LLM-written and can echo user words (a name, a place, an id).
-`sanitize_expansion_terms` is therefore the only gate between that text and the database:
+`sanitize_expansion_terms` is therefore the only gate between that text and the database,
+and it is **allow-list only**: a term survives solely if, case-folded, it equals as a whole
+term an entry of the fixed topic vocabulary (`TOPIC_KEYWORD_MAP`, all supported languages)
+or a Bible book name in any language. There is no length or word-count pass, so free text,
+names, places and ids are dropped by construction.
 
-1. Split on `, ; newline • · 、 ， ；` and ` - `; strip quotes/brackets; case-fold.
-2. Drop terms containing a digit, `@`, `://` or `www.`.
-3. Keep terms that are in the topic vocabulary (`TOPIC_KEYWORD_MAP`) or are a Bible book
-   name in any language. For a long phrase, only its individually allow-listed words are kept.
-4. Otherwise drop runs of 5+ consonants/symbols, terms of more than 3 words, and any term
-   that appears verbatim in the user's message (the *echo rule*: it may be their own wording
-   or a name).
-5. De-duplicate, cut each term to 40 characters, keep at most 10.
+1. Split on `, ; newline • · 、 ， ； ، ؛` and ` - `; strip bullet/numbering markers
+   (`-`, `*`, `•`, `1.`, `1)`), quotes and brackets; case-fold.
+2. Drop terms containing a digit, `@`, `://`, `www.` or a bare domain (`example.com`).
+3. Keep only exact allow-list matches (for unspaced scripts such as Han that is an exact
+   whole-term match).
+4. A book-name term is dropped when it appears in the user's message as a standalone token
+   (Daniel, Mark, James, John ... are also first names), unless the message contains a
+   parsed verse reference to that same book.
+5. De-duplicate, cut to 40 characters, keep at most 10.
 
-A test sends a unique sentinel and a person's name through `chat()` and `chat_stream()` and
-asserts neither appears in the persisted row or in any `rag_retrieval_miss` log record.
+Tests drive adversarial inputs for all 11 languages and run a sentinel (English and Chinese
+names, bullet-formatted expansions) through `chat()` and `chat_stream()`, asserting nothing
+reaches the persisted row or any `rag_retrieval_miss` log record.
 
 ## Enabling capture (operator)
 
-Capture is **off by default**. Set on the backend deployment:
+Capture is **off by default** (`RETRIEVAL_MISS_CAPTURE_ENABLED=false`). Nothing is recorded,
+logged or counted until you turn it on. It is a plain backend environment variable; there is
+no Terraform variable or make target for it.
+
+- **Azure (production):** set the env var on the backend Container App, for example
+  `az containerapp update -g <rg> -n <backend-app> --set-env-vars RETRIEVAL_MISS_CAPTURE_ENABLED=true`
+  (or Portal > Container App > Containers > Environment variables). Terraform does not manage
+  this variable, but a later `terraform apply` that rewrites the app's env list can drop it;
+  re-check after infra changes.
+- **Local docker:** add `RETRIEVAL_MISS_CAPTURE_ENABLED=true` to `.env.local` (or `.env.dev`)
+  and add the variable under the backend `environment:` in the compose file in use if it is not
+  forwarded, then restart with `make docker-up`.
+- **Bare `uvicorn`:** export the variable before starting the API.
+
+Other settings:
 
 ```bash
-RETRIEVAL_MISS_CAPTURE_ENABLED=true        # default false
-RETRIEVAL_MISS_RETENTION_DAYS=90           # default 90
-RETRIEVAL_MISS_LOW_SCORE_THRESHOLD=0.5     # optional explicit override
+RETRIEVAL_MISS_RETENTION_DAYS=90           # default 90, validated to 1..90 (policy: up to 90 days)
+RETRIEVAL_MISS_LOW_SCORE_THRESHOLD=0.5     # optional explicit override; unset or empty = per-model table
 RETRIEVAL_MISS_LOW_SCORE_THRESHOLDS='{"mxbai-embed-large:hybrid": 0.5}'  # JSON, per model
 ```
 
@@ -91,7 +110,9 @@ The table is created by Alembic revision `r0009`; run `alembic upgrade head` fir
 backend swallows write errors, so a missing table never affects a chat reply.
 
 Writes are fire-and-forget background tasks after the reply path decides the turn was a
-miss: zero added latency, one upsert per miss, errors logged and dropped.
+miss: zero added latency, one upsert per miss, errors logged and dropped. At most 50 writes
+may be pending at once (extra misses still produce the log event and counter), and turns where
+the search itself failed are telemetry-only, so a struggling database is not given more work.
 
 ### Deriving the `low_score` threshold
 
@@ -147,23 +168,28 @@ per topic, so totals across groups exceed the row count. `signatures` counts dis
 
 - **`topics` is empty for ru, zh, hi and ko.** Topic detection (`chat/topics.py`) is a keyword
   map covering en, it, de, es, fr, pt, ar only. Those four languages still record every other
-  field, and aggregate under `(none)`. Extending coverage is tracked as BITB-259.
+  field, and aggregate under `(none)`. Extending coverage is tracked as BITB-264.
 - Topics come from the keyword map, not from the model, so a miss on an unmapped theme shows
   under `(none)`.
 
 ## Retention and purge
 
 `expires_at` is set once, on first insert, to `created_at + RETRIEVAL_MISS_RETENTION_DAYS`
-and is **not** refreshed by repeats, so a row lives at most 90 days regardless of recurrence.
-Expired rows are deleted at app startup and by a daily background loop in `api/main.py`
-(`_ttl_purge_loop`), so expiry does not depend on a redeploy. To force a purge:
+(1..90) and is **not** refreshed by repeats, so a row lives at most 90 days regardless of
+recurrence. An upsert never touches a row whose `expires_at` has passed, and the exporter only
+returns rows with `expires_at > now()`, so an expired row is invisible even before it is deleted.
+
+Deletion is done by the API process itself (no `pg_cron` job, unlike blocked samples): once at
+startup and then **hourly** by a background loop in `api/main.py` (`_ttl_purge_loop`). A
+deployment with several replicas simply runs the same idempotent `DELETE` on each. To force a
+purge:
 
 ```sql
 DELETE FROM retrieval_miss_samples WHERE expires_at < now();
 ```
 
 Volume is bounded by the number of distinct signatures (reasons x intent x language x
-translation x topic set), not by traffic.
+translation x topic set x retrieval mode x embedding model), not by traffic.
 
 ## Telemetry
 
