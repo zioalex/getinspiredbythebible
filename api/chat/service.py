@@ -10,7 +10,7 @@ import hashlib
 import time
 import uuid
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import AsyncIterator
 
 from pydantic import BaseModel, Field, field_validator
@@ -199,6 +199,7 @@ class _SafetyOutcome:
     is_help_seeking: bool = (
         False  # BITB-255: safety pipeline flagged help-seeking (even if blocked)
     )
+    violated_categories: list[str] = field(default_factory=list)  # BITB-258: Llama Guard S-codes
 
 
 class ChatService:
@@ -326,6 +327,7 @@ class ChatService:
                 reason=safety_result.reason,
                 categories=safety_result.categories,
                 is_help_seeking=safety_result.is_help_seeking,
+                violated_categories=safety_result.violated_categories,
             )
 
         if safety_result.compassionate_response_needed:

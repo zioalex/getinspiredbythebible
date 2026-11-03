@@ -205,8 +205,12 @@ class LlamaGuardProvider:
             )
 
         # Block all other unsafe content
-        # Determine specific reason based on categories
-        if any(cat in violated_categories for cat in ["S1", "S2", "S9"]):
+        # Determine specific reason based on categories. S11 wins over every other category
+        # (BITB-258): the person must get the self-harm reply and crisis card even when Llama
+        # Guard also flags S6/S10/S1 on the same message.
+        if "S11" in violated_categories:
+            reason = "self_harm_with_other_unsafe_content"
+        elif any(cat in violated_categories for cat in ["S1", "S2", "S9"]):
             reason = "violence_or_threat_detected"
         elif "S10" in violated_categories:
             reason = "hate_speech_detected"
@@ -227,6 +231,7 @@ class LlamaGuardProvider:
         return ContentSafetyResult(
             allowed=False,
             reason=reason,
+            violated_categories=list(violated_categories),
         )
 
     async def _call_model(

@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
 - 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
 - 2026-11-03: BITB-256 verification fixes — allow-list-only sanitizer, hourly purge + 1..90 day retention, bounded writes, wider signature, psycopg2 exporter URL
 - 2026-11-03: BITB-264/265 opened — follow-ups from BITB-256 verification (ru/zh/hi/ko topic detection coverage; query-expansion logging of user text)
@@ -339,9 +340,9 @@ in 11 languages, and flip the BITB-255 xfails.
 
 ---
 
-### 🎯 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
+### 🔍 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Size:** S
 **Created:** 2026-10-29
 

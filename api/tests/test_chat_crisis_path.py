@@ -686,3 +686,72 @@ async def test_crisis_logging_never_contains_message_text(caplog):
     assert crisis_logs
     for record in crisis_logs:
         assert private_text not in repr(record.__dict__)
+
+
+# ---------------------------------------------------------------------------
+# BITB-258: Llama Guard S11 combined with other categories still gets the self-harm card
+# ---------------------------------------------------------------------------
+
+_S11_COMBOS = [["S11", "S6"], ["S11", "S10"], ["S6", "S11"], ["S11", "S1"]]
+
+
+def _lg_outcome(cats):
+    from providers.llama_guard import LlamaGuardProvider
+
+    result = LlamaGuardProvider._map_categories_to_result(
+        LlamaGuardProvider.__new__(LlamaGuardProvider), False, cats, "h"
+    )
+    return _SafetyOutcome(
+        allowed=result.allowed,
+        compassionate=False,
+        reason=result.reason,
+        categories={},
+        violated_categories=result.violated_categories,
+    )
+
+
+@pytest.mark.parametrize("cats", _S11_COMBOS)
+def test_classify_crisis_self_harm_whenever_s11_present(cats):
+    outcome = _lg_outcome(cats)
+    assert not outcome.allowed
+    assert outcome.violated_categories == cats
+    assert classify_crisis(outcome).value == "self_harm"
+
+
+def test_classify_crisis_other_llama_guard_combos_unchanged():
+    assert classify_crisis(_lg_outcome(["S6", "S10"])) is None
+    assert classify_crisis(_lg_outcome(["S6"])) is None
+
+
+@pytest.mark.parametrize("cats", _S11_COMBOS)
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_blocked_reply_uses_self_harm_template_for_s11_combo(cats, language):
+    outcome = _lg_outcome(cats)
+    assert get_blocked_response(outcome.reason, language) == get_blocked_response(
+        "self_harm_instructions_detected", language
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cats", _S11_COMBOS)
+@pytest.mark.parametrize("language", LANGUAGES)
+async def test_chat_s11_combo_carries_self_harm_card(cats, language):
+    service = _service()
+    with _patched(service, _lg_outcome(cats)):
+        response = await service.chat(_request(language), client_country="IT")
+    assert response.crisis_resources["kind"] == "self_harm"
+    service.llm.chat.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("cats", _S11_COMBOS)
+@pytest.mark.parametrize("language", LANGUAGES)
+async def test_stream_s11_combo_card_first_and_self_harm(cats, language):
+    service = _service()
+    with _patched(service, _lg_outcome(cats)):
+        events = await _collect_stream(service, _request(language), client_country="IT")
+    assert events[0]["type"] == "crisis_resources"
+    assert events[0]["resources"]["kind"] == "self_harm"
+    assert _text(events).startswith(
+        get_blocked_response("self_harm_instructions_detected", language)
+    )

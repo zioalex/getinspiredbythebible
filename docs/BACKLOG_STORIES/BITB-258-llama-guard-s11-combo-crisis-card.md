@@ -1,6 +1,6 @@
 # BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P1
 **Size:** S
 **Created:** 2026-10-29
@@ -20,7 +20,15 @@ reply and **no crisis numbers**.
 
 ## Acceptance criteria
 
-- [ ] The Llama Guard result exposes its violated S-categories on the safety outcome
-- [ ] `classify_crisis` returns `self_harm` whenever S11 is among them, whatever the other categories
-- [ ] The blocked reply for these cases uses the self-harm template, not the generic one
-- [ ] Tests cover the S11+S6 and S11+S10 combinations on both the blocking and streaming chat paths
+- [x] The Llama Guard result exposes its violated S-categories on the safety outcome
+- [x] `classify_crisis` returns `self_harm` whenever S11 is among them, whatever the other categories
+- [x] The blocked reply for these cases uses the self-harm template, not the generic one
+- [x] Tests cover the S11+S6 and S11+S10 combinations on both the blocking and streaming chat paths
+
+## Implementation
+
+S11 now takes precedence in `LlamaGuardProvider._map_categories_to_result`: any blocked result with S11
+among the categories gets reason `self_harm_with_other_unsafe_content` and carries `violated_categories`
+(also on `ContentSafetyCheckResult` and chat's `_SafetyOutcome`). `classify_crisis` returns `self_harm`
+whenever S11 is present; the self-harm template follows from the reason. Note: S11+S1 (violence) now also
+gets the self-harm card rather than the threat card — deliberate, per "whenever S11 is present".
