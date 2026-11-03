@@ -460,8 +460,8 @@ Keep it under 120 words."""
             logger.info(
                 "Query expansion completed",
                 extra={
-                    "original_query": user_message[:100],
-                    "expanded_query": expanded[:200],
+                    "original_query_chars": len(user_message),
+                    "expanded_query_chars": len(expanded),
                     "language": language,
                     "expansion_time_ms": expansion_time_ms,
                 },
@@ -601,7 +601,7 @@ Keep it under 120 words."""
                 "translation": translation,
                 "user_preference": request.preferred_translation,
                 "model_override": model_override,
-                "message_preview": request.message[:50],
+                "message_chars": len(request.message),
             },
         )
 
@@ -1805,7 +1805,7 @@ Keep it under 120 words."""
                 "translation": translation,
                 "user_preference": request.preferred_translation,
                 "model_override": model_override,
-                "message_preview": request.message[:50],
+                "message_chars": len(request.message),
             },
         )
 

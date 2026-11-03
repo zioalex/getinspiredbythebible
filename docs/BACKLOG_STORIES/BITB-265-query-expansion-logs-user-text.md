@@ -1,6 +1,6 @@
 # BITB-265: Query Expansion Logs the User's Message and the Expanded Query
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P1
 **Size:** S
 **Created:** 2026-11-03
@@ -30,6 +30,16 @@ in a table, log or counter. Application Insights retains these records.
 
 ## Acceptance criteria
 
-- [ ] No info/warning log record from a normal chat turn contains the message or expansion text.
-- [ ] Sentinel test passes on both chat paths.
+- [x] No info/warning log record from a normal chat turn contains the message or expansion text.
+- [x] Sentinel test passes on both chat paths.
 - [ ] Privacy policy wording reviewed against actual log contents.
+
+## Implementation notes (2026-11-03)
+
+- `_expand_query` logs `original_query_chars` / `expanded_query_chars`; the two "Language detection"
+  logs carry `message_chars`; `log_security_violation` takes `message_length` instead of a preview.
+- Audit of `api/` found no other log call carrying message content. `details` on security violations
+  holds only the filter's reason string.
+- Tests: `api/tests/test_log_privacy.py` (44 cases, 11 languages; all fail on the old code).
+- Open: privacy-policy wording review (last AC) stays with the owner. Logs now match the stated
+  "chat messages: not retained" posture, so no wording change is proposed.

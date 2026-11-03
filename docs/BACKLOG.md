@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
 - 2026-11-03: BITB-256 verification fixes — allow-list-only sanitizer, hourly purge + 1..90 day retention, bounded writes, wider signature, psycopg2 exporter URL
 - 2026-11-03: BITB-264/265 opened — follow-ups from BITB-256 verification (ru/zh/hi/ko topic detection coverage; query-expansion logging of user text)
 - 2026-11-03: BITB-256 in progress — retrieval_miss_samples (r0009), fixed 90-day TTL + daily purge, provisional per-model thresholds pending search-eval p10
@@ -351,9 +352,9 @@ the user gets no crisis numbers. Show the self-harm card whenever S11 is present
 
 ---
 
-### 🎯 BITB-265: Query Expansion Logs the User's Message and the Expanded Query
+### 🔍 BITB-265: Query Expansion Logs the User's Message and the Expanded Query
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Size:** S
 **Created:** 2026-11-03
 
@@ -362,8 +363,8 @@ contradicting the privacy posture. Remove user text from logs, audit similar fie
 
 **Acceptance Criteria:**
 
-- [ ] No info/warning log record from a normal chat turn contains the message or expansion text
-- [ ] Sentinel test on both chat paths
+- [x] No info/warning log record from a normal chat turn contains the message or expansion text
+- [x] Sentinel test on both chat paths
 
 **Full Story:** [`BITB-265-query-expansion-logs-user-text.md`](BACKLOG_STORIES/BITB-265-query-expansion-logs-user-text.md)
 
