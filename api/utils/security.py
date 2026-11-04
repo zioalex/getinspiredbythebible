@@ -597,32 +597,54 @@ _EN_TOKEN = r"(?:(?!(?:i|me|my|myself|we|us|our|you|u)\b)[\w'\u2019-]+\s+)"
 _VIOLENCE_NARRATIVE_VETO = {
     "en": re.compile(
         r"\bi\b(?!\s+(?:samuel|sam|kings|kgs|chronicles|chr|corinthians|cor|thessalonians"
-        r"|thess|timothy|tim|peter|pet|john|jn)\b)|\bi['\u2019](?:m|ll|d|ve)\b"
-        r"|\b(?:me|my|mine|myself|we|us|our|ours)\b",
+        r"|thess|timothy|tim|peter|pet|john|jn)\b)|\bi['’](?:m|ll|d|ve)\b"
+        r"|\b(?:me|my|mine|myself|we|us|our|ours)\b"
+        # F6 time / how-to-do-it markers: a Bible question has no deadline or getaway.
+        r"|\b(?:tonight|tomorrow|tmrw|today|without\s+getting\s+caught"
+        r"|how\s+(?:can|could|would)\s+(?:it|this|that)\s+be\s+done|how\s+to\s+do\s+it)\b",
         re.IGNORECASE,
     ),
-    "fr": re.compile(r"\b(?:je|nous|moi|me|mon|ma|mes|notre|nos)\b|\b[jm]['\u2019]", re.IGNORECASE),
-    "de": re.compile(r"\b(?:ich|wir|mich|mir|uns)\b|\b(?:mein|unser)\w*", re.IGNORECASE),
-    "it": re.compile(r"\b(?:io|noi|mi|mio|mia|miei|mie|voglio|vorrei|vogliamo)\b", re.IGNORECASE),
-    "es": re.compile(r"\b(?:yo|nosotros|nosotras|nos|me|mi|mis|quiero|queremos)\b", re.IGNORECASE),
-    "pt": re.compile(
-        r"\b(?:eu|nós|me|meu|meus|minha|minhas|quero|queremos)\b|\bnosso\w*", re.IGNORECASE
+    "fr": re.compile(
+        r"\b(?:je|nous|moi|me|mon|ma|mes|notre|nos)\b|\b[jm]['’]"
+        r"|\b(?:ce\s+soir|demain|aujourd['’]hui)\b",
+        re.IGNORECASE,
     ),
-    # Arabic first-person / intent markers (anywhere in the message).
+    "de": re.compile(
+        r"\b(?:ich|wir|mich|mir|uns)\b|\b(?:mein|unser)\w*"
+        r"|\b(?:heute\s+(?:nacht|abend)|morgen|ohne\s+erwischt)\b",
+        re.IGNORECASE,
+    ),
+    "it": re.compile(
+        r"\b(?:io|noi|mi|mio|mia|miei|mie|voglio|vorrei|vogliamo|stasera|stanotte|domani)\b",
+        re.IGNORECASE,
+    ),
+    "es": re.compile(
+        r"\b(?:yo|nosotros|nosotras|nos|me|mi|mis|quiero|queremos|mañana|hoy)\b"
+        r"|\besta\s+noche\b|\bsin\s+que\s+lo\s+atrapen\b",
+        re.IGNORECASE,
+    ),
+    "pt": re.compile(
+        r"\b(?:eu|nós|me|meu|meus|minha|minhas|quero|queremos|amanhã|hoje)\b|\bnosso\w*"
+        r"|\bsem\s+ser\s+pego\b|\bhoje\s+[àa]\s+noite\b|\bvou\b",
+        re.IGNORECASE,
+    ),
+    # Arabic first-person / intent / time markers (anywhere in the message).
     "ar": re.compile(
-        r"(?<![\u0600-\u06ff])(?:أنا|انا|نحن|سوف|سأ(?!ل)|سا(?:قتل|ذهب|فعل|قوم|حاول)|أريد|اريد"
-        r"|أود|اود|بدي|عايز|ناوي|أنوي|انوي|أفكر|افكر|أخطط|اخطط|أحاول|احاول|نفسي)",
+        r"(?<![ؠ-يٮ-ۓ])(?:أنا|انا|نحن|سوف|سأ(?!ل)|سا(?:قتل|ذهب|فعل|قوم|حاول)|أريد|اريد"
+        r"|أود|اود|بدي|عايز|ناوي|أنوي|انوي|أفكر|افكر|أخطط|اخطط|أحاول|احاول|نفسي"
+        r"|الليلة|غدا|غدًا|غداً|بكرة|بكره|يمكن\s+فعل|نقتل|رح|ح)(?![ؠ-يٮ-ۓ])"
+        # possessive ي on the target noun after قتل: قتل جاري / زوجتي / أخي
+        r"|قتل\s+[ؠ-يٮ-ۓ]*ي(?![ؠ-يٮ-ۓ])",
     ),
 }
 _VIOLENCE_NARRATIVE_BEFORE = {
     "en": re.compile(
         r"(?:^|[.?!;:,\n]\s*)" + _EN_TOKEN + r"{0,3}?"
-        r"(?:did|didn't|didn\u2019t|does|doesn't)\s+"
+        r"(?:did|didn't|didn\u2019t)\s+"
         r"(?!(?:one|someone|anyone|somebody|anybody|everyone|people|a person|it)\b)"
         + _EN_TOKEN
         + r"{1,4}?"
-        r"(?:(?:want|try|plan|plot|seek|decide|refuse|intend|attempt|have|need|mean)\s+to\s+)?$"
-        r"|\b(?:thou\s+shalt|thou\s+shall|you\s+shall)\s+not\s+$",
+        r"(?:(?:want|try|plan|plot|seek|decide|refuse|intend|attempt|have|need|mean)\s+to\s+)?$",
         re.IGNORECASE,
     ),
     # Romance/German third-person past-tense "wanted/tried/decided to kill" frames. Forms
@@ -659,6 +681,13 @@ _VIOLENCE_NARRATIVE_BEFORE = {
         re.IGNORECASE,
     ),
 }
+# F-commandment: "Thou shalt not kill" is exempt WITHOUT an anchor (still subject to the veto).
+_COMMANDMENT_BEFORE = {
+    "en": re.compile(r"\b(?:thou\s+shalt|thou\s+shall|you\s+shall)\s+not\s+$", re.IGNORECASE),
+}
+_COMMANDMENT_VERBS = re.compile(r"kill|murder")
+# ar: لا تقتل at a clause start or right after وصية (the match is the قتل inside تقتل).
+_AR_COMMANDMENT_BEFORE = re.compile(r"(?:(?:^|[.?!؟;:،,\n])\s*|وصية\s+)لا\s+ت$")
 # es/pt share the infinitive "matar", so both languages use the same combined frames.
 _VIOLENCE_NARRATIVE_BEFORE["pt"] = _VIOLENCE_NARRATIVE_BEFORE["es"]
 
@@ -680,7 +709,7 @@ _BIBLE_PERSON_NAMES = {
         "nebuchadnezzar,daniel,esther,haman,mordecai,jonah,herod,pilate,caiaphas,judas,jesus,"
         "christ,peter,paul,stephen,james,john,agag,amalekites,philistines,israelites,egyptians,"
         "pharaoh,pharisees,sadducees,canaanites,midianites,sodom,gomorrah,lot,balaam,korah,achan,"
-        "egypt,rahab,ishmael,hagar,laban,nimrod,lamech,barabbas,ananias,sapphira,john the baptist"
+        "egyptian,rahab,ishmael,hagar,laban,nimrod,lamech,barabbas,ananias,sapphira,john the baptist"
     ),
     "it": (
         "caino,abele,set,adamo,eva,noè,noe,abramo,abraamo,abraham,sara,isacco,giacobbe,esaù,esau,"
@@ -690,7 +719,7 @@ _BIBLE_PERSON_NAMES = {
         "giosia,nabucodonosor,daniele,ester,aman,mardocheo,giona,erode,pilato,caifa,giuda,gesù,"
         "gesu,cristo,pietro,paolo,stefano,giacomo,giovanni,agag,amalechiti,filistei,israeliti,"
         "egiziani,faraone,farisei,sadducei,cananei,madianiti,sodoma,gomorra,lot,balaam,acan,"
-        "egitto,raab,ismaele,agar,labano,barabba,anania,saffira,erodiade,giovanni battista"
+        "raab,ismaele,agar,labano,barabba,anania,saffira,erodiade,giovanni battista"
     ),
     "es": (
         "caín,abel,set,adán,eva,noé,abraham,abrahán,sara,isaac,jacob,esaú,josé,moisés,aarón,"
@@ -699,7 +728,7 @@ _BIBLE_PERSON_NAMES = {
         "jeroboam,acab,jezabel,elías,eliseo,nabot,jehú,ezequías,josías,nabucodonosor,daniel,"
         "ester,amán,mardoqueo,jonás,herodes,pilato,caifás,judas,jesús,cristo,pedro,pablo,esteban,"
         "santiago,juan,agag,amalecitas,filisteos,israelitas,egipcios,faraón,fariseos,saduceos,"
-        "egipto,cananeos,madianitas,sodoma,gomorra,lot,balaam,coré,acán,rahab,ismael,agar,labán,"
+        "cananeos,madianitas,sodoma,gomorra,lot,balaam,coré,acán,rahab,ismael,agar,labán,"
         "barrabás,ananías,safira,herodías,juan el bautista"
     ),
     "pt": (
@@ -709,7 +738,7 @@ _BIBLE_PERSON_NAMES = {
         "jeroboão,acabe,jezabel,elias,eliseu,nabote,jeú,ezequias,josias,nabucodonosor,daniel,"
         "ester,hamã,mardoqueu,jonas,herodes,pilatos,caifás,judas,jesus,cristo,pedro,paulo,"
         "estêvão,tiago,joão,agague,amalequitas,filisteus,israelitas,egípcios,faraó,fariseus,"
-        "egito,saduceus,cananeus,midianitas,sodoma,gomorra,ló,balaão,corá,acã,raabe,ismael,hagar,"
+        "saduceus,cananeus,midianitas,sodoma,gomorra,ló,balaão,corá,acã,raabe,ismael,hagar,"
         "labão,barrabás,ananias,safira,joão batista"
     ),
     "fr": (
@@ -719,7 +748,7 @@ _BIBLE_PERSON_NAMES = {
         "jéroboam,achab,jézabel,élie,élisée,naboth,jéhu,ézéchias,josias,nebucadnetsar,daniel,"
         "esther,haman,mardochée,jonas,hérode,pilate,caïphe,judas,jésus,christ,pierre,paul,étienne,"
         "jacques,jean,agag,amalécites,philistins,israélites,égyptiens,pharaon,pharisiens,"
-        "égypte,sadducéens,cananéens,madianites,sodome,gomorrhe,lot,balaam,koré,acan,rahab,ismaël,agar,"
+        "sadducéens,cananéens,madianites,sodome,gomorrhe,lot,balaam,koré,acan,rahab,ismaël,agar,"
         "laban,barabbas,ananias,saphira,hérodiade,jean-baptiste"
     ),
     "de": (
@@ -730,29 +759,80 @@ _BIBLE_PERSON_NAMES = {
         "mordechai,hiob,jona,herodes,pilatus,kaiphas,judas,jesus,christus,petrus,paulus,"
         "stephanus,jakobus,johannes,agag,amalekiter,philister,israeliten,ägypter,pharao,"
         "pharisäer,sadduzäer,kanaaniter,midianiter,sodom,gomorra,lot,bileam,korach,achan,rahab,"
-        "ägypten,ismael,hagar,laban,barabbas,hananias,saphira"
+        "ismael,hagar,laban,barabbas,hananias,saphira"
     ),
     "ar": (
-        "قايين,قابيل,هابيل,آدم,حواء,نوح,إبراهيم,ابراهيم,سارة,إسحاق,اسحاق,يعقوب,عيسو,يوسف,موسى,"
+        "مريم,قايين,قابيل,هابيل,آدم,حواء,نوح,إبراهيم,ابراهيم,سارة,إسحاق,اسحاق,يعقوب,عيسو,يوسف,موسى,"
         "هارون,يشوع,جدعون,شمشون,دليلة,دبورة,ياعيل,سيسرا,إهود,عجلون,يفتاح,راعوث,نعمي,بوعز,"
         "صموئيل,عالي,شاول,يوناثان,داود,داوود,جليات,جالوت,بثشبع,أوريا,اوريا,أبشالوم,ابشالوم,"
         "يوآب,أبنير,أمنون,سليمان,رحبعام,يربعام,أخآب,اخاب,إيزابل,ايزابل,إيليا,الياس,أليشع,"
         "نابوت,ياهو,حزقيا,يوشيا,نبوخذ نصر,دانيال,أستير,استير,هامان,مردخاي,أيوب,ايوب,يونان,"
         "يونس,هيرودس,بيلاطس,قيافا,يهوذا,يسوع,عيسى,المسيح,بطرس,بولس,اسطفانوس,استفانوس,يوحنا,"
         "أجاج,العماليق,الفلسطينيين,الفلسطينيون,بنو إسرائيل,بني إسرائيل,الإسرائيليين,المصريين,"
-        "فرعون,مصر,الفريسيين,الصدوقيين,الكنعانيين,المديانيين,سدوم,عمورة,لوط,بلعام,قورح,عخان,راحاب,"
+        "فرعون,الفريسيين,الصدوقيين,الكنعانيين,المديانيين,سدوم,عمورة,لوط,بلعام,قورح,عخان,راحاب,"
         "إسماعيل,هاجر,لابان,باراباس,حنانيا,سفيرة"
     ),
 }
-# Registry book names that are ordinary words ("Numbers", "Acts", "Judges" ...) must not
-# make an unrelated sentence look Biblical.
-_BIBLE_ANCHOR_GENERIC_BOOKS = {
-    "en": {"numbers", "acts", "judges", "songs", "cant", "sos"},
-    "it": {"atti", "numeri", "giudici"},
-    "es": {"números", "hechos", "jueces"},
-    "pt": {"números", "atos", "juízes"},
-    "fr": {"nombres", "actes", "juges"},
-    "de": {"richter", "zahlen"},
+# Terms that are everyday words in their language ("Numbers", "Acts", "lot", "sete", "set",
+# "Richter", ar "when" متى ...) must not make an unrelated sentence look Biblical (F3/F4).
+_BIBLE_ANCHOR_GENERIC = {
+    "en": {
+        "numbers", "acts", "judges", "songs", "cant", "sos", "revelation", "revelations",
+        "kings", "chronicles", "lot", "set", "eve", "eli",
+    },
+    "it": {"atti", "numeri", "giudici", "set", "core", "re", "proverbi", "eli", "ebrei"},
+    "es": {"números", "hechos", "jueces", "reyes", "crónicas", "proverbios", "set", "eva"},
+    "pt": {"números", "atos", "juízes", "reis", "crônicas", "provérbios", "sete", "ló", "eva", "cora"},
+    "fr": {"nombres", "actes", "juges", "rois", "chroniques", "proverbes", "lot", "éli"},
+    "de": {
+        "richter", "zahlen", "könige", "chronik", "sprüche", "set", "prediger", "offenbarung",
+        "römer", "eva",
+    },
+    "ar": {
+        "متى", "خروج", "رؤيا", "قضاة", "حجي", "عالي", "جامعة", "أعمال", "أمثال", "ملوك",
+        "أخبار", "عدد",
+    },
+}  # fmt: skip
+# F7 (fail safe): common modern first names alone do NOT anchor a narrative. A frame anchored
+# only by these needs a second DISTINCT anchor in scope, or one distinctive anchor (Cain, Goliath,
+# Herod, Saul ...).
+_BIBLE_COMMON_NAMES = {
+    "en": (
+        "john,paul,peter,james,mark,daniel,ruth,job,joseph,david,thomas,matthew,luke,simon,mary,"
+        "sarah,adam,michael,stephen,andrew,philip,samuel,jacob,isaac,aaron,abraham,joshua,"
+        "benjamin,nathan,rachel,rebecca,hannah,eve,esther,elizabeth,anna,jonathan,noah,joel,"
+        "caleb,seth,martha,lydia"
+    ),
+    "it": (
+        "giovanni,pietro,paolo,giacomo,marco,giuseppe,daniele,rut,giobbe,davide,tommaso,matteo,"
+        "luca,simone,maria,sara,adamo,michele,stefano,andrea,filippo,samuele,giacobbe,isacco,"
+        "aronne,abramo,giosuè,beniamino,natan,rachele,rebecca,anna,elisabetta,ester,eva,noè,"
+        "gionata,caleb,marta"
+    ),
+    "es": (
+        "juan,pedro,pablo,josé,santiago,marcos,daniel,rut,job,david,tomás,mateo,lucas,simón,"
+        "maría,sara,adán,miguel,esteban,andrés,felipe,samuel,jacob,isaac,aarón,abraham,josué,"
+        "benjamín,natán,raquel,rebeca,ana,isabel,ester,eva,noé,jonatán,caleb,marta"
+    ),
+    "pt": (
+        "joão,pedro,paulo,tiago,josé,marcos,daniel,rute,jó,davi,tomé,mateus,lucas,simão,maria,"
+        "sara,adão,miguel,estêvão,andré,filipe,samuel,jacó,isaque,arão,abraão,josué,benjamim,"
+        "natã,raquel,rebeca,ana,isabel,ester,eva,noé,jônatas,caleb,marta"
+    ),
+    "fr": (
+        "jean,pierre,paul,jacques,marc,daniel,ruth,job,joseph,david,thomas,matthieu,luc,simon,"
+        "marie,sara,adam,michel,étienne,andré,philippe,samuel,jacob,isaac,aaron,abraham,josué,"
+        "benjamin,nathan,rachel,rébecca,anne,élisabeth,esther,ève,noé,jonathan,caleb,marthe"
+    ),
+    "de": (
+        "johannes,peter,paul,jakob,markus,daniel,rut,hiob,josef,david,thomas,matthäus,lukas,"
+        "simon,maria,sara,adam,michael,andreas,philippus,samuel,isaak,aaron,abraham,josua,"
+        "benjamin,nathan,rahel,rebekka,hanna,elisabeth,ester,eva,noah,jonatan,martha"
+    ),
+    "ar": (
+        "يوحنا,يوسف,بطرس,بولس,يعقوب,مريم,داود,داوود,سارة,آدم,دانيال,أيوب,ايوب,راعوث,إبراهيم,"
+        "ابراهيم,إسحاق,اسحاق,هارون,صموئيل,يوناثان,نوح,أستير,استير"
+    ),
 }
 
 
@@ -781,30 +861,68 @@ def _registry_book_names(lang: str) -> set[str]:
     return names
 
 
-def _build_bible_anchor_regex(lang: str) -> re.Pattern[str]:
-    """Compile the Bible-anchor regex for ``lang`` (matches against normalize_text() output)."""
-    raw = [t for t in _BIBLE_PERSON_NAMES[lang].split(",") if t] + sorted(
-        _registry_book_names(lang)
-    )
-    generic = _BIBLE_ANCHOR_GENERIC_BOOKS.get(lang, set())
+_NUMBERED_PREFIX = re.compile(r"^(?:i{1,3}|[1-3ea])\.?\s+")
+
+
+def _anchor_terms(lang: str, raw: list[str], *, generic: set[str] | None = None) -> set[str]:
+    """Normalize ``raw`` names into anchor terms (accent-stripped variants only if >= 4 chars)."""
+    skip = generic or set()
     terms: set[str] = set()
     for term in raw:
         norm = normalize_text(term).strip()
-        if len(norm) < 2 or norm in generic:
+        base = _NUMBERED_PREFIX.sub("", norm)
+        if lang == "ar":
+            base = base.removeprefix("ال")
+        if len(base) < 3 or norm in skip or base in skip:
             continue
         terms.add(norm)
         if lang != "ar":  # users often omit accents: Caïn/Cain, Moïse/Moise
-            terms.add(_strip_accents(norm))
+            stripped = _strip_accents(norm)
+            if len(stripped) >= 4:
+                terms.add(stripped)
+    return terms
+
+
+def _build_bible_anchor_regex(lang: str) -> re.Pattern[str]:
+    """Compile the Bible-anchor regex for ``lang`` (matches against normalize_text() output).
+
+    Group ``t`` captures the anchor term itself (without Arabic proclitics).
+    """
+    raw = [t for t in _BIBLE_PERSON_NAMES[lang].split(",") if t] + sorted(
+        _registry_book_names(lang)
+    )
+    terms = _anchor_terms(lang, raw, generic=_BIBLE_ANCHOR_GENERIC.get(lang, set()))
     body = "|".join(re.escape(t) for t in sorted(terms, key=len, reverse=True))
     if lang == "ar":
         # Optional one-letter proclitic (و ف ل ب) + optional definite article.
-        return re.compile(rf"(?<![؀-ۿ])(?:[وفلب]?(?:ال)?)(?:{body})(?![؀-ۿ])")
-    return re.compile(rf"(?<!\w)(?:{body})(?!\w)", re.IGNORECASE)
+        return re.compile(rf"(?<![ؠ-يٮ-ۓ])(?:[وفلب]?(?:ال)?)(?P<t>{body})(?![ؠ-يٮ-ۓ])")
+    return re.compile(rf"(?<!\w)(?P<t>{body})(?!\w)", re.IGNORECASE)
 
 
 _BIBLE_NARRATIVE_ANCHORS = {lang: _build_bible_anchor_regex(lang) for lang in _BIBLE_PERSON_NAMES}
+_BIBLE_COMMON_NAME_TERMS = {
+    lang: _anchor_terms(lang, names.split(",")) for lang, names in _BIBLE_COMMON_NAMES.items()
+}
 
-_AR_LETTER = re.compile(r"[؀-ۿ]")
+
+def _anchor_qualifies(lang: str, scope: str) -> bool:
+    """F1/F7: anchors found in ``scope`` qualify if one is distinctive or two are distinct."""
+    regex = _BIBLE_NARRATIVE_ANCHORS.get(lang)
+    if not regex:
+        return False
+    hits = {m.group("t").lower() for m in regex.finditer(scope)}
+    return bool(hits - _BIBLE_COMMON_NAME_TERMS[lang]) or len(hits) >= 2
+
+
+# es and pt share the infinitive "matar": a Spanish narrative must not be cancelled by the pt table.
+_SHARED_VERB_LANGS = {"es": ("pt",), "pt": ("es",)}
+_AR_LETTER = re.compile(r"[\u0620-\u064a\u066e-\u06d3]")
+_AR_PUNCT = ".,;:!?؟،"
+# F5: "method of / plan for killing" and an indefinite object ("a person") are how-to phrasing.
+_AR_TOWARD_METHOD = {"طريقة", "خطة", "كيفية", "أفضل", "افضل", "طرق"}
+_AR_INDEFINITE_OBJECT = {"شخص", "أحد", "احد", "رجل", "امرأة", "امراة", "إنسان", "انسان"}
+# The object right after the verb: up to 5 tokens inside the same clause.
+_TOKENS_AFTER = re.compile(r"\s*(?:[^\s.?!;:\n]+\s*){0,5}")
 
 
 def _is_standalone_ar_qatl(normalized: str, start: int, end: int) -> bool:
@@ -1506,32 +1624,97 @@ class MultiLanguageContentFilter:
             spans.extend(m.span() for m in regex.finditer(normalized))
         return spans
 
-    @staticmethod
-    def _is_narrative_exempt(lang: str, normalized: str, m: re.Match[str]) -> bool:
+    def _is_narrative_exempt(
+        self, lang: str, normalized: str, m: re.Match[str], cross_check: bool = True
+    ) -> bool:
         """BITB-257 (option A, fail safe): True only for clearly Biblical third-person narrative.
 
-        A match is exempt ONLY if ALL hold: it is a guarded verb in a third-person narrative
-        frame (ar: the standalone word قتل), a Bible anchor for ``lang`` appears anywhere in the
-        message, and no first-person marker appears anywhere. When unsure, it blocks.
+        A match is exempt ONLY if ALL hold:
+        - it is a guarded verb in a third-person narrative frame (ar: the standalone word قتل);
+        - a Bible anchor sits INSIDE that frame (subject tokens between the question word and the
+          verb, or the next ~5 tokens after the verb; ar: previous token + next two tokens), and
+          it qualifies (F7: one distinctive anchor, or two distinct ones — common first names
+          like John/Paul alone do not);
+        - no first-person / time-of-action marker appears anywhere in the message (the veto);
+        - no OTHER language's violence table (F8) hits the message unexempted.
+        The commandment ("Thou shalt not kill", ar لا تقتل) is exempt without an anchor but is
+        subject to the same veto and cross-language check. When unsure, it blocks.
         """
-        anchor = _BIBLE_NARRATIVE_ANCHORS.get(lang)
         veto = _VIOLENCE_NARRATIVE_VETO.get(lang)
-        if not anchor or not veto:
+        if not veto or veto.search(normalized):
             return False
+        text = m.group(0).lower()
         if lang == "ar":
-            if m.group(0) != "قتل" or not _is_standalone_ar_qatl(normalized, m.start(), m.end()):
+            if text != "قتل":
                 return False
+            ok = bool(
+                _AR_COMMANDMENT_BEFORE.search(normalized[: m.start()])
+                and not _AR_LETTER.match(normalized[m.end() : m.end() + 1] or " ")
+            ) or self._ar_narrative_scope_ok(normalized, m)
         else:
-            verbs = _VIOLENCE_NARRATIVE_VERBS.get(lang)
-            before_re = _VIOLENCE_NARRATIVE_BEFORE.get(lang)
-            if not (
-                verbs
-                and before_re
-                and verbs.fullmatch(m.group(0).lower())
-                and before_re.search(normalized[max(0, m.start() - 80) : m.start()])
-            ):
-                return False
-        return bool(anchor.search(normalized)) and not veto.search(normalized)
+            ok = self._latin_narrative_scope_ok(lang, normalized, m)
+        if not ok:
+            return False
+        if cross_check:
+            for other in self._violence_regex:
+                if other not in (lang, *_SHARED_VERB_LANGS.get(lang, ())) and self._violence_hits(
+                    other, normalized, cross_check=False
+                ):
+                    return False
+        return True
+
+    @staticmethod
+    def _latin_narrative_scope_ok(lang: str, normalized: str, m: re.Match[str]) -> bool:
+        """Frame + anchor-inside-frame test for en/it/de/es/fr/pt (F1/F9), or the commandment."""
+        text = m.group(0).lower()
+        verbs = _VIOLENCE_NARRATIVE_VERBS.get(lang)
+        before_re = _VIOLENCE_NARRATIVE_BEFORE.get(lang)
+        if not (verbs and before_re and verbs.fullmatch(text)):
+            return False
+        window = max(0, m.start() - 120)
+        cmd = _COMMANDMENT_BEFORE.get(lang)
+        if cmd and _COMMANDMENT_VERBS.fullmatch(text) and cmd.search(normalized, window, m.start()):
+            return True
+        # F9: pos/endpos keep ``^`` meaning the real start of the message.
+        fm = before_re.search(normalized, window, m.start())
+        if not fm:
+            return False
+        after = _TOKENS_AFTER.match(normalized, m.end())
+        scope = normalized[fm.start() : m.start()] + " " + (after.group(0) if after else "")
+        return _anchor_qualifies(lang, scope)
+
+    @staticmethod
+    def _ar_narrative_scope_ok(normalized: str, m: re.Match[str]) -> bool:
+        """Standalone قتل with an Arabic anchor in the previous token or the next two (F1/F5)."""
+        if not _is_standalone_ar_qatl(normalized, m.start(), m.end()):
+            return False
+        start = m.start()
+        if start > 0 and normalized[start - 1] in "وف":
+            start -= 1
+        before = normalized[:start].split()
+        prev = before[-1] if before else ""
+        if prev and prev[-1] in _AR_PUNCT:
+            prev = ""  # previous clause: not part of this frame
+        nxt: list[str] = []
+        for tok in normalized[m.end() :].split()[:2]:
+            nxt.append(tok.strip(_AR_PUNCT))
+            if tok[-1] in _AR_PUNCT:
+                break
+        if prev.strip(_AR_PUNCT) in _AR_TOWARD_METHOD or (nxt and nxt[0] in _AR_INDEFINITE_OBJECT):
+            return False
+        return _anchor_qualifies("ar", " ".join([prev.strip(_AR_PUNCT), *nxt]))
+
+    def _violence_hits(
+        self, lang: str, normalized: str, *, cross_check: bool = True
+    ) -> list[tuple[int, int, str]]:
+        regex = self._violence_regex.get(lang)
+        if not regex:
+            return []
+        return [
+            (m.start(), m.end(), m.group(0))
+            for m in regex.finditer(normalized)
+            if not self._is_narrative_exempt(lang, normalized, m, cross_check)
+        ]
 
     def find_violence_matches(
         self, normalized: str, languages: list[str] | None = None
@@ -1544,14 +1727,7 @@ class MultiLanguageContentFilter:
         langs = list(self._violence_regex) if languages is None else languages
         matches: list[tuple[int, int, str]] = []
         for lang in dict.fromkeys(langs):
-            regex = self._violence_regex.get(lang)
-            if not regex:
-                continue
-            for m in regex.finditer(normalized):
-                # BITB-257: skip third-person Bible narrative (anchor + no first person).
-                if self._is_narrative_exempt(lang, normalized, m):
-                    continue
-                matches.append((m.start(), m.end(), m.group(0)))
+            matches.extend(self._violence_hits(lang, normalized))
         return matches
 
     def find_hard_violence_matches(self, normalized: str) -> list[tuple[int, int, str]]:

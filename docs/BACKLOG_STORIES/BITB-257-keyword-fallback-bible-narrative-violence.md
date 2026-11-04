@@ -63,15 +63,55 @@ adding a parallel mechanism.
   in `test_chat_crisis_path.py`. Cases converted from "narrative passes" to "fail-safe blocks":
   "Thou shalt not kill - what does it mean?", ar "ماذا تعني وصية لا تقتل؟", ar "لماذا أراد شاول أن يقتل داود؟".
 
+## Hardening round 2 (2026-11-04, independent verification)
+
+An independent verifier showed the first option-A rule ("anchor anywhere in the message") could be
+bypassed. Fixes, all in `api/utils/security.py`:
+
+- **F1 anchor must sit inside the frame.** Latin languages: between the question word and the verb
+  (the frame), or in the next ~5 tokens after the verb. ar: the previous token or the next two tokens
+  around `قتل`. An anchor elsewhere ("... the way Cain did") no longer exempts.
+- **F2** present-tense `does/doesn't` removed from the en frame ("How does a man kill ..." blocks).
+- **F3** generic words are not anchors: ar `متى خروج رؤيا قضاة حجي عالي جامعة أعمال أمثال ملوك أخبار عدد`,
+  plus en/it/es/pt/fr/de book-name collisions (Numbers, Acts, Kings, Reyes, Richter ...). Egypt
+  (مصر/egypt/égypte/egitto/ägypten/egipto/egito) is no longer an anchor in any language.
+- **F4** accent-stripped variants are only added when >= 4 chars, and terms shorter than 3 letters
+  (pt `ló`/`jó`) are dropped; everyday words (pt `sete`, es/en/it/de `set`, en `eve`/`lot`, it `re`/`core`,
+  pt `cora`, ...) are excluded.
+- **F5** ar verbal noun: `قتل` right after طريقة/خطة/كيفية/أفضل/طرق, or right before an indefinite object
+  (شخص/أحد/رجل/امرأة/إنسان), is never exempt.
+- **F6** whole-message time/intent veto per language (tonight/tomorrow/today/"without getting caught"/"how
+  can it be done", ce soir/demain, esta noche/mañana, hoje à noite/amanhã/"sem ser pego", stasera/domani,
+  heute Nacht/morgen, الليلة/غدا/بكرة/يمكن فعل). ar also vetoes the ن- prefix (نقتل), a possessive ي on the
+  noun after `قتل` (جاري/زوجتي/أخي) and the dialect particle ح/رح as a separate word.
+- **F7 common first names (fail-safe default; the owner may revisit).** John/Paul/Peter/James/Mark/Daniel/
+  Ruth/Job/Joseph/David/... (and localized equivalents, `_BIBLE_COMMON_NAMES`) alone do not anchor a frame.
+  A frame needs one distinctive anchor (Cain, Goliath, Saul, Herod, a book such as Genesis ...) or two
+  distinct anchors. "Why did David kill Goliath" and "Why did Saul want to kill David" still pass.
+- **F8** when an exemption would apply, every other language's violence table is also run; an unexempted
+  hit there cancels it ("Why did Cain kill Abel? Je vais tuer mon voisin"). es/pt are skipped for each
+  other because they share "matar".
+- **F9** the frame regex runs with `pos/endpos` on the full message, so `^` is the real message start.
+- **Commandment**: "thou shalt not / thou shall not / you shall not" before kill/murder, and ar
+  `لا تقتل` at a clause start or after وصية, are exempt WITHOUT an anchor, still under the veto and the
+  cross-language check.
+- Arabic punctuation `؟ ، ؛` sits inside U+0600-06FF; the Arabic letter classes now exclude it so a
+  trailing `؟` does not look like a letter.
+- Tests: `ANCHOR_BYPASS_MUST_BLOCK` (every verifier row) via `find_violence_matches`, the real fallback
+  and the threat card. Moved to `FAIL_SAFE_BLOCKS`: "Why did God kill the firstborn of Egypt?" (F3) and
+  "Why did David kill him?" (F7).
+
 ## Known limitations
 
-- No anchor, no exemption: "Why did he kill him?", "Thou shalt not kill - what does it mean?" and
-  commandment questions block while ML moderation is down.
+- No anchor, no exemption: "Why did he kill him?" and "Why did God kill Uzzah?" (God is not an anchor)
+  block while ML moderation is down; so do "Why did Cain kill Abel and what does it teach us?" and
+  "... explain it to me" (first-person `us`/`me` veto).
+- Common-name-only narrative ("Why did David kill him?", "Why did John kill ...") blocks (F7).
 - Arabic exemption is for the standalone word `قتل` only; `يقتل`/`القتل`/`قتله` narrative blocks.
 - Declarative narrative ("God told Saul to kill Agag") still blocks: only question/past-tense frames are guarded.
-- Narrative followed by a second-person threat ("you should kill your boss") has no first-person
-  marker and can pass when an anchor is present; ML moderation remains the primary defence.
-- Common modern first names that are also Bible names (John, Paul, Peter, James) are anchors.
+- Second-person threats ("You should kill your brother too") block; they are not exempted.
+- Pre-existing on main, not changed here: English `killed` is not a pattern ("I wonder why Cain killed
+  Abel" passes); Arabic with diacritics (`قَتَلَ`) is not matched; ru "Я убью своего соседа" is not caught.
 - ar `سلاح`/`هجوم` (weapon/attack) remain bare patterns (Bible-narrative senses) and are out of scope here.
 
 ## Follow-ups
