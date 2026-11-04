@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-04: BITB-267 created — make ML content-safety classification reliable (cross-provider failover, fallback-share SLO) so the BITB-257 fail-safe keyword fallback is rare (#1241)
 - 2026-11-02: BITB-257 🔍 In review — keyword fallback no longer blocks third-person Bible narrative (en do-support/commandment guard, ar intent-only patterns, fr/it/es/pt/de past-tense guards); first-person threats still blocked with the card
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
@@ -334,6 +335,29 @@ and now also gets a threat crisis card. Unblock third-person Bible narrative in 
 in 11 languages, and flip the BITB-255 xfails.
 
 **Full Story:** [`BITB-257-keyword-fallback-bible-narrative-violence.md`](BACKLOG_STORIES/BITB-257-keyword-fallback-bible-narrative-violence.md)
+
+---
+
+### 🎯 BITB-267: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** L
+**Created:** 2026-11-04
+
+Follow-up to BITB-257: the fail-safe keyword fallback is only acceptable if it runs rarely. In
+`ml_only` both Llama Guard models go through OpenRouter, so one outage sends every message to the
+keyword path, and the fallback alert fired 99× in 30 days (BITB-223). Add cross-provider ML
+failover, tune timeouts/retry/breaker from data, and alert on a fallback-share SLO.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Simulated OpenRouter outage in `ml_only` is handled by a second-provider ML classifier
+- [ ] Keyword fallback runs only when every configured ML classifier failed
+- [ ] Fallback-share metric + dashboard + SLO burn alert (target < 0.5 % / 7 days, TBC)
+- [ ] Failover classifier passes the 11-language safety golden set
+
+**Full Story:** [`BITB-267-ml-safety-reliability-rare-keyword-fallback.md`](BACKLOG_STORIES/BITB-267-ml-safety-reliability-rare-keyword-fallback.md)
 
 ---
 
