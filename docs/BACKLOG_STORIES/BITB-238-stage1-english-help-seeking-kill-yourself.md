@@ -34,5 +34,9 @@ The exemptions are deliberately narrow and regex-based, so some benign phrasings
 - "Why did Jesus go die for the world?" (only "on the cross" / "for our sins|my sins|sinners|mankind|humanity" are exempt, and only with a Jesus/Christ/he/God subject and no "you" earlier in the clause).
 - "you should die for Christ" and similar martyrdom phrasing are not exempt; only "to sin/self/flesh..." and "daily/every day" suffixes are.
 - Moral frames must be question-form ("Is it a sin to kill yourself?"); a statement such as "it is ok to kill yourself" blocks.
-- Any "do it / go ahead / act on it" later in the message cancels every exemption, even in an unrelated clause.
+- Any hostile or encouraging word anywhere in the message (e.g. "do it", "go ahead", "loser") cancels the exemption, even in an unrelated clause.
 - Whitespace runs between words are matched by the English patterns, but other evasions (leetspeak, misspellings) are out of scope.
+
+## Follow-ups
+
+- BITB-264: directed-harm taunt gaps found while verifying this story (pre-existing on main).
