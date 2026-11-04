@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-10-30
+**Last Updated:** 2026-11-04
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-04: BITB-238 🔍 In Review — exempt help-seeking/theological English phrases from Stage 1 directed harm
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
 - 2026-10-30: BITB-262 created — Stage 2: capability×client parity registry, living successor of docs/WIP/android-feature-parity-plan.md; first red row expected: BITB-042; gated on BITB-261

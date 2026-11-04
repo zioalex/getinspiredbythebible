@@ -1,6 +1,6 @@
 # BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24

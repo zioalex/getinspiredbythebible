@@ -180,3 +180,88 @@ def test_preferred_language_is_tried_first(flt):
 
 def test_directed_harm_tables_only_use_supported_languages(flt):
     assert set(flt.DIRECTED_HARM_PATTERNS) <= set(LANGUAGES)
+
+
+# ---------------------------------------------------------------------------
+# BITB-238: English help-seeking / theological phrasings are not directed harm
+# ---------------------------------------------------------------------------
+
+HELP_SEEKING_EN = [
+    "Is it a sin to kill yourself?",
+    "What happens if you kill yourself?",
+    "Is it wrong to want to kill yourself?",
+    "Do you go to hell if you kill yourself?",
+    "If you kill yourself, do you go to heaven?",
+    "Will God forgive you if you kill yourself?",
+    "How do I stop wanting to kill yourself",
+    "(Is it a sin to kill yourself?)",
+]
+
+THEOLOGICAL_EN = [
+    "Why did Jesus have to go die on the cross?",
+    "Does Paul say you should die to sin daily?",
+    "Why did Christ go die for our sins?",
+    "You should die to self every day",
+]
+
+GENUINE_THREATS_EN = [
+    "Go kill yourself",
+    "go kill yourself!",
+    "Kill yourself.",
+    "Just kill yourself",
+    "You should kill yourself",
+    "Why don't you go kill yourself?",
+    "I hope you kill yourself",
+    "Nobody would care if you kill yourself",
+    "You should die",
+    "You should die, loser",
+    "Go die",
+    "Go die in a fire",
+    "Go die for all I care",
+    "Go die for your sins",
+    "What happens if you kill yourself? Find out, go kill yourself.",
+    "Is it a sin to kill yourself? You idiot, go kill yourself.",
+]
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+@pytest.mark.parametrize("text", HELP_SEEKING_EN)
+def test_help_seeking_not_directed_harm_and_compassionate(flt, service, language, text):
+    assert flt.find_directed_harm(normalize_text(text)) is None
+    result = _fallback(service, text, language)
+    assert result.allowed is True
+    assert result.compassionate_response_needed is True
+    assert result.is_help_seeking is True
+    assert result.reason == "possible_help_seeking (fallback)"
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+@pytest.mark.parametrize("text", THEOLOGICAL_EN)
+def test_theological_phrases_not_blocked(flt, service, language, text):
+    assert flt.find_directed_harm(normalize_text(text)) is None
+    result = _fallback(service, text, language)
+    assert result.allowed is True
+    assert result.reason != "directed_harm"
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+@pytest.mark.parametrize("text", GENUINE_THREATS_EN)
+def test_genuine_english_threats_still_blocked(flt, service, language, text):
+    found = flt.find_directed_harm_violation(normalize_text(text), preferred=language)
+    assert found is not None and found[0] == "directed_harm"
+    result = _fallback(service, text, language)
+    assert result.allowed is False
+    assert "directed_harm" in result.reason
+
+
+def test_exempt_helper_unit():
+    en = MultiLanguageContentFilter._is_directed_harm_exempt
+    text = normalize_text("Is it a sin to kill yourself?")
+    m = flt_regex_match(text)
+    assert en("en", text, m) is True
+    assert en("it", text, m) is False
+    assert en("fr", text, m) is False
+
+
+def flt_regex_match(text):
+    return MultiLanguageContentFilter()._directed_harm_regex["en"].search(text)
