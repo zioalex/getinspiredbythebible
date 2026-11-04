@@ -29,6 +29,8 @@ or the compassionate path:
 
 The exemptions are deliberately narrow and regex-based, so some benign phrasings still block:
 
+- The exemption is a closed whole-message allowlist (single sentence, no hostile/encouraging word anywhere, must fully match one frame), so unusual phrasings of help-seeking go through the old block path. Acceptable: Stage 2 handles normal operation.
+
 - "Why did Jesus go die for the world?" (only "on the cross" / "for our sins|my sins|sinners|mankind|humanity" are exempt, and only with a Jesus/Christ/he/God subject and no "you" earlier in the clause).
 - "you should die for Christ" and similar martyrdom phrasing are not exempt; only "to sin/self/flesh..." and "daily/every day" suffixes are.
 - Moral frames must be question-form ("Is it a sin to kill yourself?"); a statement such as "it is ok to kill yourself" blocks.

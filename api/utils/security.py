@@ -444,51 +444,69 @@ _DH_END = r"(?=\s*(?:[!.,;]|$))"
 # BITB-238: English help-seeking / theological exemptions for the directed-harm table.
 # The English patterns ("kill yourself", "go die", "you should die") run under every language
 # code (BITB-193), so questions like "Is it a sin to kill yourself?" or "Why did Jesus have to go
-# die on the cross?" were blocked as directed harm. A match is exempt only when the surrounding
-# clause carries a question/wanting/theological frame AND no insult follows; genuine imperatives
-# ("Go kill yourself", "You should die, loser") are never exempt.
-_DH_BOUNDARY_CHARS = ".!?;:\n\u00bf\u00a1"
-_DH_BEFORE_CAP = 80
+# die on the cross?" were blocked as directed harm. The exemption is a STRICT WHOLE-MESSAGE
+# ALLOWLIST: it applies only when the ENTIRE normalized message is a single sentence, carries no
+# hostile / insulting / encouraging word anywhere, and fully matches one closed-form frame.
+# Anything else (unusual phrasings included) takes the normal block path.
+_DH_PREFIX = re.compile(r"^(?:pastor,\s*)?(?:quick\s+question:\s*)?")
+_DH_MAX_LEN = 200
 _DH_VETO = re.compile(
-    r"\b(?:loser|idiot|moron|bitch|stupid|scum|worthless|freak|retard|clown|trash|pathetic|"
-    r"garbage|dumb|ugly|useless|fool|jerk|coward|disgusting|waste|shit|ass|"
-    r"nobody\s+(?:cares|will\s+miss|would\s+care|would\s+miss))\b"
+    r"\b(?:loser|idiot|moron|clown|trash|scum|retard\w*|pathetic|worthless|deserve\w*|"
+    r"try\s+it|find\s+out|your\s+turn|so\s+should\s+you|go\s+on|go\s+ahead|do\s+it|"
+    r"just\s*do|let\s+us\s+know|for\s+everyone|i\s+hope|i\s+wish|hope|wish|we\s+all|lol|"
+    r"asking\s+for\s+you|act\s+on\s+it|bitch|stupid|freak|dumb|ugly|useless|fool|jerk|"
+    r"coward|disgusting|waste|shit|ass|nobody|no\s*one)\b"
+    r"|\byou\s+should(?!\s+die\s+(?:to|unto)\s|\s+die\s+daily|\s+die\s+every)"
 )
-# Encouragement anywhere later in the message cancels every exemption.
-_DH_ENCOURAGE = re.compile(r"\b(?:do\s+it|go\s+ahead|act\s+on\s+it)\b")
-_DH_KILL_TRIGGER = re.compile(r"^(?:go\s+)?kill\s+yourself$")
-_DH_GODIE_TRIGGER = re.compile(r"^go\s+die$")
-_DH_SHOULDDIE_TRIGGER = re.compile(r"^you\s+should\s+die$")
-_DH_QUESTION_START = re.compile(
-    r"^[\W_]*(?:[\w\s']{0,30},\s*)?(?:is|was|would|could|why|does|do|did|can|should|will|are|how|"
-    r"what)\b"
+# Same veto with every non-letter dropped, so "d o it" / "d.o.i.t" are caught too.
+_DH_VETO_SQUASHED = re.compile(
+    r"doit|tryit|findout|yourturn|soshouldyou|goahead|justdo|letusknow|foreveryone|ihope|"
+    r"iwish|weall|askingforyou|lol|actonit"
 )
-_DH_KILL_MORAL = re.compile(
-    r"\b(?:is|was|would|why\s+is)\s+(?:it\s+)?(?:be\s+)?(?:a\s+)?"
-    r"(?:sin|sinful|wrong|ok|okay|forgivable|selfish|allowed|normal|biblical)\s+to"
-    r"(?:\s+want\s+to)?\s*$"
+_DH_ADJ = (
+    r"(?:a\s+)?(?:sin|sinful|wrong|ok|okay|forgivable|selfish|allowed|normal|biblical|"
+    r"unforgivable)"
 )
-_DH_KILL_WANT = re.compile(
-    r"\b(?:want|wanting|urge|urges|thoughts?\s+of|thinking\s+(?:of|about)|tempted)"
-    r"\s+(?:to\s+)?$"
+_DH_FRAMES = re.compile(
+    r"(?:"
+    # (a) kill-yourself help-seeking: moral frame
+    r"(?:is\s+it|is\s+that|was\s+it|would\s+it\s+be|can\s+it\s+be|could\s+it\s+be|"
+    r"why\s+is\s+it)\s+" + _DH_ADJ + r"\s+to\s+kill\s+yourself\??"
+    # (a) religious-outcome conditionals
+    r"|what\s+happens\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|do\s+you\s+go\s+to\s+(?:hell|heaven)\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|will\s+god\s+forgive\s+you\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|(?:if|when)\s+you\s+kill\s+yourself,\s*do\s+you\s+go\s+to\s+(?:heaven|hell)\??"
+    # (a) want / urge frame, closed form only
+    r"|(?:how\s+do\s+i\s+stop|how\s+to\s+stop)\s+wanting\s+to\s+kill\s+yourself\??"
+    r"|is\s+it\s+(?:wrong|a\s+sin|normal|ok)\s+to\s+want\s+to\s+kill\s+yourself\??"
+    # (b) 'go die' theological
+    r"|(?:why\s+did|did)\s+(?:jesus|christ)\s+(?:have\s+to\s+)?go\s+die"
+    r"(?:\s+(?:on\s+the\s+cross|for\s+(?:our|my)\s+sins|for\s+(?:sinners|mankind|humanity)))?\?"
+    # (c) 'you should die' theological
+    r"|does\s+(?:paul|the\s+bible|jesus|scripture|the\s+apostle)\s+say\s+you\s+should\s+die"
+    r"\s+(?:to\s+sin|to\s+self|to\s+the\s+flesh|to\s+the\s+world|daily|every\s+day)"
+    r"(?:\s+(?:daily|every\s+day))?\??"
+    r")"
 )
-_DH_KILL_COND = re.compile(r"\b(?:if|when|after|once)\s+you\s+$")
-_DH_RELIGIOUS = re.compile(
-    r"\b(?:sin|hell|heaven|god|jesus|christ|bible|scripture|forgiv\w*|saved|salvation|soul|"
-    r"church|pastor|eternal)\b"
-)
-_DH_SECOND_PERSON = re.compile(r"\b(?:you|u|your|ur|youre|yourself)\b|you're")
-_DH_GODIE_SUBJECT = re.compile(r"\b(?:jesus|christ|he|god)\b")
-_DH_GODIE_FILLER = re.compile(r"^(?:(?:just|now|please|u|you)\s+)*$")
-_DH_GODIE_AFTER = re.compile(
-    r"\s*(?:(?:on|upon)\s+(?:the|a|that|his)\s+cross\b|"
-    r"for\s+(?:our\s+sins|my\s+sins|sins|sinners|mankind|humanity)\b)"
-)
-_DH_SHOULDDIE_AFTER = re.compile(
-    r"\s*(?:(?:to|unto)\s+(?:sin|sins|self|yourself|ego|pride|the\s+flesh|the\s+world|"
-    r"the\s+old\s+(?:self|man)|your\s+(?:self|flesh|sins))\b|"
-    r"(?:daily|every\s+day|each\s+day)\b)"
-)
+_DH_WRAP_OPEN = "([\u201c\"'\u00ab"
+_DH_WRAP_CLOSE = ")]\u201d\"'\u00bb"
+
+
+def _dh_whole_message_exempt(normalized: str) -> bool:
+    """True only when the ENTIRE message is a closed-form help-seeking / theological frame."""
+    msg = re.sub(r"\s+", " ", normalized).strip()
+    if not msg or len(msg) > _DH_MAX_LEN:
+        return False
+    if _DH_VETO.search(msg) or _DH_VETO_SQUASHED.search(re.sub(r"[^a-z]+", "", msg)):
+        return False
+    body = msg.lstrip(_DH_WRAP_OPEN).rstrip(_DH_WRAP_CLOSE).strip()
+    body = _DH_PREFIX.sub("", body, count=1)
+    # Single sentence: no sentence punctuation except one terminal '?' / '.'.
+    core = body[:-1] if body[-1:] in ("?", ".") else body
+    if any(c in core for c in ".!?;:\n"):
+        return False
+    return _DH_FRAMES.fullmatch(body.rstrip(".")) is not None
 
 
 def _ms_end(extra: str = "") -> str:
@@ -1351,61 +1369,17 @@ class MultiLanguageContentFilter:
 
     @staticmethod
     def _is_directed_harm_exempt(lang: str, normalized: str, m: re.Match[str]) -> bool:
-        """True when an English directed-harm match is a help-seeking or theological use.
+        """True when the WHOLE message is a closed-form help-seeking / theological question.
 
         BITB-238: "Is it a sin to kill yourself?", "Why did Jesus have to go die on the
-        cross?", "Does Paul say you should die to sin daily?". Only English rules exist; any
-        other language returns False. ``normalized`` must already be passed through
-        :func:`normalize_text`. An insult later in the same clause vetoes every exemption.
+        cross?", "Does Paul say you should die to sin daily?". Strict allowlist: only English
+        rules exist (other languages return False) and the exemption applies only when the
+        entire message is a single sentence free of hostile words that fully matches one
+        frame. ``normalized`` must already be passed through :func:`normalize_text`.
         """
         if lang != "en":
             return False
-        trigger = re.sub(r"\s+", " ", m.group(0)).strip()
-        start = m.start()
-        clause_start = max(normalized.rfind(c, 0, start) for c in _DH_BOUNDARY_CHARS) + 1
-        before = normalized[clause_start:start][-_DH_BEFORE_CAP:]
-        before_s = before.lstrip()
-        after_full = normalized[m.end() :]
-        clause_end = min(
-            (i for i in (after_full.find(c) for c in ".!?;\n") if i >= 0), default=len(after_full)
-        )
-        clause_after = after_full[:clause_end]
-        if _DH_VETO.search(clause_after) or _DH_ENCOURAGE.search(after_full):
-            return False
-        has_q = after_full[clause_end : clause_end + 1] == "?"
-        if _DH_KILL_TRIGGER.match(trigger):
-            return MultiLanguageContentFilter._kill_exempt(before, before_s, clause_after, has_q)
-        if _DH_GODIE_TRIGGER.match(trigger):
-            return MultiLanguageContentFilter._godie_exempt(
-                before, before_s, after_full, clause_after, has_q
-            )
-        if _DH_SHOULDDIE_TRIGGER.match(trigger):
-            return bool(_DH_SHOULDDIE_AFTER.match(after_full))
-        return False
-
-    @staticmethod
-    def _kill_exempt(before: str, before_s: str, clause_after: str, has_q: bool) -> bool:
-        question = bool(_DH_QUESTION_START.match(before_s))
-        if question and _DH_KILL_MORAL.search(before):
-            return True
-        if _DH_KILL_WANT.search(before):
-            return True
-        if _DH_KILL_COND.search(before):
-            # The cue must sit inside this clause, and the clause must be a question.
-            return has_q or (question and bool(_DH_RELIGIOUS.search(before + clause_after)))
-        return False
-
-    @staticmethod
-    def _godie_exempt(
-        before: str, before_s: str, after_full: str, clause_after: str, has_q: bool
-    ) -> bool:
-        if _DH_GODIE_FILLER.match(before_s) or _DH_SECOND_PERSON.search(before):
-            return False
-        if not _DH_GODIE_SUBJECT.search(before):
-            return False
-        if not (has_q or _DH_QUESTION_START.match(before_s)):
-            return False
-        return bool(_DH_GODIE_AFTER.match(after_full)) or not clause_after.strip()
+        return _dh_whole_message_exempt(normalized)
 
     def find_directed_harm_violation(
         self, normalized: str, preferred: str | None = None
