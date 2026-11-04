@@ -1,4 +1,4 @@
-# BITB-264: Directed-Harm Patterns Miss "Killing Yourself" Taunts and "You Should" Wishes
+# BITB-266: Directed-Harm Patterns Miss "Killing Yourself" Taunts and "You Should" Wishes
 
 **Status:** 🎯 Todo
 **Priority:** P2

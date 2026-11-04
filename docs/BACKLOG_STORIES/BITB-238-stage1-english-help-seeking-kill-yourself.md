@@ -39,4 +39,4 @@ The exemptions are deliberately narrow and regex-based, so some benign phrasings
 
 ## Follow-ups
 
-- BITB-264: directed-harm taunt gaps found while verifying this story (pre-existing on main).
+- BITB-266: directed-harm taunt gaps found while verifying this story (pre-existing on main).
