@@ -16,7 +16,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.content_safety import AMBIGUOUS_REASON, ContentSafetyService
-from utils.security import MultiLanguageContentFilter
+from utils.security import MultiLanguageContentFilter, normalize_text
 
 LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
 BLOCK = "keyword_violation:violence (fallback)"
@@ -124,16 +124,66 @@ NARRATIVE_BENIGN = [
     ("en", "Why did Saul want to kill David?"),
     ("en", "Why did Cain murder his brother?"),
     ("en", "Why did God kill the firstborn of Egypt?"),
-    ("en", "Thou shalt not kill - what does it mean?"),
     ("ar", "لماذا قتل قايين هابيل في سفر التكوين؟"),
     ("ar", "كيف قتل داود جليات؟"),
-    ("ar", "لماذا أراد شاول أن يقتل داود؟"),
-    ("ar", "ماذا تعني وصية لا تقتل؟"),
     ("fr", "Pourquoi Caïn a-t-il voulu tuer Abel ?"),
     ("de", "Warum wollte Saul David töten?"),
     ("it", "Perché Caino volle uccidere Abele?"),
     ("es", "¿Por qué Caín quiso matar a Abel?"),
     ("pt", "Por que Caim quis matar Abel?"),
+    # BITB-257 option A: a Bible anchor (person or book name, digits normalized) is enough.
+    ("ar", "داود قتل جليات"),
+    ("ar", "هل قتل داود جليات؟"),
+    ("en", "In 1 Samuel 17, how did David kill Goliath?"),
+    ("en", "Why did the Philistines want to kill Samson?"),
+    ("en", "Why did Moses kill the Egyptian in Exodus?"),
+    ("it", "Perché Caino volle uccidere Abele in Genesi?"),
+    ("it", "Perché volle uccidere Davide, in 1 Samuele?"),
+    ("de", "Warum wollte Saul David töten?"),
+    ("de", "Warum wollte er in Jesaja töten?"),
+    ("es", "¿Por qué quiso matar a Abel en Génesis?"),
+    ("pt", "Por que quis matar Davi, em 1 Samuel?"),
+    ("fr", "Pourquoi a-t-il voulu tuer Moise ?"),
+]
+
+# BITB-257 option A (fail safe): recall regressions of the first narrative guard. Each of these
+# blocked on main and MUST block again: no Bible anchor, a first-person marker anywhere
+# (cover-then-intent), or an Arabic form of the root that is not the standalone word.
+REGRESSIONS_MUST_BLOCK = [
+    ("ar", "هقتلك"),
+    ("ar", "سأقوم بقتل جاري"),
+    ("ar", "أفكر في قتل أبي"),
+    ("ar", "طريقة قتل شخص"),
+    ("ar", "قتلت زوجتي"),
+    ("ar", "لماذا قتل قايين هابيل؟ أريد قتل جاري"),
+    ("ar", "كيف قتل داود جليات؟ سأقتل جاري"),
+    ("ar", "القتل في سفر التكوين"),
+    ("en", "How does a man kill his wife without getting caught"),
+    ("en", "Why did he kill her?"),
+    ("en", "Why did he kill him?"),
+    ("en", "Why did Cain kill Abel? I want to do the same to my brother"),
+    ("en", "Why did Cain kill Abel? We should do it to our boss"),
+    ("en", "Why did Cain kill Abel? I'm going to kill my neighbor"),
+    ("fr", "Il a décidé de tuer sa femme ce soir"),
+    ("fr", "Pourquoi Caïn a-t-il voulu tuer Abel ? Je veux tuer mon voisin"),
+    ("fr", "Pourquoi Caïn a-t-il voulu tuer Abel ? J'ai envie de tuer mon patron"),
+    ("de", "Warum wollte Kain Abel töten? Ich will meinen Nachbarn töten"),
+    ("de", "Warum wollte er seine Frau töten?"),
+    ("it", "Perché Caino volle uccidere Abele? Voglio uccidere il mio vicino"),
+    ("it", "Perché volle uccidere sua moglie?"),
+    ("es", "¿Por qué Caín quiso matar a Abel? Quiero matar a mi vecino"),
+    ("es", "¿Por qué quiso matar a su esposa?"),
+    ("pt", "Por que Caim quis matar Abel? Quero matar meu vizinho"),
+    ("pt", "Por que quis matar a esposa?"),
+]
+
+# Expected trade-offs of option A: these used to pass the first narrative guard but now block
+# because they have no Bible anchor or the Arabic verb is not the standalone word قتل.
+FAIL_SAFE_BLOCKS = [
+    ("en", "Thou shalt not kill - what does it mean?"),  # commandment frame, no anchor
+    ("ar", "ماذا تعني وصية لا تقتل؟"),  # تقتل is not the standalone word, no anchor
+    ("ar", "لماذا أراد شاول أن يقتل داود؟"),  # يقتل is not the standalone word
+    ("en", "God told Saul to kill Agag"),  # declarative, not a question frame
 ]
 
 # BITB-257: first-person / imperative / how-to phrasings that must STILL block.
@@ -237,6 +287,47 @@ def test_threats_still_block_after_narrative_guard(service, lang, text):
     result = _fallback(service, text, lang)
     assert not result.allowed
     assert result.reason == BLOCK
+
+
+@pytest.mark.parametrize("lang,text", REGRESSIONS_MUST_BLOCK + FAIL_SAFE_BLOCKS)
+def test_fail_safe_cases_block_via_find_violence_matches(lang, text):
+    flt = MultiLanguageContentFilter()
+    assert flt.find_violence_matches(normalize_text(text), [lang, "en"])
+
+
+@pytest.mark.parametrize("lang,text", REGRESSIONS_MUST_BLOCK + FAIL_SAFE_BLOCKS)
+def test_fail_safe_cases_block_through_full_keyword_fallback(service, lang, text):
+    r = _fallback(service, text, lang)
+    assert r.allowed is False
+    assert r.reason == BLOCK
+
+
+@pytest.mark.parametrize("lang,text", NARRATIVE_BENIGN)
+def test_narrative_cases_have_no_matches_in_own_language(lang, text):
+    flt = MultiLanguageContentFilter()
+    if lang in ("en", "it", "de", "es", "fr", "pt", "ar"):
+        assert not flt.find_violence_matches(normalize_text(text), [lang, "en"])
+
+
+def test_anchors_derive_book_names_from_registry_and_skip_generic_words():
+    from utils import security
+
+    anchors = security._BIBLE_NARRATIVE_ANCHORS
+
+    assert set(anchors) == {"en", "it", "de", "es", "fr", "pt", "ar"}
+    assert anchors["de"].search(normalize_text("im Buch Jesaja"))
+    assert anchors["ar"].search(normalize_text("في سفر التكوين"))
+    for lang, word in [
+        ("en", "God"),
+        ("fr", "Dieu"),
+        ("de", "Gott"),
+        ("it", "Dio"),
+        ("es", "Dios"),
+        ("pt", "Deus"),
+        ("ar", "الله"),
+        ("en", "numbers"),
+    ]:
+        assert not anchors[lang].search(normalize_text(word)), (lang, word)
 
 
 def test_narrative_guard_never_applies_to_nouns(service):

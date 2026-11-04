@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-04: BITB-257 🔍 In review — fail-safe narrative guard (option A): exemption needs a Bible anchor and no first-person marker; ar bare قتل restored; recall regressions re-blocked (#1241)
 - 2026-11-04: BITB-267 created — make ML content-safety classification reliable (cross-provider failover, fallback-share SLO) so the BITB-257 fail-safe keyword fallback is rare (#1241)
 - 2026-11-02: BITB-257 🔍 In review — keyword fallback no longer blocks third-person Bible narrative (en do-support/commandment guard, ar intent-only patterns, fr/it/es/pt/de past-tense guards); first-person threats still blocked with the card
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
@@ -332,7 +333,10 @@ positives on Bible queries. This unblocks it.
 
 Follow-up to BITB-255. With ML safety down, "Why did Cain kill Abel?" (en, ar) is blocked as violence
 and now also gets a threat crisis card. Unblock third-person Bible narrative in the keyword fallback,
-in 11 languages, and flip the BITB-255 xfails.
+in 11 languages, and flip the BITB-255 xfails. **Decision (2026-11-04): option A, fail safe** — the
+narrative exemption needs a known Bible anchor (person/people/book name) and no first-person
+marker; otherwise the keyword fallback blocks. Arabic bare `قتل` is restored (exempt only as the
+standalone word with an anchor). **Follow-ups:** BITB-267
 
 **Full Story:** [`BITB-257-keyword-fallback-bible-narrative-violence.md`](BACKLOG_STORIES/BITB-257-keyword-fallback-bible-narrative-violence.md)
 
