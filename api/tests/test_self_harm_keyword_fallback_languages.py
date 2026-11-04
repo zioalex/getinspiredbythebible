@@ -519,3 +519,25 @@ async def test_check_end_to_end_genuine_threat_still_blocks(hybrid_down, languag
     result = await hybrid_down.check(text, language)
     assert result.allowed is False
     assert "directed_harm" in result.reason
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "language", ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
+)
+@pytest.mark.parametrize(
+    "text",
+    [
+        "go kill  yourself, loser",
+        "Kill  yourself",
+        "kill\tyourself",
+        "Why don't you go die for us",
+        "you should die for christ",
+        "If you kill yourself, God will be glad",
+        "it is ok to kill yourself",
+    ],
+)
+async def test_check_end_to_end_bypass_attempts_still_block(hybrid_down, language, text):
+    result = await hybrid_down.check(text, language)
+    assert result.allowed is False
+    assert "directed_harm" in result.reason

@@ -450,12 +450,19 @@ _DH_END = r"(?=\s*(?:[!.,;]|$))"
 _DH_BOUNDARY_CHARS = ".!?;:\n\u00bf\u00a1"
 _DH_BEFORE_CAP = 80
 _DH_VETO = re.compile(
-    r"\b(?:loser|idiot|moron|bitch|stupid|scum|worthless|freak|retard|"
+    r"\b(?:loser|idiot|moron|bitch|stupid|scum|worthless|freak|retard|clown|trash|pathetic|"
+    r"garbage|dumb|ugly|useless|fool|jerk|coward|disgusting|waste|shit|ass|"
     r"nobody\s+(?:cares|will\s+miss|would\s+care|would\s+miss))\b"
 )
+# Encouragement anywhere later in the message cancels every exemption.
+_DH_ENCOURAGE = re.compile(r"\b(?:do\s+it|go\s+ahead|act\s+on\s+it)\b")
 _DH_KILL_TRIGGER = re.compile(r"^(?:go\s+)?kill\s+yourself$")
 _DH_GODIE_TRIGGER = re.compile(r"^go\s+die$")
 _DH_SHOULDDIE_TRIGGER = re.compile(r"^you\s+should\s+die$")
+_DH_QUESTION_START = re.compile(
+    r"^[\W_]*(?:[\w\s']{0,30},\s*)?(?:is|was|would|could|why|does|do|did|can|should|will|are|how|"
+    r"what)\b"
+)
 _DH_KILL_MORAL = re.compile(
     r"\b(?:is|was|would|why\s+is)\s+(?:it\s+)?(?:be\s+)?(?:a\s+)?"
     r"(?:sin|sinful|wrong|ok|okay|forgivable|selfish|allowed|normal|biblical)\s+to"
@@ -466,23 +473,21 @@ _DH_KILL_WANT = re.compile(
     r"\s+(?:to\s+)?$"
 )
 _DH_KILL_COND = re.compile(r"\b(?:if|when|after|once)\s+you\s+$")
-_DH_KILL_COND_CUE = re.compile(
-    r"\?|\b(?:sin|hell|heaven|god|jesus|christ|bible|scripture|forgiv\w*|saved|salvation|soul|"
+_DH_RELIGIOUS = re.compile(
+    r"\b(?:sin|hell|heaven|god|jesus|christ|bible|scripture|forgiv\w*|saved|salvation|soul|"
     r"church|pastor|eternal)\b"
 )
+_DH_SECOND_PERSON = re.compile(r"\b(?:you|u|your|ur|youre|yourself)\b|you're")
+_DH_GODIE_SUBJECT = re.compile(r"\b(?:jesus|christ|he|god)\b")
 _DH_GODIE_FILLER = re.compile(r"^(?:(?:just|now|please|u|you)\s+)*$")
 _DH_GODIE_AFTER = re.compile(
     r"\s*(?:(?:on|upon)\s+(?:the|a|that|his)\s+cross\b|"
-    r"for\s+(?:us|our\s+sins|my\s+sins|sins|sinners|mankind|humanity|the\s+world|christ|"
-    r"jesus|god)\b)"
+    r"for\s+(?:our\s+sins|my\s+sins|sins|sinners|mankind|humanity)\b)"
 )
-_DH_GODIE_FIGURE = re.compile(r"\b(?:jesus|christ|god|lord|messiah)\b")
-_DH_GODIE_QUESTION = re.compile(r"\?|\b(?:why|how|did|does|do|was|were|what|when|who)\b")
 _DH_SHOULDDIE_AFTER = re.compile(
     r"\s*(?:(?:to|unto)\s+(?:sin|sins|self|yourself|ego|pride|the\s+flesh|the\s+world|"
     r"the\s+old\s+(?:self|man)|your\s+(?:self|flesh|sins))\b|"
-    r"(?:daily|every\s+day|each\s+day|with\s+(?:him|christ|jesus))\b|"
-    r"for\s+(?:christ|jesus|god|the\s+lord|the\s+gospel|the\s+faith|others|your\s+friends)\b)"
+    r"(?:daily|every\s+day|each\s+day)\b)"
 )
 
 
@@ -1181,13 +1186,13 @@ class MultiLanguageContentFilter:
     # Directed harm patterns (indicates harmful intent, not help-seeking)
     DIRECTED_HARM_PATTERNS = {
         "en": [
-            r"\bgo kill yourself\b",
-            r"\bkill yourself\b",
-            r"\bgo die\b",
-            r"\byou should die\b",
-            r"\bi will kill you\b",
-            r"\bi want to kill you\b",
-            r"\bgo fuck yourself\b",
+            r"\bgo\s+kill\s+yourself\b",
+            r"\bkill\s+yourself\b",
+            r"\bgo\s+die\b",
+            r"\byou\s+should\s+die\b",
+            r"\bi\s+will\s+kill\s+you\b",
+            r"\bi\s+want\s+to\s+kill\s+you\b",
+            r"\bgo\s+fuck\s+yourself\b",
         ],
         "it": [
             r"\bvattene a fanculo\b",
@@ -1364,23 +1369,43 @@ class MultiLanguageContentFilter:
         clause_end = min(
             (i for i in (after_full.find(c) for c in ".!?;\n") if i >= 0), default=len(after_full)
         )
-        if _DH_VETO.search(after_full[:clause_end]):
+        clause_after = after_full[:clause_end]
+        if _DH_VETO.search(clause_after) or _DH_ENCOURAGE.search(after_full):
             return False
+        has_q = after_full[clause_end : clause_end + 1] == "?"
         if _DH_KILL_TRIGGER.match(trigger):
-            if _DH_KILL_MORAL.search(before) or _DH_KILL_WANT.search(before):
-                return True
-            if _DH_KILL_COND.search(before):
-                return bool(_DH_KILL_COND_CUE.search(normalized))
-            return False
+            return MultiLanguageContentFilter._kill_exempt(before, before_s, clause_after, has_q)
         if _DH_GODIE_TRIGGER.match(trigger):
-            if _DH_GODIE_FILLER.match(before_s):
-                return False
-            if _DH_GODIE_AFTER.match(after_full):
-                return True
-            return bool(_DH_GODIE_FIGURE.search(before) and _DH_GODIE_QUESTION.search(before))
+            return MultiLanguageContentFilter._godie_exempt(
+                before, before_s, after_full, clause_after, has_q
+            )
         if _DH_SHOULDDIE_TRIGGER.match(trigger):
             return bool(_DH_SHOULDDIE_AFTER.match(after_full))
         return False
+
+    @staticmethod
+    def _kill_exempt(before: str, before_s: str, clause_after: str, has_q: bool) -> bool:
+        question = bool(_DH_QUESTION_START.match(before_s))
+        if question and _DH_KILL_MORAL.search(before):
+            return True
+        if _DH_KILL_WANT.search(before):
+            return True
+        if _DH_KILL_COND.search(before):
+            # The cue must sit inside this clause, and the clause must be a question.
+            return has_q or (question and bool(_DH_RELIGIOUS.search(before + clause_after)))
+        return False
+
+    @staticmethod
+    def _godie_exempt(
+        before: str, before_s: str, after_full: str, clause_after: str, has_q: bool
+    ) -> bool:
+        if _DH_GODIE_FILLER.match(before_s) or _DH_SECOND_PERSON.search(before):
+            return False
+        if not _DH_GODIE_SUBJECT.search(before):
+            return False
+        if not (has_q or _DH_QUESTION_START.match(before_s)):
+            return False
+        return bool(_DH_GODIE_AFTER.match(after_full)) or not clause_after.strip()
 
     def find_directed_harm_violation(
         self, normalized: str, preferred: str | None = None

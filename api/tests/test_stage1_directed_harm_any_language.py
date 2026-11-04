@@ -221,6 +221,29 @@ GENUINE_THREATS_EN = [
     "Go die for your sins",
     "What happens if you kill yourself? Find out, go kill yourself.",
     "Is it a sin to kill yourself? You idiot, go kill yourself.",
+    # BITB-238 verifier findings: whitespace variants
+    "go kill  yourself, loser",
+    "Kill  yourself",
+    "kill\tyourself",
+    "Go  die",
+    "You  should  die",
+    # BITB-238 verifier findings: taunts dressed as theology
+    "Why don't you go die for us",
+    "Why don't you go die for the world, you clown",
+    "why dont u go die for jesus",
+    "Seriously, go die for us",
+    "why not go die for the world",
+    "you should die for others",
+    "you should die for your friends, trash",
+    "you should die for christ",
+    "Did Jesus tell you to go die",
+    "Why did Jesus go die for our sins, you clown",
+    # BITB-238 verifier findings: frame / clause / encouragement bypasses
+    "If you kill yourself, God will be glad",
+    "Is it a sin to kill yourself? Do it anyway",
+    "it is ok to kill yourself",
+    "Is it a sin to kill yourself? Go ahead.",
+    "What happens if you kill yourself? Just do it",
 ]
 
 
