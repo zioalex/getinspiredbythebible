@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-02
+**Last Updated:** 2026-11-04
 
 ## Changelog
 
@@ -21,6 +21,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-11-02: BITB-257 🔍 In review — keyword fallback no longer blocks third-person Bible narrative (en do-support/commandment guard, ar intent-only patterns, fr/it/es/pt/de past-tense guards); first-person threats still blocked with the card
+- 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
 - 2026-10-30: BITB-262 created — Stage 2: capability×client parity registry, living successor of docs/WIP/android-feature-parity-plan.md; first red row expected: BITB-042; gated on BITB-261
@@ -336,9 +337,9 @@ in 11 languages, and flip the BITB-255 xfails.
 
 ---
 
-### 🎯 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
+### 🔄 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
-**Status:** 🎯 Todo
+**Status:** 🔄 In Review
 **Size:** S
 **Created:** 2026-10-29
 

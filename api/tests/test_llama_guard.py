@@ -601,3 +601,48 @@ async def test_harmful_content_parameterized(text, expected_category):
         assert result.reason == "violence_or_threat_detected"
     elif expected_category == "S10":
         assert result.reason == "hate_speech_detected"
+
+
+@pytest.mark.parametrize(
+    "categories", ["S11,S6", "S6,S11", "S11,S10", "S11,S1", "S11,S6,S10"], ids=str
+)
+@pytest.mark.parametrize("lang", ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"])
+def test_s11_combined_maps_to_self_harm_card_and_template(categories, lang):
+    """BITB-258: S11 + other categories must yield a crisis card and self-harm reply."""
+    from chat.prompts import get_blocked_response
+    from utils.crisis_resources import CrisisKind, classify_crisis
+
+    provider = LlamaGuardProvider(api_key="test-key")
+    is_safe, cats = provider._parse_llama_guard_response(f"unsafe\n{categories}")
+    result = provider._map_categories_to_result(is_safe, cats, "h")
+
+    assert result.allowed is False
+    assert "S11" in result.categories
+    outcome = type(
+        "O",
+        (),
+        {
+            "allowed": result.allowed,
+            "reason": result.reason,
+            "compassionate": False,
+            "is_help_seeking": result.is_help_seeking,
+            "categories": result.categories,
+        },
+    )()
+    assert classify_crisis(outcome) == CrisisKind.SELF_HARM
+    assert get_blocked_response(result.reason, lang) == get_blocked_response(
+        "self_harm_detected", lang
+    )
+    assert get_blocked_response(result.reason, lang) != get_blocked_response(
+        "unsafe_content_detected", lang
+    )
+
+
+def test_non_s11_combinations_unchanged():
+    provider = LlamaGuardProvider(api_key="test-key")
+    assert provider._map_categories_to_result(False, ["S6", "S10"], "h").reason == (
+        "hate_speech_detected"
+    )
+    assert provider._map_categories_to_result(False, ["S6"], "h").reason == (
+        "unsafe_content_detected"
+    )
