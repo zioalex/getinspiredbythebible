@@ -441,6 +441,73 @@ _MS_PUNCT = "[.,;:!?)\\]}\"'…。、」』）،؛؟।\n]"
 _DH_START = r"(?:^|[.!;:\n]\s*|[¡¿]\s*)"
 _DH_END = r"(?=\s*(?:[!.,;]|$))"
 
+# BITB-238: English help-seeking / theological exemptions for the directed-harm table.
+# The English patterns ("kill yourself", "go die", "you should die") run under every language
+# code (BITB-193), so questions like "Is it a sin to kill yourself?" or "Why did Jesus have to go
+# die on the cross?" were blocked as directed harm. The exemption is a STRICT WHOLE-MESSAGE
+# ALLOWLIST: it applies only when the ENTIRE normalized message is a single sentence, carries no
+# hostile / insulting / encouraging word anywhere, and fully matches one closed-form frame.
+# Anything else (unusual phrasings included) takes the normal block path.
+_DH_PREFIX = re.compile(r"^(?:pastor,\s*)?(?:quick\s+question:\s*)?")
+_DH_MAX_LEN = 200
+_DH_VETO = re.compile(
+    r"\b(?:loser|idiot|moron|clown|trash|scum|retard\w*|pathetic|worthless|deserve\w*|"
+    r"try\s+it|find\s+out|your\s+turn|so\s+should\s+you|go\s+on|go\s+ahead|do\s+it|"
+    r"just\s*do|let\s+us\s+know|for\s+everyone|i\s+hope|i\s+wish|hope|wish|we\s+all|lol|"
+    r"asking\s+for\s+you|act\s+on\s+it|bitch|stupid|freak|dumb|ugly|useless|fool|jerk|"
+    r"coward|disgusting|waste|shit|ass|nobody|no\s*one)\b"
+    r"|\byou\s+should(?!\s+die\s+(?:to|unto)\s|\s+die\s+daily|\s+die\s+every)"
+)
+# Same veto with every non-letter dropped, so "d o it" / "d.o.i.t" are caught too.
+_DH_VETO_SQUASHED = re.compile(
+    r"doit|tryit|findout|yourturn|soshouldyou|goahead|justdo|letusknow|foreveryone|ihope|"
+    r"iwish|weall|askingforyou|lol|actonit"
+)
+_DH_ADJ = (
+    r"(?:a\s+)?(?:sin|sinful|wrong|ok|okay|forgivable|selfish|allowed|normal|biblical|"
+    r"unforgivable)"
+)
+_DH_FRAMES = re.compile(
+    r"(?:"
+    # (a) kill-yourself help-seeking: moral frame
+    r"(?:is\s+it|is\s+that|was\s+it|would\s+it\s+be|can\s+it\s+be|could\s+it\s+be|"
+    r"why\s+is\s+it)\s+" + _DH_ADJ + r"\s+to\s+kill\s+yourself\??"
+    # (a) religious-outcome conditionals
+    r"|what\s+happens\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|do\s+you\s+go\s+to\s+(?:hell|heaven)\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|will\s+god\s+forgive\s+you\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|(?:if|when)\s+you\s+kill\s+yourself,\s*do\s+you\s+go\s+to\s+(?:heaven|hell)\??"
+    # (a) want / urge frame, closed form only
+    r"|(?:how\s+do\s+i\s+stop|how\s+to\s+stop)\s+wanting\s+to\s+kill\s+yourself\??"
+    r"|is\s+it\s+(?:wrong|a\s+sin|normal|ok)\s+to\s+want\s+to\s+kill\s+yourself\??"
+    # (b) 'go die' theological
+    r"|(?:why\s+did|did)\s+(?:jesus|christ)\s+(?:have\s+to\s+)?go\s+die"
+    r"(?:\s+(?:on\s+the\s+cross|for\s+(?:our|my)\s+sins|for\s+(?:sinners|mankind|humanity)))?\?"
+    # (c) 'you should die' theological
+    r"|does\s+(?:paul|the\s+bible|jesus|scripture|the\s+apostle)\s+say\s+you\s+should\s+die"
+    r"\s+(?:to\s+sin|to\s+self|to\s+the\s+flesh|to\s+the\s+world|daily|every\s+day)"
+    r"(?:\s+(?:daily|every\s+day))?\??"
+    r")"
+)
+_DH_WRAP_OPEN = "([\u201c\"'\u00ab"
+_DH_WRAP_CLOSE = ")]\u201d\"'\u00bb"
+
+
+def _dh_whole_message_exempt(normalized: str) -> bool:
+    """True only when the ENTIRE message is a closed-form help-seeking / theological frame."""
+    msg = re.sub(r"\s+", " ", normalized).strip()
+    if not msg or len(msg) > _DH_MAX_LEN:
+        return False
+    if _DH_VETO.search(msg) or _DH_VETO_SQUASHED.search(re.sub(r"[^a-z]+", "", msg)):
+        return False
+    body = msg.lstrip(_DH_WRAP_OPEN).rstrip(_DH_WRAP_CLOSE).strip()
+    body = _DH_PREFIX.sub("", body, count=1)
+    # Single sentence: no sentence punctuation except one terminal '?' / '.'.
+    core = body[:-1] if body[-1:] in ("?", ".") else body
+    if any(c in core for c in ".!?;:\n"):
+        return False
+    return _DH_FRAMES.fullmatch(body.rstrip(".")) is not None
+
 
 def _ms_end(extra: str = "") -> str:
     """Clause-end guard: optional filler words, then punctuation or end of text."""
@@ -969,6 +1036,9 @@ class MultiLanguageContentFilter:
         "en": [
             r"\bsuicide\b",
             r"\bkill myself\b",
+            # BITB-238: exempted help-seeking questions ("Is it a sin to kill yourself?")
+            # route to the compassionate path instead of the violence block.
+            r"\bkill(?:ing)?\s+yourself\b",
             r"\bend my life\b",
             r"\bself.harm\b",
             r"\bcut myself\b",
@@ -1134,13 +1204,13 @@ class MultiLanguageContentFilter:
     # Directed harm patterns (indicates harmful intent, not help-seeking)
     DIRECTED_HARM_PATTERNS = {
         "en": [
-            r"\bgo kill yourself\b",
-            r"\bkill yourself\b",
-            r"\bgo die\b",
-            r"\byou should die\b",
-            r"\bi will kill you\b",
-            r"\bi want to kill you\b",
-            r"\bgo fuck yourself\b",
+            r"\bgo\s+kill\s+yourself\b",
+            r"\bkill\s+yourself\b",
+            r"\bgo\s+die\b",
+            r"\byou\s+should\s+die\b",
+            r"\bi\s+will\s+kill\s+you\b",
+            r"\bi\s+want\s+to\s+kill\s+you\b",
+            r"\bgo\s+fuck\s+yourself\b",
         ],
         "it": [
             r"\bvattene a fanculo\b",
@@ -1297,13 +1367,29 @@ class MultiLanguageContentFilter:
             for m in self._murder_suicide_regex.finditer(normalized)
         ]
 
+    @staticmethod
+    def _is_directed_harm_exempt(lang: str, normalized: str, m: re.Match[str]) -> bool:
+        """True when the WHOLE message is a closed-form help-seeking / theological question.
+
+        BITB-238: "Is it a sin to kill yourself?", "Why did Jesus have to go die on the
+        cross?", "Does Paul say you should die to sin daily?". Strict allowlist: only English
+        rules exist (other languages return False) and the exemption applies only when the
+        entire message is a single sentence free of hostile words that fully matches one
+        frame. ``normalized`` must already be passed through :func:`normalize_text`.
+        """
+        if lang != "en":
+            return False
+        return _dh_whole_message_exempt(normalized)
+
     def find_directed_harm_violation(
         self, normalized: str, preferred: str | None = None
     ) -> tuple[str, str, str] | None:
         """Search directed-harm patterns of EVERY language, then hate speech (BITB-193).
 
         The ``preferred`` language is tried first. ``normalized`` must already be passed
-        through :func:`normalize_text`.
+        through :func:`normalize_text`. English help-seeking / theological phrasings
+        ("Is it a sin to kill yourself?") are skipped (BITB-238); a later genuine threat
+        in the same message still returns a hit.
 
         Returns:
             ``(violation_type, language, matched_text)`` or ``None``. Hate speech reports
@@ -1314,8 +1400,11 @@ class MultiLanguageContentFilter:
             langs.remove(preferred)
             langs.insert(0, preferred)
         for lang in langs:
-            m = self._directed_harm_regex[lang].search(normalized)
-            if m:
+            for m in self._directed_harm_regex[lang].finditer(normalized):
+                # BITB-238: skip help-seeking / theological uses; a later genuine threat
+                # in the same message still blocks.
+                if self._is_directed_harm_exempt(lang, normalized, m):
+                    continue
                 return ViolationType.DIRECTED_HARM.value, lang, m.group(0)
         m = self._hate_speech_regex.search(normalized)
         if m:

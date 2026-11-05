@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-01
+**Last Updated:** 2026-11-04
 
 ## Changelog
 
@@ -20,6 +20,9 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
+- 2026-11-04: BITB-266 opened — directed-harm taunt gaps ("killing yourself", "you should") found verifying BITB-238
+- 2026-11-04: BITB-238 🔍 In Review — exempt help-seeking/theological English phrases from Stage 1 directed harm
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
@@ -490,6 +493,17 @@ are anchored to remove cross-language false positives, and pt "Quero que eu morr
 **Follow-ups:** BITB-240, BITB-238, BITB-239.
 
 Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
+
+### 🎯 BITB-266: Directed-Harm Patterns Miss "Killing Yourself" Taunts and "You Should" Wishes
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-04
+
+Follow-up to BITB-238: "I hope you're thinking about killing yourself" and "Is it a sin? You should, loser." match no directed-harm pattern.
+
+Full story: [`BITB-266-directed-harm-taunt-pattern-gaps.md`](BACKLOG_STORIES/BITB-266-directed-harm-taunt-pattern-gaps.md)
 
 ### 🎯 BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 

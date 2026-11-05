@@ -17,6 +17,7 @@ Help-seeking examples (ALLOW):
   - "I want to die" → cry for help, respond with hope/crisis resources
   - "I'm using drugs, how do I stop?" → seeking recovery guidance
   - "I feel like shit" → expressing pain, respond with comfort
+  - "Is it a sin to kill yourself?" → help-seeking question, compassionate path (BITB-238)
 
 Harmful intent examples (BLOCK):
   - "Go kill yourself" → directed harm
