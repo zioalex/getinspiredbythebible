@@ -1,6 +1,6 @@
 # BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (2026-11-05, PR pending)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-12
@@ -33,6 +33,23 @@ closing brackets; web and Android use a letter-negative boundary.
 
 ## Acceptance Criteria
 
-- [ ] The four inputs above produce `John 3:16` in the backend, web and Android (shared corpus cases)
-- [ ] Grounding integration test through `chat()` and `chat_stream()` for `「…」约翰福音3：16` with no space
-- [ ] 11-language corpus does not regress; boundary parity documented in AGENTS.md pitfall #2
+- [x] The four inputs above produce `John 3:16` in the backend, web and Android (shared corpus cases)
+- [x] Grounding integration test through `chat()` and `chat_stream()` for `「…」约翰福音3：16` with no space
+- [x] 11-language corpus does not regress; boundary parity documented in AGENTS.md pitfall #2
+
+## Resolution
+
+Backend `_build_verse_pattern()` lookbehind (`api/utils/verse_parser.py`) now also admits the closing
+brackets/quotes in the new `_BOUNDARY_CLOSERS` constant (`) ] " ' 》 」 』 ） 】 ］ ＂ ＇ “ ” ‘ ’ « » ‹ › „`).
+It stays a whitelist (not `(?<!\w)`), so letter-glued starts (`abcJohn`, `_John`, `3John`) are still
+rejected. Tests: `TestCitationAfterClosingBracket` (11 languages x 15 closers x 3 colon/digit forms,
+false-positive guards, span start), `chat()` / `chat_stream()` grounding with no space after `」`,
+a `verse_grammar.json` bracket-pair contract test, and 8 shared-corpus cases
+(`closing_*` in `tests/fixtures/verse_reference_corpus.json`).
+
+Verified: backend and web corpus tests pass. The Android `VerseCorpusParityTest` could not run in the
+sandbox (Gradle cannot fetch the AGP plugin behind the proxy); CI is the gate for Android.
+
+## Follow-ups
+
+- BITB-267 — backend boundary gap for bold `**John 3:16**` and starts like `—John` / `¿Juan`

@@ -429,6 +429,79 @@
       "origin": "BITB-179 negative control — a book and chapter with a dangling fullwidth colon and no verse is not a verse reference.",
       "skip": ["android"],
       "skipReason": "BITB-179 known divergence — Android deliberately links chapter-only references ('Psalm 23' -> verse://Psalm/23), so '约翰福音3：' (book + chapter + dangling colon) yields a chapter link; Python and web require a verse. Same as the ASCII '约翰福音3:'."
+    },
+    {
+      "id": "closing_corner_bracket_no_space_john_zh",
+      "input": "「神爱世人」约翰福音3:16。",
+      "language": "zh",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-189 — a citation directly after a closing corner bracket (no space) is detected.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "closing_corner_bracket_fullwidth_colon_john_zh",
+      "input": "「神爱世人」约翰福音3：16",
+      "language": "zh",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-189 — closing corner bracket then a fullwidth-colon citation.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "closing_corner_bracket_ascii_john_en",
+      "input": "」John 3:16",
+      "language": "en",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-189 — a bare closing corner bracket directly before an English citation.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "closing_corner_bracket_spaced_john_zh",
+      "input": "「神爱世人」 约翰福音3:16",
+      "language": "zh",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-189 — regression guard — the spaced form keeps working.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "closing_quote_john_ar",
+      "input": "\"محبة\"يوحنا 3:16",
+      "language": "ar",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-189 — a closing quote directly before an Arabic book name.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "closing_guillemet_john_ru",
+      "input": "«Любовь»Иоанна 3:16",
+      "language": "ru",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-189 — a closing guillemet directly before a Russian book name.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "closing_fullwidth_paren_john_ko",
+      "input": "（x）요한복음3:16",
+      "language": "ko",
+      "expected": { "book": "john", "chapter": 3, "verseStart": 16, "verseEnd": null },
+      "origin": "BITB-189 — a closing fullwidth paren directly before a Korean book name.",
+      "skip": [],
+      "skipReason": ""
+    },
+    {
+      "id": "closing_bracket_non_book_word",
+      "input": "」Johnny 3:16",
+      "language": "en",
+      "expected": null,
+      "expectNone": true,
+      "origin": "BITB-189 negative control — a closing bracket followed by a non-book word ('Johnny') and digits is not a reference.",
+      "skip": [],
+      "skipReason": ""
     }
   ]
 }

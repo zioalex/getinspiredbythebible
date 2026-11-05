@@ -607,7 +607,10 @@ reference the parser misses, or a translation with no rows — it no-ops as
    (so it never resolved from the DB and grounding became a no-op), while the
    frontend/Android use a *letter-negative* boundary and didn't share the bug.
    Keep the three parsers in sync **by boundary behaviour**, not just book lists;
-   always test parenthesized + CJK/fullwidth-punctuation citations
+   always test parenthesized + CJK/fullwidth-punctuation citations.
+   The backend whitelist also covers closing brackets/quotes (BITB-189), so
+   `「…」约翰福音3:16` parses with no space; bold `**John 3:16**` and starts like
+   `—John` / `¿Juan` remain a known backend-vs-web/Android boundary gap (BITB-267)
 3. **Three verse parsers must stay in sync** - Changes to verse detection
    must be mirrored across backend, frontend, and Android
 4. **Translation registry is the source of truth** - Never hardcode book
