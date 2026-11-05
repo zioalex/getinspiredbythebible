@@ -311,6 +311,14 @@ FAMOUS_PRAYERS = {
 CV_PATTERN = r"(\d+)[:\,：](\d+)(?:\s*[-–～〜]\s*(\d+))?"
 
 
+# BITB-189: closing brackets/quotes after which a book name may start immediately.
+# Used inside a regex character class (so `]` is escaped).
+_BOUNDARY_CLOSERS = (
+    r")\]\"'\u300b\u300d\u300f\uff09\u3011\uff3d\uff02\uff07"
+    r"\u201c\u201d\u2018\u2019\u00ab\u00bb\u2039\u203a\u201e"
+)
+
+
 def _build_verse_pattern() -> str:
     """Build the regex pattern for matching verse references.
 
@@ -335,9 +343,12 @@ def _build_verse_pattern() -> str:
     # (otherwise they are silently dropped and never resolve from the DB), plus the
     # Chinese guillemet 《 (U+300A) and Korean corner brackets
     # 「 (U+300C) and 『 (U+300E).
+    # BITB-189: also a closing bracket/quote (_BOUNDARY_CLOSERS) so a citation glued
+    # to a quote, e.g. 「神爱世人」约翰福音3:16, parses. Still a whitelist (not \w):
+    # letter-glued starts like "abcJohn" or "3John" stay rejected.
     # The optional closing bracket class [\u300b\u300d\u300f] after the book name
     # handles 《约翰福音》3:16 and 「요한복음」3:16 / 『시편』23:1.
-    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff\u300a\u300c\u300e([\uff08\u3010]))({book_alternatives})[\u300b\u300d\u300f]?\s*{cv_pattern}"
+    return rf"(?:^|(?<=\s)|(?<=[\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u0900-\u097f\u0600-\u06ff\u300a\u300c\u300e([\uff08\u3010{_BOUNDARY_CLOSERS}]))({book_alternatives})[\u300b\u300d\u300f]?\s*{cv_pattern}"
 
 
 # Compiled regex cached at module load time — avoids rebuilding the ~710-term
