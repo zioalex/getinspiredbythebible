@@ -1,6 +1,6 @@
 # BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
 
-**Status:** ✅ Done (2026-11-05, PR pending)
+**Status:** ✅ Done (2026-11-05, PR #1250)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-12

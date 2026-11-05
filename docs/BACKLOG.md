@@ -21,7 +21,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
-- 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added
+- 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
@@ -3768,7 +3768,7 @@ Full story: [`BITB-197-blocked-templates-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-1
 
 ### ✅ BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
 
-**Status:** ✅ Done (PR pending)
+**Status:** ✅ Done (PR #1250, 2026-11-05)
 **Completed:** 2026-11-05
 **Priority:** P2
 **Size:** S
