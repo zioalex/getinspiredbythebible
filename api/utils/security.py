@@ -569,6 +569,90 @@ _HI_NOT_SELF = r"(?<!खुद को )(?<!ख़ुद को )(?<!अपने
 _HI_NB = r"(?<![\u0900-\u097f\-])"
 
 
+# BITB-257: third-person Bible-narrative guard for the bare English violence verbs.
+# Only VERBS are guarded (never nouns such as bomb/weapon/gun), and only when the text
+# before the match is a do-support frame whose subject is not I/we/you/u ("Why did Cain
+# kill Abel", "How did David kill Goliath", "Why did Saul want to kill David") or a
+# commandment frame ("Thou shalt not kill"). First-person ("Why did I kill him") and
+# bare imperatives ("kill him") are not covered, so they still block.
+_VIOLENCE_NARRATIVE_VERBS = {
+    "en": re.compile(r"kill|murder|slaughter|stab|shoot"),
+    "it": re.compile(r"uccidere"),
+    "de": re.compile(r"töten"),
+    "es": re.compile(r"matar"),
+    "fr": re.compile(r"tuer"),
+    "pt": re.compile(r"matar"),
+}
+_CLAUSE = r"(?:^|[.?!;:\n¿¡]\s*)"
+_IT_CLAUSE_PRONOUN = r"(?![^.?!;:\n]*\bio\b)"
+# A word that is not a first-person / second-person pronoun (en).
+_EN_TOKEN = r"(?:(?!(?:i|me|my|myself|we|us|our|you|u)\b)[\w'\u2019-]+\s+)"
+# normalize_text() maps digits to letters ("1 Samuel" -> "i samuel"), so a numbered book is
+# not mistaken for the pronoun "I".
+# BITB-257: a first-person marker AFTER the match (en) or anywhere in the message (it/es/pt)
+# vetoes the narrative exemption: "How did David kill Goliath so I can do it to my neighbor".
+_VIOLENCE_NARRATIVE_VETO = {
+    "en": (
+        re.compile(
+            r"\bi\b(?!\s+(?:samuel|sam|kings|kgs|chronicles|chr|corinthians|cor|thessalonians"
+            r"|thess|timothy|tim|peter|pet|john|jn)\b)|\bi['\u2019](?:m|ll|d|ve)\b|\bmy\b|\bmyself\b",
+            re.IGNORECASE,
+        ),
+        "after",
+    ),
+    "it": (re.compile(r"\bio\b|\bvoglio\b|\bvorrei\b", re.IGNORECASE), "all"),
+    "es": (re.compile(r"\byo\b|\beu\b", re.IGNORECASE), "all"),
+    "pt": (re.compile(r"\byo\b|\beu\b", re.IGNORECASE), "all"),
+}
+_VIOLENCE_NARRATIVE_BEFORE = {
+    "en": re.compile(
+        r"(?:^|[.?!;:\n]\s*)" + _EN_TOKEN + r"{0,3}?"
+        r"(?:did|didn't|didn\u2019t|does|doesn't)\s+"
+        r"(?!(?:one|someone|anyone|somebody|anybody|everyone|people|a person|it)\b)"
+        + _EN_TOKEN
+        + r"{1,4}?"
+        r"(?:(?:want|try|plan|plot|seek|decide|refuse|intend|attempt|have|need|mean)\s+to\s+)?$"
+        r"|\b(?:thou\s+shalt|thou\s+shall|you\s+shall)\s+not\s+$",
+        re.IGNORECASE,
+    ),
+    # Romance/German third-person past-tense "wanted/tried/decided to kill" frames. Forms
+    # that are ambiguous with the first person (es/pt "queria", pt "quis") need a question
+    # word and no explicit "yo"/"eu"; a first-person pronoun in the clause always blocks.
+    "fr": re.compile(
+        _CLAUSE + r"(?![^.?!;:\n]*\b(?:je|j['\u2019]|nous|tu|moi|on)\b)[^.?!;:\n]*?"
+        r"\b(?:voulu|voulut|voulait|voulaient|essay[aé]|essayèrent|décid[aé]|décidèrent)(?:-(?:t-)?(?:il|elle|ils|elles))?\s+"
+        r"(?:d['\u2019]\s*|de\s+)?$",
+        re.IGNORECASE,
+    ),
+    "it": re.compile(
+        _CLAUSE + _IT_CLAUSE_PRONOUN + r"[^.?!;:\n]*?"
+        r"\b(?:volle|voleva|vollero|volevano|ha voluto|hanno voluto|cercò di|cercarono di|"
+        r"decise di|decisero di)\s+$",
+        re.IGNORECASE,
+    ),
+    "es": re.compile(
+        r"(?:" + _CLAUSE + r"(?![^.?!;:\n]*\b(?:yo|nosotros)\b)[^.?!;:\n]*?"
+        r"(?:\b(?:quiso|quisieron|intentó|intentaron|trató de|trataron de|decidió|decidieron)\s+$"
+        r"|\b(?:por qué|cómo|cuándo|quién|quiénes)\b[^.?!;:\n]*?\bquería\s+$"
+        r"|\b(?:por qué|cómo|cuándo|quién|quiénes)\b[^.?!;:\n]*?\bquería\s+"
+        r"(?:[\wáéíóúñ]+\s+){1,3}$)"
+        r")|(?:" + _CLAUSE + r"(?![^.?!;:\n]*\b(?:eu|nós)\b)"
+        r"(?=[^.?!;:\n]*\b(?:por que|por quê|como|quando|quem)\b)[^.?!;:\n]*?"
+        r"\b(?:quis|quiseram|queria|tentou|tentaram|decidiu|decidiram)\s+(?:[\wáâãéêíóôõúç]+\s+){0,3}$)",
+        re.IGNORECASE,
+    ),
+    "de": re.compile(
+        r"\b(?:warum|wieso|weshalb|wie|wann)\s+(?:wollte|wollten|versuchte|versuchten|sollte)\s+"
+        r"(?!(?:ich|wir|man)\b)(?:[\w'\u2019-]+\s+){1,4}$"
+        r"|\b(?:er|sie|es)\s+(?:wollte|wollten|versuchte|versuchten|beschloss)\s+"
+        r"(?:[\w'\u2019-]+\s+){0,3}$",
+        re.IGNORECASE,
+    ),
+}
+# es/pt share the infinitive "matar", so both languages use the same combined frames.
+_VIOLENCE_NARRATIVE_BEFORE["pt"] = _VIOLENCE_NARRATIVE_BEFORE["es"]
+
+
 class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
@@ -690,7 +774,20 @@ class MultiLanguageContentFilter:
             r"متفجر",
             r"سلاح",
             r"أسلحة",
-            r"قتل",
+            # BITB-257: bare "قتل" (also past-tense "he killed", Cain/Abel) was dropped.
+            # Only intent-bearing forms of the root remain; third-person narrative
+            # ("لماذا قتل قايين هابيل") must not match.
+            # (a) first person / future / imperative: أقتل, سأقتل, سوف أقتل, لأقتل, نقتل, اقتل
+            r"(?<![\u0600-\u06ff])[وف]?(?:سوف\s+|س|ل)?[أان]قتل",
+            # (b) intent verb + verbal noun: أريد قتل / أريد أن أقتل / قررت قتل
+            r"(?:أريد|اريد|أود|اود|أنوي|انوي|أخطط|اخطط|قررت|سأحاول|ساحاول|بدي|عايز|ناوي)"
+            r"\s+(?:أن\s+|ان\s+)?(?:ل)?(?:ال)?قتل",
+            # (c) how-to naming the asker: كيف يمكنني قتل / طريقة قتل
+            r"(?:كيف|طريقة|طرق)\s+(?:يمكنني\s+|يمكن\s+|أستطيع\s+|استطيع\s+)(?:أن\s+|ان\s+)?(?:ال)?قتل",
+            r"(?:طريقة|طرق)\s+(?:ل|ال)قتل",
+            # (d) "going to / trying to" + لقتل: أنا ذاهب لقتل زوجي, سأذهب لقتل جاري
+            r"(?:ذاهب|ذاهبة|سأذهب|ساذهب|سنذهب|أذهب|اذهب|أسعى|اسعى|أحاول|احاول|سأحاول|ساحاول"
+            r"|أخطط|اخطط|أنوي|انوي)\s+(?:إلى\s+|الى\s+)?لقتل",
             r"جريمة قتل",
             r"هجوم",
             r"إرهاب",
@@ -700,6 +797,9 @@ class MultiLanguageContentFilter:
         # BITB-198: conservative native patterns for ru/zh/hi/ko. Unambiguous modern
         # weapon/terror words match alone; kill/attack verbs only in first-person intent or
         # how-to phrasing, so Bible narrative ("How did David kill Goliath?") stays clean.
+        # BITB-257: en kill/murder/slaughter/stab/shoot keep bare patterns but are skipped
+        # in third-person narrative frames (see _VIOLENCE_NARRATIVE_BEFORE); ar uses
+        # intent-only patterns.
         # Words with Bible/everyday senses (massacre, attack, bare explosion, ru оружие,
         # hi हथियार) stay hard-only (HARD_VIOLENCE_PATTERNS, checked next to self-harm).
         "ru": [
@@ -1249,6 +1349,15 @@ class MultiLanguageContentFilter:
             spans.extend(m.span() for m in regex.finditer(normalized))
         return spans
 
+    @staticmethod
+    def _has_first_person_veto(lang: str, normalized: str, end: int) -> bool:
+        """True when a first-person marker cancels the narrative exemption (BITB-257)."""
+        veto = _VIOLENCE_NARRATIVE_VETO.get(lang)
+        if not veto:
+            return False
+        regex, scope = veto
+        return bool(regex.search(normalized[end:] if scope == "after" else normalized))
+
     def find_violence_matches(
         self, normalized: str, languages: list[str] | None = None
     ) -> list[tuple[int, int, str]]:
@@ -1261,8 +1370,21 @@ class MultiLanguageContentFilter:
         matches: list[tuple[int, int, str]] = []
         for lang in dict.fromkeys(langs):
             regex = self._violence_regex.get(lang)
-            if regex:
-                matches.extend((m.start(), m.end(), m.group(0)) for m in regex.finditer(normalized))
+            if not regex:
+                continue
+            verbs = _VIOLENCE_NARRATIVE_VERBS.get(lang)
+            before_re = _VIOLENCE_NARRATIVE_BEFORE.get(lang)
+            for m in regex.finditer(normalized):
+                # BITB-257: skip third-person Bible narrative / commandment framing.
+                if (
+                    verbs
+                    and before_re
+                    and verbs.fullmatch(m.group(0).lower())
+                    and before_re.search(normalized[max(0, m.start() - 80) : m.start()])
+                    and not self._has_first_person_veto(lang, normalized, m.end())
+                ):
+                    continue
+                matches.append((m.start(), m.end(), m.group(0)))
         return matches
 
     def find_hard_violence_matches(self, normalized: str) -> list[tuple[int, int, str]]:

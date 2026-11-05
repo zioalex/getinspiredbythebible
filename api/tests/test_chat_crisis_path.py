@@ -23,7 +23,7 @@ from chat.prompts import (
 from chat.service import ChatRequest, ChatResponse, ChatService, _SafetyOutcome
 from providers.base import LLMResponse
 from utils.content_safety import ContentSafetyService
-from utils.crisis_resources import classify_crisis, render_markdown_fallback
+from utils.crisis_resources import CrisisKind, classify_crisis, render_markdown_fallback
 
 LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
 
@@ -385,24 +385,10 @@ async def test_bible_narrative_kill_phrasing_gets_no_card(language):
     assert events[0]["type"] == "metadata"
 
 
-# Languages whose keyword fallback still blocks third-person Bible narrative as violence;
-# tracked by BITB-257 (the safety keyword tables are deliberately NOT changed by BITB-255).
-_KEYWORD_FALLBACK_MISFIRES = {"en", "ar"}
-
-
 def _narrative_cases():
     for label, phrases in (("cain", NARRATIVE), ("david", NARRATIVE_DAVID)):
         for language in LANGUAGES:
-            marks = []
-            if language in _KEYWORD_FALLBACK_MISFIRES:
-                marks.append(
-                    pytest.mark.xfail(
-                        strict=True,
-                        reason="BITB-257: keyword fallback blocks third-person Bible narrative "
-                        "as violence",
-                    )
-                )
-            yield pytest.param(language, phrases[language], id=f"{label}-{language}", marks=marks)
+            yield pytest.param(language, phrases[language], id=f"{label}-{language}")
 
 
 @pytest.mark.parametrize("language,message", list(_narrative_cases()))
@@ -692,3 +678,59 @@ async def test_crisis_logging_never_contains_message_text(caplog):
     assert crisis_logs
     for record in crisis_logs:
         assert private_text not in repr(record.__dict__)
+
+
+# ---------------------------------------------------------------------------
+# BITB-257: first-person threats still block + get the card via the real keyword fallback
+# ---------------------------------------------------------------------------
+
+_THREATS = {
+    "en": "I want to kill my neighbor",
+    "it": "Voglio uccidere il mio vicino",
+    "de": "Ich will meinen Nachbarn töten",
+    "es": "Quiero matar a mi vecino",
+    "fr": "Je veux tuer mon voisin",
+    "pt": "Quero matar meu vizinho",
+    "ar": "أريد أن أقتل جاري",
+    "ru": "Я хочу убить своего соседа",
+    "zh": "我想杀了我的邻居",
+    "hi": "मैं अपने पड़ोसी को मारना चाहता हूँ",
+    "ko": "이웃을 죽이고 싶어",
+}
+
+
+def _real_fallback(message, language, monkeypatch):
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="hybrid",
+            azure_content_safety_enabled=False,
+        ),
+    )
+    result = ContentSafetyService()._full_keyword_fallback(message, language, time.monotonic())
+    outcome = _SafetyOutcome(
+        allowed=result.allowed,
+        compassionate=result.compassionate_response_needed,
+        reason=result.reason,
+        categories=result.categories,
+        is_help_seeking=result.is_help_seeking,
+    )
+    return result, outcome
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_first_person_threat_through_real_keyword_fallback_still_blocks_with_card(
+    language, monkeypatch
+):
+    result, outcome = _real_fallback(_THREATS[language], language, monkeypatch)
+    assert not result.allowed
+    assert result.reason == "keyword_violation:violence (fallback)"
+    assert classify_crisis(outcome) == CrisisKind.THREAT_TO_OTHERS
+
+
+def test_mixed_en_ar_narrative_then_threat_still_blocks_with_card(monkeypatch):
+    message = "لماذا قتل قايين هابيل؟ Why did Cain kill Abel? Now I want to kill my neighbor"
+    result, outcome = _real_fallback(message, "en", monkeypatch)
+    assert not result.allowed
+    assert classify_crisis(outcome) == CrisisKind.THREAT_TO_OTHERS
