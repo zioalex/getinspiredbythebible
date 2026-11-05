@@ -216,10 +216,11 @@ class LlamaGuardProvider:
                 allowed=False,
                 reason="self_harm_detected",
                 categories={cat: 1 for cat in violated_categories},
+                violated_categories=list(violated_categories),
             )
 
         # Block all other unsafe content
-        # Determine specific reason based on categories
+        # Determine specific reason based on categories (S11 combos returned above, BITB-258)
         if any(cat in violated_categories for cat in ["S1", "S2", "S9"]):
             reason = "violence_or_threat_detected"
         elif "S10" in violated_categories:
@@ -241,6 +242,7 @@ class LlamaGuardProvider:
         return ContentSafetyResult(
             allowed=False,
             reason=reason,
+            violated_categories=list(violated_categories),
         )
 
     async def _call_model(

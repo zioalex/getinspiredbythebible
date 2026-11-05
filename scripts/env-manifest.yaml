@@ -182,6 +182,31 @@ variables:
     description: Show the on-device "Listen" (read aloud) button in clients (BITB-119)
     default: "true"
 
+  # ---------------------------------------------------------------------------
+  # Retrieval-miss insights (BITB-256)
+  # Derived signals only (topics, language, translation, scores, refs); never text.
+  # `none`: not wired into docker-compose/Terraform; the code default (off) applies.
+  # ---------------------------------------------------------------------------
+  RETRIEVAL_MISS_CAPTURE_ENABLED:
+    required_in: none
+    description: Record privacy-safe retrieval-miss rows, log events and counters (BITB-256)
+    default: "false"
+
+  RETRIEVAL_MISS_RETENTION_DAYS:
+    required_in: none
+    description: Days a retrieval-miss row lives, fixed from first sight; validated to 1..90 (BITB-256)
+    default: "90"
+
+  RETRIEVAL_MISS_LOW_SCORE_THRESHOLD:
+    required_in: none
+    description: Explicit low_score threshold; unset (or empty) uses the per-embedding-model table (BITB-256)
+    default: unset
+
+  RETRIEVAL_MISS_LOW_SCORE_THRESHOLDS:
+    required_in: none
+    description: "JSON object of provisional per-model thresholds keyed model:hybrid or model:semantic (BITB-256)"
+    default: '{"mxbai-embed-large:hybrid": 0.5, "text-embedding-3-small:hybrid": 0.45, "mxbai-embed-large:semantic": 0.55, "text-embedding-3-small:semantic": 0.5}'
+
   MAX_MESSAGE_LENGTH:
     required_in: remote
     description: Maximum chat message length

@@ -309,6 +309,7 @@ _ORM_BACKED_TABLES = {
     "feedback",
     "contact_submissions",
     "blocked_message_samples",
+    "retrieval_miss_samples",
 }
 
 
@@ -391,6 +392,40 @@ def test_search_eval_topic_grants_upgrade_and_downgrade(throwaway_database_url):
     _run_alembic("downgrade", "r0005", database_url=throwaway_database_url)
     assert not _role_can_select(throwaway_database_url, "topics")
     assert not _role_can_select(throwaway_database_url, "verse_topics")
+
+
+def test_retrieval_miss_samples_upgrade_and_downgrade(throwaway_database_url):
+    """BITB-256: r0009 creates retrieval_miss_samples (with its unique signature) and rolls back."""
+    _run_alembic("upgrade", "r0008", database_url=throwaway_database_url)
+    assert "retrieval_miss_samples" not in _table_names(throwaway_database_url)
+
+    _run_alembic("upgrade", "r0009", database_url=throwaway_database_url)
+    assert "retrieval_miss_samples" in _table_names(throwaway_database_url)
+
+    parsed = urlparse(throwaway_database_url)
+    conn = psycopg2.connect(
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        user=parsed.username,
+        password=parsed.password,
+        dbname=parsed.path.lstrip("/"),
+    )
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT indexname FROM pg_indexes WHERE tablename = 'retrieval_miss_samples'"
+            )
+            indexes = {row[0] for row in cur.fetchall()}
+    finally:
+        conn.close()
+    assert {
+        "ix_retrieval_miss_samples_expires_at",
+        "ix_retrieval_miss_samples_signature_sha256",
+        "ix_retrieval_miss_samples_lang_created",
+    } <= indexes
+
+    _run_alembic("downgrade", "r0008", database_url=throwaway_database_url)
+    assert "retrieval_miss_samples" not in _table_names(throwaway_database_url)
 
 
 def test_translations_created_at_timestamptz_upgrade_and_downgrade(throwaway_database_url):
