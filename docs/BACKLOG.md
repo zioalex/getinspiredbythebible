@@ -2,7 +2,11 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
+<<<<<<< HEAD
 **Last Updated:** 2026-11-03
+=======
+**Last Updated:** 2026-11-01
+>>>>>>> origin/main
 
 ## Changelog
 
@@ -20,11 +24,15 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+<<<<<<< HEAD
 - 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
 - 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
 - 2026-11-03: BITB-256 verification fixes — allow-list-only sanitizer, hourly purge + 1..90 day retention, bounded writes, wider signature, psycopg2 exporter URL
 - 2026-11-03: BITB-264/265 opened — follow-ups from BITB-256 verification (ru/zh/hi/ko topic detection coverage; query-expansion logging of user text)
 - 2026-11-03: BITB-256 in progress — retrieval_miss_samples (r0009), fixed 90-day TTL + daily purge, provisional per-model thresholds pending search-eval p10
+=======
+- 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
+>>>>>>> origin/main
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
 - 2026-10-30: BITB-262 created — Stage 2: capability×client parity registry, living successor of docs/WIP/android-feature-parity-plan.md; first red row expected: BITB-042; gated on BITB-261
@@ -340,9 +348,15 @@ in 11 languages, and flip the BITB-255 xfails.
 
 ---
 
+<<<<<<< HEAD
 ### 🔍 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
 **Status:** 🔍 In Review
+=======
+### 🔄 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
+
+**Status:** 🔄 In Review
+>>>>>>> origin/main
 **Size:** S
 **Created:** 2026-10-29
 
