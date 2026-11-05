@@ -23,6 +23,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
 - 2026-11-04: BITB-266 opened — directed-harm taunt gaps ("killing yourself", "you should") found verifying BITB-238
 - 2026-11-04: BITB-238 🔍 In Review — exempt help-seeking/theological English phrases from Stage 1 directed harm
+- 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
 - 2026-10-30: BITB-262 created — Stage 2: capability×client parity registry, living successor of docs/WIP/android-feature-parity-plan.md; first red row expected: BITB-042; gated on BITB-261
@@ -338,9 +339,9 @@ in 11 languages, and flip the BITB-255 xfails.
 
 ---
 
-### 🎯 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
+### 🔄 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
-**Status:** 🎯 Todo
+**Status:** 🔄 In Review
 **Size:** S
 **Created:** 2026-10-29
 
