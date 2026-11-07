@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-01
+**Last Updated:** 2026-11-07
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-07: BITB-260 ✅ Done — decision record + stage stories merged (#1237); implementation continues in BITB-261/262/263
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
@@ -3358,7 +3359,7 @@ attributed to Android or broadly backfilled.
 
 ### 🎯 BITB-260: Cross-Client Parity Knowledge Graph — Decision Record
 
-**Status:** 🎯 Decision recorded 2026-10-30 — implementation gated per stage stories
+**Status:** ✅ Done 2026-11-07 (#1237, merged 2026-10-31) — implementation continues in stage stories
 **Priority:** P2
 **Size:** S (record only)
 **Created:** 2026-10-30
@@ -3371,7 +3372,7 @@ Mermaid landscape; Pact/Weblate as gated candidates; Backstage and AST mining re
 reasoning). Predecessor to absorb: `docs/WIP/android-feature-parity-plan.md`. Stages:
 BITB-261 → BITB-262 → BITB-263.
 
-**Full Story:** [`BITB-260-cross-client-parity-knowledge-graph-decision.md`](BACKLOG_STORIES/BITB-260-cross-client-parity-knowledge-graph-decision.md)
+**Full Story:** [`BITB-260-cross-client-parity-knowledge-graph-decision.md`](DONE/BITB-260-cross-client-parity-knowledge-graph-decision.md)
 
 ### 🎯 BITB-261: Parity KG Stage 1 — OpenAPI Contract Artifact & Breaking-Change CI
 
