@@ -30,6 +30,8 @@ name: Parity CI
 
 jobs:
   # Hard gate: the committed artifact must match the app's OpenAPI document.
+  # Also runs this workflow's own tests (scripts/test_export_openapi.py) so the
+  # parity tooling's coverage executes in CI, not just locally (BITB-261 fix).
   stale-artifact:
     name: OpenAPI artifact freshness (parity-check)
     runs-on: ubuntu-latest
@@ -44,12 +46,22 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: api/requirements.txt
+          cache-dependency-path: |
+            api/requirements.txt
+            api/requirements-dev.txt
 
+      # requirements-dev.txt (not requirements.txt) carries pytest, which the
+      # test step below needs in addition to the app import's fastapi/pydantic.
       - name: Install API dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r api/requirements.txt
+          pip install -r api/requirements-dev.txt
+
+      # The parity tooling's own tests: offline import (the story's main risk),
+      # determinism, and the --check pass/fail paths.
+      - name: Test the OpenAPI export script
+        run: |
+          python -m pytest scripts/test_export_openapi.py -q
 
       - name: Guard — committed OpenAPI artifact must match the app (BITB-261)
         run: |
