@@ -273,6 +273,8 @@
     "tf-refresh": {"safety": "cloud-mutating", "execution": "mocked", "tests": ["TerraformTests.test_plan_apply_destroy_refresh_use_both_var_files_in_deployment", "TerraformTests.test_secrets_file_is_required"], "note": "terraform refresh; rewrites state to match real infra."},
     "tf-state-list": {"safety": "cloud-read", "execution": "mocked", "tests": ["TerraformTests.test_read_only_and_format_targets"], "note": "terraform state list."},
     "repo-metrics": {"safety": "local-write", "execution": "static", "blocked_reason": "Runs tools/repo-metrics analyze+render over git history and rewrites docs/metrics/. Interpreter (python3, not the venv) pinned by MiscTargetTests.test_metrics_targets_use_stdlib_python3 (make -n)."},
-    "audit-metrics": {"safety": "local-write", "execution": "static", "blocked_reason": "Runs tools/audit-metrics analyze+render and rewrites docs/audits/metrics/. Interpreter pinned by MiscTargetTests.test_metrics_targets_use_stdlib_python3 (make -n)."}
+    "audit-metrics": {"safety": "local-write", "execution": "static", "blocked_reason": "Runs tools/audit-metrics analyze+render and rewrites docs/audits/metrics/. Interpreter pinned by MiscTargetTests.test_metrics_targets_use_stdlib_python3 (make -n)."},
+    "parity-export": {"safety": "local-write", "execution": "static", "blocked_reason": "Imports api/main.py (needs the backend venv deps) and rewrites docs/parity/openapi.json; no network or DB. Logic covered offline by scripts/test_export_openapi.py (pytest)."},
+    "parity-check": {"safety": "read-only", "execution": "static", "blocked_reason": "Same offline import as parity-export but only diffs against the committed docs/parity/openapi.json (--check); needs the backend venv deps. Logic covered by scripts/test_export_openapi.py (pytest)."}
   }
 }

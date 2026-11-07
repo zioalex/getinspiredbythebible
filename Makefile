@@ -31,7 +31,7 @@
 	az-logs-backend az-logs-frontend az-logs-backend-system az-logs-frontend-system \
 	tf-check-version tf-init tf-plan tf-apply tf-apply-auto tf-destroy tf-fmt tf-validate \
 	tf-output tf-refresh tf-state-list \
-	repo-metrics audit-metrics test-makefile
+	repo-metrics audit-metrics parity-export parity-check test-makefile
 
 # `make` with no target prints the help, never the first recipe that happens to follow.
 .DEFAULT_GOAL := help
@@ -1173,3 +1173,9 @@ audit-metrics: ## Regenerate audit trend dashboard + report (docs/audits/metrics
 	@$(PYTHON_VERSION) tools/audit-metrics/analyze.py
 	@$(PYTHON_VERSION) tools/audit-metrics/render.py
 	@echo "$(GREEN)✓ docs/audits/metrics/index.html and docs/audits/metrics/report.md updated$(NC)"
+
+parity-export: ## Regenerate the committed OpenAPI contract docs/parity/openapi.json (offline; needs the backend venv, BITB-261)
+	@$(PYTHON) scripts/export_openapi.py
+
+parity-check: ## Fail if docs/parity/openapi.json is stale vs the FastAPI app (offline, writes nothing, BITB-261)
+	@$(PYTHON) scripts/export_openapi.py --check

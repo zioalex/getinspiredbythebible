@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-01
+**Last Updated:** 2026-11-07
 
 ## Changelog
 
@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-07: BITB-261 in review — committed OpenAPI contract (docs/parity/openapi.json), offline export script + --check, make parity-export/parity-check, parity-ci.yml stale check + warn-only oasdiff report (#1251)
+- 2026-11-07: BITB-268 created — make-target audit fails on main (dangling golden-set-eval refs); found while verifying BITB-261 (#1251)
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
@@ -3373,9 +3375,23 @@ BITB-261 → BITB-262 → BITB-263.
 
 **Full Story:** [`BITB-260-cross-client-parity-knowledge-graph-decision.md`](BACKLOG_STORIES/BITB-260-cross-client-parity-knowledge-graph-decision.md)
 
-### 🎯 BITB-261: Parity KG Stage 1 — OpenAPI Contract Artifact & Breaking-Change CI
+### 🎯 BITB-268: Make-Target Audit Fails on Main — Dangling `golden-set-eval` References
 
-**Status:** 🎯 Todo — dispatchable immediately
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-11-07
+
+Three `scripts/test_make_targets.py` tests fail on main: docs reference a non-existent `make golden-set-eval`,
+and the audit report self-references so `--write` is not idempotent. Found while verifying BITB-261.
+
+Full story: [`BITB-268-make-target-audit-golden-set-eval-refs.md`](BACKLOG_STORIES/BITB-268-make-target-audit-golden-set-eval-refs.md)
+
+---
+
+### 🔍 BITB-261: Parity KG Stage 1 — OpenAPI Contract Artifact & Breaking-Change CI
+
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-30

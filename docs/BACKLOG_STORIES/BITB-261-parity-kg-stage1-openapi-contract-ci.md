@@ -1,6 +1,6 @@
 # BITB-261: Parity KG Stage 1 — Committed OpenAPI Contract Artifact & Breaking-Change CI
 
-**Status:** 🎯 Todo — dispatchable immediately
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-30

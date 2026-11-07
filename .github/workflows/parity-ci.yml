@@ -1,0 +1,92 @@
+name: Parity - OpenAPI Contract
+
+# BITB-261 (stage 1 of BITB-260). A separate workflow rather than a job in test_update.yml so the
+# contract check stays path-filtered and cheap, and so flipping it to a hard gate later is a
+# one-file change. Two jobs:
+#
+#   stale-check    HARD GATE. Regenerates docs/parity/openapi.json offline (no DB, no LLM keys)
+#                  and fails if the committed artifact differs. Fix: `make parity-export`.
+#   breaking-diff  WARN-ONLY. oasdiff compares the PR's artifact to the base branch's and writes
+#                  the report to the job summary. It never fails the build (policy and the flip
+#                  condition are recorded in docs/parity/README.md).
+"on":
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "docs/parity/**"
+      - "scripts/export_openapi.py"
+      - "scripts/test_export_openapi.py"
+      - ".github/workflows/parity-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  stale-check:
+    name: OpenAPI artifact is current
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            api/requirements.txt
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements.txt pytest
+      - name: Offline export unit tests
+        run: python -m pytest scripts/test_export_openapi.py -v
+      - name: Check docs/parity/openapi.json is current
+        run: python scripts/export_openapi.py --check
+
+  breaking-diff:
+    needs: stale-check
+    name: oasdiff breaking-change report (warn-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Fetch the base branch's artifact
+        id: base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          if git show "FETCH_HEAD:docs/parity/openapi.json" > "$RUNNER_TEMP/base-openapi.json" 2>/dev/null; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: oasdiff report to job summary
+        if: steps.base.outputs.found == 'true'
+        # Pinned image tag (oasdiff is a Go tool; no npm/pip dependency). continue-on-error
+        # keeps this warn-only: a tool failure must not block a PR.
+        continue-on-error: true
+        env:
+          OASDIFF_IMAGE: tufin/oasdiff:v1.34.1
+        run: |
+          {
+            echo "## OpenAPI contract diff vs base (oasdiff, warn-only)"
+            echo
+            echo "### Breaking changes"
+            echo '```'
+            docker run --rm -v "$RUNNER_TEMP:/base:ro" -v "$PWD/docs/parity:/head:ro" \
+              "$OASDIFF_IMAGE" breaking /base/base-openapi.json /head/openapi.json || true
+            echo '```'
+            echo
+            echo "### Full changelog"
+            echo '```'
+            docker run --rm -v "$RUNNER_TEMP:/base:ro" -v "$PWD/docs/parity:/head:ro" \
+              "$OASDIFF_IMAGE" changelog /base/base-openapi.json /head/openapi.json || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: No base artifact yet
+        if: steps.base.outputs.found != 'true'
+        run: |
+          echo "Base branch has no docs/parity/openapi.json yet; nothing to diff." | tee -a "$GITHUB_STEP_SUMMARY"
