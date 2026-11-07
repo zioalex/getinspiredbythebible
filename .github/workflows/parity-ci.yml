@@ -94,6 +94,13 @@ jobs:
 
       - name: Export the PR base spec
         run: |
+          # The PR base may predate this script/artifact (e.g. the BITB-261
+          # baseline PR itself): nothing to diff against yet, skip gracefully.
+          if [ ! -f base/scripts/export_openapi.py ]; then
+            echo "BASE_HAS_NO_EXPORTER=true" >> "$GITHUB_ENV"
+            echo "PR base predates the OpenAPI artifact (baseline) — no diff." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           python base/scripts/export_openapi.py --output "$GITHUB_WORKSPACE/base-openapi.json"
 
       # oasdiff-action/breaking (Apache-2.0, official) runs the oasdiff docker
@@ -101,6 +108,7 @@ jobs:
       # docker-run or comment plumbing in this repo. fail-on-breaking stays
       # unset (default false): warn-and-report policy, BITB-261.
       - name: oasdiff breaking-changes report
+        if: env.BASE_HAS_NO_EXPORTER != 'true'
         uses: oasdiff/oasdiff-action/breaking@v0
         with:
           base: ${{ github.workspace }}/base-openapi.json
