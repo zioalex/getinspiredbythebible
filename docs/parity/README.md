@@ -32,8 +32,9 @@ python scripts/export_openapi.py --check    # verify
 ```
 
 The script sets the one environment variable `Settings()` insists on
-(`DATABASE_URL=postgresql://offline:offline@localhost:5432/offline`, a dummy that is never
-connected to), unsets `APP_NAME`/`APP_VERSION`, and runs from an empty working directory so
+(a dummy `DATABASE_URL` that is never connected to; see the script), drops every other
+environment variable except `PATH`/`HOME`/locale/Python ones (so a shell's `MAX_MESSAGE_LENGTH` or
+`LLM_PROVIDER` cannot change the output), and runs from an empty working directory so
 no `.env` file can leak into the output. You do not need to export anything yourself.
 Verified offline with `env -i PATH=... python scripts/export_openapi.py`.
 

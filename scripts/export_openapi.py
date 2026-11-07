@@ -10,7 +10,7 @@ shapes every client (web, Android, iOS-to-come) talks to. See ``docs/parity/READ
 The export is fully OFFLINE: it imports ``api/main.py`` and calls ``app.openapi()``. No
 database connection is opened, no LLM/embedding key is needed. ``Settings()`` only insists
 that ``DATABASE_URL`` is not the placeholder, so this script pins a dummy URL (never
-connected to). Settings that leak into the schema (app name/version) are pinned too, and
+connected to). The caller's environment is stripped (only PATH/HOME/locale/Python vars are kept) and
 ``.env`` is not read (the script runs from a scratch cwd), so the output is identical on
 every machine. It needs the backend dependencies (``api/requirements.txt``), i.e. the
 project venv: ``make parity-export``.
@@ -40,27 +40,39 @@ _OFFLINE_DATABASE_URL = (
     "postgresql://offline:offline@localhost:5432/offline"  # pragma: allowlist secret
 )
 
-# Env vars that would change the emitted schema (title/version) if set in the caller's shell.
-_UNSET_ENV = ("APP_NAME", "APP_VERSION")
+# Only these caller env vars survive into the import. Everything else is dropped, because
+# ``Settings()`` reads every variable (e.g. MAX_MESSAGE_LENGTH leaks into the schema, and
+# LLM_PROVIDER=claude without a key would crash), which would make the artifact machine-specific.
+_KEEP_ENV_PREFIXES = ("PYTHON", "LC_", "VIRTUAL_ENV")
+_KEEP_ENV = {"PATH", "HOME", "LANG", "TMPDIR", "TEMP", "TMP", "SYSTEMROOT", "USERPROFILE"}
 
 
 def load_openapi_schema() -> dict:
-    """Import ``api/main.py`` offline and return ``app.openapi()``."""
-    for name in _UNSET_ENV:
-        os.environ.pop(name, None)
+    """Import ``api/main.py`` offline and return ``app.openapi()``.
+
+    Temporarily replaces ``os.environ`` / cwd / ``sys.path`` and restores them afterwards.
+    """
+    saved_env = dict(os.environ)
+    saved_path = list(sys.path)
+    previous_cwd = os.getcwd()
+    for name in list(os.environ):
+        if name not in _KEEP_ENV and not name.startswith(_KEEP_ENV_PREFIXES):
+            del os.environ[name]
     os.environ["DATABASE_URL"] = _OFFLINE_DATABASE_URL
     sys.path.insert(0, str(_API_DIR))
-    previous_cwd = os.getcwd()
     # Settings reads ".env" relative to the cwd; run from an empty dir so a developer's
     # api/.env or repo-root .env can never leak into the artifact.
-    with tempfile.TemporaryDirectory() as scratch:
-        os.chdir(scratch)
-        try:
+    try:
+        with tempfile.TemporaryDirectory() as scratch:
+            os.chdir(scratch)
             from main import app
 
             return app.openapi()
-        finally:
-            os.chdir(previous_cwd)
+    finally:
+        os.chdir(previous_cwd)
+        os.environ.clear()
+        os.environ.update(saved_env)
+        sys.path[:] = saved_path
 
 
 def render(schema: dict) -> str:

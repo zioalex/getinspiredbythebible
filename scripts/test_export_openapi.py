@@ -97,6 +97,20 @@ def test_real_app_export_is_offline_and_deterministic(real_app_schema):
     assert mod.render(real_app_schema) == mod.render(mod.load_openapi_schema())
 
 
+def test_export_ignores_caller_environment_and_restores_it(monkeypatch):
+    pytest.importorskip("fastapi")
+    monkeypatch.setenv("MAX_MESSAGE_LENGTH", "999")
+    monkeypatch.setenv("LLM_PROVIDER", "claude")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    path_before = list(sys.path)
+    assert mod.render(mod.load_openapi_schema()) == mod._OUTPUT_PATH.read_text(encoding="utf-8")
+    import os
+
+    assert os.environ["MAX_MESSAGE_LENGTH"] == "999"
+    assert "DATABASE_URL" not in os.environ
+    assert sys.path == path_before
+
+
 def test_committed_artifact_is_current(real_app_schema):
     committed = mod._OUTPUT_PATH.read_text(encoding="utf-8")
     assert committed == mod.render(real_app_schema), "run `make parity-export`"

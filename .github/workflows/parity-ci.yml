@@ -46,6 +46,7 @@ jobs:
         run: python scripts/export_openapi.py --check
 
   breaking-diff:
+    needs: stale-check
     name: oasdiff breaking-change report (warn-only)
     runs-on: ubuntu-latest
     timeout-minutes: 10
