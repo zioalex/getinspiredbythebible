@@ -1,6 +1,6 @@
 # BITB-261: Parity KG Stage 1 — Committed OpenAPI Contract Artifact & Breaking-Change CI
 
-**Status:** 🎯 Todo — dispatchable immediately
+**Status:** 🚧 In Progress — PR #1245
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-30
@@ -61,6 +61,16 @@ client can silently drift from the backend's actual request/response shapes.
 - The parity registry itself (BITB-262)
 - Making oasdiff a hard CI gate (deliberate later decision)
 - Spectral spec linting (candidate follow-up; keep this stage minimal)
+- Schemathesis conformance fuzzing — follow-up candidate (engine MIT, but the community action repo lacks a LICENSE file; verify before adopting)
+
+## Adopted components (OSS survey, 2026-11-07)
+
+- **`oasdiff/oasdiff-action`** — **adopted** (pinned `breaking@v0`, Apache-2.0, official,
+  actively maintained). Posts the breaking-changes PR comment itself; this replaces the
+  story's earlier idea of hand-rolled docker-run + comment plumbing (BITB-260's
+  "docker image or pinned binary" note).
+- **export script** — confirmed **build-thin** (no established action exists): the offline
+  import + deterministic rendering is ~150 lines of repo-local Python; nothing to adopt.
 
 ## Files Likely to Change
 
