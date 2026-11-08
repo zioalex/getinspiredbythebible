@@ -205,7 +205,9 @@ variables:
   RETRIEVAL_MISS_LOW_SCORE_THRESHOLDS:
     required_in: none
     description: "JSON object of provisional per-model thresholds keyed model:hybrid or model:semantic (BITB-256)"
-    default: '{"mxbai-embed-large:hybrid": 0.5, "text-embedding-3-small:hybrid": 0.45, "mxbai-embed-large:semantic": 0.55, "text-embedding-3-small:semantic": 0.5}'
+    default:
+      '{"mxbai-embed-large:hybrid": 0.5, "text-embedding-3-small:hybrid": 0.45, "mxbai-embed-large:semantic": 0.55,
+      "text-embedding-3-small:semantic": 0.5}'
 
   MAX_MESSAGE_LENGTH:
     required_in: remote
