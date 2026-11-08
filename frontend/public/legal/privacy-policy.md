@@ -1,10 +1,10 @@
 ---
-lastUpdated: 2026-10-29
+lastUpdated: 2026-11-03
 ---
 
 # Privacy Policy
 
-Last updated: October 29, 2026
+Last updated: November 3, 2026
 
 ## Who We Are
 
@@ -94,6 +94,14 @@ We count read-aloud use anonymously, by language, browser family and operating s
   the session identifier. We do not store your IP address, account, or
   any user-agent string with these records, and they are not used for any
   purpose other than tuning the safety filter.
+- **Anonymous retrieval-quality statistics**: To improve how we find
+  relevant Bible passages, we may keep anonymous records for up to 90 days
+  when a search returns weak or no results. A record contains only derived
+  information: the topics detected, the language and Bible translation,
+  relevance scores, verse references, and a one-way hash of the session
+  identifier. It never contains the text of your message or of the reply,
+  and we do not store your IP address, account, or any user-agent string
+  with it. These records are used only to improve search quality.
 - **Crash reports & analytics**: Retained by Google for up to 14 months per their standard policy.
 - **Local conversation history**: Stored on your device until you delete it via the app or uninstall the app.
 

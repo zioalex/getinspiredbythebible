@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-05
+**Last Updated:** 2026-11-07
 
 ## Changelog
 
@@ -22,6 +22,12 @@ Prioritized list of user stories and features for Vox Quieta.
 
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
+- 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
+- 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
+- 2026-11-03: BITB-256 verification fixes — allow-list-only sanitizer, hourly purge + 1..90 day retention, bounded writes, wider signature, psycopg2 exporter URL
+- 2026-11-03: BITB-264/265 opened — follow-ups from BITB-256 verification (ru/zh/hi/ko topic detection coverage; query-expansion logging of user text)
+- 2026-11-03: BITB-256 in progress — retrieval_miss_samples (r0009), fixed 90-day TTL + daily purge, provisional per-model thresholds pending search-eval p10
+- 2026-11-07: BITB-260 ✅ Done — decision record + stage stories merged (#1237); implementation continues in BITB-261/262/263
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
@@ -338,9 +344,9 @@ in 11 languages, and flip the BITB-255 xfails.
 
 ---
 
-### 🔄 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
+### 🔍 BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
-**Status:** 🔄 In Review
+**Status:** 🔍 In Review
 **Size:** S
 **Created:** 2026-10-29
 
@@ -351,9 +357,45 @@ the user gets no crisis numbers. Show the self-harm card whenever S11 is present
 
 ---
 
-### 🎯 BITB-256: RAG Retrieval-Miss Insights — Privacy-Safe Logging
+### 🔍 BITB-265: Query Expansion Logs the User's Message and the Expanded Query
 
-**Status:** 🎯 Todo — spec awaiting owner confirmation
+**Status:** 🔍 In Review
+**Size:** S
+**Created:** 2026-11-03
+
+`_expand_query` logs `original_query` (user text) and `expanded_query` at info level on every turn,
+contradicting the privacy posture. Remove user text from logs, audit similar fields, add a sentinel test.
+
+**Acceptance Criteria:**
+
+- [x] No info/warning log record from a normal chat turn contains the message or expansion text
+- [x] Sentinel test on both chat paths
+
+**Full Story:** [`BITB-265-query-expansion-logs-user-text.md`](BACKLOG_STORIES/BITB-265-query-expansion-logs-user-text.md)
+
+---
+
+### 🎯 BITB-264: Topic Detection Coverage for ru, zh, hi and ko
+
+**Status:** 🎯 Todo
+**Size:** M
+**Created:** 2026-11-03
+
+`detect_topics` only knows en/it/de/es/fr/pt/ar, so topic boosting and BITB-256 topic reporting are empty
+for ru/zh/hi/ko. Add coverage for all 13 topics in those languages.
+
+**Acceptance Criteria:**
+
+- [ ] Native-sentence detection tests for ru/zh/hi/ko per topic; no regression elsewhere
+- [ ] Search-eval footnote and BITB-256 HOW-TO limitation updated
+
+**Full Story:** [`BITB-264-topic-detection-coverage-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-264-topic-detection-coverage-ru-zh-hi-ko.md)
+
+---
+
+### 🚧 BITB-256: RAG Retrieval-Miss Insights — Privacy-Safe Logging
+
+**Status:** 🚧 In Progress
 **Size:** M
 **Created:** 2026-10-28
 
@@ -3360,7 +3402,7 @@ attributed to Android or broadly backfilled.
 
 ### 🎯 BITB-260: Cross-Client Parity Knowledge Graph — Decision Record
 
-**Status:** 🎯 Decision recorded 2026-10-30 — implementation gated per stage stories
+**Status:** ✅ Done 2026-11-07 (#1237, merged 2026-10-31) — implementation continues in stage stories
 **Priority:** P2
 **Size:** S (record only)
 **Created:** 2026-10-30
@@ -3373,7 +3415,7 @@ Mermaid landscape; Pact/Weblate as gated candidates; Backstage and AST mining re
 reasoning). Predecessor to absorb: `docs/WIP/android-feature-parity-plan.md`. Stages:
 BITB-261 → BITB-262 → BITB-263.
 
-**Full Story:** [`BITB-260-cross-client-parity-knowledge-graph-decision.md`](BACKLOG_STORIES/BITB-260-cross-client-parity-knowledge-graph-decision.md)
+**Full Story:** [`BITB-260-cross-client-parity-knowledge-graph-decision.md`](DONE/BITB-260-cross-client-parity-knowledge-graph-decision.md)
 
 ### 🎯 BITB-261: Parity KG Stage 1 — OpenAPI Contract Artifact & Breaking-Change CI
 
