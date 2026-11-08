@@ -1,6 +1,6 @@
 # BITB-279: Broken Fallback Chains — `opencode/*` Model References Never Serve; Paid Tier-2 Cannot Rescue an Exhausted Key
 
-**Status:** 🔄 In progress — agent chains fixed in this PR; generator constants follow
+**Status:** 🔄 In progress — chains, generator constants, test suite and agents.md guards aligned in this PR; BITB-280 live-load gate follows
 **Priority:** P1
 **Size:** S (agents) + S follow-up (generator constants)
 **Created:** 2026-11-08
@@ -73,8 +73,11 @@ models, all `nvidia/nemotron-*:free` variants
       contain no duplicates of the primary
 - [x] `make gen-opencode-config` + `make verify-opencode-config` pass;
       generator test suite passes; regenerated `opencode.json` committed
-- [ ] Generator constants (`DEFAULT_SMALL_MODEL`, `ZEN_FREE_FALLBACK`,
-      `MIMO_FREE`, builtin fallbacks) fixed — follow-up dispatch
+- [x] Generator constants (`DEFAULT_SMALL_MODEL`, `ZEN_FREE_FALLBACK`,
+      `MIMO_FREE`, builtin fallbacks) fixed — same PR, second commit;
+      suite + agents.md now enforce the free-tier tier-1 invariant
+      (cross-provider rule retired: OpenRouter is the only credentialed
+      provider and the only free slate)
 - [ ] BITB-280 live-load gate added to CI — follow-up dispatch
 - [ ] (owner) after merge + sync + pod restart: with the key still
       exhausted, a fullstack-engineer dispatch completes on the free

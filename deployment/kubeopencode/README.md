@@ -14,13 +14,13 @@ cluster-side wiring (the `configRef` pointer and credentials).
 - Secret `ai-credentials` with key `api-key` in `kubeopencode-system`
   → injected as `OPENCODE_API_KEY`
 - Secret `openrouter-api-key` with key `openrouter-api-key` in
-  `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required:
-  `android-gemini` uses paid-tier primary `openrouter/qwen/qwen3-coder`;
-  without it the agent's whole chain — primary and both fallbacks — is on
-  OpenRouter, so it has no working model; see
-  [Cross-provider Resilience](#cross-provider-resilience))
+  `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required: every
+  agent chain — primaries and fallbacks alike — is OpenRouter-only since
+  BITB-279, so this key is the graph's single provider dependency; see
+  [Fallback Resilience](#fallback-resilience-2-hop-chain))
 - Secret `github-copilot-auth` in `kubeopencode-system` → Copilot credential
-  for the `github-copilot/*` models (orchestrator, verifier, risk-auditor).
+  for the `github-copilot/*` models (wired but unused since the 2026-09-14
+  credit exhaustion — see the historical note in agents.md).
   Working mechanism today is key `token` (a `gho_…` OAuth user token) →
   injected as `GITHUB_TOKEN` (see `credentials` in agent.yaml). Key
   `auth.json` (an `opencode auth login` export) is the preferred long-lived
@@ -228,25 +228,29 @@ provider returning "subscription exhausted" still fails over) with
 Primary model ──429/5xx──▶ Tier 1 fallback ──429/5xx──▶ Tier 2 fallback
 ```
 
-The tier-1 hop is always cross-provider (the other provider than the
-primary), free-first / paid-last:
+The tier-1 hop is always a free `openrouter/:free` model — free models draw
+no credit, so the chain keeps serving while the paid key is exhausted
+(BITB-279; cross-provider hops are impossible: OpenRouter is the only
+credentialed provider and the only free slate):
 
-| Agent group | Primary | Tier 1 (free, cross-provider) | Tier 2 (paid) | Covers |
+| Agent group | Primary | Tier 1 (free) | Tier 2 (paid) | Covers |
 |---|---|---|---|---|
-| Global builtins + orchestrator (build/plan/general/explore/etc.) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` (strongest free) | `opencode/nemotron-3-ultra-free` (Zen) | `openrouter/openai/gpt-oss-120b` | OpenRouter outage → Zen catches |
-| 10 Zen-primary specialist subagents (`opencode/*`) | `opencode/nemotron-3-ultra-free` / `opencode/mimo-v2.6-flash-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Zen outage → OpenRouter catches |
-| android-gemini | `openrouter/qwen/qwen3-coder` (paid) | `opencode/nemotron-3-ultra-free` (Zen) | `openrouter/openai/gpt-oss-120b` | OpenRouter outage → Zen catches |
+| Global builtins + orchestrator + 5 workhorse agents | `openrouter/z-ai/glm-5.3` (paid) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/deepseek/deepseek-v3.2-exp` | Paid-key exhaustion → free tier-1 serves at zero credit |
+| 4 skeptic agents (verifier / risk-auditor / failure-forecaster / seo-auditor) | `openrouter/deepseek/deepseek-v3.2-exp` (paid) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/z-ai/glm-5.3` | Free-tier rate caps / upstream 5xx → paid tier-2 rescues |
+| 2 mechanical agents (i18n-qa, verse-parity-keeper) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/nvidia/nemotron-3.5-lightning:free` | `openrouter/z-ai/glm-5.3` | Free primary by design (BITB-236); de-duplicated tier-1 |
 
-An outage of either provider leaves the other provider's agents (and every
-tier-1 hop) unaffected; if both providers are down, every agent is down. `OPENROUTER_API_KEY` is therefore
-required for **runtime resilience**, not just for `android-gemini`'s paid
-primary. The per-agent table and rationale live in
+An OpenRouter gateway outage takes the whole graph down — the accepted
+single-provider trade-off (no other credentialed provider exists; revisit if
+one is ever added). `OPENROUTER_API_KEY` is the single point of provider
+dependency. The per-agent table and rationale live in
 [`agents.md`](agents.md), the source of truth; the `.opencode/agents/*.md`
 frontmatter compiled into `opencode.json` is what actually ships.
 
-> **Note (2026-09-14):** `github-copilot/claude-opus-5` was the primary for
-> orchestrator, verifier, and risk-auditor until Copilot subscription credits
-> were exhausted; those agents now use `opencode/nemotron-3-ultra-free`.
+> **Note (2026-09-14, historical):** `github-copilot/claude-opus-5` was the
+> primary for orchestrator, verifier, and risk-auditor until Copilot
+> subscription credits were exhausted; those agents moved to
+> `opencode/nemotron-3-ultra-free` at the time (itself since retired by
+> BITB-279 — the Zen gateway turned out to have no pod credentials).
 > GitHub Copilot remains wired in `agent.yaml` and can be re-enabled as a
 > primary (or as a third fallback hop) when access returns.
 
