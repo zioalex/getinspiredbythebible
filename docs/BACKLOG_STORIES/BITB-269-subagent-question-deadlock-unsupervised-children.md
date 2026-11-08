@@ -99,8 +99,16 @@ Aggravating factors found during the post-mortem:
       `make gen-opencode-config` + `make verify-opencode-config` pass;
       generator tests pass (`test_task_reliability_plugin_entry_present`)
 - [x] `node --experimental-strip-types --test .opencode/plugin/task-reliability.test.ts`
-      passes with the new asking/stuck tests (26/26)
+      passes with the new asking/stuck tests (26/26; extended to 29/29 by the
+      T-1254PLG addendum — loader-contract regression tests + the empirical
+      nested `session.created` shape)
 - [x] `make pre-commit` passes
+- [x] (T-1254PLG addendum) The plugin module's runtime export surface is a
+      single default function — pinned by test, enforced by
+      `opencode-ci.yml` on every `.opencode/**` change, and pre-flighted
+      in-pod by `scripts/sync-opencode-workspace.sh` before any config sync
+      (the [T-269A] present-but-rejected-export gap is now mechanically
+      closed)
 - [x] The docs (`AGENTS.md` Subagent Delegation Reliability section) match
       the implemented behavior (watchdog bullet added)
 - [ ] After merge + `make sync-opencode-configmap` + pod restart: a test
@@ -124,6 +132,81 @@ Aggravating factors found during the post-mortem:
   forever (no default denial, timeout, or parent routing; parent task call
   also unbounded) — paste-ready draft included in the story; filing is an
   owner-run external step
+
+## Pre-live verification gap (2026-11-08, T-1254PLG addendum)
+
+The pre-merge config sync on 2026-11-08 (pod restarted 18:51 UTC) loaded the
+config improvements but **failed to load the plugin** — runtime log 18:52:00Z:
+
+```text
+ERROR message="failed to load plugin"
+      path=file:///workspace/repo/.opencode/plugin/task-reliability.ts
+      error="Plugin export is not a function"
+```
+
+Post-mortem findings (all verified empirically against the live
+opencode 1.18.31 binary, scratch-instance probes; live server untouched):
+
+1. **Why the [T-269A] "verification" missed it.** The builder verified
+   laptops were unaffected by testing a *missing* plugin path (silently
+   skipped — true), and the unit tests proved the module parses under Node
+   type-stripping — but a *present-but-rejected* export was never
+   live-tested against the actual opencode loader. Both the old and the new
+   plugin versions carried the same latent bug.
+2. **The actual loader contract (opencode 1.18.31).** The loader iterates
+   `Object.values(module)` over the plugin module's export surface: **every**
+   distinct export must be a function (or an object with a callable
+   `.server`), and **every** function export is then CALLED as
+   `plugin(ctx, options)` with its return value registered as hooks. The
+   plugin module exported the string constant `DEFAULT_REGISTRY_PATH` →
+   rejected whole. Even without the constant, co-resident helpers break the
+   load: the loader would call `findActiveChild(ctx, …)` →
+   `{} is not iterable`. The working reference
+   (`opencode-runtime-fallback@0.2.4`) ships exactly one export:
+   `export { OpenCodeFallbackPlugin as default }`.
+3. **The fix.** The plugin module now exports exactly one thing — the
+   default plugin function — and all named helper exports the tests import
+   moved to the sibling `task-reliability-helpers.ts` (imported, never
+   re-exported). `task-reliability.test.ts` gained two regression tests that
+   pin the contract (single `default` export; called-as-the-loader-calls-it
+   returns the hooks object), and a third pinning a second live-only bug the
+   scratch test surfaced: on 1.18.31 the `session.created` parent linkage
+   arrives nested under `properties.info.parentID` (not flat), so `created`
+   lines — and with them the whole stuck-child watchdog — never fired
+   against the old flat-shape reader. 29/29 tests green under
+   `node --experimental-strip-types --test` (Node 22.23.4, the pod's node).
+4. **Proof it loads now.** Isolated scratch instance (separate
+   HOME/XDG/config/DB; live server untouched): zero
+   `failed to load plugin` in the scratch log, a real subagent task
+   dispatched through the task tool completed, and the registry recorded
+   `created` (with parentID/agent/title) + `idle` lines.
+5. **Delivery hazard — the stale shared checkout.** The config points at
+   `file:///workspace/repo/...` but nothing updated that checkout after the
+   initial clone; at sync time it was 6 days stale, so even a
+   loader-compatible config would have loaded the old plugin file.
+   **Chosen: Option B — the sync flow fast-forwards the pod's checkout.**
+   `make sync-opencode-configmap` now first runs
+   `scripts/sync-opencode-workspace.sh`: `kubectl exec` into the agent pod →
+   `git fetch origin && git merge --ff-only origin/main` in `/workspace/repo`
+   → run the plugin unit tests *in the pod* (the pre-flight the incident
+   lacked) → only then update the ConfigMap. Fast-forward only: diverged,
+   detached, or non-main checkouts fail loudly; history is never rewritten;
+   attached worktrees (`${WORKSPACE_DIR}/worktrees/*`) are unaffected
+   (verified: worktree HEADs and uncommitted files survived a simulated ff).
+   Rejected alternatives: **Option A** (ship the plugin file in a multi-key
+   ConfigMap) needs operator file-mount support the `kubeopencode.io/v1alpha1`
+   CRD does not expose (same limitation as the auth.json mount — "not wirable
+   today"); **Option C** (copy the plugin to the PVC auto-discovery dir
+   `/workspace/.opencode/plugin/`) puts the file outside any self-healing
+   flow: the documented PVC-reset runbook (`kubectl delete pvc`) re-clones
+   the checkout but would silently leave the plugin *missing* until the next
+   sync, while a re-cloned checkout (Option B) always carries the merged
+   plugin. Runbook: **merge → `make sync-opencode-configmap` → delete pod →
+   verify** (greps in deployment/kubeopencode/README.md).
+6. **CI now enforces the tests.** The plugin suite was never wired into CI
+   (why the gap shipped). `.github/workflows/opencode-ci.yml` now runs it on
+   every `.opencode/**` change (Node 22.x, type-stripping), and
+   `make test-opencode-plugin` exposes it locally.
 
 ## Out of Scope
 

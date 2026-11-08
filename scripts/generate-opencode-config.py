@@ -105,6 +105,26 @@ PLUGIN = [
     #     pod is /workspace (WORKSPACE_DIR, PVC) — empty. The plugin source
     #     only exists in the repo checkout at /workspace/repo/.opencode/plugin/,
     #     so an absolute file:// URL is the only way the pod loads it.
+    #   - DELIVERY (2026-11-08 live incident fix, T-1254PLG): this path points
+    #     INTO the pod's shared checkout, which nothing updated after the
+    #     initial clone — the config was synced while the checkout sat 6 days
+    #     stale, and the OLD plugin it pointed at was rejected by the runtime
+    #     (`failed to load plugin … error="Plugin export is not a function"`,
+    #     runtime log 18:52:00Z). `make sync-opencode-configmap` therefore
+    #     also runs scripts/sync-opencode-workspace.sh, which fast-forwards
+    #     /workspace/repo to origin/main (ff-only, never rewrites; attached
+    #     worktrees unaffected) and runs the plugin's unit tests in the pod
+    #     BEFORE the ConfigMap is touched. MERGE THE PR FIRST, then sync.
+    #   - LOADER CONTRACT (empirically pinned, opencode 1.18.31): the plugin
+    #     module's runtime export surface must be EXACTLY one function — the
+    #     default export. The loader iterates Object.values(module): any
+    #     non-function export (a string/number constant) fails the whole
+    #     load with `Plugin export is not a function`, and every function
+    #     export is CALLED as plugin(ctx, options) — a co-resident helper
+    #     throws with the wrong args. Helpers therefore live in
+    #     .opencode/plugin/task-reliability-helpers.ts (imported, NEVER
+    #     re-exported); task-reliability.test.ts asserts the export surface
+    #     and opencode-ci.yml runs the suite on every .opencode/** change.
     #   - On developer laptops the absolute path usually does not resolve.
     #     Empirically verified: opencode 1.18.31 tolerates a missing file://
     #     plugin entry — `opencode serve` starts and listens, and a full
@@ -117,7 +137,10 @@ PLUGIN = [
     # The plugin itself records subagent `question.asked` events as
     # `status: "asking"` registry lines and marks (and best-effort aborts)
     # children inactive for TASK_RELIABILITY_STUCK_SECONDS (default 1200s) —
-    # the 2026-11-07 9h34m orchestrator hang class (BITB-269).
+    # the 2026-11-07 9h34m orchestrator hang class (BITB-269). On 1.18.31 the
+    # `session.created` parent linkage arrives nested in
+    # `properties.info.parentID` (pinned by test), so created lines and
+    # watchdog tracking work against the live event shape.
     "file:///workspace/repo/.opencode/plugin/task-reliability.ts",
 ]
 

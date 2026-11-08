@@ -107,14 +107,26 @@ one-liners may skip the relay, but still need tests where behaviour changes.
   which is empty; only `opencode.json` is synced into the ConfigMap) — and a
   missing path is harmless on developer laptops (opencode silently skips it;
   laptops load it via repo auto-discovery). On top of the BITB-169 registry it
-  now records `question.asked` bus events for subagent sessions as
+  records `question.asked` bus events for subagent sessions as
   `status: "asking"` lines and, when a tracked child shows no activity for
   `TASK_RELIABILITY_STUCK_SECONDS` (default 1200s), appends one
-  `status: "stuck"` line per stall and aborts the session best-effort via the
-  plugin `client` (`client.session.abort`) — the same un-wedge a human prompt
-  performed 9.5 hours into the 2026-11-07 incident. Everything stays
-  inert-by-design: hooks are try/catch-wrapped and never break a tool call or
-  startup.
+  `status: "stuck"` line per stall and aborts the session best-effort via
+  the plugin `client` (`client.session.abort`) — the same un-wedge a human
+  prompt performed 9.5 hours into the 2026-11-07 incident. Everything stays
+  inert-by-design: hooks are try/catch-wrapped and never break a tool call
+  or startup.
+- **Plugin modules are single-export (opencode 1.18.31 loader contract,
+  BITB-269 addendum).** The runtime iterates every export of a plugin module:
+  any non-function export fails the whole load (`Plugin export is not a
+  function` — the 2026-11-08 live failure) and every function export is
+  called as `plugin(ctx, options)`, so co-resident helpers break the load
+  too. `task-reliability.ts` therefore exports ONLY the default plugin
+  function; every named helper the tests import lives in
+  `task-reliability-helpers.ts`. `make test-opencode-plugin` (and
+  `opencode-ci.yml`) run the suite that enforces this — keep it green when
+  touching the plugin. `make sync-opencode-configmap` fast-forwards the
+  pod's shared checkout to `origin/main` and runs that suite in the pod
+  before syncing the config (merge the PR first, then sync).
 
 ## Repository Layout
 
