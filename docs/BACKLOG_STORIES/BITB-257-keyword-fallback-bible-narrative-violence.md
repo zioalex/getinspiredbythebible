@@ -30,7 +30,7 @@ caught"; fr "Il a décidé de tuer sa femme ce soir"; and narrative used as cove
 threat ("Pourquoi Caïn a-t-il voulu tuer Abel ? Je veux tuer mon voisin"). The owner chose to fail safe:
 **when unsure, block.** (Original rule, now superseded: a narrative exemption applied only when a known Bible anchor was
 present and there was no first-person marker anywhere in the message.) The fallback only runs while ML moderation is
-down, so extra blocks are the cheaper error (see BITB-267 to make the fallback rare).
+down, so extra blocks are the cheaper error (see BITB-272 to make the fallback rare).
 
 ## Acceptance criteria
 
@@ -199,6 +199,6 @@ the Saul/Amalekites, Saul/Agag and Herod/Moses examples above.
 
 ## Follow-ups
 
-- BITB-267 — ML content-safety reliability (cross-provider failover, fallback-share SLO) so this
+- BITB-272 — ML content-safety reliability (cross-provider failover, fallback-share SLO) so this
   fail-safe keyword fallback runs rarely
-  (`docs/BACKLOG_STORIES/BITB-267-ml-safety-reliability-rare-keyword-fallback.md`).
+  (`docs/BACKLOG_STORIES/BITB-272-ml-safety-reliability-rare-keyword-fallback.md`).

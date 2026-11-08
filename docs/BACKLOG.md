@@ -21,9 +21,10 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-11-08: BITB-257 🔍 In review — narrative exemption now requires a curated Bible killing event (killer→victim pair) after name-list anchors leaked modern given names (#1241)
+- 2026-11-08: BITB-272 renumbered from BITB-267 — ID was already claimed by open PR #1250 (earlier claimant keeps 267); story file and references updated (#1241)
 - 2026-11-08: BITB-257 🔍 In review — redesigned narrative exemption as a strict whole-message allowlist (mirrors BITB-238/#1249) after verification found denylist bypasses (#1241)
 - 2026-11-04: BITB-257 🔍 In review — fail-safe narrative guard (option A): exemption needs a Bible anchor and no first-person marker; ar bare قتل restored; recall regressions re-blocked (#1241)
-- 2026-11-04: BITB-267 created — make ML content-safety classification reliable (cross-provider failover, fallback-share SLO) so the BITB-257 fail-safe keyword fallback is rare (#1241)
+- 2026-11-04: BITB-272 created — make ML content-safety classification reliable (cross-provider failover, fallback-share SLO) so the BITB-257 fail-safe keyword fallback is rare (#1241)
 - 2026-11-02: BITB-257 🔍 In review — keyword fallback no longer blocks third-person Bible narrative (en do-support/commandment guard, ar intent-only patterns, fr/it/es/pt/de past-tense guards); first-person threats still blocked with the card
 - 2026-11-07: BITB-261 in progress — committed OpenAPI contract artifact (docs/parity/openapi.json) + offline export script, parity-ci.yml stale-artifact gate & oasdiff breaking-change report (PR #1253)
 - 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
@@ -343,13 +344,13 @@ and now also gets a threat crisis card. Unblock third-person Bible narrative in 
 in 11 languages, and flip the BITB-255 xfails. **Decision (2026-11-04): option A, fail safe; round 3 (2026-11-08):
 strict whole-message allowlist** — the narrative exemption applies only when the ENTIRE message
 (<= 200 chars, one sentence) fully matches a closed frame AND its (killer, victim) pair is a curated Bible killing event
-(round 5; mirrors BITB-238/#1249); everything else blocks like main. Arabic bare `قتل` is restored. **Follow-ups:** BITB-267
+(round 5; mirrors BITB-238/#1249); everything else blocks like main. Arabic bare `قتل` is restored. **Follow-ups:** BITB-272
 
 **Full Story:** [`BITB-257-keyword-fallback-bible-narrative-violence.md`](BACKLOG_STORIES/BITB-257-keyword-fallback-bible-narrative-violence.md)
 
 ---
 
-### 🎯 BITB-267: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
+### 🎯 BITB-272: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
 
 **Status:** 🎯 Todo
 **Priority:** P1
@@ -368,7 +369,7 @@ failover, tune timeouts/retry/breaker from data, and alert on a fallback-share S
 - [ ] Fallback-share metric + dashboard + SLO burn alert (target < 0.5 % / 7 days, TBC)
 - [ ] Failover classifier passes the 11-language safety golden set
 
-**Full Story:** [`BITB-267-ml-safety-reliability-rare-keyword-fallback.md`](BACKLOG_STORIES/BITB-267-ml-safety-reliability-rare-keyword-fallback.md)
+**Full Story:** [`BITB-272-ml-safety-reliability-rare-keyword-fallback.md`](BACKLOG_STORIES/BITB-272-ml-safety-reliability-rare-keyword-fallback.md)
 
 ---
 

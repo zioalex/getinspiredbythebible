@@ -1,4 +1,4 @@
-# BITB-267: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
+# BITB-272: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
 
 **Status:** 🎯 Todo
 **Priority:** P1
