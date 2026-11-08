@@ -18,6 +18,7 @@ from fastapi import Depends, HTTPException, Request
 
 from config import settings
 
+from . import translation_registry as tr
 from .logging_config import get_logger
 from .monitor_probe import is_monitor_probe
 from .rate_limiter import get_rate_limiter
@@ -434,6 +435,73 @@ _MS_PUNCT = "[.,;:!?)\\]}\"'…。、」』）،؛؟।\n]"
 _DH_START = r"(?:^|[.!;:\n]\s*|[¡¿]\s*)"
 _DH_END = r"(?=\s*(?:[!.,;]|$))"
 
+# BITB-238: English help-seeking / theological exemptions for the directed-harm table.
+# The English patterns ("kill yourself", "go die", "you should die") run under every language
+# code (BITB-193), so questions like "Is it a sin to kill yourself?" or "Why did Jesus have to go
+# die on the cross?" were blocked as directed harm. The exemption is a STRICT WHOLE-MESSAGE
+# ALLOWLIST: it applies only when the ENTIRE normalized message is a single sentence, carries no
+# hostile / insulting / encouraging word anywhere, and fully matches one closed-form frame.
+# Anything else (unusual phrasings included) takes the normal block path.
+_DH_PREFIX = re.compile(r"^(?:pastor,\s*)?(?:quick\s+question:\s*)?")
+_DH_MAX_LEN = 200
+_DH_VETO = re.compile(
+    r"\b(?:loser|idiot|moron|clown|trash|scum|retard\w*|pathetic|worthless|deserve\w*|"
+    r"try\s+it|find\s+out|your\s+turn|so\s+should\s+you|go\s+on|go\s+ahead|do\s+it|"
+    r"just\s*do|let\s+us\s+know|for\s+everyone|i\s+hope|i\s+wish|hope|wish|we\s+all|lol|"
+    r"asking\s+for\s+you|act\s+on\s+it|bitch|stupid|freak|dumb|ugly|useless|fool|jerk|"
+    r"coward|disgusting|waste|shit|ass|nobody|no\s*one)\b"
+    r"|\byou\s+should(?!\s+die\s+(?:to|unto)\s|\s+die\s+daily|\s+die\s+every)"
+)
+# Same veto with every non-letter dropped, so "d o it" / "d.o.i.t" are caught too.
+_DH_VETO_SQUASHED = re.compile(
+    r"doit|tryit|findout|yourturn|soshouldyou|goahead|justdo|letusknow|foreveryone|ihope|"
+    r"iwish|weall|askingforyou|lol|actonit"
+)
+_DH_ADJ = (
+    r"(?:a\s+)?(?:sin|sinful|wrong|ok|okay|forgivable|selfish|allowed|normal|biblical|"
+    r"unforgivable)"
+)
+_DH_FRAMES = re.compile(
+    r"(?:"
+    # (a) kill-yourself help-seeking: moral frame
+    r"(?:is\s+it|is\s+that|was\s+it|would\s+it\s+be|can\s+it\s+be|could\s+it\s+be|"
+    r"why\s+is\s+it)\s+" + _DH_ADJ + r"\s+to\s+kill\s+yourself\??"
+    # (a) religious-outcome conditionals
+    r"|what\s+happens\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|do\s+you\s+go\s+to\s+(?:hell|heaven)\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|will\s+god\s+forgive\s+you\s+(?:if|when)\s+you\s+kill\s+yourself\??"
+    r"|(?:if|when)\s+you\s+kill\s+yourself,\s*do\s+you\s+go\s+to\s+(?:heaven|hell)\??"
+    # (a) want / urge frame, closed form only
+    r"|(?:how\s+do\s+i\s+stop|how\s+to\s+stop)\s+wanting\s+to\s+kill\s+yourself\??"
+    r"|is\s+it\s+(?:wrong|a\s+sin|normal|ok)\s+to\s+want\s+to\s+kill\s+yourself\??"
+    # (b) 'go die' theological
+    r"|(?:why\s+did|did)\s+(?:jesus|christ)\s+(?:have\s+to\s+)?go\s+die"
+    r"(?:\s+(?:on\s+the\s+cross|for\s+(?:our|my)\s+sins|for\s+(?:sinners|mankind|humanity)))?\?"
+    # (c) 'you should die' theological
+    r"|does\s+(?:paul|the\s+bible|jesus|scripture|the\s+apostle)\s+say\s+you\s+should\s+die"
+    r"\s+(?:to\s+sin|to\s+self|to\s+the\s+flesh|to\s+the\s+world|daily|every\s+day)"
+    r"(?:\s+(?:daily|every\s+day))?\??"
+    r")"
+)
+_DH_WRAP_OPEN = "([\u201c\"'\u00ab"
+_DH_WRAP_CLOSE = ")]\u201d\"'\u00bb"
+
+
+def _dh_whole_message_exempt(normalized: str) -> bool:
+    """True only when the ENTIRE message is a closed-form help-seeking / theological frame."""
+    msg = re.sub(r"\s+", " ", normalized).strip()
+    if not msg or len(msg) > _DH_MAX_LEN:
+        return False
+    if _DH_VETO.search(msg) or _DH_VETO_SQUASHED.search(re.sub(r"[^a-z]+", "", msg)):
+        return False
+    body = msg.lstrip(_DH_WRAP_OPEN).rstrip(_DH_WRAP_CLOSE).strip()
+    body = _DH_PREFIX.sub("", body, count=1)
+    # Single sentence: no sentence punctuation except one terminal '?' / '.'.
+    core = body[:-1] if body[-1:] in ("?", ".") else body
+    if any(c in core for c in ".!?;:\n"):
+        return False
+    return _DH_FRAMES.fullmatch(body.rstrip(".")) is not None
+
 
 def _ms_end(extra: str = "") -> str:
     """Clause-end guard: optional filler words, then punctuation or end of text."""
@@ -562,6 +630,621 @@ _HI_NOT_SELF = r"(?<!खुद को )(?<!ख़ुद को )(?<!अपने
 _HI_NB = r"(?<![\u0900-\u097f\-])"
 
 
+def _registry_book_names(lang: str) -> set[str]:
+    """Book names (+ aliases / citation forms) of ``lang``, derived from translation_registry."""
+    if lang == "en":
+        return set(tr.ENGLISH_TO_ITALIAN) | set(tr.ENGLISH_ALIASES)
+    mapping = {
+        "it": (tr.ENGLISH_TO_ITALIAN, tr.ITALIAN_ALIASES),
+        "es": (tr.ENGLISH_TO_SPANISH, tr.ITALIAN_ALIASES),  # "Salmo" alias is shared
+        "pt": (tr.ENGLISH_TO_PORTUGUESE, tr.ITALIAN_ALIASES),
+        "fr": (tr.ENGLISH_TO_FRENCH, tr.FRENCH_ALIASES),
+        "de": (tr.ENGLISH_TO_GERMAN, tr.GERMAN_ALIASES),
+        "ar": (tr.ENGLISH_TO_ARABIC, tr.ARABIC_CITATION_FORMS),
+    }[lang]
+    names: set[str] = set()
+    for table in mapping:
+        names |= set(table.values()) if table is mapping[0] else set(table)
+    return names
+
+
+# ---------------------------------------------------------------------------
+# BITB-257 round 5: curated Bible killing EVENTS (killer -> victim)
+# ---------------------------------------------------------------------------
+# Owner decision 2026-11-08. A violence-table match is exempt ONLY when the ENTIRE normalized
+# message (<= 200 chars, one sentence, optional "In <book>," prefix) fully matches one closed
+# frame AND its (killer, victim) pair is a curated Bible killing event below. Rounds 1-4 tried
+# name lists (distinctive / common / group names) and a per-match denylist; verification broke
+# each one, because every list leaked a modern given name or an everyday word ("Why did Abel
+# kill the children?"). A name therefore never qualifies on its own: only the PAIR does, so
+# "Why did Cain kill Abel?" passes while "Why did Abel kill Cain?" or "Why did Cain kill the
+# children?" block like on main. Anything outside a frame or an event blocks (fail safe).
+# The design mirrors the BITB-238 directed-harm allowlist (`_dh_whole_message_exempt`,
+# PR #1249); the two helpers can be unified once both merge. Book names are DERIVED from
+# translation_registry (never hardcoded). God is only ever a killer inside its own event.
+#
+# Each name key lists its surface forms per language (en, it, de, es, fr, pt, ar), "|"-separated,
+# lower case, with the article where the language needs one. Forms are matched after Latin
+# accents and Arabic harakat are stripped; Arabic forms are written without the leading ال and
+# the message may carry a leading و/ف/ب/ل/ال, which is stripped before the pair check.
+_BIBLE_NAMES: dict[str, dict[str, str]] = {
+    "cain": {
+        "en": "cain", "it": "caino", "de": "kain", "es": "caín", "fr": "caïn", "pt": "caim",
+        "ar": "قايين|قابيل",
+    },
+    "abel": {
+        "en": "abel", "it": "abele", "de": "abel", "es": "abel", "fr": "abel", "pt": "abel",
+        "ar": "هابيل",
+    },
+    "brother": {
+        "en": "his brother", "it": "suo fratello|il fratello", "de": "seinen bruder",
+        "es": "su hermano", "fr": "son frère|son frere", "pt": "seu irmão|o irmão",
+        "ar": "أخاه|اخاه|أخيه|اخيه",
+    },
+    "david": {
+        "en": "david", "it": "davide", "de": "david", "es": "david", "fr": "david", "pt": "davi",
+        "ar": "داود|داوود",
+    },
+    "goliath": {
+        "en": "goliath", "it": "golia", "de": "goliat|goliath", "es": "goliat", "fr": "goliath",
+        "pt": "golias", "ar": "جليات|جالوت",
+    },
+    "saul": {
+        "en": "saul", "it": "saul", "de": "saul", "es": "saúl", "fr": "saül", "pt": "saul",
+        "ar": "شاول",
+    },
+    "moses": {
+        "en": "moses", "it": "mosè", "de": "mose|moses", "es": "moisés", "fr": "moïse",
+        "pt": "moisés", "ar": "موسى",
+    },
+    "egyptian": {
+        "en": "the egyptian", "it": "l'egiziano|un egiziano", "de": "den ägypter|einen ägypter",
+        "es": "al egipcio|un egipcio|el egipcio", "fr": "l'égyptien|un égyptien",
+        "pt": "o egípcio|um egípcio", "ar": "المصري|مصريا",
+    },
+    "pharaoh": {
+        "en": "pharaoh", "it": "faraone|il faraone", "de": "pharao|der pharao",
+        "es": "faraón|el faraón", "fr": "pharaon|le pharaon", "pt": "faraó|o faraó",
+        "ar": "فرعون",
+    },
+    "firstborn": {
+        "en": "the firstborn|the firstborn of egypt|the firstborn of the egyptians",
+        "it": "i primogeniti|i primogeniti d'egitto|i primogeniti degli egiziani",
+        "de": "die erstgeborenen|die erstgeborenen ägyptens|die erstgeborenen der ägypter",
+        "es": "los primogénitos|los primogénitos de egipto",
+        "fr": "les premiers-nés|les premiers-nés d'égypte",
+        "pt": "os primogênitos|os primogênitos do egito|os primogénitos",
+        "ar": "أبكار مصر|الأبكار|أبكار المصريين|بكر مصر",
+    },
+    "hebrew_babies": {
+        "en": "the hebrew babies|the hebrew boys|the hebrew children|the israelite babies",
+        "it": "i neonati ebrei|i bambini ebrei|i maschi ebrei",
+        "de": "die hebräischen babys|die hebräischen jungen|die hebräischen kinder",
+        "es": "los bebés hebreos|los niños hebreos|los varones hebreos",
+        "fr": "les bébés hébreux|les garçons hébreux|les enfants hébreux",
+        "pt": "os bebês hebreus|os meninos hebreus|as crianças hebreias",
+        "ar": "الأطفال العبرانيين|أطفال العبرانيين|الأطفال الإسرائيليين|أطفال بني إسرائيل",
+    },
+    "herod": {
+        "en": "herod", "it": "erode", "de": "herodes", "es": "herodes", "fr": "hérode",
+        "pt": "herodes", "ar": "هيرودس",
+    },
+    "bethlehem_children": {
+        "en": "the babies|the children|the infants|the innocents|the babies of bethlehem"
+        "|the children of bethlehem|the infants of bethlehem",
+        "it": "i bambini|i neonati|gli innocenti|i bambini di betlemme",
+        "de": "die kinder|die babys|die unschuldigen|die kinder von bethlehem",
+        "es": "los niños|los bebés|los inocentes|los niños de belén",
+        "fr": "les enfants|les bébés|les innocents|les enfants de bethléem|les nourrissons",
+        "pt": "as crianças|os bebês|os inocentes|as crianças de belém",
+        "ar": "الأطفال|أطفال بيت لحم|الأبرياء|الصبيان",
+    },
+    "john_baptist": {
+        "en": "john the baptist", "it": "giovanni battista",
+        "de": "johannes den täufer|johannes der täufer", "es": "juan el bautista",
+        "fr": "jean-baptiste|jean le baptiste", "pt": "joão batista",
+        "ar": "يوحنا المعمدان|يحيى",
+    },
+    "herodias": {
+        "en": "herodias", "it": "erodiade", "de": "herodias", "es": "herodías",
+        "fr": "hérodiade", "pt": "herodias", "ar": "هيروديا",
+    },
+    "jesus": {
+        "en": "jesus", "it": "gesù", "de": "jesus", "es": "jesús", "fr": "jésus", "pt": "jesus",
+        "ar": "يسوع|المسيح",
+    },
+    "james": {
+        "en": "james", "it": "giacomo", "de": "jakobus", "es": "santiago", "fr": "jacques",
+        "pt": "tiago", "ar": "يعقوب",
+    },
+    "jael": {
+        "en": "jael", "it": "giaele", "de": "jael", "es": "jael", "fr": "jaël", "pt": "jael",
+        "ar": "ياعيل|يايل",
+    },
+    "sisera": {
+        "en": "sisera", "it": "sisera", "de": "sisera", "es": "sísara", "fr": "sisera",
+        "pt": "sísera", "ar": "سيسرا",
+    },
+    "ehud": {
+        "en": "ehud", "it": "eud", "de": "ehud", "es": "aod", "fr": "éhoud", "pt": "eúde",
+        "ar": "إهود|ايهود",
+    },
+    "eglon": {
+        "en": "eglon", "it": "eglon", "de": "eglon", "es": "eglón", "fr": "églon",
+        "pt": "eglom", "ar": "عجلون",
+    },
+    "samson": {
+        "en": "samson", "it": "sansone", "de": "simson", "es": "sansón", "fr": "samson",
+        "pt": "sansão", "ar": "شمشون",
+    },
+    "philistines": {
+        "en": "the philistines", "it": "i filistei", "de": "die philister",
+        "es": "los filisteos", "fr": "les philistins", "pt": "os filisteus",
+        "ar": "الفلسطينيين|الفلسطينيون",
+    },
+    "absalom": {
+        "en": "absalom", "it": "assalonne", "de": "absalom", "es": "absalón", "fr": "absalom",
+        "pt": "absalão", "ar": "أبشالوم|ابشالوم",
+    },
+    "amnon": {
+        "en": "amnon", "it": "amnon", "de": "amnon", "es": "amnón", "fr": "amnon",
+        "pt": "amnom", "ar": "أمنون",
+    },
+    "joab": {
+        "en": "joab", "it": "ioab", "de": "joab", "es": "joab", "fr": "joab", "pt": "joabe",
+        "ar": "يوآب",
+    },
+    "abner": {
+        "en": "abner", "it": "abner", "de": "abner", "es": "abner", "fr": "abner",
+        "pt": "abner", "ar": "أبنير",
+    },
+    "uriah": {
+        "en": "uriah", "it": "uria", "de": "urija", "es": "urías", "fr": "urie", "pt": "urias",
+        "ar": "أوريا|اوريا",
+    },
+    "jezebel": {
+        "en": "jezebel", "it": "gezabele", "de": "isebel", "es": "jezabel", "fr": "jézabel",
+        "pt": "jezabel", "ar": "إيزابل|ايزابل",
+    },
+    "naboth": {
+        "en": "naboth", "it": "nabot", "de": "nabot", "es": "nabot", "fr": "naboth",
+        "pt": "nabote", "ar": "نابوت",
+    },
+    "elijah": {
+        "en": "elijah", "it": "elia", "de": "elia", "es": "elías", "fr": "élie", "pt": "elias",
+        "ar": "إيليا|الياس",
+    },
+    "jehu": {
+        "en": "jehu", "it": "ieu", "de": "jehu", "es": "jehú", "fr": "jéhu", "pt": "jeú",
+        "ar": "ياهو",
+    },
+    "ahab_house": {
+        "en": "the house of ahab|the sons of ahab",
+        "it": "la casa di acab|i figli di acab",
+        "de": "das haus ahabs|die söhne ahabs",
+        "es": "la casa de acab|los hijos de acab",
+        "fr": "la maison d'achab|les fils d'achab",
+        "pt": "a casa de acabe|os filhos de acabe",
+        "ar": "بيت أخآب|بيت اخاب|أبناء أخآب|أبناء اخاب",
+    },
+    "baal_prophets": {
+        "en": "the prophets of baal", "it": "i profeti di baal", "de": "die propheten baals",
+        "es": "los profetas de baal", "fr": "les prophètes de baal",
+        "pt": "os profetas de baal", "ar": "أنبياء البعل|انبياء البعل",
+    },
+    "phinehas": {
+        "en": "phinehas", "it": "fineas", "de": "pinhas", "es": "finees", "fr": "phinées",
+        "pt": "finéias", "ar": "فينحاس",
+    },
+    "zimri": {
+        "en": "zimri", "it": "zimri", "de": "simri", "es": "zimri", "fr": "zimri",
+        "pt": "zinri", "ar": "زمري",
+    },
+    "haman": {
+        "en": "haman", "it": "aman", "de": "haman", "es": "amán", "fr": "haman", "pt": "hamã",
+        "ar": "هامان",
+    },
+    "jews": {
+        "en": "the jews", "it": "i giudei", "de": "die juden", "es": "los judíos",
+        "fr": "les juifs", "pt": "os judeus", "ar": "اليهود",
+    },
+    "abimelech": {
+        "en": "abimelech", "it": "abimelech", "de": "abimelech", "es": "abimelec",
+        "fr": "abimélec", "pt": "abimeleque", "ar": "أبيمالك",
+    },
+    "gideon_sons": {
+        "en": "his brothers|the sons of gideon", "it": "i suoi fratelli|i figli di gedeone",
+        "de": "seine brüder|die söhne gideons", "es": "sus hermanos|los hijos de gedeón",
+        "fr": "ses frères|les fils de gédéon", "pt": "seus irmãos|os filhos de gideão",
+        "ar": "إخوته|اخوته|أبناء جدعون",
+    },
+    "god": {
+        "en": "god", "it": "dio", "de": "gott", "es": "dios", "fr": "dieu", "pt": "deus",
+        "ar": "الله|الرب",
+    },
+    "nob_priests": {
+        "en": "the priests of nob", "it": "i sacerdoti di nob", "de": "die priester von nob",
+        "es": "los sacerdotes de nob", "fr": "les prêtres de nob",
+        "pt": "os sacerdotes de nobe", "ar": "كهنة نوب",
+    },
+    "doeg": {
+        "en": "doeg", "it": "doeg", "de": "doeg", "es": "doeg", "fr": "doëg", "pt": "doegue",
+        "ar": "دوآج",
+    },
+    "pharisees": {
+        "en": "the pharisees", "it": "i farisei", "de": "die pharisäer", "es": "los fariseos",
+        "fr": "les pharisiens", "pt": "os fariseus", "ar": "الفريسيون|الفريسيين",
+    },
+    "chief_priests": {
+        "en": "the chief priests", "it": "i capi dei sacerdoti",
+        "de": "die hohenpriester", "es": "los sumos sacerdotes|los principales sacerdotes",
+        "fr": "les grands prêtres", "pt": "os sumos sacerdotes|os principais sacerdotes",
+        "ar": "رؤساء الكهنة",
+    },
+    "crowd": {
+        "en": "the crowd|the mob", "it": "la folla", "de": "die menge", "es": "la multitud",
+        "fr": "la foule", "pt": "a multidão", "ar": "الجموع|الجمهور",
+    },
+    "stephen": {
+        "en": "stephen", "it": "stefano", "de": "stephanus", "es": "esteban", "fr": "étienne",
+        "pt": "estêvão", "ar": "إسطفانوس|اسطفانوس|استفانوس",
+    },
+    "esau": {
+        "en": "esau", "it": "esaù", "de": "esau", "es": "esaú", "fr": "ésaü", "pt": "esaú",
+        "ar": "عيسو",
+    },
+    "jacob": {
+        "en": "jacob", "it": "giacobbe", "de": "jakob", "es": "jacob", "fr": "jacob",
+        "pt": "jacó", "ar": "يعقوب",
+    },
+    "joseph": {
+        "en": "joseph", "it": "giuseppe", "de": "josef", "es": "josé", "fr": "joseph",
+        "pt": "josé", "ar": "يوسف",
+    },
+    "joseph_brothers": {
+        "en": "joseph's brothers", "it": "i fratelli di giuseppe",
+        "de": "die brüder josefs", "es": "los hermanos de josé", "fr": "les frères de joseph",
+        "pt": "os irmãos de josé", "ar": "إخوة يوسف|اخوة يوسف",
+    },
+    "athaliah": {
+        "en": "athaliah", "it": "atalia", "de": "atalja", "es": "atalía", "fr": "athalie",
+        "pt": "atalia", "ar": "عثليا",
+    },
+    "royal_family": {
+        "en": "the royal family|her grandchildren", "it": "la famiglia reale|i suoi nipoti",
+        "de": "die königliche familie|ihre enkel", "es": "la familia real|sus nietos",
+        "fr": "la famille royale|ses petits-enfants",
+        "pt": "a família real|os seus netos|seus netos", "ar": "النسل الملكي|أحفادها",
+    },
+    "samuel": {
+        "en": "samuel", "it": "samuele", "de": "samuel", "es": "samuel", "fr": "samuel",
+        "pt": "samuel", "ar": "صموئيل",
+    },
+    "agag": {
+        "en": "agag", "it": "agag", "de": "agag", "es": "agag", "fr": "agag", "pt": "agague",
+        "ar": "أجاج",
+    },
+}  # fmt: skip
+
+# (killer, victim, completed): completed=False means the Bible records only an ATTEMPT / plot,
+# so the pair is accepted in "wanted / tried to kill" frames but not in "did X kill Y".
+_BIBLE_KILLING_EVENTS: tuple[tuple[str, str, bool], ...] = (
+    ("cain", "abel", True),
+    ("cain", "brother", True),
+    ("david", "goliath", True),
+    ("saul", "david", False),
+    ("moses", "egyptian", True),
+    ("pharaoh", "firstborn", False),
+    ("pharaoh", "hebrew_babies", True),
+    ("god", "firstborn", True),
+    ("herod", "bethlehem_children", True),
+    ("herod", "john_baptist", True),
+    ("herod", "jesus", False),
+    ("herod", "james", True),
+    ("herodias", "john_baptist", False),
+    ("jael", "sisera", True),
+    ("ehud", "eglon", True),
+    ("samson", "philistines", True),
+    ("absalom", "amnon", True),
+    ("joab", "abner", True),
+    ("joab", "absalom", True),
+    ("david", "uriah", True),
+    ("jezebel", "naboth", True),
+    ("jezebel", "elijah", False),
+    ("jehu", "jezebel", True),
+    ("jehu", "ahab_house", True),
+    ("elijah", "baal_prophets", True),
+    ("phinehas", "zimri", True),
+    ("haman", "jews", False),
+    ("abimelech", "gideon_sons", True),
+    ("saul", "nob_priests", True),
+    ("doeg", "nob_priests", True),
+    ("pharisees", "jesus", False),
+    ("chief_priests", "jesus", False),
+    ("crowd", "stephen", True),
+    ("esau", "jacob", False),
+    ("esau", "brother", False),
+    ("joseph_brothers", "joseph", False),
+    ("athaliah", "royal_family", True),
+    ("samuel", "agag", True),
+)
+
+_VN_MAX_LEN = 200
+_VN_LANGS = ("en", "it", "de", "es", "fr", "pt", "ar")
+_VN_AR_MARKS = re.compile("[ً-ٰٟـ]")  # harakat + superscript alef + tatweel
+_VN_WRAP_OPEN = "([«“‘„\"'¿¡"
+_VN_WRAP_CLOSE = ")]»”’\"'"
+# Letters of one word from two scripts (Latin + Cyrillic/Greek) = homoglyph evasion.
+_VN_MIXED_SCRIPT = re.compile(
+    r"(?=\w*[a-zà-ɏ])\w*[Ͱ-ϿЀ-ԯ]" r"|(?=\w*[Ͱ-ϿЀ-ԯ])\w*[a-zà-ɏ]",
+    re.IGNORECASE,
+)
+# First-person words of ALL supported languages (union). The closed frames already have no
+# pronoun slot, so this only guards frame vocabulary growth. Bare "i" is skipped on purpose:
+# it is a numbered-book prefix ("i samuel") and the Italian article ("i bambini").
+_VN_VETO = re.compile(
+    r"\b(?:i['’](?:m|ll|d|ve)|me|my|mine|myself|we|us|our|ours"
+    r"|je|nous|moi|mon|mes|notre|nos|ich|wir|mich|mir|uns|io|noi|mio|mia|miei|mie|mi"
+    r"|voglio|vorrei|vogliamo|yo|nosotros|nosotras|mis|quiero|queremos|eu|meu|meus"
+    r"|minha|minhas|quero)\b|\b[jm]['’]|\b(?:mein|unser)\w*"
+    r"|(?<![ؠ-ي])(?:أنا|انا|نحن"
+    r"|أريد|اريد|سأقتل"
+    r"|سوف)(?![ؠ-ي])",
+    re.IGNORECASE,
+)
+
+
+def _vn_plain(text: str) -> str:
+    """Strip Arabic harakat/tatweel and Latin accents; keep every non-Latin base letter intact."""
+    text = _VN_AR_MARKS.sub("", unicodedata.normalize("NFC", text))
+    out: list[str] = []
+    for ch in unicodedata.normalize("NFD", text):
+        if unicodedata.combining(ch) and out and out[-1].isascii():
+            continue  # accent on a Latin base letter
+        out.append(ch)
+    return unicodedata.normalize("NFC", "".join(out)).replace("’", "'")
+
+
+def _vn_forms(key: str, lang: str) -> set[str]:
+    """Plain (accent-free) surface forms of name ``key`` in ``lang``."""
+    forms = {_vn_plain(normalize_text(f)) for f in _BIBLE_NAMES[key][lang].split("|")}
+    # Arabic forms are stored without the article; a message article is stripped before the check.
+    return {f.removeprefix("ال") for f in forms} if lang == "ar" else forms
+
+
+def _vn_alt(terms: set[str]) -> str:
+    return "|".join(re.escape(t) for t in sorted(terms, key=len, reverse=True))
+
+
+def _vn_pairs(lang: str, *, completed_only: bool) -> set[tuple[str, str]]:
+    """All (killer form, victim form) pairs of the curated events of ``lang``."""
+    return {
+        (k, v)
+        for killer, victim, done in _BIBLE_KILLING_EVENTS
+        if done or not completed_only
+        for k in _vn_forms(killer, lang)
+        for v in _vn_forms(victim, lang)
+    }
+
+
+# Chapter[:verse] after a book. normalize_text() maps digits to letters (1->i 3->e 4->a 5->s
+# 7->t 0->o), so "17" arrives as "it": the number slot accepts those letters too.
+_VN_NUM = r"[oieast2689]{1,3}"
+_VN_REF_TAIL = rf"(?:\s+{_VN_NUM}(?:[:.,]{_VN_NUM})?)?"
+
+# Question words and book-slot prepositions per language (accent-free).
+_VN_LANG = {
+    "en": {"q": r"(?:why|how|when)", "in": r"in\s+(?:the\s+book\s+of\s+)?"},
+    "it": {
+        "q": r"(?:perche|come|quando)",
+        "in": r"(?:in|nel|nella|nel\s+libro\s+(?:di|del|della)\s+)\s*",
+    },
+    "es": {"q": r"(?:por\s+que|como|cuando)", "in": r"(?:en|en\s+el\s+libro\s+de(?:l)?)\s+"},
+    "pt": {"q": r"(?:por\s+que|como|quando)", "in": r"(?:em|no\s+livro\s+(?:de|do))\s+"},
+    "fr": {
+        "q": r"(?:pourquoi|comment|quand)",
+        "in": r"(?:dans|en)\s+(?:le\s+livre\s+d(?:e\s+la|e|u)\s+)?",
+    },
+    "de": {"q": r"(?:warum|wieso|weshalb|wie|wann)", "in": r"(?:in|im\s+buch)\s+"},
+}
+_VN_EN_VERB = r"(?:kill|murder|slay|slaughter|stab)"  # no "shoot": no curated event is one
+_NUMBERED_PREFIX_RE = re.compile(r"^(?:i{1,3}|[1-3ea])\.?\s+")
+
+
+def _vn_book_alt(lang: str) -> str:
+    names = {normalize_text(n).strip() for n in _registry_book_names(lang)}
+    names = {n for n in names if len(_NUMBERED_PREFIX_RE.sub("", n)) >= 3}
+    if lang == "ar":  # allow the definite article to be present or absent
+        names |= {n.removeprefix("ال") for n in names}
+    return _vn_alt({_vn_plain(n) for n in names})
+
+
+# A frame is (compiled pattern, needs_completed): needs_completed=True for "did X kill Y"
+# (only completed killings), False for "wanted/tried to kill" (attempts count too), None for
+# commandment frames (no killer/victim slots).
+_VnFrame = tuple["re.Pattern[str]", "bool | None"]
+
+
+def _vn_build_frames(lang: str) -> list[_VnFrame]:
+    """Closed whole-message frames for ``lang``; each has a killer ``s`` and a victim ``o``."""
+    killers = {f for k, _, _ in _BIBLE_KILLING_EVENTS for f in _vn_forms(k, lang)}
+    victims = {f for _, v, _ in _BIBLE_KILLING_EVENTS for f in _vn_forms(v, lang)}
+    book = _vn_book_alt(lang)
+    if lang == "ar":
+        # Optional proclitic (و ف ب ل) and article; stripped again in the pair check.
+        pre = r"(?:[وفبل]?(?:ال)?)"
+        s = rf"(?P<s>{pre}(?:{_vn_alt(killers)}))"
+        o = rf"(?P<o>{pre}(?:{_vn_alt(victims)}))"
+        ref = rf"(?:\s+في\s+(?:سفر\s+)?(?:ال)?(?:{book}){_VN_REF_TAIL})?"
+        q = r"(?:(?:لماذا|كيف|متى)\s+)?"
+        qatl = "قتل"
+        ar_pats: list[_VnFrame] = [
+            (re.compile(rf"{q}{qatl}\s+{s}\s+{o}{ref}"), True),
+            (re.compile(rf"{q}{s}\s+{qatl}\s+{o}{ref}"), True),
+            (
+                re.compile(rf"(?:لماذا|كيف)\s+[أا]راد\s+{s}\s+[أا]ن\s+يقتل\s+{o}{ref}"),
+                False,
+            ),
+            (
+                re.compile(
+                    r"(?:(?:ماذا\s+تعني|ما\s+معنى)\s+(?:وصية\s+)?لا\s+تقتل"
+                    r"|وصية\s+لا\s+تقتل\s+ماذا\s+تعني)"
+                ),
+                None,
+            ),
+        ]
+        return ar_pats
+
+    c = _VN_LANG[lang]
+    q = c["q"]
+    s = rf"(?P<s>{_vn_alt(killers)})"
+    o = rf"(?P<o>{_vn_alt(victims)})"
+    bk = rf"(?:\s+{c['in']}(?:{book}){_VN_REF_TAIL})?"
+    pre = rf"(?:{c['in']}(?:{book}){_VN_REF_TAIL},\s*)?" if lang == "en" else ""
+    raw: list[tuple[str, bool | None]] = []
+    if lang == "en":
+        raw = [
+            (rf"{pre}{q}\s+did\s+{s}\s+{_VN_EN_VERB}\s+{o}{bk}", True),
+            (
+                rf"{pre}{q}\s+did\s+{s}\s+(?:want|try|decide|plan)\s+to\s+{_VN_EN_VERB}\s+{o}{bk}",
+                False,
+            ),
+            (rf"did\s+{s}\s+(?:kill|murder)\s+{o}{bk}", True),
+            (rf"why\s+didn['’]t\s+{s}\s+kill\s+{o}{bk}", False),
+            # Commandment: only the archaic "thou shalt not" AND an explicit "what does it mean"
+            # style lead or tail; bare commandments and the modern "you shall not" read as commands.
+            (
+                r"(?:(?:what\s+does|what\s+did\s+jesus\s+mean\s+by|why\s+does\s+the\s+bible"
+                r"\s+say|what\s+is\s+the\s+meaning\s+of)\s+(?:thou\s+shalt|thou\s+shall)\s+not"
+                r"\s+(?:kill|murder)(?:\s+mean)?"
+                r"|(?:thou\s+shalt|thou\s+shall)\s+not\s+(?:kill|murder)"
+                r"(?:\s+mean|\s+[-\u2013\u2014]\s+what\s+does\s+it\s+mean))",
+                None,
+            ),
+        ]
+    elif lang == "it":
+        want = r"(?:volle|voleva|ha\s+voluto|cerco\s+di|decise\s+di|ha\s+deciso\s+di|ha\s+cercato\s+di)"
+        past = r"(?:uccise|ha\s+ucciso)"
+        raw = [
+            (rf"{q}\s+{s}\s+{want}\s+uccidere\s+{o}{bk}", False),
+            (rf"{q}\s+{s}\s+{past}\s+{o}{bk}", True),
+            (rf"{q}\s+{past}\s+{s}\s+{o}{bk}", True),
+        ]
+    elif lang == "es":
+        want = r"(?:quiso|queria|intento|trato\s+de|decidio|planeo)"
+        past = r"(?:mato|asesino|ha\s+matado)"
+        raw = [
+            (rf"{q}\s+{s}\s+{want}\s+matar\s+a\s+{o}{bk}", False),
+            (rf"{q}\s+{s}\s+{past}\s+a\s+{o}{bk}", True),
+            (rf"{q}\s+{past}\s+{s}\s+a\s+{o}{bk}", True),
+        ]
+    elif lang == "pt":
+        want = r"(?:quis|queria|tentou|decidiu|planejou)"
+        past = r"(?:matou|assassinou|tinha\s+matado)"
+        raw = [
+            (rf"{q}\s+{s}\s+{want}\s+matar\s+{o}{bk}", False),
+            (rf"{q}\s+{s}\s+{past}\s+{o}{bk}", True),
+            (rf"{q}\s+{past}\s+{s}\s+{o}{bk}", True),
+        ]
+    elif lang == "fr":
+        raw = [
+            (
+                rf"{q}\s+{s}\s+(?:a-t-(?:il|elle)\s+voulu|(?:voulait|voulut)-(?:il|elle)"
+                rf"|a-t-(?:il|elle)\s+(?:essaye|decide)\s+de)\s+tuer\s+{o}{bk}",
+                False,
+            ),
+            (rf"{q}\s+{s}\s+(?:a-t-(?:il|elle)\s+tue|tua-t-(?:il|elle))\s+{o}{bk}", True),
+            (
+                rf"{q}\s+{s}\s+(?:a\s+voulu|voulait|a\s+essaye\s+de|a\s+decide\s+de)\s+tuer\s+{o}{bk}",
+                False,
+            ),
+            (rf"{q}\s+{s}\s+a\s+tue\s+{o}{bk}", True),
+        ]
+    elif lang == "de":
+        raw = [
+            (
+                rf"(?:warum|wieso|weshalb)\s+(?:wollte|versuchte|beschloss|plante)\s+{s}\s+{o}{bk}"
+                rf"\s+toten{bk}",
+                False,
+            ),
+            (rf"{q}\s+hat\s+{s}\s+{o}{bk}\s+getotet{bk}", True),
+            (rf"{q}\s+totete\s+{s}\s+{o}{bk}", True),
+        ]
+    return [(re.compile(p), done) for p, done in raw]
+
+
+_VN_FRAMES = {lang: _vn_build_frames(lang) for lang in _VN_LANGS}
+_VN_PAIRS = {
+    lang: {True: _vn_pairs(lang, completed_only=True), False: _vn_pairs(lang, completed_only=False)}
+    for lang in _VN_LANGS
+}
+# es and pt share the infinitive "matar" (one violence pattern), so a Spanish question must be
+# exempt under the pt table and vice versa: each language checks both languages' frames/events.
+_VN_OWNERS = {**{lang: (lang,) for lang in _VN_LANGS}, "es": ("es", "pt"), "pt": ("pt", "es")}
+
+
+def _vn_ar_variants(name: str) -> set[str]:
+    """Arabic name as written plus the forms with the proclitic (و ف ب ل) / article stripped."""
+    out = {name}
+    if name[:1] in ("و", "ف", "ب", "ل"):
+        out.add(name[1:])
+    out |= {n[2:] for n in out if n.startswith("ال")}
+    return out
+
+
+def _vn_pair_ok(owner: str, completed_only: bool, killer: str, victim: str) -> bool:
+    pairs = _VN_PAIRS[owner][completed_only]
+    if owner == "ar":
+        return any(
+            (k, v) in pairs for k in _vn_ar_variants(killer) for v in _vn_ar_variants(victim)
+        )
+    return (killer, victim) in pairs
+
+
+def _vn_prepare(normalized: str) -> str | None:
+    """Gate + unwrap: the accent-free single-sentence body, or None if the message can't qualify."""
+    stripped = normalized.strip()
+    if not stripped or "\n" in stripped:
+        return None
+    msg = re.sub(r"\s+", " ", stripped)
+    if len(msg) > _VN_MAX_LEN:
+        return None
+    msg = _vn_plain(msg)
+    if _VN_VETO.search(msg) or _VN_MIXED_SCRIPT.search(msg):
+        return None
+    body = msg.lstrip(_VN_WRAP_OPEN).rstrip(_VN_WRAP_CLOSE).strip()
+    if body[-1:] in ("?", ".", "\u061f"):
+        body = body[:-1].rstrip(_VN_WRAP_CLOSE + " ")
+    return body
+
+
+def _violence_narrative_whole_message_exempt(lang: str, normalized: str) -> bool:
+    """True only when the ENTIRE message is one closed-form Bible-narrative question.
+
+    BITB-257 round 5 (strict allowlist of curated killing EVENTS; mirrors BITB-238's
+    `_dh_whole_message_exempt`). ``normalized`` must already be passed through
+    :func:`normalize_text`. Ordered cheapest first: length (<= 200 chars after whitespace
+    collapse), single line, scripts, veto, then a fullmatch of the unwrapped body against the
+    language's closed frames, and finally the (killer, victim) pair must be a curated event
+    (completed events for "did X kill Y", any event for "wanted/tried to kill"). Commandment
+    frames have no pair. Languages without frames (ru/zh/hi/ko) are never exempt.
+    """
+    owners = _VN_OWNERS.get(lang)
+    body = _vn_prepare(normalized) if owners else None
+    if not owners or body is None:
+        return False
+    for owner in owners:
+        for frame, completed in _VN_FRAMES[owner]:
+            m = frame.fullmatch(body)
+            if not m:
+                continue
+            if completed is None:  # commandment: no killer/victim slots
+                return True
+            if _vn_pair_ok(owner, completed, m.group("s"), m.group("o")):
+                return True
+    return False
+
+
 class MultiLanguageContentFilter:
     """
     Multi-language content filter for violence, self-harm, hate speech.
@@ -683,6 +1366,9 @@ class MultiLanguageContentFilter:
             r"متفجر",
             r"سلاح",
             r"أسلحة",
+            # BITB-257: bare "قتل" is kept (fail safe, as on main). find_violence_matches skips
+            # it only when the WHOLE message is a closed frame naming a curated Bible killing
+            # event (_violence_narrative_whole_message_exempt); everything else blocks.
             r"قتل",
             r"جريمة قتل",
             r"هجوم",
@@ -693,6 +1379,9 @@ class MultiLanguageContentFilter:
         # BITB-198: conservative native patterns for ru/zh/hi/ko. Unambiguous modern
         # weapon/terror words match alone; kill/attack verbs only in first-person intent or
         # how-to phrasing, so Bible narrative ("How did David kill Goliath?") stays clean.
+        # BITB-257: the en/it/de/es/fr/pt/ar kill verbs keep bare patterns but are skipped when
+        # the whole message is a closed frame for a curated Bible killing event
+        # (see _violence_narrative_whole_message_exempt); ru/zh/hi/ko are never exempt.
         # Words with Bible/everyday senses (massacre, attack, bare explosion, ru оружие,
         # hi हथियार) stay hard-only (HARD_VIOLENCE_PATTERNS, checked next to self-harm).
         "ru": [
@@ -962,6 +1651,9 @@ class MultiLanguageContentFilter:
         "en": [
             r"\bsuicide\b",
             r"\bkill myself\b",
+            # BITB-238: exempted help-seeking questions ("Is it a sin to kill yourself?")
+            # route to the compassionate path instead of the violence block.
+            r"\bkill(?:ing)?\s+yourself\b",
             r"\bend my life\b",
             r"\bself.harm\b",
             r"\bcut myself\b",
@@ -1127,13 +1819,13 @@ class MultiLanguageContentFilter:
     # Directed harm patterns (indicates harmful intent, not help-seeking)
     DIRECTED_HARM_PATTERNS = {
         "en": [
-            r"\bgo kill yourself\b",
-            r"\bkill yourself\b",
-            r"\bgo die\b",
-            r"\byou should die\b",
-            r"\bi will kill you\b",
-            r"\bi want to kill you\b",
-            r"\bgo fuck yourself\b",
+            r"\bgo\s+kill\s+yourself\b",
+            r"\bkill\s+yourself\b",
+            r"\bgo\s+die\b",
+            r"\byou\s+should\s+die\b",
+            r"\bi\s+will\s+kill\s+you\b",
+            r"\bi\s+want\s+to\s+kill\s+you\b",
+            r"\bgo\s+fuck\s+yourself\b",
         ],
         "it": [
             r"\bvattene a fanculo\b",
@@ -1242,6 +1934,20 @@ class MultiLanguageContentFilter:
             spans.extend(m.span() for m in regex.finditer(normalized))
         return spans
 
+    def _violence_hits(self, lang: str, normalized: str) -> list[tuple[int, int, str]]:
+        """Matches of ``lang``'s violence table; none if the WHOLE message is exempt (BITB-257).
+
+        The exemption is computed once per message and only when the table matched at all, so
+        the cost stays linear in the message length.
+        """
+        regex = self._violence_regex.get(lang)
+        if not regex:
+            return []
+        hits = [(m.start(), m.end(), m.group(0)) for m in regex.finditer(normalized)]
+        if hits and _violence_narrative_whole_message_exempt(lang, normalized):
+            return []
+        return hits
+
     def find_violence_matches(
         self, normalized: str, languages: list[str] | None = None
     ) -> list[tuple[int, int, str]]:
@@ -1253,9 +1959,7 @@ class MultiLanguageContentFilter:
         langs = list(self._violence_regex) if languages is None else languages
         matches: list[tuple[int, int, str]] = []
         for lang in dict.fromkeys(langs):
-            regex = self._violence_regex.get(lang)
-            if regex:
-                matches.extend((m.start(), m.end(), m.group(0)) for m in regex.finditer(normalized))
+            matches.extend(self._violence_hits(lang, normalized))
         return matches
 
     def find_hard_violence_matches(self, normalized: str) -> list[tuple[int, int, str]]:
@@ -1290,13 +1994,29 @@ class MultiLanguageContentFilter:
             for m in self._murder_suicide_regex.finditer(normalized)
         ]
 
+    @staticmethod
+    def _is_directed_harm_exempt(lang: str, normalized: str, m: re.Match[str]) -> bool:
+        """True when the WHOLE message is a closed-form help-seeking / theological question.
+
+        BITB-238: "Is it a sin to kill yourself?", "Why did Jesus have to go die on the
+        cross?", "Does Paul say you should die to sin daily?". Strict allowlist: only English
+        rules exist (other languages return False) and the exemption applies only when the
+        entire message is a single sentence free of hostile words that fully matches one
+        frame. ``normalized`` must already be passed through :func:`normalize_text`.
+        """
+        if lang != "en":
+            return False
+        return _dh_whole_message_exempt(normalized)
+
     def find_directed_harm_violation(
         self, normalized: str, preferred: str | None = None
     ) -> tuple[str, str, str] | None:
         """Search directed-harm patterns of EVERY language, then hate speech (BITB-193).
 
         The ``preferred`` language is tried first. ``normalized`` must already be passed
-        through :func:`normalize_text`.
+        through :func:`normalize_text`. English help-seeking / theological phrasings
+        ("Is it a sin to kill yourself?") are skipped (BITB-238); a later genuine threat
+        in the same message still returns a hit.
 
         Returns:
             ``(violation_type, language, matched_text)`` or ``None``. Hate speech reports
@@ -1307,8 +2027,11 @@ class MultiLanguageContentFilter:
             langs.remove(preferred)
             langs.insert(0, preferred)
         for lang in langs:
-            m = self._directed_harm_regex[lang].search(normalized)
-            if m:
+            for m in self._directed_harm_regex[lang].finditer(normalized):
+                # BITB-238: skip help-seeking / theological uses; a later genuine threat
+                # in the same message still blocks.
+                if self._is_directed_harm_exempt(lang, normalized, m):
+                    continue
                 return ViolationType.DIRECTED_HARM.value, lang, m.group(0)
         m = self._hate_speech_regex.search(normalized)
         if m:
