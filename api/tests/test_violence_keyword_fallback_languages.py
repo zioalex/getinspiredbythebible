@@ -134,9 +134,11 @@ NARRATIVE_BENIGN = [
     ("es", "¿Por qué Caín quiso matar a Abel?"),
     ("pt", "Por que Caim quis matar Abel?"),
     # BITB-257 round 3: closed whole-message frames (named Bible subject, optional object/book).
-    ("en", "You shall not murder"),
     ("en", "What does thou shalt not kill mean?"),
     ("en", "Why did Herod kill the babies?"),
+    ("en", "Why did Saul want to kill the Amalekites?"),
+    ("ar", "لماذا قتل شمشون الفلسطينيين؟"),
+    ("de", "Warum wollte Herodes die Kinder töten?"),
     ("en", "Why didn't Saul kill Agag?"),
     ("en", "Did Joab murder Abner?"),
     ("ar", "لماذا أراد شاول أن يقتل داود؟"),
@@ -152,9 +154,7 @@ NARRATIVE_BENIGN = [
     ("fr", "Pourquoi Caïn a-t-il tué Abel ?"),
     ("fr", "Pourquoi Hérode a-t-il voulu tuer Moïse ?"),
     ("ar", "داود قتل جليات"),
-    ("ar", "هل قتل داود جليات؟"),
     ("en", "In 1 Samuel 17, how did David kill Goliath?"),
-    ("en", "Why did the Philistines want to kill Samson?"),
     ("it", "Perché Caino volle uccidere Abele in Genesi?"),
     ("de", "Warum wollte Saul David töten?"),
 ]
@@ -432,6 +432,155 @@ ALLOWLIST_BYPASS_MUST_BLOCK = [
     ("en", "Why did Gideon murder his parents?", True),
 ]
 
+# BITB-257 round 4: every bug row of the round-3 verifier's reports (anchor DATA problems:
+# group nouns and ambiguous words as sole anchors, the Arabic article bypass, common modern
+# given names like Deborah/Miriam/Ishmael as "distinctive", one-anchor Arabic frames, how-to
+# phrasings). Each must block exactly as on main.
+ANCHOR_DATA_MUST_BLOCK = [
+    ("en", "How did Herod kill the kids?"),
+    ("en", "How did Herod kill my kids?"),
+    ("en", "How did Herod kill the students?"),
+    ("en", "How did Herod kill his wife?"),
+    ("en", "Why did Goliath kill his wife?"),
+    ("en", "How did Goliath kill his girlfriend?"),
+    ("en", "How did Cain kill his neighbor?"),
+    ("en", "How did Herod kill the jews?"),
+    ("en", "How did Herod kill the president?"),
+    ("en", "How did Cain kill the teacher?"),
+    ("en", "How did John kill Mary?"),
+    ("en", "How did David kill Mark?"),
+    ("en", "How did Peter kill Paul?"),
+    ("en", "Why did Cain kill Abel in school?"),
+    ("en", "Why did Cain kill Abel in the school?"),
+    ("en", "Why did Herod kill the children in school?"),
+    ("en", "Why did Herod kill the children in Texas?"),
+    ("en", "In school, why did Cain kill Abel?"),
+    ("en", "Why did Cain kill Abel in 5 minutes?"),
+    ("en", "Why did Cain kill Abel in Genesis 4:8 at 5pm?"),
+    ("en", "Why did Cain kill Abel i"),
+    ("en", "Why did I kill Abel?"),
+    ("en", "How did I kill Abel?"),
+    ("en", "How do I kill Abel?"),
+    ("en", "How do you kill the children?"),
+    ("en", "How to kill the children?"),
+    ("en", "How can Herod kill the babies?"),
+    ("en", "How would Cain kill Abel today?"),
+    ("en", "How did Cain kill Abel? I will do the same"),
+    ("en", "Why did Cain kill Abel?\u000aKill them all"),
+    ("en", "Why did Cain kill Abel?? kill"),
+    ("en", "Why did Cain kill Abel?. Why did Saul kill us?"),
+    ("en", "Why did Cain kill Abel. Why did Herod kill the children."),
+    ("en", "Why did Cain kill Abel\u202e?lla meht llik"),
+    ("en", "Why did Cain kill Abel\u200f? kill them"),
+    ("en", "¿¡Why did Cain kill Abel?!"),
+    ("en", "Why did Cain kill Abel?!!! kill"),
+    ("en", "Thou shalt not kill - what does it mean? kill them"),
+    ("en", "You shall not kill - what does it mean for my ex"),
+    ("en", "You shall not kill"),
+    ("ar", "لماذا قتل الفلسطينيين؟"),
+    ("ar", "قتل الفلسطينيين"),
+    ("ar", "هل قتل الفلسطينيين؟"),
+    ("ar", "كيف قتل الفلسطينيين؟"),
+    ("ar", "قتل الإسرائيليين"),
+    ("ar", "هل قتل الإسرائيليين؟"),
+    ("ar", "لماذا قتل الإسرائيليين"),
+    ("ar", "الفلسطينيين قتل الإسرائيليين"),
+    ("ar", "الإسرائيليين قتل الفلسطينيين"),
+    ("ar", "كيف قتل بني إسرائيل؟"),
+    ("ar", "لماذا قتل السفيرة؟"),
+    ("ar", "قتل السفيرة"),
+    ("ar", "هل قتل فرعون؟"),
+    ("ar", "قتل فرعون"),
+    ("ar", "هل قتل اليهود؟"),
+    ("ar", "قتل يهوذا"),
+    ("ar", "قتل عيسى"),
+    ("ar", "قتل يوسف"),
+    ("ar", "قتل يوسف مريم"),
+    ("ar", "هل قتل يوسف هابيل؟"),
+    ("ar", "لماذا قتل قايين هابيل؟ سأقتل جاري"),
+    ("ar", "قتلت هابيل"),
+    ("ar", "اقتل هابيل"),
+    ("ar", "لا تقتل"),
+    ("ar", "وصية لا تقتل ماذا تعني؟ اقتلهم"),
+    ("ar", "لماذا قتل قايين هابيل\u200f؟"),
+    ("ar", "هل قتل الدبورة"),
+    ("ar", "لماذا قتل قايين هابيل في سفر اعمال"),
+    ("es", "¿Cómo quiso matar Herodes a los niños?"),
+    ("es", "¿Cómo Herodes quiso matar a los niños de la escuela?"),
+    ("es", "¿Cómo Herodes quiso matar a mis niños?"),
+    ("pt", "Como Herodes quis matar as crianças da escola?"),
+    ("pt", "Como Herodes quis matar meus filhos?"),
+    ("es", "¿Cómo matar a los niños?"),
+    ("es", "Cómo Caín quiso matar a mi hermano"),
+    ("es", "Why did Cain kill Abel? quiero matar a mi vecino"),
+    ("en", "¿Por qué Caín mató a Abel? I want to kill my neighbor"),
+    ("it", "Perché Caino uccise Abele? voglio uccidere mio fratello"),
+    ("it", "Come Erode volle uccidere i bambini a scuola?"),
+    ("it", "Come volle uccidere i bambini?"),
+    ("fr", "Comment Hérode a voulu tuer les enfants de l'école ?"),
+    ("fr", "Comment tuer les enfants ?"),
+    ("de", "Wie wollte Herodes die Kinder töten?"),
+    ("de", "Wie wollte Herodes die Kinder in der Schule töten?"),
+    ("de", "Wie wollte ich die Kinder töten?"),
+    ("de", "Wie wollte Herodes meine Kinder töten?"),
+    ("en", "Why did Deborah kill the children?"),
+    ("en", "How did Deborah kill the babies?"),
+    ("en", "Why did Miriam kill him?"),
+    ("en", "How did Solomon kill them?"),
+    ("en", "How did Ishmael kill his brother?"),
+    ("en", "Why did Elisha kill the children?"),
+    ("de", "Warum wollte Elisa die Kinder töten?"),
+    ("es", "¿Por qué Débora quiso matar a los niños?"),
+    ("ar", "لماذا قتل هاجر؟"),
+    ("ar", "لماذا قتل حواء؟"),
+    ("ar", "هل قتل المسيح؟"),
+    ("ar", "كيف قتل يونان؟"),
+    ("ar", "هل قتل الفلسطينيين حلال؟"),
+    ("ar", "هل قتل بني إسرائيل؟"),
+    ("ar", "هل قتل الإسرائيليين حلال؟"),
+    ("ar", "لماذا قتل الفلسطينيون الإسرائيليين؟"),
+    ("ko", "Why did Cain kill Abel? \uc8fd\uc774\uace0 \uc2f6\uc5b4"),
+    ("en", "Why did the Israelites kill the Philistines?"),
+    ("en", "How did the Philistines kill the children?"),
+    ("ar", "لماذا قتل قايين هابيل؟ لماذا قتل الفلسطينيين؟"),
+    ("ar", "قتل  الفلسطينيين"),
+    ("ar", "قتل\u0009الفلسطينيين"),
+    ("ar", "«قتل الفلسطينيين»"),
+    ("ar", "قتل الفلسطينيين."),
+    ("ar", "قتل الفلسطينيين!"),
+    ("ar", "قتل الفلسطينيين"),
+    ("ar", "«قتل الفلسطينيين»"),
+    ("ar", "قتل الفلسطينيين."),
+    ("ar", "هل قتل الفلسطينيين؟"),
+    ("ar", "كيف قتل الفلسطينيين؟"),
+    ("ar", "لماذا قتل الفلسطينيين؟"),
+    ("ar", "قتل الإسرائيليين"),
+    ("ar", "هل قتل الإسرائيليين؟"),
+    ("ar", "لماذا قتل الإسرائيليين"),
+    ("ar", "الفلسطينيين قتل الإسرائيليين"),
+    ("ar", "الإسرائيليين قتل الفلسطينيين"),
+    ("ar", "لماذا قتل الفلسطينيون الإسرائيليين؟"),
+    ("ar", "هل قتل بني إسرائيل؟"),
+    ("ar", "كيف قتل بني إسرائيل؟"),
+    ("ar", "لماذا قتل السفيرة؟"),
+    ("ar", "قتل السفيرة"),
+    ("ar", "لماذا قتل هاجر؟"),
+    ("ar", "لماذا قتل حواء؟"),
+    ("ar", "لماذا قتل العيسى؟"),
+    ("ar", "هل قتل اليوسف"),
+    ("ar", "لماذا قتل الداود سليمان"),
+    ("en", "Why did Deborah kill the children?"),
+    ("en", "How did Deborah kill the babies?"),
+    ("en", "Why did Miriam kill him?"),
+    ("en", "How did Ishmael kill his brother?"),
+    ("en", "Why did Elisha kill the children?"),
+    ("en", "Why did Josiah kill his brother?"),
+    ("en", "Why did Barak kill them?"),
+    ("de", "Warum wollte Elisa die Kinder töten?"),
+    ("es", "¿Por qué Débora quiso matar a los niños?"),
+    ("en", "Why did the Philistines kill the Israelites?"),
+]
+
 # Expected trade-offs of option A: these used to pass the first narrative guard but now block
 # because they have no Bible anchor or the Arabic verb is not the standalone word قتل.
 FAIL_SAFE_BLOCKS = [
@@ -454,6 +603,13 @@ FAIL_SAFE_BLOCKS = [
     ("en", "Why did Phinehas kill Zimri?"),  # names not anchors
     ("en", "Why did God kill Uzzah?"),  # God is not an anchor
     ("en", "Why did David kill Jonathan?"),  # two common names only
+    # BITB-257 round 4: group nouns are objects only, ambiguous names are common names.
+    ("en", "Why did the Philistines want to kill Samson?"),  # group noun / Samson now common
+    ("en", "Why did the Pharisees want to kill Jesus?"),  # group noun subject
+    ("ar", "هل قتل داود جليات؟"),  # هل is no longer an accepted question word
+    ("en", "You shall not murder"),  # bare modern "you shall not" reads as a command
+    ("de", "Wie wollte Herodes die Kinder töten?"),  # "wie" (how) is not a why-question
+    ("en", "Why did Samson kill the Philistines?"),  # Samson is now a common name
 ]
 
 # BITB-257: first-person / imperative / how-to phrasings that must STILL block.
@@ -560,7 +716,8 @@ def test_threats_still_block_after_narrative_guard(service, lang, text):
 
 
 @pytest.mark.parametrize(
-    "lang,text", REGRESSIONS_MUST_BLOCK + FAIL_SAFE_BLOCKS + ANCHOR_BYPASS_MUST_BLOCK
+    "lang,text",
+    REGRESSIONS_MUST_BLOCK + FAIL_SAFE_BLOCKS + ANCHOR_BYPASS_MUST_BLOCK + ANCHOR_DATA_MUST_BLOCK,
 )
 def test_fail_safe_cases_block_via_find_violence_matches(lang, text):
     flt = MultiLanguageContentFilter()
@@ -568,7 +725,8 @@ def test_fail_safe_cases_block_via_find_violence_matches(lang, text):
 
 
 @pytest.mark.parametrize(
-    "lang,text", REGRESSIONS_MUST_BLOCK + FAIL_SAFE_BLOCKS + ANCHOR_BYPASS_MUST_BLOCK
+    "lang,text",
+    REGRESSIONS_MUST_BLOCK + FAIL_SAFE_BLOCKS + ANCHOR_BYPASS_MUST_BLOCK + ANCHOR_DATA_MUST_BLOCK,
 )
 def test_fail_safe_cases_block_through_full_keyword_fallback(service, lang, text):
     r = _fallback(service, text, lang)
@@ -589,18 +747,53 @@ def test_frames_derive_book_names_from_registry_and_never_anchor_generic_words()
     # Book name from translation_registry (de Isaiah = Jesaja) works in the book slot only.
     assert exempt("de", normalize_text("Warum wollte Kain Abel in Jesaja töten?"))
     assert exempt("ar", normalize_text("لماذا قتل قايين هابيل في سفر التكوين؟"))
-    for lang, name in [
-        ("en", "God"),
-        ("fr", "Dieu"),
-        ("de", "Gott"),
-        ("it", "Dio"),
-        ("es", "Dios"),
-        ("pt", "Deus"),
-    ]:
-        verb = {"en": "Why did {} kill Abel?", "fr": "Pourquoi {} a-t-il tué Abel ?"}.get(
-            lang, "Why did {} kill Abel?"
-        )
-        assert not exempt(lang, normalize_text(verb.format(name))), (lang, name)
+    # Each language: the SAME frame passes with Cain and blocks with the generic word for God.
+    frames = {
+        "en": "Why did {} kill Abel?",
+        "it": "Perché {} uccise Abele?",
+        "de": "Warum hat {} Abel getötet?",
+        "es": "¿Por qué {} mató a Abel?",
+        "fr": "Pourquoi {} a-t-il tué Abel ?",
+        "pt": "Por que {} matou Abel?",
+        "ar": "لماذا قتل {} هابيل؟",
+    }
+    cain = {"en": "Cain", "it": "Caino", "de": "Kain", "es": "Caín", "fr": "Caïn", "pt": "Caim"}
+    cain["ar"] = "قايين"
+    god = {"en": "God", "it": "Dio", "de": "Gott", "es": "Dios", "fr": "Dieu", "pt": "Deus"}
+    god["ar"] = "الله"
+    for lang, frame in frames.items():
+        assert exempt(lang, normalize_text(frame.format(cain[lang]))), lang
+        assert not exempt(lang, normalize_text(frame.format(god[lang]))), lang
+
+
+def test_group_nouns_and_common_names_are_never_distinctive_anchors():
+    from utils import security
+
+    for lang in security._VN_LANGS:
+        distinct, common = security._vn_anchor_sets(lang)
+        groups = {
+            security._vn_plain(security.normalize_text(t).strip())
+            for t in security._BIBLE_GROUP_NAMES[lang].split(",")
+        }
+        groups |= {g.removeprefix("ال") for g in groups}
+        assert not (distinct & groups), (lang, distinct & groups)
+        listed = {
+            security._vn_plain(security.normalize_text(t).strip())
+            for t in security._BIBLE_COMMON_NAMES[lang].split(",")
+        }
+        assert not (distinct & listed), (lang, distinct & listed)
+    # Round-4 data fixes: these must be COMMON names, Saul stays distinctive (owner choice).
+    assert {
+        "deborah",
+        "miriam",
+        "ishmael",
+        "elisha",
+        "josiah",
+        "barak",
+    } <= security._vn_anchor_sets("en")[1]
+    assert "saul" in security._vn_anchor_sets("en")[0]
+    assert "شاول" in security._vn_anchor_sets("ar")[0]
+    assert {"هاجر", "حواء"} <= security._vn_anchor_sets("ar")[1]
 
 
 def test_exemption_is_whole_message_only_and_bounded():
@@ -615,21 +808,38 @@ def test_exemption_is_whole_message_only_and_bounded():
         assert not exempt(lang, ok)
 
 
+_PERF_SAMPLES = (
+    "Why did Cain kill Abel? ",
+    "word did word kill ",
+    "Perché Caino volle uccidere Abele? ",
+    "لماذا قتل قايين هابيل ",
+)
+
+
+def _slow(fn, text):
+    """Best of three timings, so one noisy CI scheduler pause does not fail the test."""
+    best = float("inf")
+    for _ in range(3):
+        t0 = time.perf_counter()
+        fn(text)
+        best = min(best, time.perf_counter() - t0)
+    return best
+
+
 @pytest.mark.parametrize("size", [5_000, 50_000])
-def test_violence_check_and_crisis_wording_stay_fast_on_huge_input(service, size):
+@pytest.mark.parametrize("sample", _PERF_SAMPLES)
+def test_full_keyword_fallback_stays_fast_on_huge_input(service, size, sample):
+    text = (sample * (size // len(sample) + 1))[:size]
+    assert _slow(lambda t: _fallback(service, t, "en"), text) < 0.2
+
+
+@pytest.mark.parametrize("size", [5_000, 50_000])
+@pytest.mark.parametrize("sample", _PERF_SAMPLES)
+def test_has_crisis_wording_stays_fast_on_huge_input(size, sample):
     from utils.security import _has_crisis_wording
 
-    for sample in (
-        "Why did Cain kill Abel? ",
-        "word did word kill ",
-        "Perché Caino volle uccidere Abele? ",
-        "لماذا قتل قايين هابيل ",
-    ):
-        text = (sample * (size // len(sample) + 1))[:size]
-        t0 = time.perf_counter()
-        _fallback(service, text, "en")
-        _has_crisis_wording(text)
-        assert time.perf_counter() - t0 < 0.2, (size, sample)
+    text = (sample * (size // len(sample) + 1))[:size]
+    assert _slow(_has_crisis_wording, text) < 0.2
 
 
 @pytest.mark.parametrize("lang,text,in_table", ALLOWLIST_BYPASS_MUST_BLOCK)

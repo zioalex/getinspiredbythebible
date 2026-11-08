@@ -584,13 +584,25 @@ _HI_NB = r"(?<![\u0900-\u097f\-])"
 # (derived from translation_registry, never hardcoded). Generic words (God/Dieu/Gott/Dio/Dios/
 # Deus/الله) and Egyptians are deliberately NOT anchors.
 # ---------------------------------------------------------------------------
-# BITB-257 (option A, fail safe): Bible anchors
+# BITB-257: Bible anchor data
 # ---------------------------------------------------------------------------
-# The narrative exemption applies ONLY when the message names a known Bible person/people
-# or book (an "anchor") AND carries no first-person marker. "Why did he kill her?" or
-# "How does a man kill his wife" have no anchor, so they block like on main. Book names are
-# DERIVED from translation_registry (never hardcoded here); only person/people names are
-# curated. Generic words (God/Dieu/Gott/Dio/Dios/Deus/الله) are deliberately NOT anchors.
+# The narrative allowlist (see `_violence_narrative_whole_message_exempt`) names its subject
+# and object from these lists. Only person names are curated; book names are DERIVED from
+# translation_registry (never hardcoded here). Generic words (God/Dieu/Gott/Dio/Dios/Deus/الله)
+# are deliberately NOT anchors. `_BIBLE_COMMON_NAMES` are Bible people who are also common modern
+# given names: a frame needs a distinctive anchor (Cain, Goliath, Saul ...) beside them.
+# Group nouns ("the Philistines" ...) are plural peoples, not persons: they may only appear as
+# the OBJECT of a frame whose subject is a named person, never as the sole anchor.
+_BIBLE_GROUP_NAMES = {
+    "en": "amalekites,philistines,israelites,pharisees,sadducees,canaanites,midianites",
+    "it": "amalechiti,filistei,israeliti,farisei,sadducei,cananei,madianiti",
+    "es": "amalecitas,filisteos,israelitas,fariseos,saduceos,cananeos,madianitas",
+    "pt": "amalequitas,filisteus,israelitas,fariseus,saduceus,cananeus,midianitas",
+    "fr": "amalécites,philistins,israélites,pharisiens,sadducéens,cananéens,madianites",
+    "de": "amalekiter,philister,israeliten,pharisäer,sadduzäer,kanaaniter,midianiter",
+    "ar": "العماليق,الفلسطينيين,الفلسطينيون,بنو إسرائيل,بني إسرائيل,الإسرائيليين,الفريسيين,الصدوقيين,الكنعانيين,المديانيين",
+}
+
 _BIBLE_PERSON_NAMES = {
     "en": (
         "cain,abel,seth,adam,eve,noah,abraham,sarah,isaac,jacob,esau,joseph,moses,aaron,miriam,"
@@ -598,8 +610,8 @@ _BIBLE_PERSON_NAMES = {
         "naomi,boaz,samuel,eli,saul,jonathan,david,goliath,bathsheba,uriah,absalom,joab,abner,"
         "amnon,solomon,rehoboam,jeroboam,ahab,jezebel,elijah,elisha,naboth,jehu,hezekiah,josiah,"
         "nebuchadnezzar,daniel,esther,haman,mordecai,jonah,herod,pilate,caiaphas,judas,jesus,"
-        "christ,peter,paul,stephen,james,john,agag,amalekites,philistines,israelites,"
-        "pharaoh,pharisees,sadducees,canaanites,midianites,sodom,gomorrah,lot,balaam,korah,achan,"
+        "christ,peter,paul,stephen,james,john,agag,"
+        "pharaoh,sodom,gomorrah,lot,balaam,korah,achan,"
         "rahab,ishmael,hagar,laban,nimrod,lamech,barabbas,ananias,sapphira,john the baptist"
     ),
     "it": (
@@ -608,8 +620,8 @@ _BIBLE_PERSON_NAMES = {
         "iefte,rut,noemi,booz,samuele,eli,saul,gionata,davide,golia,betsabea,uria,assalonne,ioab,"
         "abner,amnon,salomone,roboamo,geroboamo,acab,gezabele,elia,eliseo,nabot,ieu,ezechia,"
         "giosia,nabucodonosor,daniele,ester,aman,mardocheo,giona,erode,pilato,caifa,giuda,gesù,"
-        "gesu,cristo,pietro,paolo,stefano,giacomo,giovanni,agag,amalechiti,filistei,israeliti,"
-        "faraone,farisei,sadducei,cananei,madianiti,sodoma,gomorra,lot,balaam,acan,"
+        "gesu,cristo,pietro,paolo,stefano,giacomo,giovanni,agag,"
+        "faraone,sodoma,gomorra,lot,balaam,acan,"
         "raab,ismaele,agar,labano,barabba,anania,saffira,erodiade,giovanni battista"
     ),
     "es": (
@@ -618,8 +630,8 @@ _BIBLE_PERSON_NAMES = {
         "elí,saúl,jonatán,david,goliat,betsabé,urías,absalón,joab,abner,amnón,salomón,roboam,"
         "jeroboam,acab,jezabel,elías,eliseo,nabot,jehú,ezequías,josías,nabucodonosor,daniel,"
         "ester,amán,mardoqueo,jonás,herodes,pilato,caifás,judas,jesús,cristo,pedro,pablo,esteban,"
-        "santiago,juan,agag,amalecitas,filisteos,israelitas,faraón,fariseos,saduceos,"
-        "cananeos,madianitas,sodoma,gomorra,lot,balaam,coré,acán,rahab,ismael,agar,labán,"
+        "santiago,juan,agag,faraón,"
+        "sodoma,gomorra,lot,balaam,coré,acán,rahab,ismael,agar,labán,"
         "barrabás,ananías,safira,herodías,juan el bautista"
     ),
     "pt": (
@@ -628,8 +640,8 @@ _BIBLE_PERSON_NAMES = {
         "saul,jônatas,davi,golias,bate-seba,urias,absalão,joabe,abner,amnom,salomão,roboão,"
         "jeroboão,acabe,jezabel,elias,eliseu,nabote,jeú,ezequias,josias,nabucodonosor,daniel,"
         "ester,hamã,mardoqueu,jonas,herodes,pilatos,caifás,judas,jesus,cristo,pedro,paulo,"
-        "estêvão,tiago,joão,agague,amalequitas,filisteus,israelitas,faraó,fariseus,"
-        "saduceus,cananeus,midianitas,sodoma,gomorra,ló,balaão,corá,acã,raabe,ismael,hagar,"
+        "estêvão,tiago,joão,agague,faraó,"
+        "sodoma,gomorra,ló,balaão,corá,acã,raabe,ismael,hagar,"
         "labão,barrabás,ananias,safira,joão batista"
     ),
     "fr": (
@@ -638,8 +650,8 @@ _BIBLE_PERSON_NAMES = {
         "saül,jonathan,david,goliath,bath-schéba,urie,absalom,joab,abner,amnon,salomon,roboam,"
         "jéroboam,achab,jézabel,élie,élisée,naboth,jéhu,ézéchias,josias,nebucadnetsar,daniel,"
         "esther,haman,mardochée,jonas,hérode,pilate,caïphe,judas,jésus,christ,pierre,paul,étienne,"
-        "jacques,jean,agag,amalécites,philistins,israélites,pharaon,pharisiens,"
-        "sadducéens,cananéens,madianites,sodome,gomorrhe,lot,balaam,koré,acan,rahab,ismaël,agar,"
+        "jacques,jean,agag,pharaon,"
+        "sodome,gomorrhe,lot,balaam,koré,acan,rahab,ismaël,agar,"
         "laban,barabbas,ananias,saphira,hérodiade,jean-baptiste"
     ),
     "de": (
@@ -648,8 +660,8 @@ _BIBLE_PERSON_NAMES = {
         "jonatan,david,goliat,goliath,batseba,urija,absalom,joab,abner,amnon,salomo,rehabeam,"
         "jerobeam,ahab,isebel,elia,elisa,nabot,jehu,hiskia,josia,nebukadnezar,daniel,ester,haman,"
         "mordechai,hiob,jona,herodes,pilatus,kaiphas,judas,jesus,christus,petrus,paulus,"
-        "stephanus,jakobus,johannes,agag,amalekiter,philister,israeliten,pharao,"
-        "pharisäer,sadduzäer,kanaaniter,midianiter,sodom,gomorra,lot,bileam,korach,achan,rahab,"
+        "stephanus,jakobus,johannes,agag,pharao,"
+        "sodom,gomorra,lot,bileam,korach,achan,rahab,"
         "ismael,hagar,laban,barabbas,hananias,saphira"
     ),
     "ar": (
@@ -659,9 +671,9 @@ _BIBLE_PERSON_NAMES = {
         "يوآب,أبنير,أمنون,سليمان,رحبعام,يربعام,أخآب,اخاب,إيزابل,ايزابل,إيليا,الياس,أليشع,"
         "نابوت,ياهو,حزقيا,يوشيا,نبوخذ نصر,دانيال,أستير,استير,هامان,مردخاي,أيوب,ايوب,يونان,"
         "يونس,هيرودس,بيلاطس,قيافا,يهوذا,يسوع,عيسى,المسيح,بطرس,بولس,اسطفانوس,استفانوس,يوحنا,"
-        "أجاج,العماليق,الفلسطينيين,الفلسطينيون,بنو إسرائيل,بني إسرائيل,الإسرائيليين,"
-        "فرعون,الفريسيين,الصدوقيين,الكنعانيين,المديانيين,سدوم,عمورة,لوط,بلعام,قورح,عخان,راحاب,"
-        "إسماعيل,هاجر,لابان,باراباس,حنانيا,سفيرة"
+        "أجاج,"
+        "فرعون,سدوم,عمورة,لوط,بلعام,قورح,عخان,راحاب,"
+        "إسماعيل,هاجر,لابان,باراباس,حنانيا"
     ),
 }
 # Terms that are everyday words in their language ("Numbers", "Acts", "lot", "sete", "set",
@@ -671,13 +683,13 @@ _BIBLE_ANCHOR_GENERIC = {
         "numbers", "acts", "judges", "songs", "cant", "sos", "revelation", "revelations",
         "kings", "chronicles", "lot", "set", "eve", "eli",
     },
-    "it": {"atti", "numeri", "giudici", "set", "core", "re", "proverbi", "eli", "ebrei"},
-    "es": {"números", "hechos", "jueces", "reyes", "crónicas", "proverbios", "set", "eva"},
-    "pt": {"números", "atos", "juízes", "reis", "crônicas", "provérbios", "sete", "ló", "eva", "cora"},
+    "it": {"atti", "numeri", "giudici", "set", "core", "re", "proverbi", "eli", "ebrei", "lot"},
+    "es": {"números", "hechos", "jueces", "reyes", "crónicas", "proverbios", "set", "eva", "lot", "coré", "core"},
+    "pt": {"números", "atos", "juízes", "reis", "crônicas", "provérbios", "sete", "ló", "eva", "cora", "corá", "lot"},
     "fr": {"nombres", "actes", "juges", "rois", "chroniques", "proverbes", "lot", "éli"},
     "de": {
         "richter", "zahlen", "könige", "chronik", "sprüche", "set", "prediger", "offenbarung",
-        "römer", "eva",
+        "römer", "eva", "lot",
     },
     "ar": {
         "متى", "خروج", "رؤيا", "قضاة", "حجي", "عالي", "جامعة", "أعمال", "أمثال", "ملوك",
@@ -694,6 +706,7 @@ _BIBLE_COMMON_NAMES = {
         "benjamin,nathan,rachel,rebecca,hannah,eve,esther,elizabeth,anna,jonathan,noah,joel,"
         "caleb,seth,martha,lydia"
         ",elijah,isaiah,naomi,jude,titus,micah,delilah,jeremiah,ezekiel,gideon,jesus,moses"
+        ",deborah,miriam,solomon,jonah,josiah,elisha,ishmael,samson,boaz,barak,ehud,hagar,seth,christ,nimrod"
     ),
     "it": (
         "giovanni,pietro,paolo,giacomo,marco,giuseppe,daniele,rut,giobbe,davide,tommaso,matteo,"
@@ -701,35 +714,47 @@ _BIBLE_COMMON_NAMES = {
         "aronne,abramo,giosuè,beniamino,natan,rachele,rebecca,anna,elisabetta,ester,eva,noè,"
         "gionata,caleb,marta"
         ",elia,isaia,noemi,giuda,tito,michea,dalila,geremia,ezechiele,gedeone,gesù,gesu,mosè,mose"
+        ",debora,miriam,salomone,giona,giosia,eliseo,ismaele,sansone,booz,barac,eud,agar,set,cristo"
+        ",eli,abraham,abraamo"
     ),
     "es": (
         "juan,pedro,pablo,josé,santiago,marcos,daniel,rut,job,david,tomás,mateo,lucas,simón,"
         "maría,sara,adán,miguel,esteban,andrés,felipe,samuel,jacob,isaac,aarón,abraham,josué,"
         "benjamín,natán,raquel,rebeca,ana,isabel,ester,eva,noé,jonatán,caleb,marta"
         ",elías,isaías,noemí,judas,tito,miqueas,dalila,jeremías,ezequiel,gedeón,jesús,moisés"
+        ",débora,míriam,miriam,salomón,jonás,josías,eliseo,ismael,sansón,booz,barac,aod,agar,cristo"
+        ",elí,eli,abrahán,abrahan"
     ),
     "pt": (
         "joão,pedro,paulo,tiago,josé,marcos,daniel,rute,jó,davi,tomé,mateus,lucas,simão,maria,"
         "sara,adão,miguel,estêvão,andré,filipe,samuel,jacó,isaque,arão,abraão,josué,benjamim,"
         "natã,raquel,rebeca,ana,isabel,ester,eva,noé,jônatas,caleb,marta"
         ",elias,isaías,noemi,judas,tito,miqueias,dalila,jeremias,ezequiel,gideão,jesus,moisés"
+        ",débora,miriã,salomão,jonas,josias,eliseu,ismael,sansão,boaz,baraque,eúde,hagar,cristo"
+        ",eli,abraham"
     ),
     "fr": (
         "jean,pierre,paul,jacques,marc,daniel,ruth,job,joseph,david,thomas,matthieu,luc,simon,"
         "marie,sara,adam,michel,étienne,andré,philippe,samuel,jacob,isaac,aaron,abraham,josué,"
         "benjamin,nathan,rachel,rébecca,anne,élisabeth,esther,ève,noé,jonathan,caleb,marthe"
         ",élie,ésaïe,esaïe,noémi,jude,tite,michée,dalila,jérémie,ézéchiel,gédéon,jésus,moïse"
+        ",déborah,myriam,miriam,salomon,jonas,josias,élisée,ismaël,samson,boaz,barak,éhoud,agar,christ"
+        ",seth"
     ),
     "de": (
         "johannes,peter,paul,jakob,markus,daniel,rut,hiob,josef,david,thomas,matthäus,lukas,"
         "simon,maria,sara,adam,michael,andreas,philippus,samuel,isaak,aaron,abraham,josua,"
         "benjamin,nathan,rahel,rebekka,hanna,elisabeth,ester,eva,noah,jonatan,martha"
         ",elia,jesaja,noomi,judas,titus,micha,delila,jeremia,hesekiel,gideon,jesus,mose"
+        ",debora,mirjam,salomo,jona,josia,elisa,ismael,simson,boas,barak,ehud,hagar,christus"
+        ",eli"
     ),
     "ar": (
         "يوحنا,يوسف,بطرس,بولس,يعقوب,مريم,داود,داوود,سارة,آدم,دانيال,أيوب,ايوب,راعوث,إبراهيم,"
         "ابراهيم,إسحاق,اسحاق,هارون,صموئيل,يوناثان,نوح,أستير,استير"
         ",إيليا,الياس,إشعياء,نعمي,تيطس,ميخا,دليلة,إرميا,حزقيال,جدعون,يسوع,موسى,سليمان,إسماعيل,عيسى,يونس"
+        ",هاجر,حواء,مريم"
+        ",دبورة,بوعز,إهود,أليشع,يوشيا,يونان,يشوع,المسيح"
     ),
 }
 
@@ -797,8 +822,8 @@ _VN_MIXED_SCRIPT = re.compile(
 _VN_VETO = re.compile(
     r"\b(?:i['’](?:m|ll|d|ve)|me|my|mine|myself|we|us|our|ours"
     r"|je|nous|moi|mon|mes|notre|nos|ich|wir|mich|mir|uns|io|noi|mio|mia|miei|mie|mi"
-    r"|voglio|vorrei|vogliamo|yo|nosotros|nosotras|mis|quiero|queremos|eu|nos|meu|meus"
-    r"|minha|minhas|quero|queremos)\b|\b[jm]['’]|\b(?:mein|unser)\w*"
+    r"|voglio|vorrei|vogliamo|yo|nosotros|nosotras|mis|quiero|queremos|eu|meu|meus"
+    r"|minha|minhas|quero)\b|\b[jm]['’]|\b(?:mein|unser)\w*"
     r"|(?<![ؠ-ي])(?:أنا|انا|نحن"
     r"|أريد|اريد|سأقتل"
     r"|سوف)(?![ؠ-ي])",
@@ -889,6 +914,14 @@ def _vn_anchor_sets(lang: str) -> tuple[set[str], set[str]]:
     return terms - common, terms & common
 
 
+def _vn_group_alt(lang: str) -> str:
+    """Group nouns (Philistines ...): accepted as an OBJECT only, never as the subject."""
+    terms = {normalize_text(t).strip() for t in _BIBLE_GROUP_NAMES[lang].split(",")}
+    if lang == "ar":
+        terms |= {t.removeprefix("ال") for t in terms}
+    return _vn_alt(terms)
+
+
 def _vn_book_alt(lang: str) -> str:
     names = {normalize_text(n).strip() for n in _registry_book_names(lang)}
     names = {n for n in names if len(_NUMBERED_PREFIX.sub("", n)) >= 3}
@@ -902,16 +935,21 @@ def _vn_build_frames(lang: str) -> list[re.Pattern[str]]:
     distinct, common = _vn_anchor_sets(lang)
     anchor = _vn_alt(distinct | common)
     book = _vn_book_alt(lang)
+    group = _vn_group_alt(lang)
     if lang == "ar":
-        a = rf"(?:ال)?(?:{anchor})"
-        bk = rf"(?:\s+في\s+(?:سفر\s+)?(?:ال)?(?:{book}){_VN_REF_TAIL})?"
-        q = r"(?:(?:لماذا|كيف|متى|هل)\s+)?"
+        # The article is matched OUTSIDE the captured name so "العيسى" is checked as "عيسى".
+        s_ar = rf"(?:ال)?(?P<s>{anchor})"
+        o_ar = rf"(?:(?:ال)?(?P<o>{anchor})|(?:ال)?(?:{group}))"
+        ref = rf"\s+في\s+(?:سفر\s+)?(?:ال)?(?:{book}){_VN_REF_TAIL}"
+        q = r"(?:(?:لماذا|كيف|متى)\s+)?"
         qw = r"(?:لماذا|كيف)"
         qatl = "قتل"
+        # A single anchor never reads as "killing X": subject + object, or a subject + book slot.
         ar_pats = [
-            rf"{q}{qatl}\s+(?P<s>{a})(?:\s+(?P<o>{a}))?{bk}",
-            rf"{q}(?P<s>{a})\s+{qatl}\s+(?P<o>{a}){bk}",
-            rf"{qw}\s+[أا]راد\s+(?P<s>{a})\s+[أا]ن\s+" rf"يقتل\s+(?P<o>{a}){bk}",
+            rf"{q}{qatl}\s+{s_ar}\s+{o_ar}(?:{ref})?",
+            rf"{q}{qatl}\s+{s_ar}{ref}",
+            rf"{q}{s_ar}\s+{qatl}\s+{o_ar}(?:{ref})?",
+            rf"{qw}\s+[أا]راد\s+{s_ar}\s+[أا]ن\s+يقتل\s+{o_ar}(?:{ref})?",
             r"(?:(?:ماذا\s+تعني|ما\s+معنى)"
             r"\s+(?:وصية\s+)?لا\s+تقتل"
             r"|وصية\s+لا\s+تقتل"
@@ -922,7 +960,8 @@ def _vn_build_frames(lang: str) -> list[re.Pattern[str]]:
     c = _VN_LANG[lang]
     sd, od, nouns, q = c["sd"], c["od"], c["nouns"], c["q"]
     s = rf"{sd}(?P<s>{anchor})"
-    o_anchor = rf"{od}(?P<o>{anchor})"
+    o_person = rf"{od}(?P<o>{anchor})"
+    o_anchor = rf"(?:{o_person}|{od}(?:{group}))"  # group nouns: object only
     obj = rf"(?:\s+(?:{o_anchor}|{nouns}))?"
     bk = rf"(?:\s+{c['in']}(?:{book}){_VN_REF_TAIL})?"
     pre = rf"(?:{c['in']}(?:{book}){_VN_REF_TAIL},\s*)?" if lang == "en" else ""
@@ -933,9 +972,12 @@ def _vn_build_frames(lang: str) -> list[re.Pattern[str]]:
             rf"{pre}{q}\s+did\s+{s}{want}\s+{_VN_EN_VERB}{obj}{bk}",
             rf"did\s+{s}\s+(?:kill|murder)\s+{o_anchor}{bk}",
             rf"why\s+didn['’]t\s+{s}\s+kill\s+{o_anchor}{bk}",
-            r"(?:(?:what\s+does|what\s+did\s+jesus\s+mean\s+by|why\s+does\s+the\s+bible\s+say"
-            r"|what\s+is\s+the\s+meaning\s+of)\s+)?(?:thou\s+shalt|thou\s+shall|you\s+shall)\s+not"
-            r"\s+(?:kill|murder)(?:\s+mean|\s*[-–—,]\s*what\s+does\s+it\s+mean)?",
+            # Commandment: archaic "thou shalt not" may stand alone; modern "you shall not" only
+            # after an explicit "what does ... mean" style lead (a bare one reads as a command).
+            r"(?:(?:(?:what\s+does|what\s+did\s+jesus\s+mean\s+by|why\s+does\s+the\s+bible"
+            r"\s+say|what\s+is\s+the\s+meaning\s+of)\s+(?:thou\s+shalt|thou\s+shall|you\s+shall)"
+            r"|(?:thou\s+shalt|thou\s+shall))\s+not"
+            r"\s+(?:kill|murder)(?:\s+mean|\s*[-\u2013\u2014,]\s*what\s+does\s+it\s+mean)?)",
         ]
     elif lang == "it":
         want = r"(?:volle|voleva|ha\s+voluto|cerco\s+di|decise\s+di|ha\s+deciso\s+di|ha\s+cercato\s+di)"
@@ -973,7 +1015,7 @@ def _vn_build_frames(lang: str) -> list[re.Pattern[str]]:
         deobj = rf"(?:\s+(?:{o_anchor}|{nouns}))?"
         dbk = rf"(?:\s+{c['in']}(?:{book}){_VN_REF_TAIL})?"
         pats = [
-            rf"{q}\s+(?:wollte|versuchte|beschloss|plante)\s+{s}{deobj}{dbk}\s+toten{dbk}",
+            rf"(?:warum|wieso|weshalb)\s+(?:wollte|versuchte|beschloss|plante)\s+{s}{deobj}{dbk}\s+toten{dbk}",
             rf"{q}\s+hat\s+{s}{deobj}{dbk}\s+getotet{dbk}",
             rf"{q}\s+totete\s+{s}{deobj}{dbk}",
         ]

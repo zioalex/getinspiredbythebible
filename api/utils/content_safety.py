@@ -223,7 +223,8 @@ class ContentSafetyService:
            (ru/zh/hi/ko, BITB-198) -> block; else clean. Third-person Bible narrative
            ("Why did Cain kill Abel", ar "لماذا قتل قايين هابيل") is skipped by the
            strict whole-message narrative allowlist in ``find_violence_matches``
-           (BITB-257 round 3: closed frames only, everything else blocks); first-person threats still block and get the crisis card.
+           (BITB-257 round 3: closed frames only, everything else blocks); first-person
+           threats still block and get the crisis card.
 
         Self-harm only ("I want to kill myself", fr "je veux me tuer") stays
         compassionate; "I want to die, how do I build a bomb" never passes unblocked.

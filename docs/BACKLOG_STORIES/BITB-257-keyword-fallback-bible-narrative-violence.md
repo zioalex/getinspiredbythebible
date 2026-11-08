@@ -19,14 +19,17 @@ The block existed before BITB-255. Since BITB-255, the blocked outcome is also c
 `threat_to_others`, so the user gets an emergency-services crisis card on a Bible-study question.
 BITB-255 records this with `xfail(strict=True)` cases, en and ar, in its real-fallback narrative test.
 
-## Decision (2026-11-04): option A — fail safe
+## Decision (2026-11-04): option A — fail safe (SUPERSEDED by round 3, see below)
+
+> Superseded: the "anchor + no first-person marker" rule described here was replaced by the strict
+> whole-message allowlist in Round 3 / Round 4 below. The fail-safe principle itself still holds.
 
 The first guard (2026-11-02) opened recall holes that blocked on main: ar `هقتلك`, `سأقوم بقتل جاري`,
 `أفكر في قتل أبي`, `طريقة قتل شخص`, `قتلت زوجتي`; en "How does a man kill his wife without getting
 caught"; fr "Il a décidé de tuer sa femme ce soir"; and narrative used as cover before a first-person
 threat ("Pourquoi Caïn a-t-il voulu tuer Abel ? Je veux tuer mon voisin"). The owner chose to fail safe:
-**when unsure, block.** A narrative exemption applies ONLY when a known Bible anchor is present and
-there is no first-person marker anywhere in the message. The fallback only runs while ML moderation is
+**when unsure, block.** (Original rule, now superseded: a narrative exemption applied only when a known Bible anchor was
+present and there was no first-person marker anywhere in the message.) The fallback only runs while ML moderation is
 down, so extra blocks are the cheaper error (see BITB-267 to make the fallback rare).
 
 ## Acceptance criteria
@@ -67,12 +70,15 @@ only when the table matched (linear cost; 50k chars stay well under 200 ms):
    Latin with Cyrillic/Greek (homoglyph) fails.
 3. First-person veto: the union of every language's first-person words (a belt-and-braces check,
    the frames have no pronoun slot).
-4. Single sentence: optional wrappers `( [ « " "` and one terminal `?`/`.`/`؟`.
+4. Single sentence: optional wrappers `( [ « " " ¿ ¡ ' " ' „` (plus the matching closers) and one terminal `?`/`.`/`؟`.
 5. The body must `fullmatch` one closed frame of the language. Subject/object are
    named Bible people (curated list); at least one must be DISTINCTIVE (Cain, Abel, Goliath, Saul,
-   Herod, Pharaoh ...): common modern first names (`_BIBLE_COMMON_NAMES`: John, David, Moses, Jesus,
-   Elijah, Titus ...) only qualify next to a distinctive anchor, never two common names together.
-   Egyptians and God/Dieu/Gott/Dio/Dios/Deus/الله are not anchors. Book names are derived from
+   Herod, Pharaoh ...): Bible names that are also common modern given names or everyday words
+   (`_BIBLE_COMMON_NAMES`: John, David, Moses, Jesus, Deborah, Miriam, Ishmael, Samson, Solomon,
+   Josiah, Elisha, Barak, Hagar, Eve ...) only qualify next to a distinctive anchor, never two
+   common names together. Group nouns (Philistines, Israelites, Amalekites, Pharisees and their
+   equivalents, `_BIBLE_GROUP_NAMES`) are OBJECT-only, never an anchor by themselves. Egyptians
+   and God/Dieu/Gott/Dio/Dios/Deus/الله are not anchors. Book names are derived from
    `translation_registry` and only appear in the book slot (`in <book> [chapter[:verse]]`, and
    the `In <book>,` prefix in English); digits arrive letter-mapped by `normalize_text`
    ("17" -> "it") so the number slot accepts those letters.
@@ -90,10 +96,39 @@ only when the table matched (linear cost; 50k chars stay well under 200 ms):
   commandment (ماذا تعني|ما معنى) [وصية] لا تقتل.
 - ru/zh/hi/ko: never exempt (unchanged vs main).
 
+**Notes on specific frames**
+- es and pt share the infinitive "matar" (one violence pattern), so each language accepts BOTH
+  the es and the pt frame sets: a Spanish question is exempt under the pt table and vice versa.
+- Arabic commandment frames: `(ماذا تعني|ما معنى) [وصية] لا تقتل` and `وصية لا تقتل [ماذا تعني]`.
+  Archaic English "thou shalt not kill|murder" may stand alone; modern "you shall not" is only
+  accepted after a "what does ... mean" style lead (bare, it reads as a command).
+- Arabic subject/object: a single anchor never reads as "killing X". Either subject + object
+  (`قتل S O`, `S قتل O`, `أراد S أن يقتل O`), or a subject followed by the in-book slot. `هل`
+  is not an accepted question word. The article `ال` is matched outside the captured name, so
+  `العيسى` / `اليوسف` / `الداود` are checked as the common names they contain.
+- de: the want-to frame accepts only warum/wieso/weshalb ("Wie wollte ..." reads as how-to).
+
+**Round 4 (anchor data fixes after verification of round 3)**
+- Group nouns moved out of the anchor lists into `_BIBLE_GROUP_NAMES` (object only); ar `سفيرة`
+  (also "ambassador") removed.
+- Moved to `_BIBLE_COMMON_NAMES` (need a distinctive anchor beside them): en deborah, miriam,
+  solomon, jonah, josiah, elisha, ishmael, samson, boaz, barak, ehud, hagar, seth, christ, nimrod;
+  localized forms in it/es/pt/fr/de (Debora/Débora, Ismaele/Ismael, Eliseo/Eliseu/Élisée,
+  Giona/Jonás/Jonas, Salomone/Salomón/Salomão/Salomon/Salomo, Sansone/Sansón/Sansão/Samson/
+  Simson, Elisa, Eli, Abraham ...); ar هاجر, حواء, دبورة, بوعز, إهود, أليشع, يوشيا, يونان,
+  يشوع, المسيح. Generic/everyday words excluded: `lot` (it/es/pt/de), `coré`/`core`, pt `cora`.
+- **Deliberate owner choice: Saul (and localizations, e.g. شاول) stays DISTINCTIVE**, so "Why
+  did Saul want to kill David?" keeps passing. Samson stays distinctive only in Arabic (the
+  example `لماذا قتل شمشون الفلسطينيين` must pass); in the other languages he is a common name.
+
 **Trade-off (fail safe, by design).** Every narrative phrasing outside the closed frames blocks
 exactly as on main, e.g. "How did David kill Goliath with a sling in 1 Samuel 17?", "Why did Cain
 kill Abel and what does it teach us?", "Why did David kill him?", "Why did Moses kill the
-Egyptian?", "Why did Phinehas kill Zimri?" (not in the name list). Add frames or names when
+Egyptian?", "Why did Phinehas kill Zimri?" (not in the name list). Newly blocked in round 4:
+"Why did the Philistines want to kill Samson?", "Why did Samson kill the Philistines?", "Why did
+the Pharisees want to kill Jesus?" (group-noun subject / Samson common), "Why did the Israelites
+kill the Canaanites?", ar "هل قتل داود جليات؟" and "هل قتل قايين هابيل؟" (هل dropped), "You shall
+not murder" (bare modern form), de "Wie wollte Herodes die Kinder töten?". Add frames or names when
 the owner wants more recall; widening always means adding to the allowlist, never to a veto.
 
 **Tests** (`test_violence_keyword_fallback_languages.py`, `test_chat_crisis_path.py`):
