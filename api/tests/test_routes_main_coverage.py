@@ -605,58 +605,117 @@ class TestWarmReadyTranslations:
         mock_logger.warning.assert_called_once()
 
 
-class TestPurgeBlockedSamplesAtStartup:
-    """Tests for main.py's _purge_blocked_samples_at_startup()."""
+class TestPurgeTtlSamples:
+    """Tests for main.py's _purge_ttl_samples() (blocked + retrieval-miss TTL sweep)."""
 
-    @pytest.mark.asyncio
-    async def test_logs_when_deleted(self):
-        from main import _purge_blocked_samples_at_startup
-
-        with (
+    @staticmethod
+    def _patches(blocked=0, misses=0, blocked_exc=None, misses_exc=None):
+        return (
             patch(
                 "feedback.blocked_samples.purge_expired_blocked_samples",
                 new_callable=AsyncMock,
-                return_value=3,
+                return_value=blocked,
+                side_effect=blocked_exc,
             ),
-            patch("main.logger") as mock_logger,
-        ):
-            await _purge_blocked_samples_at_startup()
+            patch(
+                "feedback.retrieval_misses.purge_expired_retrieval_misses",
+                new_callable=AsyncMock,
+                return_value=misses,
+                side_effect=misses_exc,
+            ),
+            patch("main.logger"),
+        )
 
-        mock_logger.info.assert_called_once_with(
+    @pytest.mark.asyncio
+    async def test_logs_when_deleted(self):
+        from main import _purge_ttl_samples
+
+        p1, p2, p3 = self._patches(blocked=3, misses=5)
+        with p1, p2, p3 as mock_logger:
+            await _purge_ttl_samples()
+
+        mock_logger.info.assert_any_call(
             "Purged expired blocked-message samples", extra={"deleted": 3}
+        )
+        mock_logger.info.assert_any_call(
+            "Purged expired retrieval-miss samples", extra={"deleted": 5}
         )
 
     @pytest.mark.asyncio
     async def test_silent_when_zero_deleted(self):
-        from main import _purge_blocked_samples_at_startup
+        from main import _purge_ttl_samples
 
-        with (
-            patch(
-                "feedback.blocked_samples.purge_expired_blocked_samples",
-                new_callable=AsyncMock,
-                return_value=0,
-            ),
-            patch("main.logger") as mock_logger,
-        ):
-            await _purge_blocked_samples_at_startup()
+        p1, p2, p3 = self._patches()
+        with p1, p2, p3 as mock_logger:
+            await _purge_ttl_samples()
 
         mock_logger.info.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_swallows_exceptions(self):
-        from main import _purge_blocked_samples_at_startup
+        from main import _purge_ttl_samples
+
+        p1, p2, p3 = self._patches(blocked_exc=Exception("db down"))
+        with p1, p2, p3 as mock_logger:
+            await _purge_ttl_samples()
+
+        mock_logger.warning.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_retrieval_miss_failure_does_not_skip_or_raise(self):
+        from main import _purge_ttl_samples
+
+        p1, p2, p3 = self._patches(blocked=2, misses_exc=Exception("db down"))
+        with p1, p2, p3 as mock_logger:
+            await _purge_ttl_samples()
+
+        mock_logger.info.assert_called_once()
+        mock_logger.warning.assert_called_once()
+
+
+class TestTtlPurgeLoop:
+    """Tests for main.py's _ttl_purge_loop() (hourly TTL sweep, BITB-256)."""
+
+    @pytest.mark.asyncio
+    async def test_runs_hourly_then_cancels(self):
+        from main import TTL_PURGE_INTERVAL_SECONDS, _ttl_purge_loop
 
         with (
             patch(
-                "feedback.blocked_samples.purge_expired_blocked_samples",
+                "main.asyncio.sleep",
                 new_callable=AsyncMock,
-                side_effect=Exception("db down"),
-            ),
-            patch("main.logger") as mock_logger,
+                side_effect=[None, asyncio.CancelledError()],
+            ) as mock_sleep,
+            patch("main._purge_ttl_samples", new_callable=AsyncMock) as mock_purge,
         ):
-            await _purge_blocked_samples_at_startup()
+            with pytest.raises(asyncio.CancelledError):
+                await _ttl_purge_loop()
 
-        mock_logger.warning.assert_called_once()
+        assert TTL_PURGE_INTERVAL_SECONDS == 3600
+        mock_sleep.assert_awaited_with(TTL_PURGE_INTERVAL_SECONDS)
+        mock_purge.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_survives_purge_error(self):
+        from main import _ttl_purge_loop
+
+        with (
+            patch(
+                "main.asyncio.sleep",
+                new_callable=AsyncMock,
+                side_effect=[None, None, asyncio.CancelledError()],
+            ),
+            patch(
+                "main._purge_ttl_samples",
+                new_callable=AsyncMock,
+                side_effect=[Exception("transient"), None],
+            ) as mock_purge,
+            patch("main.logger"),
+        ):
+            with pytest.raises(asyncio.CancelledError):
+                await _ttl_purge_loop()
+
+        assert mock_purge.await_count == 2
 
 
 class TestReadinessRefreshLoop:
@@ -1735,3 +1794,19 @@ class TestHealthCheckEndpoint:
 
         result = await health_check()
         assert result.status == "degraded"
+
+
+class TestCancelBackgroundTasks:
+    """main.py's _cancel_background_tasks() (shutdown of the readiness + TTL purge loops)."""
+
+    @pytest.mark.asyncio
+    async def test_cancels_and_awaits_all_loops(self):
+        from main import _cancel_background_tasks
+
+        async def _forever():
+            await asyncio.sleep(3600)
+
+        tasks = [asyncio.create_task(_forever()), asyncio.create_task(_forever())]
+        await asyncio.sleep(0)
+        await _cancel_background_tasks(*tasks)
+        assert all(t.cancelled() for t in tasks)

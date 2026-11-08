@@ -10,13 +10,28 @@ import hashlib
 import time
 import uuid
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import AsyncIterator
 
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
+from feedback.blocked_samples import _hash_session_id
+from feedback.retrieval_misses import (
+    RetrievalTrace,
+    best_score,
+    classify_miss,
+    embedding_identity,
+    keys_from_reference_strings,
+    pool_keys,
+    refs_outside_pool,
+    resolve_low_score_threshold,
+    sanitize_expansion_terms,
+    schedule_retrieval_miss,
+    top_refs_for,
+    topics_for_record,
+)
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from providers.embedding_resilience import CircuitOpenError as EmbeddingCircuitOpenError
 from scripture import ScriptureSearchService, SearchResults
@@ -184,6 +199,7 @@ class _SafetyOutcome:
     is_help_seeking: bool = (
         False  # BITB-255: safety pipeline flagged help-seeking (even if blocked)
     )
+    violated_categories: list[str] = field(default_factory=list)  # BITB-258: Llama Guard S-codes
 
 
 class ChatService:
@@ -311,6 +327,7 @@ class ChatService:
                 reason=safety_result.reason,
                 categories=safety_result.categories,
                 is_help_seeking=safety_result.is_help_seeking,
+                violated_categories=safety_result.violated_categories,
             )
 
         if safety_result.compassionate_response_needed:
@@ -445,8 +462,8 @@ Keep it under 120 words."""
             logger.info(
                 "Query expansion completed",
                 extra={
-                    "original_query": user_message[:100],
-                    "expanded_query": expanded[:200],
+                    "original_query_chars": len(user_message),
+                    "expanded_query_chars": len(expanded),
                     "language": language,
                     "expansion_time_ms": expansion_time_ms,
                 },
@@ -458,7 +475,11 @@ Keep it under 120 words."""
 
     @timed_stage("query_expansion")
     async def _build_expansion_embeddings(
-        self, message: str, detected_language: str, model_override: str | None = None
+        self,
+        message: str,
+        detected_language: str,
+        model_override: str | None = None,
+        trace: RetrievalTrace | None = None,
     ) -> list[list[float]] | None:
         """Expand the query and embed the expansion for multi-embedding search.
 
@@ -473,6 +494,9 @@ Keep it under 120 words."""
         expanded_query = await self._expand_query(message, detected_language, model_override)
         if expanded_query == message:
             return None
+        if trace is not None:
+            # Transient, in-memory only: sanitized to keywords by the miss hook, never stored.
+            trace.expansion_text = expanded_query
         try:
             expansion_embed_response = await self.embedding.embed(expanded_query)
         except EmbeddingCircuitOpenError as e:
@@ -579,7 +603,7 @@ Keep it under 120 words."""
                 "translation": translation,
                 "user_preference": request.preferred_translation,
                 "model_override": model_override,
-                "message_preview": request.message[:50],
+                "message_chars": len(request.message),
             },
         )
 
@@ -651,6 +675,7 @@ Keep it under 120 words."""
             )
 
         # Step 1: Search for relevant scripture (if enabled; timed via @timed_stage)
+        retrieval_trace = RetrievalTrace()
         scripture_context, search_context_prompt = await self._search_scripture(
             request,
             translation,
@@ -658,6 +683,7 @@ Keep it under 120 words."""
             is_verse_lookup,
             detected_language=effective_language,
             model_override=model_override,
+            trace=retrieval_trace,
         )
 
         # Fail-closed grounding guard (BITB-058): a scripture-seeking request that
@@ -667,6 +693,18 @@ Keep it under 120 words."""
             request, detected_intent, is_verse_lookup, scripture_context
         ):
             chat_scripture_unavailable_counter.add(1, {"language": effective_language})
+            self._retrieval_miss_hook(
+                request=request,
+                ctx=scripture_context,
+                trace=retrieval_trace,
+                intent=detected_intent,
+                is_verse_lookup=is_verse_lookup,
+                language=effective_language,
+                translation=translation,
+                cited_refs=[],
+                safety=safety,
+                crisis=crisis,
+            )
             logger.warning(
                 "Scripture unavailable for a grounding-required request; returning a "
                 "fail-closed message instead of an ungrounded answer",
@@ -764,7 +802,20 @@ Keep it under 120 words."""
         # after grounding, so neither the model nor grounding can drop them.
         message += self._crisis_fallback_suffix(crisis, effective_language, request)
 
-        cited_set = {str(ref) for ref in extract_all_references(message)}
+        cited_refs = extract_all_references(message)
+        cited_set = {str(ref) for ref in cited_refs}
+        self._retrieval_miss_hook(
+            request=request,
+            ctx=scripture_context,
+            trace=retrieval_trace,
+            intent=detected_intent,
+            is_verse_lookup=is_verse_lookup,
+            language=effective_language,
+            translation=translation,
+            cited_refs=cited_refs,
+            safety=safety,
+            crisis=crisis,
+        )
         cited_set |= self._history_cited_refs(request.conversation_history)
         follow_ups = self._filter_fabricated_follow_ups(
             follow_up_candidates, cited_set, safety.compassionate
@@ -807,6 +858,71 @@ Keep it under 120 words."""
             follow_ups=follow_ups,
             crisis_resources=crisis,
         )
+
+    def _retrieval_miss_hook(
+        self,
+        *,
+        request: ChatRequest,
+        ctx: SearchResults | None,
+        trace: RetrievalTrace,
+        intent: str,
+        is_verse_lookup: bool,
+        language: str,
+        translation: str,
+        cited_refs: list,
+        safety: "_SafetyOutcome",
+        crisis: object,
+    ) -> None:
+        """BITB-256: classify and (best-effort) record a weak/failed retrieval for this turn.
+
+        Synchronous and never raises: classification is in-memory, and the DB write is a
+        fire-and-forget task, so the reply path pays no latency. Skipped for crisis /
+        compassionate turns and when search was off. Off-topic, clarification and blocked
+        turns return before search runs, so they never reach this hook.
+        """
+        try:
+            if (
+                not settings.retrieval_miss_capture_enabled
+                or not request.include_search
+                or crisis is not None
+                or safety.compassionate
+            ):
+                return
+            pool = pool_keys(ctx, trace.passage_context_keys)
+            outside = refs_outside_pool(
+                cited_refs, pool, self._history_cited_refs(request.conversation_history)
+            )
+            threshold = resolve_low_score_threshold(trace.retrieval_mode)
+            reasons = classify_miss(
+                ctx=ctx,
+                trace=trace,
+                intent=intent,
+                is_verse_lookup=is_verse_lookup,
+                threshold=threshold,
+                outside=outside,
+            )
+            if not reasons:
+                return
+            provider, model = embedding_identity()
+            schedule_retrieval_miss(
+                reasons=reasons,
+                intent=intent[:32],
+                language=language[:10],
+                translation=translation[:20],
+                topics=topics_for_record(request.message),
+                expansion_terms=sanitize_expansion_terms(trace.expansion_text, request.message),
+                top_refs=top_refs_for(ctx),
+                top_score=best_score(ctx),
+                threshold=round(threshold, 4),
+                cited_outside_pool=outside,
+                retrieval_mode=trace.retrieval_mode,
+                embedding_provider=provider[:32],
+                embedding_model=model[:100],
+                session_id_hash=_hash_session_id(request.session_id),
+                persist=not trace.search_failed,
+            )
+        except Exception as exc:  # noqa: BLE001 - diagnostics must never affect the reply
+            logger.debug("retrieval miss hook failed: %s", type(exc).__name__)
 
     def _scripture_grounding_unavailable(
         self,
@@ -1131,6 +1247,7 @@ Keep it under 120 words."""
         is_verse_lookup: bool,
         detected_language: str = "en",  # NEW
         model_override: str | None = None,  # NEW
+        trace: RetrievalTrace | None = None,
     ) -> tuple[SearchResults | None, str]:
         """
         Search for relevant scripture, including direct lookups for specific verse references.
@@ -1149,7 +1266,7 @@ Keep it under 120 words."""
         try:
             scripture_context, extra_embeddings, boost_topics = await run_with_disconnect_retry(
                 lambda: self._do_search_scripture(
-                    request, translation, verse_refs, detected_language, model_override
+                    request, translation, verse_refs, detected_language, model_override, trace
                 ),
                 op_name="Scripture search",
             )
@@ -1176,6 +1293,11 @@ Keep it under 120 words."""
                     )
                     logger.warning(f"Passage context fetch failed: {type(e).__name__}: {e}")
 
+            if trace is not None and passage_context:
+                trace.passage_context_keys = keys_from_reference_strings(
+                    [v["reference"] for entry in passage_context for v in entry["verses"]]
+                )
+
             search_duration = time.time() - search_start
             logger.info(
                 "Scripture search completed",
@@ -1200,12 +1322,18 @@ Keep it under 120 words."""
                 1, {"stage": "search", "error_type": "EmbeddingCircuitOpenError"}
             )
             logger.warning(f"Scripture search skipped: embedding circuit breaker open: {e}")
+            if trace is not None:
+                trace.search_failed = True
+                trace.retrieval_mode = "none"
             return None, ""
         except Exception as e:
             scripture_pipeline_errors_counter.add(
                 1, {"stage": "search", "error_type": type(e).__name__}
             )
             logger.error(f"Scripture search failed: {type(e).__name__}: {e}", exc_info=True)
+            if trace is not None:
+                trace.search_failed = True
+                trace.retrieval_mode = "none"
             return None, ""
 
         # Build context prompt from search results (plus BITB-178 surrounding passage, which
@@ -1320,6 +1448,7 @@ Keep it under 120 words."""
         verse_refs: list,
         detected_language: str,
         model_override: str | None,
+        trace: RetrievalTrace | None = None,
     ) -> tuple[SearchResults | None, list[list[float]] | None, list[str]]:
         """One attempt of the scripture search body, run under run_with_disconnect_retry.
 
@@ -1338,7 +1467,7 @@ Keep it under 120 words."""
             query_embedding, extra_embeddings = await asyncio.gather(
                 self._embed_query(request.message),
                 self._build_expansion_embeddings(
-                    request.message, detected_language, model_override
+                    request.message, detected_language, model_override, trace
                 ),
             )
         else:
@@ -1348,6 +1477,16 @@ Keep it under 120 words."""
         boost_topics: list[str] = []
         if settings.topic_boosting_enabled:
             boost_topics = self._detect_topics(request.message)
+
+        boosted = settings.topic_boosting_enabled and bool(boost_topics)
+        if trace is not None:
+            trace.boost_topics = list(boost_topics)
+            hybrid = settings.hybrid_search_enabled
+            trace.retrieval_mode = (
+                ("hybrid_boosted" if boosted else "hybrid")
+                if hybrid
+                else ("boosted" if boosted else "semantic")
+            )
 
         # Semantic or hybrid search (optionally with topic boosting).
         # Query-expansion embeddings (when present) feed straight into the hybrid
@@ -1668,7 +1807,7 @@ Keep it under 120 words."""
                 "translation": translation,
                 "user_preference": request.preferred_translation,
                 "model_override": model_override,
-                "message_preview": request.message[:50],
+                "message_chars": len(request.message),
             },
         )
 
@@ -1779,6 +1918,7 @@ Keep it under 120 words."""
             return
 
         # Step 1: Search for relevant scripture (timed via @timed_stage)
+        retrieval_trace = RetrievalTrace()
         scripture_context, search_context_prompt = await self._search_scripture(
             request,
             translation,
@@ -1786,6 +1926,7 @@ Keep it under 120 words."""
             is_verse_lookup,
             detected_language=effective_language,
             model_override=model_override,
+            trace=retrieval_trace,
         )
 
         # Step 2: Send metadata before streaming starts
@@ -1808,6 +1949,18 @@ Keep it under 120 words."""
             request, detected_intent, is_verse_lookup, scripture_context
         ):
             chat_scripture_unavailable_counter.add(1, {"language": effective_language})
+            self._retrieval_miss_hook(
+                request=request,
+                ctx=scripture_context,
+                trace=retrieval_trace,
+                intent=detected_intent,
+                is_verse_lookup=is_verse_lookup,
+                language=effective_language,
+                translation=translation,
+                cited_refs=[],
+                safety=safety,
+                crisis=crisis,
+            )
             logger.warning(
                 "Scripture unavailable for a grounding-required stream; returning a "
                 "fail-closed message instead of an ungrounded answer",
@@ -1918,6 +2071,21 @@ Keep it under 120 words."""
             and not resolved_verses
         ):
             chat_verseless_responses_counter.add(1, {"language": effective_language})
+
+        # BITB-256: weak/failed retrieval diagnostics. Fire-and-forget (task), so the
+        # completion event below is not delayed by the DB write.
+        self._retrieval_miss_hook(
+            request=request,
+            ctx=scripture_context,
+            trace=retrieval_trace,
+            intent=detected_intent,
+            is_verse_lookup=is_verse_lookup,
+            language=effective_language,
+            translation=translation,
+            cited_refs=list(merged_refs.values()),
+            safety=safety,
+            crisis=crisis,
+        )
 
         # Track LLM structured output compliance — helps decide whether to
         # invest in tool/function calling as a more reliable mechanism.

@@ -1,6 +1,6 @@
 # BITB-256: RAG Retrieval-Miss Insights — Privacy-Safe Logging of Weak or Failed Retrieval
 
-**Status:** 🎯 Todo — spec awaiting owner confirmation (2026-10-28)
+**Status:** 🚧 In Progress (build started 2026-11-03)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-10-28
@@ -68,8 +68,8 @@ carve-out is safety-blocked samples.
    - Rows are deduplicated by signature: a repeat increments `hit_count`.
    - **No column holds user text.**
 3. **Sanitizing expansion terms.** Expansion terms come from the LLM and can echo user words, such
-   as a name. Keep only terms that match a topic vocabulary or a book name, or that are at most 3
-   words. Drop digits, emails and URLs. Cap at 10 terms of at most 40 characters each. Document this
+   as a name. Keep only terms that match a topic vocabulary or a book name (allow-list only; the
+   original "or at most 3 words" path was removed after verification, see the Plan). Drop digits, emails and URLs. Cap at 10 terms of at most 40 characters each. Document this
    as the privacy boundary.
 4. **Writes:**
    - Best-effort and fire-and-forget: they never block or fail the chat reply.
@@ -133,3 +133,42 @@ carve-out is safety-blocked samples.
 1. **Default `low_score` threshold.** Derived from the BITB-139 golden-set score distribution (e.g.
    the p10 of correct hits), and configurable per embedding model.
 2. **Retention.** 90 days.
+
+## Plan (2026-11-03)
+
+Design decisions beyond the spec:
+
+- **Fixed TTL, no refresh.** `expires_at` is set on first insert and is *not* touched by the
+  dedup upsert (unlike blocked samples), so "up to 90 days" in the privacy policy is literally
+  true. Because the app no longer only purges at startup, an hourly `_ttl_purge_loop` in
+  `api/main.py` also runs `purge_expired_retrieval_misses()` (and the blocked-sample purge).
+- **Hardening after verification.** Retention is validated to 1..90 days; an upsert never revives an
+  expired row and the exporter hides expired rows; the signature includes retrieval mode and embedding
+  model; pending background writes are capped at 50 and failed-search turns are telemetry-only; the
+  exporters map every Postgres URL to `postgresql+psycopg2://`.
+- **Provisional thresholds.** `retrieval_miss_low_score_thresholds` ships per-model/mode
+  placeholders (`mxbai-embed-large:hybrid` 0.50, `text-embedding-3-small:hybrid` 0.45, ...).
+  They must be replaced by the p10 of top-1 scores of correct hits from the BITB-139 golden set
+  (`python scripts/run_search_eval.py --run --config hybrid --score-distribution`, added here);
+  this needs an embeddings database and has not been measured yet. Similarity semantics differ
+  per mode (semantic cosine; hybrid `0.7*sem + 0.3*kw`; boosted can exceed 1; direct lookups
+  have none), hence the model x mode key. `top_refs.source` is `direct` vs `search` only: the
+  hybrid score cannot be split into semantic/keyword (documented deviation from the spec).
+- **Sanitizer is allow-list only** (changed after verification). Only terms equal to a topic keyword or
+  a book name survive; the spec's 'at most 3 words' path and any word salvage were removed. Book names
+  that echo the user's message (people named Daniel, Mark, ...) are dropped unless the message cites
+  that book. The sanitizer, not a column, is the
+  privacy boundary; the expansion sentence itself is never stored or logged.
+- **Topics are empty for ru/zh/hi/ko.** `chat/topics.py` only covers en/it/de/es/fr/pt/ar. Those
+  languages still record every other field and aggregate under `(none)`; widening coverage
+  belongs to the topic-detection work in BITB-264.
+- **Scope of "miss".** `low_score` is skipped for GENERAL intent and verse lookups; `empty`
+  still fires for GENERAL. Crisis/compassionate turns are never recorded.
+- **Pre-existing files touched:** Alembic `r0009`; `ChatService` passes an in-memory
+  `RetrievalTrace` through `_search_scripture` (default `None`, existing callers unchanged).
+
+## Follow-ups
+
+- BITB-264: topic detection coverage for ru/zh/hi/ko (topics are empty for those languages here).
+- BITB-265: `_expand_query` logs the user's message and the expanded query at info level,
+  contradicting this story's privacy posture.

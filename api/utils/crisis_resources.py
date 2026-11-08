@@ -73,6 +73,9 @@ def classify_crisis(outcome: _OutcomeLike) -> CrisisKind | None:
     if outcome.allowed:
         return CrisisKind.SELF_HARM if (outcome.compassionate or outcome.is_help_seeking) else None
 
+    if "S11" in (getattr(outcome, "violated_categories", None) or []):
+        return CrisisKind.SELF_HARM
+
     reason = (outcome.reason or "").lower()
     category = _map_reason_to_category(reason)
     if category == "self_harm_blocked":

@@ -7,12 +7,12 @@ from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from sqlalchemy import Boolean, Date, DateTime, Index, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, Text
 
 # Aliased for the same reason as api/scripture/models.py: `text` is a plausible
 # column name, and a bare import would be shadowed inside a class body.
 from sqlalchemy import text as sql_text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -198,4 +198,54 @@ class TtsEventDaily(Base):
         return (
             f"<TtsEventDaily({self.day} {self.event} {self.locale} "
             f"{self.platform}/{self.browser}/{self.os} = {self.count})>"
+        )
+
+
+class RetrievalMissSample(Base):
+    """
+    Privacy-safe record of a chat turn where scripture retrieval was weak (BITB-256).
+
+    One row per signature (reasons + intent + language + translation + topics + retrieval mode +
+    embedding model);
+    repeats increment ``hit_count``. Holds only *derived* signals -- canonical
+    topic ids, sanitized expansion keywords, verse references and scores -- and
+    **no column holds user or model text**. ``expires_at`` is fixed at first
+    insert (never refreshed), so retention is at most
+    settings.retrieval_miss_retention_days. Writes are gated by
+    settings.retrieval_miss_capture_enabled.
+    """
+
+    __tablename__ = "retrieval_miss_samples"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        server_default=sql_text("now()"),
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    reasons: Mapped[list[str]] = mapped_column(ARRAY(String(24)))
+    intent: Mapped[str] = mapped_column(String(32))
+    language: Mapped[str] = mapped_column(String(10))
+    translation: Mapped[str] = mapped_column(String(20))
+    topics: Mapped[list] = mapped_column(JSONB)
+    expansion_terms: Mapped[list] = mapped_column(JSONB)
+    top_refs: Mapped[list] = mapped_column(JSONB)
+    top_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    threshold: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    cited_outside_pool: Mapped[list] = mapped_column(JSONB)
+    retrieval_mode: Mapped[str] = mapped_column(String(24))
+    embedding_provider: Mapped[str] = mapped_column(String(32))
+    embedding_model: Mapped[str] = mapped_column(String(100))
+    session_id_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    signature_sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    hit_count: Mapped[int] = mapped_column(Integer, default=1, server_default=sql_text("1"))
+
+    __table_args__ = (Index("ix_retrieval_miss_samples_lang_created", "language", "created_at"),)
+
+    def __repr__(self) -> str:
+        return (
+            f"<RetrievalMissSample(id={self.id}, reasons={self.reasons}, "
+            f"lang='{self.language}', hits={self.hit_count})>"
         )
