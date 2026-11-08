@@ -1,12 +1,21 @@
 /**
- * Unit tests for the task-reliability plugin's helpers (BITB-169).
+ * Unit tests for the task-reliability plugin (BITB-169) and its helper
+ * library (BITB-269 / T-1254PLG).
  *
  * Run with: node --experimental-strip-types --test .opencode/plugin/task-reliability.test.ts
  *
- * The plugin module has a side-effect-free top level and zero runtime
- * dependencies beyond node: builtins, so it can be imported directly under
- * Node's TS type-stripping. All filesystem tests run against a temp directory
- * via an explicit path argument — never the real /workspace registry.
+ * Both modules have side-effect-free top levels and zero runtime dependencies
+ * beyond node: builtins, so they can be imported directly under Node's TS
+ * type-stripping. All filesystem tests run against a temp directory via an
+ * explicit path argument — never the real /workspace registry.
+ *
+ * The helpers live in task-reliability-helpers.ts; task-reliability.ts is the
+ * opencode-loaded plugin entry whose export surface must stay exactly one
+ * default function (the opencode 1.18.31 loader contract — see the plugin
+ * module header). The last two tests enforce that contract: they are the
+ * regression tests for the 2026-11-08 live incident where the plugin was
+ * rejected with `Plugin export is not a function` because a string constant
+ * sat on the plugin module's export surface.
  */
 
 import { appendFileSync as appendFileSyncToTemp, mkdtempSync, existsSync, rmSync } from "node:fs";
@@ -37,7 +46,7 @@ import {
   type ChildInfo,
   type RegistryLine,
   type WatchdogState,
-} from "./task-reliability.ts";
+} from "./task-reliability-helpers.ts";
 
 const freshState = (): WatchdogState => ({
   lastActivity: new Map(),
@@ -324,6 +333,47 @@ test("handleBusEvent ignores asking events for untracked (top-level) sessions", 
   assert.deepEqual(lines, []);
 });
 
+test("handleBusEvent reads the empirical opencode 1.18.31 nested session.created shape", () => {
+  // Captured live in a scratch instance (T-1254PLG): 1.18.31 emits
+  // properties = {sessionID, info: {parentID, agent, title}} — the parent
+  // linkage is nested under `info`, NOT at the properties top level. The
+  // flat-property shape (accepted as a fallback above) never occurs in
+  // 1.18.31; without this nested read no `created` line is ever written and
+  // the stuck-child watchdog never arms.
+  const state = freshState();
+  const lines = handleBusEvent(
+    state,
+    busEvent("session.created", {
+      sessionID: "ses_child",
+      info: {
+        id: "ses_child",
+        parentID: "ses_parent",
+        agent: "fullstack-engineer",
+        title: "[T-1254PLG] demo (@fullstack-engineer subagent)",
+      },
+    }),
+    Date.parse("2026-11-08T20:57:51.905Z"),
+  );
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0]?.kind, "created");
+  if (lines[0]?.kind === "created") {
+    assert.equal(lines[0].childID, "ses_child");
+    assert.equal(lines[0].parentID, "ses_parent");
+    assert.equal(lines[0].agent, "fullstack-engineer");
+    assert.equal(lines[0].title, "[T-1254PLG] demo (@fullstack-engineer subagent)");
+  }
+  // created → the child is armed in the watchdog for stuck detection.
+  assert.equal(state.lastActivity.has("ses_child"), true);
+
+  // An info object WITHOUT parentID is a top-level session — no line.
+  const topLevel = handleBusEvent(
+    state,
+    busEvent("session.created", { sessionID: "ses_top", info: { id: "ses_top" } }),
+    Date.now(),
+  );
+  assert.deepEqual(topLevel, []);
+});
+
 test("handleBusEvent marks stuck after the threshold, once per stall, and re-arms on activity", () => {
   const state = freshState();
   const t0 = 1_000_000;
@@ -442,4 +492,45 @@ test("importing the plugin module writes nothing to the filesystem", async () =>
     delete process.env.TASK_RELIABILITY_REGISTRY;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ── opencode 1.18.31 loader contract (BITB-269 / T-1254PLG regression) ──────
+
+test("plugin module's runtime export surface is exactly one default function", async () => {
+  // opencode 1.18.31 iterates Object.values(module) over the plugin module's
+  // export surface: ANY non-function export (a string/number constant, an
+  // options object, …) makes the whole plugin fail to load with
+  // `TypeError: Plugin export is not a function` — the exact 2026-11-08 live
+  // incident (runtime log 18:52:00Z, path
+  // file:///workspace/repo/.opencode/plugin/task-reliability.ts). The old
+  // module died on `export const DEFAULT_REGISTRY_PATH = "…"`. Helpers must
+  // live in task-reliability-helpers.ts, never re-exported here.
+  const mod = await import("./task-reliability.ts");
+  assert.deepEqual(
+    Object.keys(mod).sort(),
+    ["default"],
+    `plugin module must export only 'default', got: ${Object.keys(mod).join(", ")}`,
+  );
+  for (const [name, value] of Object.entries(mod)) {
+    assert.equal(
+      typeof value,
+      "function",
+      `export '${name}' must be a function (opencode 1.18.31 loader contract)`,
+    );
+  }
+});
+
+test("default export called as the loader calls it returns the hooks object", async () => {
+  // The loader invokes every function export as plugin(ctx, options) and
+  // registers the resolved value as the plugin's hooks. Prove the default
+  // export tolerates the real call shape and yields the hooks contract.
+  const mod = await import("./task-reliability.ts");
+  const hooks = await mod.default({ client: {}, directory: "/tmp", project: {} }, {});
+  assert.equal(hooks.name, "task-reliability");
+  assert.equal(typeof hooks.event, "function");
+  assert.equal(typeof hooks["tool.execute.after"], "function");
+  assert.equal(typeof hooks["tool.definition"], "function");
+  // A second load (auto-discovery + explicit config entry) must be harmless.
+  const again = await mod.default(undefined, undefined);
+  assert.equal(again.name, "task-reliability");
 });
