@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-261 ✅ Done — stage 1 of the parity KG merged: OpenAPI artifact + stale-artifact CI gate + oasdiff-action (#1253); env-stripping determinism + audit regen adopted from #1251; follow-ups BITB-274/275/276/277 filed
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
@@ -3446,6 +3447,40 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-277: Parity KG Stage 4 — Application Code-Structure Layer
+
+**Status:** 🎯 Todo — gated on BITB-262 landing
+**Priority:** P2
+**Size:** L
+**Created:** 2026-11-08
+
+The "KG of my application" layer: per-client code-structure facts (files, classes, modules, import
+edges, test→subject, string-key references) merged into the same parity graph. Adopted per-client
+extractors per the OSS survey: dependency-cruiser (frontend, MIT), grimp (api, BSD-2), tree-sitter-kotlin
+or Semgrep CE (android), scip-java pilot for precise refs; jQAssistant/Joern/CodeQL rejected with
+reasoning. Call-graph resolution stays out of scope (reliable edge classes only).
+
+**Acceptance Criteria (summary):**
+- [ ] All three clients' extraction emits into `graph.json`, freshness-checked in CI
+- [ ] Answers blast-radius / untested-code / string-key-usage queries
+- [ ] android-expert reviews Android rows; verifier spot-checks ≥10 edges
+
+**Full Story:** [`BITB-277-parity-kg-stage4-code-structure-layer.md`](BACKLOG_STORIES/BITB-277-parity-kg-stage4-code-structure-layer.md)
+
+### 🎯 BITB-274: Wire All scripts/test_*.py Into CI — One Job, Not One-off Wiring
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-08
+
+BITB-261's verifier caught the pattern gap: scripts tests are wired into CI one-by-one, so a new
+`scripts/test_*.py` can silently ship unexecuted (exactly what happened to `test_export_openapi.py`).
+Fix: audit all ~15 scripts tests, add a `test-scripts` Make target, one CI step with a `scripts/**`
+path filter so future test files run with zero wiring.
+
+**Full Story:** [`BITB-274-scripts-tests-ci-wiring.md`](BACKLOG_STORIES/BITB-274-scripts-tests-ci-wiring.md)
+
 ### 🚧 BITB-273: parity-ci oasdiff Job — Workspace-Relative Spec Paths for the Container Action
 
 **Status:** 🚧 In Progress — PR #1255
@@ -3489,7 +3524,7 @@ BITB-261 → BITB-262 → BITB-263.
 
 ### 🚧 BITB-261: Parity KG Stage 1 — OpenAPI Contract Artifact & Breaking-Change CI
 
-**Status:** 🚧 In Progress — PR #1253
+**Status:** ✅ Done 2026-11-08 (#1253) — verified 3×; oasdiff container-path fix in BITB-273 (#1255)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-30
@@ -3504,7 +3539,7 @@ report on PRs (warn-level first; policy documented with its flip condition).
 - [ ] oasdiff breaking-change report per PR; `docs/parity/README.md` zero-to-running
 - [ ] No application behavior changes
 
-**Full Story:** [`BITB-261-parity-kg-stage1-openapi-contract-ci.md`](BACKLOG_STORIES/BITB-261-parity-kg-stage1-openapi-contract-ci.md)
+**Full Story:** [`BITB-261-parity-kg-stage1-openapi-contract-ci.md`](DONE/BITB-261-parity-kg-stage1-openapi-contract-ci.md)
 
 ### 🎯 BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
 
@@ -6260,6 +6295,30 @@ of self-fixing.
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-276: Strings Platform — Evaluate Tolgee vs Weblate for the 3-Format Sync
+
+**Status:** 🎯 Todo — gated: file when translation churn makes manual sync painful
+**Priority:** P3
+**Size:** M
+**Created:** 2026-11-08
+
+Tolgee (Apache-2.0 core) first — the only candidate natively covering all three formats (strings.xml,
+next-intl JSON, .xcstrings). Weblate fallback only (no .xcstrings, issue #10848).
+
+**Full Story:** [`BITB-276-strings-platform-tolgee-vs-weblate.md`](BACKLOG_STORIES/BITB-276-strings-platform-tolgee-vs-weblate.md)
+
+### 🎯 BITB-275: Schemathesis Conformance Fuzzing — Evaluate and Decide
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S/M (spike + decision)
+**Created:** 2026-11-08
+
+Runtime conformance fuzzing against the committed OpenAPI artifact (engine MIT; the community Action
+repo lacks a LICENSE — run the CLI, don't adopt the action). Spike + go/no-go.
+
+**Full Story:** [`BITB-275-schemathesis-evaluation.md`](BACKLOG_STORIES/BITB-275-schemathesis-evaluation.md)
 
 ### 🎯 BITB-199: Second-Opinion Classifier Uses the Primary Model Only
 

@@ -498,6 +498,17 @@ into the branch (`git fetch origin && git merge origin/main`), resolve
 conflicts, push — CI will start. Don't sit waiting for a CI signal that
 will never arrive.
 
+**Before dispatching a build, scan open PRs for an existing implementation of
+the story.** The story-ID check (BITB-235) guards ID *claims*, not
+implementations: a parallel session may already have an in-flight PR
+implementing the same story. Run `gh pr list --state open` and grep the
+open PRs' titles/files for the story ID before handing a build brief to an
+agent; an open PR already implementing the story blocks the dispatch —
+complete it or close it first. (Observed 2026-11-08: BITB-261 was built
+twice in parallel sessions — PR #1251 vs PR #1253 — because nobody checked;
+one implementation was discarded and the other cherry-picked its ideas,
+pure waste of a build cycle.)
+
 ### Documentation Completeness
 
 **A new script, tool, or workflow is not "done" until its usage is documented —
