@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-07
+**Last Updated:** 2026-11-08
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-269 in progress — subagent `question`-tool deadlock hung the orchestrator 9h34m (2026-11-07): question denied for all 11 subagents + dispatch hygiene rules; task-reliability plugin wiring + stuck-child watchdog in the same PR
 - 2026-11-07: BITB-260 ✅ Done — decision record + stage stories merged (#1237); implementation continues in BITB-261/262/263
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
@@ -322,6 +323,22 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🔄 BITB-269: Subagent `question`-Tool Deadlock — Orchestrator Hang + Unsupervised Detached Children
+
+**Status:** 🔄 In progress (mitigations + runtime hardening in one PR)
+**Size:** M
+**Created:** 2026-11-08
+
+Incident 2026-11-07: a subagent hit a wrong-branch brief and invoked the `question` tool —
+a subagent has no interactive user, so the call parked the session forever and blocked the
+parent's dispatch for 9h34m (even a finished sibling result was trapped behind it), until the
+user manually resumed the parent. Fixes: `question: deny` for all 11 subagent agents;
+brief PR-reference hygiene (`refs/pull/<n>/head`, never hand-copied branch names); run-closure +
+resume-after-idle rules; load the task-reliability plugin into the pod's generated config;
+registry visibility (asking/stuck watchdog) for parked children.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-269-subagent-question-deadlock-unsupervised-children.md)
 
 ### 🎯 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
 

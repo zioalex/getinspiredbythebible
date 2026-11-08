@@ -81,6 +81,25 @@ one-liners may skip the relay, but still need tests where behaviour changes.
 > One-shot entry point: the `/plan-build-verify <task>` slash command
 > (`.claude/commands/plan-build-verify.md`) runs this relay end to end.
 
+## Subagent Delegation Reliability (opencode runtime)
+
+- **Subagents never ask questions.** Every `mode: subagent` agent in
+  `.opencode/agents/` has the `question` tool denied. A subagent has no
+  interactive user: a question can never be answered, and on opencode ≤1.18
+  the call parks the session forever while the parent's dispatch blocks with
+  it (incident 2026-11-07, BITB-269 — a 9h34m orchestrator hang traced to one
+  `message=asking` line in the runtime log). A builder that hits an
+  ambiguity proceeds with the best evidence-based option and reports the
+  blocker + recommendation in its final task result.
+- **Dispatch briefs identify PRs by number + `refs/pull/<n>/head`, never
+  hand-copied branch names.** The 2026-11-07 hang was triggered by a brief
+  naming the wrong branch (PR 1241's for PR 1248's), sending the child after
+  a lint violation that did not exist there until it asked.
+- **A run is not complete while a dispatched token lacks a terminal outcome**
+  (result delivered / recovered via `task_id` / confirmed dead). See the
+  orchestrator agent definition (`.opencode/agents/orchestrator.md`) for the
+  `Task cancelled` recovery checklist and the resume-after-idle ritual.
+
 ## Repository Layout
 
 ```text
