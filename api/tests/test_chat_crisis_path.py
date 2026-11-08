@@ -44,13 +44,13 @@ NARRATIVE = {
 
 # Second Bible-narrative phrasing per language (David and Goliath).
 NARRATIVE_DAVID = {
-    "en": "How did David kill Goliath with a sling in 1 Samuel 17?",
+    "en": "How did David kill Goliath in 1 Samuel 17?",
     "it": "Come Davide uccise Golia con la fionda in 1 Samuele 17?",
     "de": "Wie hat David Goliat mit der Schleuder getötet in 1. Samuel 17?",
     "es": "¿Cómo mató David a Goliat con la honda en 1 Samuel 17?",
     "fr": "Comment David a-t-il tué Goliath avec sa fronde dans 1 Samuel 17 ?",
     "pt": "Como Davi matou Golias com a funda em 1 Samuel 17?",
-    "ar": "كيف قتل داود جليات بالمقلاع في صموئيل الأول 17؟",
+    "ar": "كيف قتل داود جليات؟",
     "ru": "Как Давид убил Голиафа пращой в 1 Книге Царств 17?",
     "zh": "大卫在撒母耳记上17章是怎样杀死歌利亚的？",
     "hi": "1 शमूएल 17 में दाऊद ने गोलियत को गोफन से कैसे मार डाला?",
@@ -781,4 +781,20 @@ def test_anchor_bypass_attempts_block_with_threat_card(language, message, monkey
     result, outcome = _real_fallback(message, language, monkeypatch)
     assert not result.allowed
     assert result.reason == "keyword_violation:violence (fallback)"
+    assert classify_crisis(outcome) == CrisisKind.THREAT_TO_OTHERS
+
+
+# BITB-257 round 3 (strict allowlist): narrative phrasings outside the closed frames block
+# exactly as on main, with the threat card. Expected fail-safe trade-off.
+@pytest.mark.parametrize(
+    "language,message",
+    [
+        ("en", "How did David kill Goliath with a sling in 1 Samuel 17?"),
+        ("ar", "كيف قتل داود جليات بالمقلاع في صموئيل الأول 17؟"),
+        ("en", "Why did he kill her?"),
+    ],
+)
+def test_narrative_outside_closed_frames_blocks_like_main(language, message, monkeypatch):
+    result, outcome = _real_fallback(message, language, monkeypatch)
+    assert not result.allowed
     assert classify_crisis(outcome) == CrisisKind.THREAT_TO_OTHERS

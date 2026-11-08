@@ -222,8 +222,8 @@ class ContentSafetyService:
         5. No self-harm: violence scoped to ``[language, "en"]`` plus the unique-script tables
            (ru/zh/hi/ko, BITB-198) -> block; else clean. Third-person Bible narrative
            ("Why did Cain kill Abel", ar "لماذا قتل قايين هابيل") is skipped by the
-           narrative guard in ``find_violence_matches`` / the intent-only ar patterns
-           (BITB-257); first-person threats still block and get the crisis card.
+           strict whole-message narrative allowlist in ``find_violence_matches``
+           (BITB-257 round 3: closed frames only, everything else blocks); first-person threats still block and get the crisis card.
 
         Self-harm only ("I want to kill myself", fr "je veux me tuer") stays
         compassionate; "I want to die, how do I build a bomb" never passes unblocked.
