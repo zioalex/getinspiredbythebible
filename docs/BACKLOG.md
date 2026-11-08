@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-278 opened — Android follow-up chips round: flip the default-off `CHAT_FOLLOW_UPS_ENABLED` BuildConfig gate on and restyle the stock SuggestionChip to match the web chip colors (light: white / #E6D0B8 border / #374151 label); user-reported "colors a bit off" when side-loading a flag-on build (BITB-080/149/254 follow-up)
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
@@ -3445,6 +3446,34 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🚧 BITB-278: Enable Follow-Up Chips on Android + Match Web Chip Colors
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-08
+
+Web follow-up chips are live in prod (#1219) with the drop-off fix merged (#1231); Android still ships
+dark behind the default-off compile-time `CHAT_FOLLOW_UPS_ENABLED` gate, and a side-loaded flag-on
+build showed chips with stock Material colors that don't match web. Flip the gate's default on
+(retain `-PchatFollowUpsEnabled=false` as the per-build kill switch), restyle `FollowUpChips.kt` to
+match the web chip (light: white container / #E6D0B8 border / #374151 label; dark stays
+scheme-neutral — not the blue `primary`), refresh every stale "Android stays dark" comment, and pin
+both palettes with tests. The next release-please cycle publishes the enabled AAB to the Play
+internal track.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `bundleRelease` with no -P properties ships chips enabled (BuildConfig default `true`)
+- [ ] Light-mode chip colors match web exactly — pinned by test; dark-mode stays readable/neutral — pinned by test
+- [ ] Existing render/a11y/tap/gate Compose tests pass unchanged
+- [ ] `api/tests/test_follow_ups_flag_plumbing.py` still passes after the comment refresh
+- [ ] Android CI green on the PR
+
+**Full Story:** [`BITB-278-android-follow-ups-rollout-enable-and-web-parity-colors.md`](BACKLOG_STORIES/BITB-278-android-follow-ups-rollout-enable-and-web-parity-colors.md)
+
+---
 
 ### 🚧 BITB-273: parity-ci oasdiff Job — Workspace-Relative Spec Paths for the Container Action
 
