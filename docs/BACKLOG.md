@@ -17,9 +17,12 @@ Prioritized list of user stories and features for Vox Quieta.
 >   PR rewrote, so nearly every PR conflicted on this file. One entry per line
 >   means only same-day same-position additions can collide, and those conflicts
 >   are two trivial lines instead of a 2000-character paragraph.
-> - History before 2026-09-22 is preserved in git history (this section was
+>   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-07: BITB-261 in progress — committed OpenAPI contract artifact (docs/parity/openapi.json) + offline export script, parity-ci.yml stale-artifact gate & oasdiff breaking-change report (PR #1253)
+- 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
+- 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
 - 2026-11-03: BITB-256 verification fixes — allow-list-only sanitizer, hourly purge + 1..90 day retention, bounded writes, wider signature, psycopg2 exporter URL
 - 2026-11-03: BITB-264/265 opened — follow-ups from BITB-256 verification (ru/zh/hi/ko topic detection coverage; query-expansion logging of user text)
 - 2026-11-03: BITB-256 in progress — retrieval_miss_samples (r0009), fixed 90-day TTL + daily purge, provisional per-model thresholds pending search-eval p10
@@ -3414,9 +3417,9 @@ BITB-261 → BITB-262 → BITB-263.
 
 **Full Story:** [`BITB-260-cross-client-parity-knowledge-graph-decision.md`](DONE/BITB-260-cross-client-parity-knowledge-graph-decision.md)
 
-### 🎯 BITB-261: Parity KG Stage 1 — OpenAPI Contract Artifact & Breaking-Change CI
+### 🚧 BITB-261: Parity KG Stage 1 — OpenAPI Contract Artifact & Breaking-Change CI
 
-**Status:** 🎯 Todo — dispatchable immediately
+**Status:** 🚧 In Progress — PR #1253
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-30
