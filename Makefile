@@ -8,6 +8,7 @@
 	test-functional test-functional-local test-e2e test-e2e-local \
 	follow-up-eval follow-up-checklist golden-test golden-live \
 	gen-opencode-config verify-opencode-config sync-opencode-configmap \
+	parity-export parity-check \
 	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
 	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
 	validate-env validate-env-strict export-blocked-samples \
@@ -353,6 +354,20 @@ pre-commit: install-hooks ## Run pre-commit on all files
 	@echo "$(BLUE)Running pre-commit hooks on all files...$(NC)"
 	@$(VENV_DIR)/bin/pre-commit run --all-files
 	@echo "$(GREEN)✓ Pre-commit checks complete$(NC)"
+
+# ==================== OpenAPI Parity Artifact (BITB-261) ====================
+# Single source of truth: api/main.py:app (route + schema metadata)
+# Generated artifact: docs/parity/openapi.json (committed) → parity-ci.yml gate
+# Policy record: docs/parity/README.md
+
+parity-export: ## Export the FastAPI app's OpenAPI contract to docs/parity/openapi.json (offline)
+	@echo "$(BLUE)Exporting OpenAPI contract artifact...$(NC)"
+	@$(SCRIPT_PYTHON) scripts/export_openapi.py
+	@echo "$(GREEN)✓ docs/parity/openapi.json regenerated$(NC)"
+
+parity-check: ## Verify the committed OpenAPI artifact matches the app (stale = fail)
+	@$(SCRIPT_PYTHON) scripts/export_openapi.py --check
+	@echo "$(GREEN)✓ OpenAPI artifact is up to date$(NC)"
 
 # ==================== OpenCode Agent Config (BITB-123) ====================
 # Single source of truth: .opencode/agents/*.md
