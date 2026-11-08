@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Regression tests for scripts/export_openapi.py (BITB-261).
 
-Offline by construction: the export imports the FastAPI app with the same
-env-defaults pattern the offline test suite uses (a dummy DATABASE_URL and the
-keyless ollama providers — see the script's module docstring), so no database
-and no LLM keys are needed. The tests cover:
+Offline by construction: the export imports the FastAPI app inside a *stripped*
+environment (only the keyless dummy seeds reach Settings() — see the script's
+module docstring), so no database and no LLM keys are needed. The tests cover:
 
 - the offline import works with a clean environment (the story's main risk);
 - the rendered JSON is deterministic (two loads byte-identical) and its
   paths/schemas are key-sorted (the point of the committed artifact);
+- machine independence: a hostile caller environment (real provider configs,
+  hostile Settings values) cannot change the output;
 - `--check` exits 0 when the committed artifact matches and 1 (with a diff on
   stderr) when it is stale;
 - plain generation writes the artifact.
@@ -52,6 +53,33 @@ def test_loads_offline_with_clean_environment(monkeypatch: pytest.MonkeyPatch) -
     document = export_openapi.load_openapi_document()
     assert document["openapi"].startswith("3.")
     assert document["paths"], "expected a non-empty paths object"
+
+
+def test_export_is_machine_independent(rendered: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A hostile caller environment must not change the exported bytes.
+
+    The export strips os.environ around the app import (save/replace/restore),
+    so Settings() only ever sees the keyless dummy seeds — a machine with real
+    provider configs, or hostile values for Settings fields that could plausibly
+    reach the schema (a different DATABASE_URL, LLM_PROVIDER=claude with its
+    key check, EMBEDDING_PROVIDER=azure_openai, MAX_MESSAGE_LENGTH / LLM token
+    limits, debug flags), must produce byte-identical output to a clean run.
+    """
+    for key, value in {
+        "DATABASE_URL": "postgresql://hostile:hostile@10.0.0.1:5432/hostile",  # pragma: allowlist secret
+        "LLM_PROVIDER": "claude",
+        "ANTHROPIC_API_KEY": "sk-ant-hostile",  # pragma: allowlist secret
+        "EMBEDDING_PROVIDER": "azure_openai",
+        "AZURE_OPENAI_ENDPOINT": "https://hostile.example.com",
+        "MAX_MESSAGE_LENGTH": "999",
+        "LLM_MAX_TOKENS": "4096",
+        "EMBEDDING_DIMENSIONS": "1536",
+        "DEBUG": "true",
+        "APP_VERSION": "9.9.9",
+    }.items():
+        monkeypatch.setenv(key, value)
+    hostile = export_openapi.render_openapi_json(export_openapi.load_openapi_document())
+    assert hostile == rendered
 
 
 def test_render_is_deterministic() -> None:

@@ -40,18 +40,37 @@ committed artifact is stale. Tests: `python -m pytest scripts/test_export_openap
 
 ### The offline import — how it works
 
-Importing `api/main.py` instantiates `Settings()` (`api/config.py`), whose
-`database_url` validator rejects the built-in placeholder DSN. The offline test
-suite solves this by running with a `DATABASE_URL` that points at a database
-nobody connects to (unit tests mock the DB; only integration tests need a real
-PostgreSQL). The export script does the same: **before importing the app** it
-seeds, via `os.environ.setdefault` (never overriding real values):
+Importing `api/main.py` instantiates `Settings()` (`api/config.py`), a Pydantic
+Settings class that reads **every field from the environment** — and whose
+`database_url` validator rejects the built-in placeholder DSN.
 
-- `DATABASE_URL` — a dummy DSN, never connected to (`app.openapi()` builds the
-  document from route/model metadata only; the DB is touched only by the
-  lifespan handler, which does not run here);
-- `LLM_PROVIDER=ollama` and `EMBEDDING_PROVIDER=ollama` — the keyless defaults,
-  so no `ANTHROPIC_API_KEY` / `OPENROUTER_API_KEY` etc. are required.
+The offline test suite solves this by running with a `DATABASE_URL` that points
+at a database nobody connects to (unit tests mock the DB; only integration
+tests need a real PostgreSQL). The export script needs more than a working
+import — the artifact must be **machine-independent** — so it *strips* the
+caller's environment for the duration of the app import:
+
+- **save/replace/restore `os.environ`** around `from main import app`
+  (chosen over a clean-subprocess approach so the export stays testable
+  in-process);
+- the controlled environment contains **only** the keyless seeds:
+  - `DATABASE_URL` — a dummy DSN, never connected to (`app.openapi()` builds
+    the document from route/model metadata only; the DB is touched only by the
+    lifespan handler, which does not run here);
+  - `LLM_PROVIDER=ollama` and `EMBEDDING_PROVIDER=ollama` — the keyless
+    defaults, so no `ANTHROPIC_API_KEY` / `OPENROUTER_API_KEY` etc. are
+    required;
+- plus a few interpreter-level passthrough keys (`PATH`, `HOME`, `LANG`, ...)
+  that the Python import machinery itself may consult — none of them is a
+  Settings field.
+
+No caller env var — a real `DATABASE_URL`, `LLM_PROVIDER=claude` (with its
+required-key check), `EMBEDDING_PROVIDER=azure_openai`,
+`MAX_MESSAGE_LENGTH=999`, … — can reach `Settings()`, so the output is
+identical on every machine (asserted by the machine-independence test).
+Settings additionally reads a `.env` file from the CWD if present; the script
+is always run from the repo root, which has no `.env` (only `.env.local` /
+`.env.dev`, which it does not read).
 
 Exact invocation, verified offline on a clean checkout:
 

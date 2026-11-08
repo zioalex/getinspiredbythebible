@@ -21,21 +21,41 @@ gives CI two levers over it:
 
 Offline import — the story's main technical risk
 -------------------------------------------------
-Importing ``api/main.py`` instantiates ``Settings()`` (``api/config.py``), whose
-``database_url`` field rejects the built-in placeholder DSN. The offline test
-suite gets around this by running with a ``DATABASE_URL`` that points at a
-PostgreSQL nobody connects to (CI's unit-test job never opens a connection —
-most tests mock the DB). This script does the same: before importing the app it
-seeds a dummy ``DATABASE_URL`` via ``os.environ.setdefault`` (never overriding
-a real one) plus the keyless defaults ``LLM_PROVIDER=ollama`` and
-``EMBEDDING_PROVIDER=ollama``. The default LLM/embedding providers need no API
-keys, so no LLM credentials are required either.
+Importing ``api/main.py`` instantiates ``Settings()`` (``api/config.py``), a
+Pydantic Settings class that reads EVERY field from the environment. The
+offline test suite gets a working import by running with a ``DATABASE_URL``
+that points at a database nobody connects to (unit tests mock the DB).
+
+This script goes further than the test suite needs to: the artifact must be
+**machine-independent**, so the caller's environment is *stripped* for the
+duration of the app import. ``os.environ`` is saved, replaced with a
+controlled environment containing ONLY the known-required seeds below, and
+restored afterwards (save/replace/restore — chosen over a clean subprocess
+because it keeps the export testable in-process and needs no extra machinery).
+Any caller values that could otherwise leak into ``Settings()`` — e.g. a real
+``LLM_PROVIDER=claude`` with its required key check, ``MAX_MESSAGE_LENGTH=999``
+baked into a schema description, or a different ``DATABASE_URL`` — cannot reach
+the import, so the output is identical on every machine. Only a few harmless
+interpreter-level variables (``PATH``, ``HOME``, ...) pass through; every
+Settings-shaped key does not.
+
+Seeds (all keyless, none connected to):
+
+- ``DATABASE_URL`` — a dummy DSN without the ``CONFIGURE_ME`` placeholder
+  Settings rejects; never connected to (``app.openapi()`` builds the document
+  from route/model metadata only).
+- ``LLM_PROVIDER=ollama`` / ``EMBEDDING_PROVIDER=ollama`` — the keyless
+  defaults, so no API keys are required.
+
+Note: Settings additionally reads an ``.env`` file if present in the CWD
+(``env_file``); this script is always run from the repo root, which has no
+``.env`` (only ``.env.local`` / ``.env.dev``, which it does not read).
 
 No database connection is made: ``app.openapi()`` builds the document purely
 from route/model metadata; it never touches the DB (only the lifespan
 handler does, and it does not run here). Verified offline on a fresh checkout:
 
-    DATABASE_URL=postgresql://user:pass@localhost:5432/db python scripts/export_openapi.py  # pragma: allowlist secret
+    python scripts/export_openapi.py
 
 The output is the same JSON the live service serves at the public,
 unauthenticated ``/openapi.json`` path (see ``TURNSTILE_SKIP_PATHS`` in
@@ -56,12 +76,13 @@ warn-vs-gate policy. Part of BITB-260 stage 1 (contracts layer).
 from __future__ import annotations
 
 import argparse
+import contextlib
 import difflib
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _API_DIR = _REPO_ROOT / "api"
@@ -71,30 +92,55 @@ _ARTIFACT_PATH = _REPO_ROOT / "docs" / "parity" / "openapi.json"
 # connected to — app.openapi() builds the document from route metadata only.
 # pragma comments: these are inert literals, not real credentials.
 _OFFLINE_DATABASE_URL = "postgresql://openapi-export:openapi-export@localhost:5432/openapi_export"  # pragma: allowlist secret
-_OFFLINE_ENV_DEFAULTS = {
+# The ONLY variables Settings() may see during the app import (see the module
+# docstring): the keyless seeds above plus interpreter-level passthrough that
+# the import machinery itself may consult. Everything else the caller has set
+# is stripped, so the export cannot vary per machine.
+_OFFLINE_ENV_SEEDS = {
     "DATABASE_URL": _OFFLINE_DATABASE_URL,
     # Keyless defaults — Settings() requires no LLM keys for these providers.
     "LLM_PROVIDER": "ollama",
     "EMBEDDING_PROVIDER": "ollama",
 }
+# Interpreter-level passthrough: none of these is a Settings field; they are
+# kept only so the Python import machinery behaves normally.
+_PASSTHROUGH_KEYS = ("PATH", "HOME", "LANG", "LC_ALL", "TZ", "SYSTEMROOT", "PWD", "TEMP", "TMP")
 
 
-def ensure_offline_env() -> None:
-    """Seed the env vars the offline test suite uses (never override real ones)."""
-    for key, value in _OFFLINE_ENV_DEFAULTS.items():
-        os.environ.setdefault(key, value)
+@contextlib.contextmanager
+def _controlled_environ() -> Iterator[dict[str, str]]:
+    """Replace ``os.environ`` with the controlled offline env for the import.
+
+    Machine independence (BITB-261 round 2): the caller's environment is
+    stripped — save/replace/restore around the app import — so no caller env
+    var (a real DATABASE_URL, LLM_PROVIDER=claude, MAX_MESSAGE_LENGTH=999, …)
+    can reach ``Settings()`` and leak into the generated schema. Only the
+    keyless seeds plus interpreter-level passthrough keys are visible.
+    """
+    saved = dict(os.environ)
+    try:
+        os.environ.clear()
+        for key in _PASSTHROUGH_KEYS:
+            if key in saved:
+                os.environ[key] = saved[key]
+        os.environ.update(_OFFLINE_ENV_SEEDS)
+        yield os.environ
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
 
 
 def load_openapi_document() -> dict[str, Any]:
     """Import the FastAPI app offline and return its OpenAPI document.
 
-    No DB connection and no LLM keys are needed: see the module docstring.
+    No DB connection and no LLM keys are needed, and the caller's environment
+    cannot influence the result: see the module docstring.
     """
-    ensure_offline_env()
     if str(_API_DIR) not in sys.path:
         # api/ uses flat imports (`from main import app`); put it on sys.path.
         sys.path.insert(0, str(_API_DIR))
-    from main import app  # noqa: E402  (import after sys.path setup is the point)
+    with _controlled_environ():
+        from main import app  # noqa: E402  (import after sys.path setup is the point)
 
     return app.openapi()
 
