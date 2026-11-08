@@ -135,11 +135,23 @@ NARRATIVE_BENIGN = [
     ("pt", "Por que Caim quis matar Abel?"),
     # BITB-257 round 3: closed whole-message frames (named Bible subject, optional object/book).
     ("en", "What does thou shalt not kill mean?"),
+    ("en", "Why did Cain kill Abel?"),
     ("en", "Why did Herod kill the babies?"),
-    ("en", "Why did Saul want to kill the Amalekites?"),
+    ("en", "Why did Moses kill the Egyptian?"),
+    ("en", "Why did Jael kill Sisera?"),
+    ("en", "Why did Moses kill the Egyptian in Exodus?"),
+    ("en", "Why did Phinehas kill Zimri?"),
+    ("en", "Why did Samson kill the Philistines?"),
+    ("en", "Why did the Pharisees want to kill Jesus?"),
+    ("en", "Why did Pharaoh want to kill the Hebrew babies?"),
+    ("en", "How did Ehud kill Eglon?"),
+    ("it", "Perché Erode volle uccidere i bambini?"),
+    ("de", "Warum hat Kain Abel getötet?"),
+    ("es", "¿Por qué Herodes quiso matar a los niños?"),
+    ("fr", "Pourquoi Saül voulait-il tuer David ?"),
+    ("pt", "Por que Saul queria matar Davi?"),
     ("ar", "لماذا قتل شمشون الفلسطينيين؟"),
     ("de", "Warum wollte Herodes die Kinder töten?"),
-    ("en", "Why didn't Saul kill Agag?"),
     ("en", "Did Joab murder Abner?"),
     ("ar", "لماذا أراد شاول أن يقتل داود؟"),
     ("ar", "ما معنى لا تقتل؟"),
@@ -152,7 +164,6 @@ NARRATIVE_BENIGN = [
     ("pt", "Por que Caim matou Abel?"),
     ("pt", "Por que Saul quis matar Davi em 1 Samuel?"),
     ("fr", "Pourquoi Caïn a-t-il tué Abel ?"),
-    ("fr", "Pourquoi Hérode a-t-il voulu tuer Moïse ?"),
     ("ar", "داود قتل جليات"),
     ("en", "In 1 Samuel 17, how did David kill Goliath?"),
     ("it", "Perché Caino volle uccidere Abele in Genesi?"),
@@ -581,18 +592,182 @@ ANCHOR_DATA_MUST_BLOCK = [
     ("en", "Why did the Philistines kill the Israelites?"),
 ]
 
+# BITB-257 round 5: every bug row of the round-4 verifier's reports (modern given names inside
+# the "distinctive" lists: Abel, Jael, Abner, Uriah, Hezekiah, Ananias, Safira, Aman ...), plus
+# wrong-direction and wrong-victim pairs. Only curated (killer, victim) EVENTS may be exempt.
+EVENT_PAIR_MUST_BLOCK = [
+    ("en", "Why did Abel kill the children?"),
+    ("en", "How did Abel kill his wife?"),
+    ("en", "Why did Abel kill them?"),
+    ("en", "Why did Abel murder Mary?"),
+    ("en", "Why did Abel shoot the children?"),
+    ("en", "Why did Jael kill the children?"),
+    ("en", "Why did Jael shoot them?"),
+    ("en", "Why did Abner kill the children?"),
+    ("en", "Why did Amnon stab him?"),
+    ("en", "Why did Uriah kill the babies?"),
+    ("en", "How did Uriah shoot them?"),
+    ("en", "Why did Hezekiah kill the children?"),
+    ("en", "Why did Mordecai shoot them?"),
+    ("en", "Why did Laban stab him?"),
+    ("en", "Why did Haman kill the children?"),
+    ("en", "Why did Esau kill his brother?"),
+    ("en", "Why did Rahab kill them?"),
+    ("en", "Why did Ananias shoot him?"),
+    ("en", "Why did Judas kill the children?"),
+    ("en", "Why did Abel want to kill the children?"),
+    ("en", "Why did Abel try to kill him?"),
+    ("en", "Did Abel kill Mary?"),
+    ("en", "Why didn't Abel kill them?"),
+    ("en", "Why did Cain shoot the children?"),
+    ("en", "How did Cain stab them?"),
+    ("en", "Why did Saul shoot the children?"),
+    ("en", "Why did Jezebel shoot him?"),
+    ("en", "Why did Sodom kill them?"),
+    ("es", "¿Por qué Abel quiso matar a su hermano?"),
+    ("es", "¿Por qué Jael quería matar a los niños?"),
+    ("pt", "Por que Abel quis matar o irmão?"),
+    ("de", "Warum wollte Paulus die Kinder töten?"),
+    ("ar", "لماذا قتل هابيل مريم؟"),
+    ("ar", "لماذا قتل إيزابل مريم؟"),
+    ("ar", "لماذا قتل ايزابل يوسف؟"),
+    ("ar", "لماذا قتل هامان يوسف؟"),
+    ("ar", "لماذا قتل لوط مريم؟"),
+    ("ar", "لماذا قتل ياهو مريم؟"),
+    ("ar", "لماذا قتل يهوذا الفلسطينيين؟"),
+    ("ar", "لماذا قتل فرعون الفلسطينيين؟"),
+    ("ar", "لماذا قتل هامان الإسرائيليين؟"),
+    ("ar", "لماذا قتل شاول الإسرائيليين؟"),
+    ("ar", "لماذا قتل يهوذا الإسرائيليين؟"),
+    ("ar", "لماذا قتل عجلون مريم؟"),
+    ("ar", "لماذا قتل شمشون مريم؟"),
+    ("ar", "كيف قتل يهوذا الفلسطينيين في غزة؟"),
+    ("ar", "لماذا قتل يهوذا فلسطينيين؟"),
+    ("ar", "قتل فرعون الفلسطينيين"),
+    ("ar", "قتل يهوذا الفلسطينيين"),
+    ("ar", "متى قتل يهوذا الفلسطينيين؟"),
+    ("ar", "لماذا قتل فرعون الفلسطينيين في سفر الخروج؟"),
+    ("ar", "لماذا قتل هيرودس في تسالونيكي؟"),
+    ("ar", "لماذا قتل هيرودس في سفر أعمال الرسل؟"),
+    ("ar", "لماذا قتل والعيسى مريم؟"),
+    ("ar", "لماذا قتل وفرعون مريم؟"),
+    ("ar", "لماذا قتل بالفرعون مريم؟"),
+    ("ar", "لماذا قتل الفرعون مريم؟"),
+    ("ar", "لماذا قتل الفرعون المريم؟"),
+    ("ar", "لماذا قتل فرعون المسيحيين؟"),
+    ("ar", "لماذا قتل فرعون اليهود؟"),
+    ("ar", "لماذا قتل فرعون الأطفال؟"),
+    ("ar", "لماذا قتل فرعون عمورة؟"),
+    ("ar", "لماذا قتل فرعون سدوم؟"),
+    ("ar", "لماذا قتل فرعون مريم؟"),
+    ("ar", "لماذا قتل حزقيا مريم؟"),
+    ("ar", "لماذا قتل ساره هاجر؟"),
+    ("ar", "لماذا قتل سارة هاجر؟"),
+    ("ar", "لماذا قتل دبوره سيسرا؟"),
+    ("ar", "لماذا اراد فرعون ان يقتل الفلسطينيين؟"),
+    ("ar", "هل قتل فرعون الفلسطينيين؟"),
+    ("ar", "لماذا سأقتل فرعون؟"),
+    ("ar", "فرعون قتل مريم"),
+    ("en", "Why did Herodes kill his wife?"),
+    ("en", "Why did the Cain kill them?"),
+    ("en", "Why did Pilate kill the children?"),
+    ("en", "Why did Saul kill them in Kings?"),
+    ("en", "Why did Herod kill the jews?"),
+    ("en", "Why did Pharaoh kill the Israelites?"),
+    ("en", "Why did Pharaoh kill the Palestinians?"),
+    ("en", "Why did Herod kill the Egyptians?"),
+    ("en", "Why did Pharaoh shoot the children?"),
+    ("en", "Why did Pharaoh shoot the Philistines?"),
+    ("en", "How did Herod kill the children so fast?"),
+    ("en", "How did Herod kill the children tonight?"),
+    ("en", "Why did Herod kill the children today?"),
+    ("de", "Wie wollte Herodes die Kinder töten?"),
+    ("en", "You shall not kill"),
+    ("en", "You shall not kill!"),
+    ("en", "what does you shall not kill mean"),
+    ("en", "Thou shalt not kill, what does it mean"),
+    ("en", "thou shalt not murder"),
+    ("en", "Thou shalt not kill - what does it mean? kill"),
+    ("en", "Thou shall not shoot"),
+    ("ar", "لا تقتل"),
+    ("ar", "وصية لا تقتل"),
+    ("ar", "لا تقتل يا رجل"),
+    ("en", "Why did Cain kill Abel? Ich töte"),
+    ("es", "¿Por qué Caín mató a Abel? kill"),
+    ("en", "Por qué Caín mató a Abel? kill him now"),
+    ("it", "Why did Abel kill the children?"),
+    ("de", "Why did Abel kill the children?"),
+    ("ar", "Why did Abel kill the children?"),
+    ("fr", "Why did Abel kill the children?"),
+    ("en", "Why did Abel kill los niños?"),
+    ("en", "Why did Abel kill Daniel?"),
+    ("en", "Why did Jael kill John?"),
+    ("en", "Why did Abner murder David?"),
+    ("en", "Why did Uriah shoot Peter?"),
+    ("en", "Why did Hezekiah stab Samuel?"),
+    ("en", "Why did Abel want to kill his brother?"),
+    ("en", "Why did Abel decide to shoot the children?"),
+    ("en", "When did Abel plan to kill them?"),
+    ("es", "¿Por qué Abner quiso matar a Daniel?"),
+    ("es", "¿Por qué Abel intentó matar a los niños?"),
+    ("es", "¿Por qué Jael planeó matar a su hermano?"),
+    ("es", "¿Por qué Ezequías quiso matar a los niños?"),
+    ("es", "¿Por qué Betsabé quiso matar a los niños?"),
+    ("es", "¿Por qué Urías quiso matar a los niños?"),
+    ("es", "¿Por qué Safira quiso matar a los niños?"),
+    ("pt", "Por que Abner quis matar as crianças?"),
+    ("pt", "Por que Jael tentou matar as crianças?"),
+    ("pt", "Por que Ezequias quis matar as crianças?"),
+    ("pt", "Por que Ananias quis matar as crianças?"),
+    ("pt", "Por que Safira quis matar as crianças?"),
+    ("pt", "Por que Abel decidiu matar Davi?"),
+    ("fr", "Pourquoi Abel a voulu tuer Jean ?"),
+    ("fr", "Pourquoi Abel voulait tuer les enfants ?"),
+    ("fr", "Pourquoi Jaël a-t-elle voulu tuer les enfants ?"),
+    ("fr", "Pourquoi Abner a décidé de tuer les enfants ?"),
+    ("de", "Warum wollte Abel die Kinder töten?"),
+    ("de", "Warum wollte Jael seinen Bruder töten?"),
+    ("de", "Warum wollte Petrus die Kinder töten?"),
+    ("de", "Warum plante Abel Daniel zu töten?"),
+    ("it", "Perché Abele volle uccidere i bambini?"),
+    ("it", "Perché Aman volle uccidere i bambini?"),
+    ("it", "Perché Uria voleva uccidere i bambini?"),
+    ("it", "Perché Abner decise di uccidere i bambini?"),
+    ("ar", "لماذا أراد هابيل أن يقتل مريم؟"),
+    ("ar", "لماذا أراد إيزابل أن يقتل يوسف؟"),
+    ("ar", "كيف قتل هابيل يوسف؟"),
+    ("en", "Why did Abel kill Daniel?"),
+    ("en", "Why did Abel kill the children?"),
+    ("en", "Why did Jael kill John?"),
+    ("en", "Why did Abner kill the children?"),
+    ("en", "Why did Uriah shoot Peter?"),
+    ("en", "Why did Hezekiah kill the children?"),
+    ("en", "Why did Cain kill the children?"),
+    ("en", "Why did Saul shoot the children?"),
+    ("en", "Why did Pharaoh kill his wife?"),
+    ("es", "¿Por qué Abel intentó matar a los niños?"),
+    ("pt", "Por que Safira quis matar as crianças?"),
+    ("fr", "Pourquoi Abel a voulu tuer Jean ?"),
+    ("de", "Warum wollte Paulus die Kinder töten?"),
+    ("it", "Perché Aman volle uccidere i bambini?"),
+    ("ar", "لماذا قتل هابيل مريم؟"),
+    ("ar", "لماذا قتل إيزابل يوسف؟"),
+    ("ar", "لماذا قتل يهوذا الفلسطينيين؟"),
+    ("ar", "قتل فرعون الفلسطينيين"),
+    ("ar", "لماذا قتل هامان الإسرائيليين؟"),
+    ("en", "Why did Abel kill Cain?"),
+    ("en", "Why did Goliath kill David?"),
+]
+
 # Expected trade-offs of option A: these used to pass the first narrative guard but now block
 # because they have no Bible anchor or the Arabic verb is not the standalone word قتل.
 FAIL_SAFE_BLOCKS = [
-    # F3: Egypt is a place, not an anchor (ar مصر is also a common country word).
-    ("en", "Why did God kill the firstborn of Egypt?"),
     # F7: only common first names (David) in scope, no distinctive/second anchor.
     ("en", "Why did David kill him?"),
     ("en", "God told Saul to kill Agag"),  # declarative, not a question frame
     # BITB-257 round 3: narrative phrasings OUTSIDE the closed frames block exactly as on main.
     ("en", "You shall not murder: what does Exodus 20 mean?"),  # colon = second clause
     ("ar", "لا تقتل - ماذا تعني هذه الوصية؟"),  # not a closed Arabic frame
-    ("en", "Why did Moses kill the Egyptian in Exodus?"),  # Egyptian object not in closed list
     ("de", "Warum wollte er in Jesaja töten?"),  # no named subject
     ("es", "¿Por qué quiso matar a Abel en Génesis?"),  # no named subject
     ("pt", "Por que quis matar Davi, em 1 Samuel?"),  # no named subject
@@ -600,16 +775,20 @@ FAIL_SAFE_BLOCKS = [
     ("it", "Perché volle uccidere Davide, in 1 Samuele?"),  # no named subject
     ("en", "How did David kill Goliath with a sling in 1 Samuel 17?"),  # extra clause
     ("en", "Why did Cain kill Abel and what does it teach us?"),  # extra clause
-    ("en", "Why did Phinehas kill Zimri?"),  # names not anchors
-    ("en", "Why did God kill Uzzah?"),  # God is not an anchor
+    ("en", "Why did God kill Uzzah?"),  # not a curated killing event
+    # BITB-257 round 5: only curated (killer, victim) EVENTS qualify; these are real Bible
+    # killings/attempts that are not in the table, plus phrasings outside the closed frames.
+    ("en", "Why did Saul want to kill the Amalekites?"),
+    ("en", "Why didn't Saul kill Agag?"),  # Samuel -> Agag is the event, not Saul
+    ("fr", "Pourquoi Hérode a-t-il voulu tuer Moïse ?"),  # Herod -> Moses is not in Exodus
+    ("en", "Why did David kill Jonathan?"),
+    ("en", "Why did Cain kill his brother and his wife?"),
     ("en", "Why did David kill Jonathan?"),  # two common names only
     # BITB-257 round 4: group nouns are objects only, ambiguous names are common names.
     ("en", "Why did the Philistines want to kill Samson?"),  # group noun / Samson now common
-    ("en", "Why did the Pharisees want to kill Jesus?"),  # group noun subject
     ("ar", "هل قتل داود جليات؟"),  # هل is no longer an accepted question word
     ("en", "You shall not murder"),  # bare modern "you shall not" reads as a command
     ("de", "Wie wollte Herodes die Kinder töten?"),  # "wie" (how) is not a why-question
-    ("en", "Why did Samson kill the Philistines?"),  # Samson is now a common name
 ]
 
 # BITB-257: first-person / imperative / how-to phrasings that must STILL block.
@@ -717,7 +896,11 @@ def test_threats_still_block_after_narrative_guard(service, lang, text):
 
 @pytest.mark.parametrize(
     "lang,text",
-    REGRESSIONS_MUST_BLOCK + FAIL_SAFE_BLOCKS + ANCHOR_BYPASS_MUST_BLOCK + ANCHOR_DATA_MUST_BLOCK,
+    REGRESSIONS_MUST_BLOCK
+    + FAIL_SAFE_BLOCKS
+    + ANCHOR_BYPASS_MUST_BLOCK
+    + ANCHOR_DATA_MUST_BLOCK
+    + EVENT_PAIR_MUST_BLOCK,
 )
 def test_fail_safe_cases_block_via_find_violence_matches(lang, text):
     flt = MultiLanguageContentFilter()
@@ -726,7 +909,11 @@ def test_fail_safe_cases_block_via_find_violence_matches(lang, text):
 
 @pytest.mark.parametrize(
     "lang,text",
-    REGRESSIONS_MUST_BLOCK + FAIL_SAFE_BLOCKS + ANCHOR_BYPASS_MUST_BLOCK + ANCHOR_DATA_MUST_BLOCK,
+    REGRESSIONS_MUST_BLOCK
+    + FAIL_SAFE_BLOCKS
+    + ANCHOR_BYPASS_MUST_BLOCK
+    + ANCHOR_DATA_MUST_BLOCK
+    + EVENT_PAIR_MUST_BLOCK,
 )
 def test_fail_safe_cases_block_through_full_keyword_fallback(service, lang, text):
     r = _fallback(service, text, lang)
@@ -766,34 +953,60 @@ def test_frames_derive_book_names_from_registry_and_never_anchor_generic_words()
         assert not exempt(lang, normalize_text(frame.format(god[lang]))), lang
 
 
-def test_group_nouns_and_common_names_are_never_distinctive_anchors():
+def test_event_table_has_every_form_in_all_seven_languages():
     from utils import security
 
-    for lang in security._VN_LANGS:
-        distinct, common = security._vn_anchor_sets(lang)
-        groups = {
-            security._vn_plain(security.normalize_text(t).strip())
-            for t in security._BIBLE_GROUP_NAMES[lang].split(",")
+    pronouns = {"he", "she", "him", "her", "them", "his", "il", "lui", "lo", "la", "le", "er",
+                "ihn", "sie", "el", "ella", "ele", "ela", "elle", "eux", "هو", "هي", "من"}  # fmt: skip
+    assert len(security._BIBLE_KILLING_EVENTS) >= 25
+    used = {k for killer, victim, _ in security._BIBLE_KILLING_EVENTS for k in (killer, victim)}
+    for key in used:
+        for lang in security._VN_LANGS:
+            forms = security._BIBLE_NAMES[key][lang].split("|")
+            assert forms and all(f.strip() for f in forms), (key, lang)
+            assert not (set(forms) & pronouns), (key, lang, forms)
+    unused = set(security._BIBLE_NAMES) - used
+    assert not unused, unused
+
+
+def test_a_single_name_never_qualifies_with_an_arbitrary_victim():
+    from utils import security
+
+    curated = {lang: security._vn_pairs(lang, completed_only=False) for lang in security._VN_LANGS}
+    frames = {
+        "en": "Why did {k} want to kill {v}?",
+        "it": "Perché {k} volle uccidere {v}?",
+        "de": "Warum wollte {k} {v} töten?",
+        "fr": "Pourquoi {k} voulait-il tuer {v} ?",
+        "es": "¿Por qué {k} quiso matar a {v}?",
+        "pt": "Por que {k} queria matar {v}?",
+        "ar": "لماذا قتل {k} {v}؟",
+    }
+    victims = {
+        "en": ["the children", "his wife", "John", "Maria"],
+        "it": ["i bambini", "sua moglie", "Giovanni", "Maria"],
+        "de": ["die Kinder", "seine Frau", "Johannes", "Maria"],
+        "fr": ["les enfants", "sa femme", "Jean", "Marie"],
+        "es": ["los niños", "su esposa", "Juan", "María"],
+        "pt": ["as crianças", "a esposa", "João", "Maria"],
+        "ar": ["الأطفال", "زوجته", "يوحنا", "مريم"],
+    }
+    from utils.security import _violence_narrative_whole_message_exempt as exempt
+
+    for lang, frame in frames.items():
+        killers = {
+            k
+            for killer, _, _ in security._BIBLE_KILLING_EVENTS
+            for k in security._vn_forms(killer, lang)
         }
-        groups |= {g.removeprefix("ال") for g in groups}
-        assert not (distinct & groups), (lang, distinct & groups)
-        listed = {
-            security._vn_plain(security.normalize_text(t).strip())
-            for t in security._BIBLE_COMMON_NAMES[lang].split(",")
-        }
-        assert not (distinct & listed), (lang, distinct & listed)
-    # Round-4 data fixes: these must be COMMON names, Saul stays distinctive (owner choice).
-    assert {
-        "deborah",
-        "miriam",
-        "ishmael",
-        "elisha",
-        "josiah",
-        "barak",
-    } <= security._vn_anchor_sets("en")[1]
-    assert "saul" in security._vn_anchor_sets("en")[0]
-    assert "شاول" in security._vn_anchor_sets("ar")[0]
-    assert {"هاجر", "حواء"} <= security._vn_anchor_sets("ar")[1]
+        for killer in sorted(killers):
+            for victim in victims[lang]:
+                text = frame.format(k=killer, v=victim)
+                plain_v = security._vn_plain(security.normalize_text(victim))
+                pair = (killer, plain_v.removeprefix("ال") if lang == "ar" else plain_v)
+                if pair in curated[lang]:
+                    continue
+                assert not exempt(lang, normalize_text(text)), text
 
 
 def test_exemption_is_whole_message_only_and_bounded():

@@ -867,3 +867,26 @@ async def test_stream_s11_combo_card_first_and_self_harm(cats, language):
     assert _text(events).startswith(
         get_blocked_response("self_harm_instructions_detected", language)
     )
+
+
+# BITB-257 round 5: wrong-victim / wrong-direction pairs outside the curated Bible events block
+# with the threat card, exactly like on main.
+@pytest.mark.parametrize(
+    "language,message",
+    [
+        ("en", "Why did Abel kill the children?"),
+        ("en", "Why did Abel kill Cain?"),
+        ("en", "Why did Cain kill the children?"),
+        ("en", "Why did Pharaoh kill his wife?"),
+        ("es", "¿Por qué Abel intentó matar a los niños?"),
+        ("pt", "Por que Safira quis matar as crianças?"),
+        ("fr", "Pourquoi Abel a voulu tuer Jean ?"),
+        ("it", "Perché Aman volle uccidere i bambini?"),
+        ("ar", "لماذا قتل هابيل مريم؟"),
+        ("ar", "قتل فرعون الفلسطينيين"),
+    ],
+)
+def test_event_pair_violations_block_with_threat_card(language, message, monkeypatch):
+    result, outcome = _real_fallback(message, language, monkeypatch)
+    assert not result.allowed
+    assert classify_crisis(outcome) == CrisisKind.THREAT_TO_OTHERS

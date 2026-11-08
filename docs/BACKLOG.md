@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-257 🔍 In review — narrative exemption now requires a curated Bible killing event (killer→victim pair) after name-list anchors leaked modern given names (#1241)
 - 2026-11-08: BITB-257 🔍 In review — redesigned narrative exemption as a strict whole-message allowlist (mirrors BITB-238/#1249) after verification found denylist bypasses (#1241)
 - 2026-11-07: BITB-261 in progress — committed OpenAPI contract artifact (docs/parity/openapi.json) + offline export script, parity-ci.yml stale-artifact gate & oasdiff breaking-change report (PR #1253)
 - 2026-11-07: BITB-260 ✅ Done — decision record + stage stories merged (#1237); implementation continues in BITB-261/262/263
@@ -343,8 +344,8 @@ Follow-up to BITB-255. With ML safety down, "Why did Cain kill Abel?" (en, ar) i
 and now also gets a threat crisis card. Unblock third-person Bible narrative in the keyword fallback,
 in 11 languages, and flip the BITB-255 xfails. **Decision (2026-11-04): option A, fail safe; round 3 (2026-11-08):
 strict whole-message allowlist** — the narrative exemption applies only when the ENTIRE message
-(<= 200 chars, one sentence) fully matches a closed frame with a named Bible subject (mirrors
-BITB-238/#1249); everything else blocks like main. Arabic bare `قتل` is restored. **Follow-ups:** BITB-267
+(<= 200 chars, one sentence) fully matches a closed frame AND its (killer, victim) pair is a curated Bible killing event
+(round 5; mirrors BITB-238/#1249); everything else blocks like main. Arabic bare `قتل` is restored. **Follow-ups:** BITB-267
 
 **Full Story:** [`BITB-257-keyword-fallback-bible-narrative-violence.md`](BACKLOG_STORIES/BITB-257-keyword-fallback-bible-narrative-violence.md)
 

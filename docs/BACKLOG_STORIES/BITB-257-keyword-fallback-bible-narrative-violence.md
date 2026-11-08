@@ -49,7 +49,11 @@ down, so extra blocks are the cheaper error (see BITB-267 to make the fallback r
 This overlaps the guard work in BITB-200–204, so reuse their Bible-study guard approach rather than
 adding a parallel mechanism.
 
-## Round 3: strict whole-message allowlist (owner decision 2026-11-08)
+## Round 3: strict whole-message allowlist (owner decision 2026-11-08; anchor sets SUPERSEDED by round 5)
+
+> The whole-message frame machinery below still applies. Its ANCHOR model (distinctive / common /
+> group name sets, `_BIBLE_PERSON_NAMES`, `_BIBLE_COMMON_NAMES`, `_BIBLE_GROUP_NAMES`) was
+> replaced by curated killing events in Round 5. Saul is no longer a standalone distinctive name.
 
 Rounds 1-2 exempted a match when a frame, an anchor and the absence of first-person/time words
 held (a per-match denylist veto, then an in-frame anchor, a time/intent veto and a cross-language
@@ -72,8 +76,8 @@ only when the table matched (linear cost; 50k chars stay well under 200 ms):
    the frames have no pronoun slot).
 4. Single sentence: optional wrappers `( [ « " " ¿ ¡ ' " ' „` (plus the matching closers) and one terminal `?`/`.`/`؟`.
 5. The body must `fullmatch` one closed frame of the language. Subject/object are
-   named Bible people (curated list); at least one must be DISTINCTIVE (Cain, Abel, Goliath, Saul,
-   Herod, Pharaoh ...): Bible names that are also common modern given names or everyday words
+   named Bible people (curated list); at least one must be DISTINCTIVE (Cain, Goliath,
+   Saul, Herod, Pharaoh ...): Bible names that are also common modern given names or everyday words
    (`_BIBLE_COMMON_NAMES`: John, David, Moses, Jesus, Deborah, Miriam, Ishmael, Samson, Solomon,
    Josiah, Elisha, Barak, Hagar, Eve ...) only qualify next to a distinctive anchor, never two
    common names together. Group nouns (Philistines, Israelites, Amalekites, Pharisees and their
@@ -92,7 +96,7 @@ only when the table matched (linear cost; 50k chars stay well under 200 ms):
 - it/de/es/fr/pt: question word + subject + wanted/tried/decided-to + infinitive (+ object, book), or
   the simple/compound past (it uccise, es mató, fr a-t-il tué, de hat ... getötet, pt matou),
   also VSO for it/es/pt. Inflected past forms are accepted only inside the frame.
-- ar: (لماذا|كيف|متى|هل)? قتل <A> <A>? [في سفر <book>]; <A> قتل <A>; (لماذا|كيف) أراد <A> أن يقتل <A>;
+- ar: (لماذا|كيف|متى)? قتل <A> <A> [في سفر <book>]; <A> قتل <A>; (لماذا|كيف) أراد <A> أن يقتل <A>;
   commandment (ماذا تعني|ما معنى) [وصية] لا تقتل.
 - ru/zh/hi/ko: never exempt (unchanged vs main).
 
@@ -108,7 +112,7 @@ only when the table matched (linear cost; 50k chars stay well under 200 ms):
   `العيسى` / `اليوسف` / `الداود` are checked as the common names they contain.
 - de: the want-to frame accepts only warum/wieso/weshalb ("Wie wollte ..." reads as how-to).
 
-**Round 4 (anchor data fixes after verification of round 3)**
+**Round 4 (anchor data fixes after verification of round 3) — SUPERSEDED by round 5**
 - Group nouns moved out of the anchor lists into `_BIBLE_GROUP_NAMES` (object only); ar `سفيرة`
   (also "ambassador") removed.
 - Moved to `_BIBLE_COMMON_NAMES` (need a distinctive anchor beside them): en deborah, miriam,
@@ -132,10 +136,55 @@ not murder" (bare modern form), de "Wie wollte Herodes die Kinder töten?". Add 
 the owner wants more recall; widening always means adding to the allowlist, never to a veto.
 
 **Tests** (`test_violence_keyword_fallback_languages.py`, `test_chat_crisis_path.py`):
-`REGRESSIONS_MUST_BLOCK`, `ANCHOR_BYPASS_MUST_BLOCK` and the 110-row `ALLOWLIST_BYPASS_MUST_BLOCK`
+`REGRESSIONS_MUST_BLOCK`, `ANCHOR_BYPASS_MUST_BLOCK`, the 110-row `ALLOWLIST_BYPASS_MUST_BLOCK`,
+`ANCHOR_DATA_MUST_BLOCK` (round 4) and `EVENT_PAIR_MUST_BLOCK` (round 5, 160 rows)
 (every round-2 verifier threat/real-world row) via `find_violence_matches` and the real fallback,
 plus the threat-card subset; fail-safe-blocks cases; allowed narrative in every language;
 5,000/50,000-char timing tests (< 200 ms) for `_full_keyword_fallback` and `_has_crisis_wording`.
+
+## Round 5: curated Bible-event pairs (owner decision 2026-11-08)
+
+**Why name lists failed twice.** Round 3 and round 4 both qualified a frame by NAMES (a
+"distinctive" list, a "common given names" list, a group-noun list). Independent verification broke
+both: every list leaked modern given names or everyday words into the distinctive set (Abel, Jael,
+Abner, Uriah, Hezekiah, Ezequias, Ananias, Safira, Betsabe, Paulus, Petrus, it Aman, ar هابيل /
+إيزابل), so "Why did Abel kill the children?" was allowed. A name list can never be complete,
+so names no longer qualify on their own.
+
+**The event table.** `_BIBLE_KILLING_EVENTS` in `api/utils/security.py` holds about 38 real Bible
+killings and attempts as (killer, victim, completed) pairs: Cain/Abel (and "his brother"),
+David/Goliath, Saul/David (attempt, kept), Moses/the Egyptian, Pharaoh/the Hebrew babies and the
+firstborn, God/the firstborn of Egypt, Herod/the babies, John the Baptist and James (and Herod/Jesus
+as an attempt), Jael/Sisera, Ehud/Eglon, Samson/the Philistines, Absalom/Amnon, Joab/Abner and
+Absalom, David/Uriah, Jezebel/Naboth and Jezebel/Elijah (attempt), Jehu/Jezebel and Ahab's house,
+Elijah/the prophets of Baal, Phinehas/Zimri, Haman/the Jews (attempt), Abimelech/his brothers,
+Saul and Doeg/the priests of Nob, the Pharisees and chief priests/Jesus (attempt), the crowd/
+Stephen, Esau/Jacob (attempt), Joseph's brothers/Joseph (attempt), Athaliah/the royal family,
+Samuel/Agag. `_BIBLE_NAMES` lists every killer and victim in en, it, de, es, fr, pt and ar,
+including fixed victim phrases for groups ("the babies / the children / the innocents / the
+infants of Bethlehem"). Victims such as the Philistines or the firstborn of Egypt exist ONLY as
+the victim of their curated killer. Attempt events (`completed=False`) are accepted in
+"wanted / tried to kill" frames, not in "did X kill Y".
+
+**The rule.** The round-3/4 frame machinery is unchanged (<= 200 chars, one sentence, wrappers,
+first-person union veto, harakat/tatweel and accent stripping, homoglyph check, closed frames,
+book slot). Every frame now has a killer slot and a victim slot, and after the fullmatch the
+captured (killer, victim) (Arabic leading و/ف/ب/ل/ال stripped) must equal a curated pair for that
+direction. "him / them / his brother" objects were removed unless an event lists them. The
+commandment frames are exempt without a pair but only in the explicit forms: archaic "thou
+shalt not kill|murder" with "mean" / "- what does it mean" or a "what does ... mean" lead, and ar
+`ماذا تعني / ما معنى [وصية] لا تقتل` or `وصية لا تقتل ماذا تعني` (bare commandments and the modern
+"you shall not" now block like main).
+
+**Trade-off (fail safe).** Any killing that is not a curated event blocks, even a real Bible one
+(e.g. "Why did Saul want to kill the Amalekites?", "Why didn't Saul kill Agag?", "Why did David
+kill Jonathan?"). Widening means adding an event, never a name.
+
+**Newly blocked by round 5** (vs round 4): "Why didn't David kill Saul?", "How did Pharaoh kill
+the children", "How did Goliath kill him?", "Why did Goliath kill his brother?", "How did Cain kill
+them?", "How did Jezebel/Judas kill him/John?", ar "لماذا قتل هيرودس يوحنا؟" (reverse pair
+forms), the bare "Thou shalt not kill" and "Thou shalt not kill, what does it mean", plus
+the Saul/Amalekites, Saul/Agag and Herod/Moses examples above.
 
 ## Known limitations
 
