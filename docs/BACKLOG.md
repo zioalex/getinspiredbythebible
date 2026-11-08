@@ -20,6 +20,12 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-257 🔍 In review — narrative exemption now requires a curated Bible killing event (killer→victim pair) after name-list anchors leaked modern given names (#1241)
+- 2026-11-08: BITB-272 renumbered from BITB-267 — ID was already claimed by open PR #1250 (earlier claimant keeps 267); story file and references updated (#1241)
+- 2026-11-08: BITB-257 🔍 In review — redesigned narrative exemption as a strict whole-message allowlist (mirrors BITB-238/#1249) after verification found denylist bypasses (#1241)
+- 2026-11-04: BITB-257 🔍 In review — fail-safe narrative guard (option A): exemption needs a Bible anchor and no first-person marker; ar bare قتل restored; recall regressions re-blocked (#1241)
+- 2026-11-04: BITB-272 created — make ML content-safety classification reliable (cross-provider failover, fallback-share SLO) so the BITB-257 fail-safe keyword fallback is rare (#1241)
+- 2026-11-02: BITB-257 🔍 In review — keyword fallback no longer blocks third-person Bible narrative (en do-support/commandment guard, ar intent-only patterns, fr/it/es/pt/de past-tense guards); first-person threats still blocked with the card
 - 2026-11-08: BITB-273 in progress — parity-ci oasdiff job failed on every api PR since #1253: pass workspace-relative spec paths to the oasdiff docker action (host github.workspace paths don't exist inside the container) (#1255)
 - 2026-11-07: BITB-261 in progress — committed OpenAPI contract artifact (docs/parity/openapi.json) + offline export script, parity-ci.yml stale-artifact gate & oasdiff breaking-change report (PR #1253)
 - 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
@@ -85,13 +91,11 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-23: BITB-142 done — first-run feature spotlight coach-marks with RTL support (PR #1192)
 - 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
-
 - 2026-10-23: BITB-234 created — second-tenant ($50 credit) rehearsal environment for the migration chain; production split and reservation-in-new-tenant declined with reasoning
 - 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
 - 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
 - 2026-10-23: BITB-218 done — bump Next.js to 16.4.2 for critical RCE advisories (PR #1195)
 - 2026-10-23: BITB-210 done + BITB-211 done — read-aloud voice availability, hidden verse list; follow-ups BITB-213/214/215/216/217 opened (PR #1190, #1194)
-
 - 2026-10-23: BITB-150 collector metrics fixed — 90-day Postgres CPU/memory/storage evidence is now three contiguous 30-day Azure Monitor requests per metric (Azure truncated one 90-day request to ~31 days), merged and validated; any failed/truncated chunk fails the file and the run (PR #1189)
 - 2026-10-23: BITB-150 collector throttling and alerts pagination fixed — bounded 429/503 retry with backoff in `run_cli`; Alerts `nextLink` (live shape `https://management.azure.com:443/...&ctoken=`) now validated by strict normalization instead of exact-host match; offline tests added (PR #1189)
 - 2026-10-23: BITB-150 firewall helpers fixed — `az-pg-add-ip`/`list-rules`/`remove-ip` use `--server-name` for the server and `--name` for the rule; offline Makefile tests added (PR #1189)
@@ -330,17 +334,43 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🎯 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
+### 🔍 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In review (2026-11-08)
 **Size:** M
 **Created:** 2026-10-29
 
 Follow-up to BITB-255. With ML safety down, "Why did Cain kill Abel?" (en, ar) is blocked as violence
 and now also gets a threat crisis card. Unblock third-person Bible narrative in the keyword fallback,
-in 11 languages, and flip the BITB-255 xfails.
+in 11 languages, and flip the BITB-255 xfails. **Decision (2026-11-04): option A, fail safe; round 3 (2026-11-08):
+strict whole-message allowlist** — the narrative exemption applies only when the ENTIRE message
+(<= 200 chars, one sentence) fully matches a closed frame AND its (killer, victim) pair is a curated Bible killing event
+(round 5; mirrors BITB-238/#1249); everything else blocks like main. Arabic bare `قتل` is restored. **Follow-ups:** BITB-272
 
 **Full Story:** [`BITB-257-keyword-fallback-bible-narrative-violence.md`](BACKLOG_STORIES/BITB-257-keyword-fallback-bible-narrative-violence.md)
+
+---
+
+### 🎯 BITB-272: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** L
+**Created:** 2026-11-04
+
+Follow-up to BITB-257: the fail-safe keyword fallback is only acceptable if it runs rarely. In
+`ml_only` both Llama Guard models go through OpenRouter, so one outage sends every message to the
+keyword path, and the fallback alert fired 99× in 30 days (BITB-223). Add cross-provider ML
+failover, tune timeouts/retry/breaker from data, and alert on a fallback-share SLO.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Simulated OpenRouter outage in `ml_only` is handled by a second-provider ML classifier
+- [ ] Keyword fallback runs only when every configured ML classifier failed
+- [ ] Fallback-share metric + dashboard + SLO burn alert (target < 0.5 % / 7 days, TBC)
+- [ ] Failover classifier passes the 11-language safety golden set
+
+**Full Story:** [`BITB-272-ml-safety-reliability-rare-keyword-fallback.md`](BACKLOG_STORIES/BITB-272-ml-safety-reliability-rare-keyword-fallback.md)
 
 ---
 

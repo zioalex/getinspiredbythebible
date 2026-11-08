@@ -43,7 +43,7 @@ from utils.security import MultiLanguageContentFilter
 
 # BITB-198: these tables only match Cyrillic/Han/Devanagari/Hangul, so they are safe to check
 # under any UI language (an en-UI user typing Russian). ``ar`` is excluded on purpose: its
-# table has a bare "قتل" that would spread Bible-narrative false positives (BITB-194).
+# table keeps the weapon/attack words سلاح/هجوم, which have Bible-narrative senses (BITB-194/257).
 _UNIQUE_SCRIPT_VIOLENCE_LANGS = ("ru", "zh", "hi", "ko")
 
 logger = get_logger(__name__)
@@ -221,7 +221,11 @@ class ContentSafetyService:
            maps to the crisis-resources template (``self_harm_with_violence (fallback)``).
            The async ``_keyword_fallback`` may refine it with a second LLM opinion.
         5. No self-harm: violence scoped to ``[language, "en"]`` plus the unique-script tables
-           (ru/zh/hi/ko, BITB-198) -> block; else clean.
+           (ru/zh/hi/ko, BITB-198) -> block; else clean. Third-person Bible narrative
+           ("Why did Cain kill Abel", ar "لماذا قتل قايين هابيل") is skipped by the
+           strict whole-message narrative allowlist in ``find_violence_matches``
+           (BITB-257 round 5: closed frames + curated Bible killing event, else block);
+           first-person threats still block and get the crisis card.
 
         Self-harm only ("I want to kill myself", fr "je veux me tuer") stays
         compassionate; "I want to die, how do I build a bomb" never passes unblocked.
