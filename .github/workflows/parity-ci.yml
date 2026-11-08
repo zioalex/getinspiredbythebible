@@ -1,0 +1,135 @@
+name: Parity CI
+
+# BITB-261 (BITB-260 stage 1): the committed OpenAPI contract artifact
+# (docs/parity/openapi.json) plus breaking-change reporting per PR.
+# Policy record: docs/parity/README.md (stale = hard gate; breaking = warn-only
+# until the baseline is trusted).
+
+# yamllint disable-line rule:truthy
+"on":
+  pull_request:
+    branches:
+      - main
+    paths:
+      # The artifact can only go stale when the API surface (or the generator)
+      # changes; docs/parity/** is included so artifact-only PRs re-verify too.
+      - "api/**"
+      - "scripts/export_openapi.py"
+      - "scripts/test_export_openapi.py"
+      - "docs/parity/**"
+      - ".github/workflows/parity-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "scripts/export_openapi.py"
+      - "scripts/test_export_openapi.py"
+      - "docs/parity/**"
+      - ".github/workflows/parity-ci.yml"
+
+jobs:
+  # Hard gate: the committed artifact must match the app's OpenAPI document.
+  # Also runs this workflow's own tests (scripts/test_export_openapi.py) so the
+  # parity tooling's coverage executes in CI, not just locally (BITB-261 fix).
+  stale-artifact:
+    name: OpenAPI artifact freshness (parity-check)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            api/requirements.txt
+            api/requirements-dev.txt
+
+      # requirements-dev.txt (not requirements.txt) carries pytest, which the
+      # test step below needs in addition to the app import's fastapi/pydantic.
+      - name: Install API dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements-dev.txt
+
+      # The parity tooling's own tests: offline import (the story's main risk),
+      # determinism, and the --check pass/fail paths.
+      - name: Test the OpenAPI export script
+        run: |
+          python -m pytest scripts/test_export_openapi.py -q
+
+      - name: Guard — committed OpenAPI artifact must match the app (BITB-261)
+        run: |
+          python scripts/export_openapi.py --check
+
+  # Warn-only breaking-change report: oasdiff/oasdiff-action/breaking@v0
+  # compares the artifact exported from the PR base vs the PR head and posts
+  # the report as a PR comment itself. It does NOT fail the PR — the flip to a
+  # hard gate is a deliberate later decision (see docs/parity/README.md).
+  breaking-changes:
+    name: OpenAPI breaking changes (oasdiff, warn-only)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+
+      - name: Install API dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements.txt
+
+      - name: Export the PR head spec
+        run: |
+          python scripts/export_openapi.py --output "$GITHUB_WORKSPACE/head-openapi.json"
+
+      - name: Checkout PR base
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Export the PR base spec
+        run: |
+          # The PR base may predate this script/artifact (e.g. the BITB-261
+          # baseline PR itself): nothing to diff against yet, skip gracefully.
+          if [ ! -f base/scripts/export_openapi.py ]; then
+            echo "BASE_HAS_NO_EXPORTER=true" >> "$GITHUB_ENV"
+            echo "PR base predates the OpenAPI artifact (baseline) — no diff." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          python base/scripts/export_openapi.py --output "$GITHUB_WORKSPACE/base-openapi.json"
+
+      # oasdiff-action/breaking (Apache-2.0, official) runs the oasdiff docker
+      # image and posts the breaking-changes PR comment itself — no hand-rolled
+      # docker-run or comment plumbing in this repo. fail-on-breaking stays
+      # unset (default false): warn-and-report policy, BITB-261.
+      # BITB-273: this is a docker action — the runner mounts the workspace at
+      # /github/workspace in the container (and sets --workdir to it), passing
+      # these inputs verbatim as container args. Host-absolute paths
+      # (${{ github.workspace }}/...) do not exist inside the container, so
+      # per the action's README ("Spec paths") the local-file form must be a
+      # workspace-RELATIVE filename: it resolves against the mounted
+      # /github/workspace, where the export steps above wrote both specs.
+      - name: oasdiff breaking-changes report
+        if: env.BASE_HAS_NO_EXPORTER != 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0
+        with:
+          base: base-openapi.json
+          revision: head-openapi.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}

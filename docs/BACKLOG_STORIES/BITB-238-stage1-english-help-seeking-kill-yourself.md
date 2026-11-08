@@ -1,6 +1,6 @@
 # BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
@@ -24,3 +24,19 @@ or the compassionate path:
 - [ ] Genuine second-person threats ("Go kill yourself", "You should die") still block under all 11 codes
 - [ ] Help-seeking forms route to the compassionate path
 - [ ] Parametrized across the 11 language codes; no regression in BITB-193 tests
+
+## Known limitations
+
+The exemptions are deliberately narrow and regex-based, so some benign phrasings still block:
+
+- The exemption is a closed whole-message allowlist (single sentence, no hostile/encouraging word anywhere, must fully match one frame), so unusual phrasings of help-seeking go through the old block path. Acceptable: Stage 2 handles normal operation.
+
+- "Why did Jesus go die for the world?" (only "on the cross" / "for our sins|my sins|sinners|mankind|humanity" are exempt, and only with a Jesus/Christ/he/God subject and no "you" earlier in the clause).
+- "you should die for Christ" and similar martyrdom phrasing are not exempt; only "to sin/self/flesh..." and "daily/every day" suffixes are.
+- Moral frames must be question-form ("Is it a sin to kill yourself?"); a statement such as "it is ok to kill yourself" blocks.
+- Any hostile or encouraging word anywhere in the message (e.g. "do it", "go ahead", "loser") cancels the exemption, even in an unrelated clause.
+- Whitespace runs between words are matched by the English patterns, but other evasions (leetspeak, misspellings) are out of scope.
+
+## Follow-ups
+
+- BITB-266: directed-harm taunt gaps found while verifying this story (pre-existing on main).
