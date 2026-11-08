@@ -17,7 +17,7 @@ cluster-side wiring (the `configRef` pointer and credentials).
   `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required: every
   agent chain — primaries and fallbacks alike — is OpenRouter-only since
   BITB-279, so this key is the graph's single provider dependency; see
-  [Fallback Resilience](#fallback-resilience-2-hop-chain))
+  [Fallback Resilience](#fallback-resilience))
 - Secret `github-copilot-auth` in `kubeopencode-system` → Copilot credential
   for the `github-copilot/*` models (wired but unused since the 2026-09-14
   credit exhaustion — see the historical note in agents.md).
@@ -216,7 +216,7 @@ kubectl -n kubeopencode-system get secret github-copilot-auth
 kubectl -n kubeopencode-system describe agent default-wf2
 ```
 
-## Cross-provider Resilience
+## Fallback resilience
 
 Every agent uses a **2-hop fallback chain** (free first, paid last, BITB-173)
 that ends on OpenRouter. The `opencode-runtime-fallback@0.2.4` plugin retries on
