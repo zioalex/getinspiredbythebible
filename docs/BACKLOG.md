@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 > - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-271 created — upstream opencode issue: subagent `question` call parks forever (no default deny/timeout/parent routing); paste-ready draft in the story, filing is an owner step (#1254)
+- 2026-11-08: BITB-270 created — LLM stream-stall watchdog: error-driven fallback misses silently-stalled streams; stream-idle detection + abort/registry line with a tight threshold (#1254)
 - 2026-11-08: BITB-269 in progress — subagent `question`-tool deadlock hung the orchestrator 9h34m (2026-11-07): question denied for all 11 subagents + dispatch hygiene rules; task-reliability plugin wiring + stuck-child watchdog in the same PR
 - 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
 - 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
@@ -342,6 +344,7 @@ user manually resumed the parent. Fixes: `question: deny` for all 11 subagent ag
 brief PR-reference hygiene (`refs/pull/<n>/head`, never hand-copied branch names); run-closure +
 resume-after-idle rules; load the task-reliability plugin into the pod's generated config;
 registry visibility (asking/stuck watchdog) for parked children.
+Follow-ups filed: BITB-270 (stream-stall watchdog), BITB-271 (upstream opencode issue).
 
 **Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-269-subagent-question-deadlock-unsupervised-children.md)
 
@@ -3414,6 +3417,38 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-270: LLM Stream-Stall Watchdog — Silently-Stalled Provider Streams Are Uncovered
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-08
+
+Follow-up to BITB-269 (out-of-scope item). The runtime-fallback plugin is error-driven, so a
+stream that stalls mid-generation without closing trips no retry and no timeout — only the
+1200 s stuck watchdog eventually aborts, lossily. Add stream-idle detection (env-thresholdable,
+~180 s) with best-effort abort + a `stalled-stream` registry line; investigate whether abort
+re-drives the loop through the fallback machinery (preferred) and whether a native config knob
+exists. Inert-by-design preserved; plugin tests extended.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-270-llm-stream-stall-watchdog.md)
+
+### 🎯 BITB-271: Upstream opencode Issue — Subagent `question` Call Parks Forever
+
+**Status:** 🎯 Todo (owner-run external step: filing the issue)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-08
+
+Follow-up to BITB-269 (out-of-scope item). opencode ≤1.18 lets `mode: subagent` sessions invoke
+the `question` tool with no interactive user: no default denial, no timeout, no parent routing —
+and the parent's task call is equally unbounded. Story contains a paste-ready issue draft
+(repro, log excerpts, proposed behaviors a–d); file it upstream after verifying the canonical
+tracker, record the URL, and later decide keep/retire for the local `question: deny` +
+watchdog layers.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-271-upstream-opencode-subagent-question-deadlock.md)
 
 ### 🎯 BITB-260: Cross-Client Parity Knowledge Graph — Decision Record
 

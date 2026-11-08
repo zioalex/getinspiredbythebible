@@ -114,13 +114,24 @@ Aggravating factors found during the post-mortem:
       best-effort/try-catch — if a future runtime drops the API, the
       `status: "stuck"` registry line alone remains the deliverable.
 
+## Follow-ups (filed 2026-11-08)
+
+- **BITB-270** — LLM stream-stall watchdog: the fallback plugin is
+  error-driven, so a stream that stalls without closing trips nothing;
+  stream-idle detection + abort/registry line, threshold far tighter than
+  the 1200 s stuck catch-all
+- **BITB-271** — upstream opencode issue: subagent `question` call parks
+  forever (no default denial, timeout, or parent routing; parent task call
+  also unbounded) — paste-ready draft included in the story; filing is an
+  owner-run external step
+
 ## Out of Scope
 
 - General LLM stream-stall detection beyond the fallback plugin's existing
   error-retry (`timeout_seconds: 45` covers provider errors, not silent
-  stalls) — file a separate story if the stream-stall class recurs
-- Any change to opencode core (the deadlock is an upstream limitation;
-  upstream issue can be filed separately)
+  stalls) — now filed as **BITB-270**
+- Any change to opencode core (the deadlock is an upstream limitation) —
+  upstream issue now filed as **BITB-271**
 
 ## References
 
