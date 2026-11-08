@@ -119,10 +119,17 @@ jobs:
       # image and posts the breaking-changes PR comment itself — no hand-rolled
       # docker-run or comment plumbing in this repo. fail-on-breaking stays
       # unset (default false): warn-and-report policy, BITB-261.
+      # BITB-273: this is a docker action — the runner mounts the workspace at
+      # /github/workspace in the container (and sets --workdir to it), passing
+      # these inputs verbatim as container args. Host-absolute paths
+      # (${{ github.workspace }}/...) do not exist inside the container, so
+      # per the action's README ("Spec paths") the local-file form must be a
+      # workspace-RELATIVE filename: it resolves against the mounted
+      # /github/workspace, where the export steps above wrote both specs.
       - name: oasdiff breaking-changes report
         if: env.BASE_HAS_NO_EXPORTER != 'true'
         uses: oasdiff/oasdiff-action/breaking@v0
         with:
-          base: ${{ github.workspace }}/base-openapi.json
-          revision: ${{ github.workspace }}/head-openapi.json
+          base: base-openapi.json
+          revision: head-openapi.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
