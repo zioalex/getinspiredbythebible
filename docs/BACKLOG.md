@@ -20,6 +20,9 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
+- 2026-11-04: BITB-266 opened — directed-harm taunt gaps ("killing yourself", "you should") found verifying BITB-238
+- 2026-11-04: BITB-238 🔍 In Review — exempt help-seeking/theological English phrases from Stage 1 directed harm
 - 2026-11-08: BITB-257 🔍 In review — narrative exemption now requires a curated Bible killing event (killer→victim pair) after name-list anchors leaked modern given names (#1241)
 - 2026-11-08: BITB-272 renumbered from BITB-267 — ID was already claimed by open PR #1250 (earlier claimant keeps 267); story file and references updated (#1241)
 - 2026-11-08: BITB-257 🔍 In review — redesigned narrative exemption as a strict whole-message allowlist (mirrors BITB-238/#1249) after verification found denylist bypasses (#1241)
@@ -564,6 +567,17 @@ are anchored to remove cross-language false positives, and pt "Quero que eu morr
 **Follow-ups:** BITB-240, BITB-238, BITB-239.
 
 Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
+
+### 🎯 BITB-266: Directed-Harm Patterns Miss "Killing Yourself" Taunts and "You Should" Wishes
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-04
+
+Follow-up to BITB-238: "I hope you're thinking about killing yourself" and "Is it a sin? You should, loser." match no directed-harm pattern.
+
+Full story: [`BITB-266-directed-harm-taunt-pattern-gaps.md`](BACKLOG_STORIES/BITB-266-directed-harm-taunt-pattern-gaps.md)
 
 ### 🎯 BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 
