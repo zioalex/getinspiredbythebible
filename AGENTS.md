@@ -241,6 +241,18 @@ make android-test          # Android JVM unit tests
 make android-test-compose  # Android Compose UI tests (Robolectric — separate tier)
 ```
 
+### opencode config changes (BITB-280)
+
+Any change to `opencode.json`, `.opencode/**`, or
+`scripts/generate-opencode-config.py` must pass the **live-config gate**
+before pushing: `make test-opencode-config-live` (boots a scratch opencode
+pinned to the pod's version against the committed config — isolated
+HOME/XDG, never the live server) and `make test-opencode-config-live-selftest`
+(proves the gate catches the 18:51 bug class: a plugin green in unit tests
+but rejected by the live loader). CI runs both on every config-path change.
+See `deployment/kubeopencode/README.md` → *Pre-merge checklist for opencode
+config changes*.
+
 ## Code Style & Linting
 
 ### Python (api/)

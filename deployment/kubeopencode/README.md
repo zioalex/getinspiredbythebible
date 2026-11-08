@@ -94,6 +94,45 @@ kubectl -n kubeopencode-system get configmap opencode-config \
   -o jsonpath='{.data.opencode\.json}' | python3 -m json.tool | head -30
 ```
 
+## Pre-merge checklist for opencode config changes (BITB-280)
+
+Any PR touching `opencode.json`, `.opencode/**`, or the config generator
+must prove the change works in a REAL opencode runtime before it merges —
+green unit tests are not enough (the 2026-11-08 18:51 incident: a plugin
+with 26 green unit tests was dead on arrival in the live loader with
+`Plugin export is not a function`).
+
+1. **Run the live-config gate** (boots a scratch opencode pinned to the pod's
+   version on the COMMITTED `opencode.json`, isolated HOME/XDG — never the
+   live server):
+
+   ```bash
+   make test-opencode-config-live           # normal mode
+   make test-opencode-config-live-selftest  # must catch the injected 18:51 bug
+   ```
+
+   The `opencode Live Config Gate` CI job runs both modes automatically on
+   every `.opencode/**`/`opencode.json`/generator/Makefile change — but run
+   them locally first; a scratch boot takes seconds and the failure output
+   is richer than the CI log excerpt.
+2. **Zero `failed to load plugin` for every config-listed `file://` plugin**
+   is a hard requirement. npm-plugin resolution failures in the scratch env
+   are warnings (infra flakiness), and failures from outside the tree under
+   test are attributed to the pod's `/tools/opencode.json` leak — the gate
+   classifies all of these for you.
+3. **Pinned version discipline**: the gate pins the opencode version
+   (`PINNED_OPENCODE_VERSION` in `scripts/test-opencode-config-live.py`) and
+   cross-checks the `oc<x.y.z>` suffix of `agentImage` in `agent.yaml`. When
+   the pod's opencode is upgraded, bump the image tag AND the constant in
+   the same change or the gate blocks the merge — by design: the gate must
+   test exactly what the pod runs.
+4. **No provider key locally?** The dispatch-level check skips loudly
+   ("dispatch-level validation deferred to pod pre-flight"); everything
+   else still runs. In-pod runs have the key and exercise the full
+   parent→child dispatch.
+5. After merge, the sync flow applies: `make sync-opencode-configmap`,
+   then replace the pod (see below).
+
 ## Apply
 
 Apply the Agent **after** the namespace, secrets, and ConfigMap above exist:

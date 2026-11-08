@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-280 in progress — pre-merge live-config load gate: CI boots a scratch opencode 1.18.31 on the committed opencode.json (zero plugin-load failures, roster/question-deny checks, self-test catches the injected 18:51 bug, env-gated subagent dispatch)
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
@@ -3445,6 +3446,29 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🚧 BITB-280: Pre-Merge Live-Config Load Gate — Boot a Scratch opencode on the Committed Config Before It Reaches the Pod
+
+**Status:** 🚧 In Progress — PR pending review
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-08
+
+The 2026-11-08 18:51 incident: the task-reliability plugin shipped with 26 green unit tests and
+was dead on arrival in the live opencode 1.18.31 loader ("Plugin export is not a function") —
+green unit tests and a dead live loader are fully compatible, because nothing in CI ever loads
+the config in a real runtime. `scripts/test-opencode-config-live.py` boots a scratch opencode
+(pinned to the pod's version, cross-checked against agent.yaml's image tag) on the tree's
+COMMITTED opencode.json with isolated HOME/XDG, asserts zero `failed to load plugin` for every
+config-listed file:// plugin (npm-resolution flakiness = warning), the roster + question-deny
+posture, verify-opencode-config and the node plugin suite, and — with a provider key — a real
+subagent dispatch (child created + completed; registry lines once #1254's config entry lands).
+`--self-test` injects the exact 18:51 bug into a plugin copy and fails unless the gate catches
+it. Runs as the `opencode Live Config Gate` CI job on every `.opencode/**`/opencode.json/
+generator/Makefile change. Follow-up when #1254 merges: wire the gate into the pod pre-flight
+(sync-opencode-workspace.sh) and let its strict scope activate.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-280-opencode-config-live-load-gate.md)
 
 ### 🚧 BITB-273: parity-ci oasdiff Job — Workspace-Relative Spec Paths for the Container Action
 

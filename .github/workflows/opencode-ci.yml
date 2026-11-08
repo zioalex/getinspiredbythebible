@@ -25,6 +25,8 @@ run-name: >-
       - "scripts/verify-kubeopencode-netpol.sh"
       - "scripts/test_cluster_triage.py"
       - "scripts/collect-k8s-diagnostics.sh"
+      - "scripts/test-opencode-config-live.py"
+      - "Makefile"
       - "docs/RUNBOOK-CLUSTER-TRIAGE.md"
       - "deployment/kubeopencode/**"
       - "k8s/kubeopencode/**"
@@ -45,6 +47,8 @@ run-name: >-
       - "scripts/verify-kubeopencode-netpol.sh"
       - "scripts/test_cluster_triage.py"
       - "scripts/collect-k8s-diagnostics.sh"
+      - "scripts/test-opencode-config-live.py"
+      - "Makefile"
       - "docs/RUNBOOK-CLUSTER-TRIAGE.md"
       - "deployment/kubeopencode/**"
       - "k8s/kubeopencode/**"
@@ -120,3 +124,46 @@ jobs:
             exit 1
           fi
           echo "opencode.json is in sync with .opencode/agents/*.md"
+
+  # BITB-280. The 2026-11-08 18:51 incident: a plugin with 26 green unit tests
+  # was dead on arrival in the live opencode 1.18.31 loader ("Plugin export is
+  # not a function"). Static tests cannot see the runtime contract, so this job
+  # boots a SCRATCH opencode instance against the tree's COMMITTED opencode.json
+  # and asserts the runtime accepts it. The self-test injects the exact 18:51
+  # bug into a plugin copy and REQUIRES the gate to catch it — the job is green
+  # only if the injected bug is detected.
+  opencode-live-gate:
+    name: opencode Live Config Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # The gate's [5/8] step invokes `make verify-opencode-config`, whose
+      # generator imports PyYAML (not in the stdlib).
+      - name: Install dependencies
+        run: pip install pyyaml pytest
+
+      # The pinned version lives in scripts/test-opencode-config-live.py
+      # (PINNED_OPENCODE_VERSION) and must track the pod's opencode version
+      # (the oc<x.y.z> suffix of agentImage in deployment/kubeopencode/agent.yaml).
+      # The gate itself fails if binary, constant, and agent.yaml disagree.
+      - name: Install the pinned opencode binary
+        run: npm install -g "opencode-ai@$(python3 scripts/test-opencode-config-live.py --print-version)"
+
+      - name: Live gate (normal mode)
+        run: make test-opencode-config-live
+
+      - name: Live gate self-test (must catch the injected 18:51 bug)
+        run: make test-opencode-config-live-selftest
