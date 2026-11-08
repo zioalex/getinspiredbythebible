@@ -20,7 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-11-08: BITB-273 in progress — parity-ci oasdiff job failed on every api PR since #1253: pass workspace-relative spec paths to the oasdiff docker action (host github.workspace paths don't exist inside the container)
+- 2026-11-08: BITB-273 in progress — parity-ci oasdiff job failed on every api PR since #1253: pass workspace-relative spec paths to the oasdiff docker action (host github.workspace paths don't exist inside the container) (#1255)
 - 2026-11-07: BITB-261 in progress — committed OpenAPI contract artifact (docs/parity/openapi.json) + offline export script, parity-ci.yml stale-artifact gate & oasdiff breaking-change report (PR #1253)
 - 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
 - 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
@@ -3402,7 +3402,7 @@ attributed to Android or broadly backfilled.
 
 ### 🚧 BITB-273: parity-ci oasdiff Job — Workspace-Relative Spec Paths for the Container Action
 
-**Status:** 🚧 In Progress
+**Status:** 🚧 In Progress — PR #1255
 **Priority:** P2
 **Size:** S
 **Created:** 2026-11-08
