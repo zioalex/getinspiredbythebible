@@ -1,7 +1,15 @@
 # Android Feature-Parity Plan
 
+> **Superseded (2026-11-08, BITB-262) — the living successor is
+> [`docs/parity/registry.yaml`](../parity/registry.yaml).** This snapshot was a
+> 2026-03-12 web→Android gap analysis and is stale by definition: re-verification
+> against current code found **every GAP-001..012 has since shipped on Android**
+> (see the registry rows with `origin.gaps` for the fixing evidence). Kept for
+> history; re-verify anything here against the code before using it. The
+> CI-validated view is [`docs/parity/landscape.md`](../parity/landscape.md).
+
 **Created:** 2026-03-12
-**Status:** Awaiting product-owner review
+**Status:** Superseded by `docs/parity/registry.yaml` (BITB-262)
 **Source of truth for prioritisation:** `docs/BACKLOG.md`
 
 ---
