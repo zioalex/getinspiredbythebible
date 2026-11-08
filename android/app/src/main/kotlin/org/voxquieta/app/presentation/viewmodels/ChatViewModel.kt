@@ -232,12 +232,12 @@ class ChatViewModel @Inject constructor(
 
         /**
          * Compile-time rollout gate for the BITB-149 follow-up chips (parent
-         * story BITB-080): the backend now emits `follow_ups` to ALL clients, but
-         * Android stays DARK until its own later rollout. Defaults to
-         * [org.voxquieta.app.BuildConfig.CHAT_FOLLOW_UPS_ENABLED] (false unless
-         * built with `-PchatFollowUpsEnabled=true`). Parsing in the SSE layer is
+         * story BITB-080): the backend emits `follow_ups` to ALL clients; the
+         * Android gate is ON by default since BITB-278. Defaults to
+         * [org.voxquieta.app.BuildConfig.CHAT_FOLLOW_UPS_ENABLED] (true unless
+         * built with `-PchatFollowUpsEnabled=false`). Parsing in the SSE layer is
          * kept intact — this gate only suppresses *state exposure / rendering*,
-         * so flipping it on later resumes the current behavior unchanged.
+         * so the flag-off contract (no chips, no empty row) is unchanged.
          * [followUpsEnabledForTest] lets unit tests exercise both gate states.
          */
         val followUpsEnabled: Boolean
@@ -964,7 +964,7 @@ class ChatViewModel @Inject constructor(
                         // Suggested follow-up questions (BITB-149). Only set when
                         // non-empty; already cleared at turn-start above, so an
                         // absent/suppressed field must not clear it back to empty here.
-                        // Gated by the default-off rollout flag (BITB-080): when the
+                        // Gated by the rollout flag (BITB-080): when the
                         // flag is off Android ignores the field entirely — no chips,
                         // no crash, no empty row (the existing degrade-silently contract).
                         // BITB-254: keep them on the assistant message regardless of the
