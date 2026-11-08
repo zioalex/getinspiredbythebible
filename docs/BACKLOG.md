@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-279 in progress — fallback chains broken: opencode/* Zen models never served (no pod credentials) and paid tier-2 can't rescue an exhausted key; all tier-1 fallbacks + mechanical-lane primaries moved to verified openrouter/:free models (#PR)
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
@@ -338,6 +339,23 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🔄 BITB-279: Broken Fallback Chains — `opencode/*` Models Never Serve; Paid Tier-2 Can't Rescue an Exhausted Key
+
+**Status:** 🔄 In progress (agent chains fixed; generator constants follow)
+**Size:** S + S follow-up
+**Created:** 2026-11-08
+
+Incident 2026-11-08 21:30-21:36: during weekly-key exhaustion every paid call 402'd and the
+fallback plugin could not recover — tier-1 (`opencode/nemotron-3-ultra-free`) failed silently
+(no Zen-gateway credentials in the pod) and tier-2 (paid glm/deepseek) shared the dead key;
+`Max fallback attempts reached` killed every lane until a manual model switch. Fix: all tier-1
+fallbacks and the mechanical lanes' primaries now use verified `openrouter/nvidia/*:free`
+models (free models draw no credit, so the chain survives a dead key); paid tier-2 stays as
+the defense for rate caps / upstream outages. Follow-up: generator constants (`small_model`,
+builtin fallbacks, `MIMO_FREE`) + BITB-280 live-load CI gate.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-279-opencode-fallback-chain-broken.md)
 
 ### 🔍 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
 
