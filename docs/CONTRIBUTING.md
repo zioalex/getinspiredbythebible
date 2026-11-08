@@ -12,11 +12,14 @@ Most workflows are path-filtered so they only run when relevant files change:
 | `pre-commit.yml`     | every PR (lints docs, configs, and code)                                          |
 | `commitlint.yml`     | every PR (lints commit messages)                                                  |
 | `story-id-check.yml` | `docs/BACKLOG_STORIES/**`, `scripts/check_story_ids.py`, the workflow file        |
+| `parity-ci.yml`      | `api/**`, `docs/parity/**`, `scripts/export_openapi.py` + its test, the workflow file |
 
 A PR that changes **only** files under `docs/` (e.g. a backlog story) will skip
 `android-ci.yml`, `azure-deploy.yml`, and `test_update.yml`. Only `pre-commit.yml`,
 `commitlint.yml`, and — when it touches `docs/BACKLOG_STORIES/` — `story-id-check.yml`
-will run.
+will run (or, for `docs/parity/`, `parity-ci.yml`: its hard stale-artifact gate +
+export-script tests and the warn-only breaking-change report via the official
+`oasdiff/oasdiff-action` — see `docs/parity/README.md`).
 
 ### Story-ID duplicate-claim check (BITB-235)
 
