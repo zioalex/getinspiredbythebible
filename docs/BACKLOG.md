@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-07
+**Last Updated:** 2026-11-08
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-273 in progress — parity-ci oasdiff job failed on every api PR since #1253: pass workspace-relative spec paths to the oasdiff docker action (host github.workspace paths don't exist inside the container) (#1255)
 - 2026-11-07: BITB-261 in progress — committed OpenAPI contract artifact (docs/parity/openapi.json) + offline export script, parity-ci.yml stale-artifact gate & oasdiff breaking-change report (PR #1253)
 - 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
 - 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
@@ -3398,6 +3399,30 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🚧 BITB-273: parity-ci oasdiff Job — Workspace-Relative Spec Paths for the Container Action
+
+**Status:** 🚧 In Progress — PR #1255
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-08
+
+Follow-up to BITB-261 (PR #1253): the warn-only "OpenAPI breaking changes (oasdiff, warn-only)"
+job has failed on every api/**-touching PR since it landed (observed PR #1241, run 42504428717) —
+the step passes host-absolute `${{ github.workspace }}` spec paths, but the action is a docker
+action whose container only mounts the workspace at `/github/workspace`, so oasdiff can't open
+either spec. Fix: pass the exported spec filenames workspace-relative
+(`base: base-openapi.json`, `revision: head-openapi.json`) per the action's documented path
+semantics. P2 because it pollutes every api PR's status with a red (warn-only) job.
+
+**Acceptance criteria (summary):**
+
+- [ ] The oasdiff job goes green on this fix's own PR (self-verifying — parity-ci.yml's path
+      filter includes the workflow file itself)
+- [ ] No other workflow shares the absolute-path-into-container anti-pattern
+- [ ] `make pre-commit` clean
+
+**Full Story:** [`BITB-273-parity-oasdiff-container-paths.md`](BACKLOG_STORIES/BITB-273-parity-oasdiff-container-paths.md)
 
 ### 🎯 BITB-260: Cross-Client Parity Knowledge Graph — Decision Record
 
