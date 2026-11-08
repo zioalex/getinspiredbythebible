@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-262 🚧 In Progress — capability×client parity registry seeded (35 capabilities × 8 contracts, re-verified against code: all WIP-plan GAPs shipped on Android, BITB-042 drift closed by #685, live red row is BITB-267 api) + graph/landscape renderer + CI freshness gates (#1258)
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
@@ -3506,9 +3507,9 @@ report on PRs (warn-level first; policy documented with its flip condition).
 
 **Full Story:** [`BITB-261-parity-kg-stage1-openapi-contract-ci.md`](BACKLOG_STORIES/BITB-261-parity-kg-stage1-openapi-contract-ci.md)
 
-### 🎯 BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
+### 🚧 BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
 
-**Status:** 🎯 Todo — gated on BITB-261
+**Status:** 🚧 In Progress (PR #1258) — BITB-261 landed (PR #1253), so the gate is open
 **Priority:** P2
 **Size:** L
 **Created:** 2026-10-30
