@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-29
+lastUpdated: 2026-11-03
 ---
 
 # Informativa sulla privacy
 
 > _Questa traduzione è stata generata dall'intelligenza artificiale ed è fornita esclusivamente per comodità. In caso di omissioni, ambiguità o contraddizioni rispetto all'originale inglese, prevale la versione inglese, che resta canonica._
 
-Ultimo aggiornamento: 29 ottobre 2026
+Ultimo aggiornamento: 3 novembre 2026
 
 ## Chi siamo
 
@@ -79,6 +79,16 @@ Contiamo l'uso della lettura ad alta voce in forma anonima, per lingua, famiglia
   memorizziamo il tuo indirizzo IP, il tuo account né alcuna stringa
   user-agent con questi record, e non vengono utilizzati per scopi diversi
   dalla messa a punto del filtro di sicurezza.
+- **Statistiche anonime sulla qualità della ricerca**: per migliorare il
+  modo in cui troviamo i passi biblici pertinenti, possiamo conservare
+  record anonimi fino a 90 giorni quando una ricerca restituisce risultati
+  deboli o nessun risultato. Un record contiene solo informazioni derivate:
+  gli argomenti rilevati, la lingua e la traduzione biblica, i punteggi di
+  pertinenza, i riferimenti ai versetti e un hash unidirezionale
+  dell'identificatore di sessione. Non contiene mai il testo del tuo
+  messaggio né della risposta, e non memorizziamo il tuo indirizzo IP, il
+  tuo account né alcuna stringa user-agent con esso. Questi record sono
+  utilizzati solo per migliorare la qualità della ricerca.
 - **Segnalazioni di crash e analisi**: conservati da Google fino a 14 mesi secondo la loro policy standard.
 - **Cronologia locale delle conversazioni**: archiviata sul tuo dispositivo fino a quando non la elimini tramite l'app o disinstalli l'app.
 
