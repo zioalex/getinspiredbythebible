@@ -10,8 +10,15 @@
  *      registry on the persistent workspace volume (survives pod restarts and
  *      re-clones, unlike the non-persistent /tmp runtime log),
  *   2. enriches any cancelled task-tool output in place with the child session
- *      id + recovery instructions, so a cancel is never a dead end, and
- *   3. embeds the recovery protocol into the task tool's description.
+ *      id + recovery instructions, so a cancel is never a dead end,
+ *   3. embeds the recovery protocol into the task tool's description, and
+ *   4. watches for stuck children (BITB-269): records `question.asked` bus
+ *      events for subagent sessions as `status: "asking"` registry lines, and
+ *      appends `status: "stuck"` (once per stall) when a tracked child shows no
+ *      activity for TASK_RELIABILITY_STUCK_SECONDS (default 1200s). A stuck
+ *      child is then aborted best-effort via the plugin `client`
+ *      (`client.session.abort`) — the same un-wedge a human prompt performed
+ *      in the 2026-11-07 incident, which needed 9h34m to arrive.
  *
  * Inert by design: every hook is wrapped in try/catch, unexpected shapes are
  * no-ops, and this plugin must never break a tool call, a session, or opencode
@@ -31,6 +38,8 @@ interface BusEvent {
   type: string;
   properties?: unknown;
 }
+
+type RegistryStatus = "idle" | "stop" | "error" | "deleted" | "asking" | "stuck";
 
 interface EventHookInput {
   event?: BusEvent;
@@ -62,7 +71,7 @@ type RegistryLine =
       ts: string;
       kind: "status";
       childID: string;
-      status: "idle" | "stop" | "error" | "deleted";
+      status: RegistryStatus;
     };
 
 export interface ChildInfo {
@@ -70,7 +79,7 @@ export interface ChildInfo {
   parentID: string;
   agent?: string;
   title?: string;
-  status?: "idle" | "stop" | "error" | "deleted";
+  status?: RegistryStatus;
 }
 
 interface Hooks {
@@ -96,12 +105,146 @@ export const DEFAULT_REGISTRY_PATH = "/workspace/.opencode/task-registry.jsonl";
 
 const HINT_MARK = "[task-reliability]";
 const TERMINAL_STATUSES = new Set(["stop", "error", "deleted"]);
-const SESSION_EVENT_STATUS: Record<string, "idle" | "stop" | "error" | "deleted"> = {
+const REGISTRY_STATUSES = new Set<RegistryStatus>([
+  "idle",
+  "stop",
+  "error",
+  "deleted",
+  "asking",
+  "stuck",
+]);
+const SESSION_EVENT_STATUS: Record<string, Exclude<RegistryStatus, "asking" | "stuck">> = {
   "session.idle": "idle",
   "session.stop": "stop",
   "session.error": "error",
   "session.deleted": "deleted",
 };
+
+/**
+ * Stuck-child threshold (seconds) — a tracked child with no bus activity for
+ * this long gets one `status: "stuck"` line and a best-effort abort
+ * (BITB-269). Override with TASK_RELIABILITY_STUCK_SECONDS.
+ */
+export const DEFAULT_STUCK_SECONDS = 1200;
+
+/** Watchdog sweep cadence (ms): min 1s, max 60s, default quarter of the threshold. */
+export function sweepIntervalMs(stuckSeconds: number): number {
+  try {
+    const raw = Math.round((stuckSeconds * 1000) / 4);
+    return Math.min(60_000, Math.max(1_000, raw));
+  } catch {
+    return 60_000;
+  }
+}
+
+export function readStuckSeconds(): number {
+  try {
+    const raw = process.env.TASK_RELIABILITY_STUCK_SECONDS;
+    if (raw === undefined || raw === null || raw === "") return DEFAULT_STUCK_SECONDS;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_STUCK_SECONDS;
+    return parsed;
+  } catch {
+    return DEFAULT_STUCK_SECONDS;
+  }
+}
+
+// ── Stuck-child watchdog state (BITB-269) ──────────────────────────────────
+
+export interface WatchdogState {
+  /** childID → epoch ms of its last observed bus activity */
+  lastActivity: Map<string, number>;
+  /** childIDs already marked stuck for the current stall (one line per stall) */
+  stuckMarked: Set<string>;
+}
+
+/** Watchdog state, created lazily by the hooks — the module top level stays
+ *  side-effect-free so the unit tests can import this file safely. */
+const watchdog: WatchdogState = {
+  lastActivity: new Map<string, number>(),
+  stuckMarked: new Set<string>(),
+};
+
+/** The plugin `client` captured from the plugin input (has session.abort). */
+let capturedClient: unknown = undefined;
+
+/** Tracks a spawned child (session.created with parentID). */
+export function trackChild(state: WatchdogState, childID: string, nowMs: number): void {
+  try {
+    state.lastActivity.set(childID, nowMs);
+    state.stuckMarked.delete(childID);
+  } catch {
+    // never break the event pipeline
+  }
+}
+
+/** Records activity for a tracked child; new activity ends a stall. */
+export function recordActivity(state: WatchdogState, sessionID: string, nowMs: number): void {
+  try {
+    if (!state.lastActivity.has(sessionID)) return; // not a tracked child
+    state.lastActivity.set(sessionID, nowMs);
+    state.stuckMarked.delete(sessionID);
+  } catch {
+    // never break the event pipeline
+  }
+}
+
+/** Drops a child from watchdog tracking (terminal status / cleanup). */
+export function untrackChild(state: WatchdogState, sessionID: string): void {
+  try {
+    state.lastActivity.delete(sessionID);
+    state.stuckMarked.delete(sessionID);
+  } catch {
+    // never break the event pipeline
+  }
+}
+
+/**
+ * Returns children whose last activity is older than `stuckSeconds` and marks
+ * them stuck (each child yields at most one detection per stall — a later
+ * `recordActivity` re-arms it). Pure w.r.t. the filesystem.
+ */
+export function detectStuckChildren(
+  state: WatchdogState,
+  nowMs: number,
+  stuckSeconds: number,
+): string[] {
+  const stuck: string[] = [];
+  try {
+    const thresholdMs = Math.max(1, stuckSeconds) * 1000;
+    for (const [childID, lastMs] of state.lastActivity) {
+      if (state.stuckMarked.has(childID)) continue;
+      if (nowMs - lastMs >= thresholdMs) {
+        state.stuckMarked.add(childID);
+        stuck.push(childID);
+      }
+    }
+  } catch {
+    // never break the event pipeline
+  }
+  return stuck;
+}
+
+/**
+ * Best-effort session abort via the plugin `client` (opencode 1.18.31 exposes
+ * `client.session.abort({ path: { sessionID } })`). Returns false — never
+ * throws — when the client is missing/mis-shaped or the call fails.
+ */
+export async function abortSession(client: unknown, sessionID: string): Promise<boolean> {
+  try {
+    if (client === null || typeof client !== "object") return false;
+    const session = (client as Record<string, unknown>).session;
+    if (session === null || typeof session !== "object") return false;
+    const abort = (session as Record<string, unknown>).abort;
+    if (typeof abort !== "function") return false;
+    await (abort as (arg: unknown) => Promise<unknown>).call(session, {
+      path: { sessionID },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function readRegistryPath(): string {
   try {
@@ -136,19 +279,14 @@ export function parseRegistryLine(text: string): RegistryLine | null {
     if (obj.kind === "status") {
       if (typeof obj.childID !== "string") return null;
       const status = obj.status;
-      if (
-        status !== "idle" &&
-        status !== "stop" &&
-        status !== "error" &&
-        status !== "deleted"
-      ) {
+      if (typeof status !== "string" || !REGISTRY_STATUSES.has(status as RegistryStatus)) {
         return null;
       }
       return {
         ts: typeof obj.ts === "string" ? obj.ts : "",
         kind: "status",
         childID: obj.childID,
-        status,
+        status: status as RegistryStatus,
       };
     }
     return null;
@@ -268,42 +406,108 @@ function toolDescriptionProtocol(registryPath: string): string {
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
 
-async function handleEvent({ event }: EventHookInput): Promise<void> {
+/**
+ * Pure event → registry-lines reducer (exported for tests). Mutates only the
+ * in-memory watchdog state; never touches the filesystem, never throws.
+ */
+export function handleBusEvent(
+  state: WatchdogState,
+  event: unknown,
+  nowMs: number,
+): RegistryLine[] {
+  const lines: RegistryLine[] = [];
   try {
-    if (event === null || typeof event !== "object" || typeof event.type !== "string") {
-      return;
-    }
+    if (event === null || typeof event !== "object") return lines;
+    const busEvent = event as BusEvent;
+    if (typeof busEvent.type !== "string") return lines;
     const props =
-      event.properties !== null && typeof event.properties === "object"
-        ? (event.properties as Record<string, unknown>)
-        : ({} as Record<string, unknown>);
-
+      busEvent.properties !== null && typeof busEvent.properties === "object"
+        ? (busEvent.properties as Record<string, unknown>)
+        : {};
     const sessionID = typeof props.sessionID === "string" ? props.sessionID : undefined;
-    if (sessionID === undefined) return;
+    const ts = new Date(nowMs).toISOString();
 
-    const registryPath = readRegistryPath();
-    const ts = new Date().toISOString();
-
-    if (event.type === "session.created") {
-      const parentID = typeof props.parentID === "string" ? props.parentID : undefined;
-      if (parentID === undefined || parentID.length === 0) {
-        return; // top-level session, not a subagent spawn
-      }
-      appendRegistryLine(registryPath, {
+    if (busEvent.type === "session.created") {
+      const parentID = typeof props.parentID === "string" ? props.parentID : "";
+      if (parentID.length === 0) return lines; // top-level session, not a subagent spawn
+      lines.push({
         ts,
         kind: "created",
-        childID: sessionID,
+        childID: sessionID ?? "",
         parentID,
         ...(typeof props.agent === "string" ? { agent: props.agent } : {}),
         ...(typeof props.title === "string" ? { title: props.title } : {}),
       });
-      return;
+      if (sessionID !== undefined) trackChild(state, sessionID, nowMs);
+      return lines;
     }
 
-    const status = SESSION_EVENT_STATUS[event.type];
-    if (status !== undefined) {
-      appendRegistryLine(registryPath, { ts, kind: "status", childID: sessionID, status });
+    if (sessionID !== undefined) recordActivity(state, sessionID, nowMs);
+
+    // BITB-269: an asking subagent can never be answered — record it.
+    if (
+      busEvent.type === "question.asked" &&
+      sessionID !== undefined &&
+      state.lastActivity.has(sessionID)
+    ) {
+      lines.push({ ts, kind: "status", childID: sessionID, status: "asking" });
     }
+
+    const status = SESSION_EVENT_STATUS[busEvent.type];
+    if (status !== undefined && sessionID !== undefined) {
+      lines.push({ ts, kind: "status", childID: sessionID, status });
+      if (TERMINAL_STATUSES.has(status)) untrackChild(state, sessionID);
+    }
+  } catch {
+    // never break the event pipeline
+  }
+  return lines;
+}
+
+/** One-shot inactivity sweep: stuck lines + best-effort abort. Never throws. */
+function sweep(nowMs: number): void {
+  try {
+    const stuck = detectStuckChildren(watchdog, nowMs, readStuckSeconds());
+    if (stuck.length === 0) return;
+    const registryPath = readRegistryPath();
+    const ts = new Date(nowMs).toISOString();
+    for (const childID of stuck) {
+      appendRegistryLine(registryPath, { ts, kind: "status", childID, status: "stuck" });
+      // Best-effort un-wedge (BITB-269): the same cancel a human prompt
+      // performed 9h34m into the incident, delivered by the watchdog.
+      void abortSession(capturedClient, childID).catch(() => {});
+    }
+  } catch {
+    // never break the event pipeline
+  }
+}
+
+let sweepTimer: ReturnType<typeof setInterval> | null = null;
+
+/** Lazy periodic sweep so a fully quiet pod still detects stuck children. */
+function ensureSweepTimer(): void {
+  try {
+    if (sweepTimer !== null) return;
+    if (watchdog.lastActivity.size === 0) return; // nothing to watch yet
+    const interval = sweepIntervalMs(readStuckSeconds());
+    sweepTimer = setInterval(() => {
+      sweep(Date.now());
+    }, interval);
+    const unref = (sweepTimer as { unref?: () => void }).unref;
+    if (typeof unref === "function") unref.call(sweepTimer);
+  } catch {
+    sweepTimer = null;
+  }
+}
+
+async function handleEvent({ event }: EventHookInput): Promise<void> {
+  try {
+    const now = Date.now();
+    for (const line of handleBusEvent(watchdog, event, now)) {
+      appendRegistryLine(readRegistryPath(), line);
+    }
+    sweep(now); // cheap: marks at most once per child per stall
+    ensureSweepTimer();
   } catch {
     // never break the event pipeline
   }
@@ -372,8 +576,21 @@ const hooks: Hooks = {
 };
 
 export default function taskReliabilityPlugin(
-  _input?: unknown,
+  input?: unknown,
   _options?: unknown,
 ): Promise<Hooks> {
+  try {
+    // Capture the plugin `client` (opencode 1.18.31 exposes session.abort)
+    // for the stuck-child watchdog. Best-effort: a missing/odd client just
+    // leaves the registry line as the deliverable.
+    if (input !== null && typeof input === "object") {
+      const client = (input as Record<string, unknown>).client;
+      if (client !== null && (typeof client === "object" || typeof client === "function")) {
+        capturedClient = client;
+      }
+    }
+  } catch {
+    // never break plugin load
+  }
   return Promise.resolve(hooks);
 }

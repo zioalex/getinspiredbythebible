@@ -92,21 +92,27 @@ Aggravating factors found during the post-mortem:
 
 ## Acceptance Criteria
 
-- [ ] All 11 subagent agent definitions deny `question`; generator carries
-      per-agent `permission` through to `opencode.json` (test added)
-- [ ] Generated `opencode.json` includes the task-reliability plugin entry;
+- [x] All 11 subagent agent definitions deny `question`; generator carries
+      per-agent `permission` through to `opencode.json` (test added:
+      `test_subagent_question_denied` + `test_permission_frontmatter_round_trips`)
+- [x] Generated `opencode.json` includes the task-reliability plugin entry;
       `make gen-opencode-config` + `make verify-opencode-config` pass;
-      generator tests pass
-- [ ] `node --experimental-strip-types --test .opencode/plugin/task-reliability.test.ts`
-      passes with the new asking/stuck tests
-- [ ] `make pre-commit` passes
-- [ ] The docs (`AGENTS.md` Subagent Delegation Reliability section) match
-      the implemented behavior
+      generator tests pass (`test_task_reliability_plugin_entry_present`)
+- [x] `node --experimental-strip-types --test .opencode/plugin/task-reliability.test.ts`
+      passes with the new asking/stuck tests (26/26)
+- [x] `make pre-commit` passes
+- [x] The docs (`AGENTS.md` Subagent Delegation Reliability section) match
+      the implemented behavior (watchdog bullet added)
 - [ ] After merge + `make sync-opencode-configmap` + pod restart: a test
       dispatch shows the registry file being written (owner-run step; keep
       unticked until verified in-pod)
-- [ ] Follow-up story filed for any watchdog capability the plugin API
-      could not deliver (e.g. actual session abort)
+- [x] Follow-up story filed for any watchdog capability the plugin API
+      could not deliver — N/A: the plugin `client` DOES expose
+      `client.session.abort({ path: { sessionID } })` (probed empirically on
+      opencode 1.18.31 in-pod), so the watchdog aborts stuck children
+      directly; no capability was left undelivered. The abort call is
+      best-effort/try-catch — if a future runtime drops the API, the
+      `status: "stuck"` registry line alone remains the deliverable.
 
 ## Out of Scope
 

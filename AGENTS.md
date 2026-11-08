@@ -99,6 +99,22 @@ one-liners may skip the relay, but still need tests where behaviour changes.
   (result delivered / recovered via `task_id` / confirmed dead). See the
   orchestrator agent definition (`.opencode/agents/orchestrator.md`) for the
   `Task cancelled` recovery checklist and the resume-after-idle ritual.
+- **The task-reliability plugin loads in the pod and watches for stuck
+  children (BITB-269).** It is wired into the generated `opencode.json`
+  (`scripts/generate-opencode-config.py`) as an absolute
+  `file:///workspace/repo/.opencode/plugin/task-reliability.ts` entry —
+  auto-discovery cannot find it in the pod (it scans `/workspace/.opencode/`,
+  which is empty; only `opencode.json` is synced into the ConfigMap) — and a
+  missing path is harmless on developer laptops (opencode silently skips it;
+  laptops load it via repo auto-discovery). On top of the BITB-169 registry it
+  now records `question.asked` bus events for subagent sessions as
+  `status: "asking"` lines and, when a tracked child shows no activity for
+  `TASK_RELIABILITY_STUCK_SECONDS` (default 1200s), appends one
+  `status: "stuck"` line per stall and aborts the session best-effort via the
+  plugin `client` (`client.session.abort`) — the same un-wedge a human prompt
+  performed 9.5 hours into the 2026-11-07 incident. Everything stays
+  inert-by-design: hooks are try/catch-wrapped and never break a tool call or
+  startup.
 
 ## Repository Layout
 
