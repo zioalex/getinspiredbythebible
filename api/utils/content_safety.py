@@ -79,6 +79,7 @@ class ContentSafetyCheckResult:
     compassionate_response_needed: bool = False
     pattern_matched: str | None = None
     check_duration_ms: float = 0.0
+    violated_categories: list[str] = field(default_factory=list)  # Llama Guard S-codes
 
 
 class ContentSafetyViolationError(Exception):
@@ -482,6 +483,7 @@ class ContentSafetyService:
                     allowed=False,
                     reason=llama_guard_result.reason,
                     categories=llama_guard_result.categories,
+                    violated_categories=llama_guard_result.violated_categories,
                     check_duration_ms=total_ms,
                 )
 

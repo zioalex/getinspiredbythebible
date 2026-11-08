@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-29
+lastUpdated: 2026-11-03
 ---
 
 # Datenschutzrichtlinie
 
 > _Diese Übersetzung wurde von einer KI erstellt und dient ausschließlich der Bequemlichkeit. Bei Auslassungen, Unklarheiten oder Widersprüchen zum englischen Original ist die englische Fassung verbindlich und vorrangig._
 
-Letzte Aktualisierung: 29. Oktober 2026
+Letzte Aktualisierung: 3. November 2026
 
 ## Wer wir sind
 
@@ -79,6 +79,15 @@ Wir zählen die Nutzung der Vorlesefunktion anonym nach Sprache, Browser-Familie
   speichern weder deine IP-Adresse noch deinen Account noch einen
   User-Agent-String mit diesen Einträgen, und sie werden ausschließlich
   zur Verbesserung des Sicherheitsfilters verwendet.
+- **Anonyme Statistiken zur Suchqualität**: um zu verbessern, wie wir
+  passende Bibelstellen finden, können wir anonyme Einträge bis zu 90 Tage
+  aufbewahren, wenn eine Suche schwache oder keine Ergebnisse liefert. Ein
+  Eintrag enthält nur abgeleitete Informationen: die erkannten Themen, die
+  Sprache und die Bibelübersetzung, Relevanzwerte, Bibelstellenangaben und
+  einen Einweg-Hash der Sitzungs-ID. Er enthält niemals den Text deiner
+  Nachricht oder der Antwort, und wir speichern weder deine IP-Adresse noch
+  deinen Account noch einen User-Agent-String damit. Diese Einträge werden
+  ausschließlich zur Verbesserung der Suchqualität verwendet.
 - **Absturzberichte und Analysen**: von Google bis zu 14 Monate gemäß deren Standardrichtlinie aufbewahrt.
 - **Lokaler Gesprächsverlauf**: auf deinem Gerät gespeichert, bis du ihn über die App löschst oder die App deinstallierst.
 
