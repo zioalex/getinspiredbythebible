@@ -1,6 +1,6 @@
 # BITB-260: Cross-Client Parity Knowledge Graph — Decision Record
 
-**Status:** 🎯 Decision recorded 2026-10-30 (owner-approved) — implementation gated per the stage stories below
+**Status:** ✅ Done 2026-11-07 — decision record + stage stories merged in PR #1237 (merged 2026-10-31); implementation continues in BITB-261/262/263
 **Priority:** P2
 **Size:** S (this story is the record; it ships no implementation)
 **Created:** 2026-10-30

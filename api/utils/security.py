@@ -47,19 +47,12 @@ def log_security_violation(
     violation_type: ViolationType,
     ip_address: str,
     session_id: str | None = None,
-    message_preview: str | None = None,
+    message_length: int | None = None,
     details: str | None = None,
 ) -> None:
     """Log a security violation for monitoring."""
     if not settings.security_log_violations:
         return
-
-    # Truncate message preview to avoid logging full content
-    preview = (
-        message_preview[:50] + "..."
-        if message_preview and len(message_preview) > 50
-        else message_preview
-    )
 
     logger.warning(
         "Security violation detected",
@@ -67,7 +60,7 @@ def log_security_violation(
             "violation_type": violation_type.value,
             "ip_address": ip_address,
             "session_id": session_id,
-            "message_preview": preview,
+            "message_length": message_length,
             "details": details,
         },
     )
@@ -355,7 +348,7 @@ async def check_content_filter(request: Request) -> None:
             violation_type=violation_type,
             ip_address=ip_address,
             session_id=session_id,
-            message_preview=message,
+            message_length=len(message),
             details=reason,
         )
 

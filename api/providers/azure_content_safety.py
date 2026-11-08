@@ -29,6 +29,7 @@ class ContentSafetyResult:
     compassionate_response_needed: bool = False
     pattern_matched: str | None = None
     language: str = "en"
+    violated_categories: list[str] = field(default_factory=list)  # Llama Guard S-codes
 
 
 class AzureContentSafetyProvider:

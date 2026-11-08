@@ -176,3 +176,73 @@ class TestToJson:
         payload = json.loads(to_json(run))
         assert "en" in payload["topic_tagging"]["tagger_languages"]
         assert payload["topic_tagging"]["untaggable_languages_in_run"] == ["ru"]
+
+
+class TestScoreDistribution:
+    """BITB-256: top-1 score percentiles over correct hits (low_score threshold derivation)."""
+
+    def test_percentiles_over_correct_top1_hits_only(self):
+        from search_eval.report import score_distribution
+
+        hits = [
+            _qr(case_id=f"h{i}", top_score=s, top1_is_hit=True)
+            for i, s in enumerate([0.4, 0.5, 0.6, 0.7, 0.8])
+        ]
+        noise = [
+            _qr(case_id="miss", top_score=0.99, top1_is_hit=False),  # wrong top-1: ignored
+            _qr(case_id="noscore", top_score=None, top1_is_hit=True),  # no score: ignored
+            _qr(case_id="err", top_score=0.01, top1_is_hit=True, error="boom"),  # errored
+        ]
+        dist = score_distribution(hits + noise)["baseline_semantic"]
+        assert dist["n"] == 5
+        assert dist["p50"] == 0.6
+        assert dist["p10"] == 0.44
+        assert dist["p25"] == 0.5
+
+    def test_grouped_per_config_and_empty_config_has_none_percentiles(self):
+        from search_eval.report import format_score_distribution, score_distribution
+
+        results = [
+            _qr(config="hybrid", top_score=0.5, top1_is_hit=True),
+            _qr(config="expansion", top_score=0.3, top1_is_hit=False),
+        ]
+        dist = score_distribution(results)
+        assert dist["hybrid"] == {"p10": 0.5, "p25": 0.5, "p50": 0.5, "n": 1}
+        assert dist["expansion"] == {"p10": None, "p25": None, "p50": None, "n": 0}
+        text = format_score_distribution(results)
+        assert "hybrid" in text and "expansion" in text and "p10" in text
+
+    def test_query_result_defaults_keep_old_call_sites_working(self):
+        r = _qr()
+        assert r.top_score is None and r.top1_is_hit is False
+
+
+class TestTop1ScoreAndHit:
+    """BITB-256: the runner records the top-1 similarity and whether it is a relevant hit."""
+
+    def test_first_parseable_verse_decides(self):
+        from types import SimpleNamespace
+
+        from search_eval.runner import _top1_score_and_hit
+
+        class _Matcher:
+            def __init__(self, key):
+                self.key = key
+
+            def matches(self, key):
+                return key == self.key
+
+        from search_eval.normalize import parse_verse_key
+
+        verses = [
+            SimpleNamespace(reference="not a reference", similarity=0.99),
+            SimpleNamespace(reference="John 3:16", similarity=0.61),
+            SimpleNamespace(reference="Psalm 23:1", similarity=0.5),
+        ]
+        key = parse_verse_key("John 3:16")
+        assert _top1_score_and_hit(verses, [_Matcher(key)]) == (0.61, True)
+        assert _top1_score_and_hit(verses, [_Matcher(parse_verse_key("Psalm 23:1"))]) == (
+            0.61,
+            False,
+        )
+        assert _top1_score_and_hit([], [_Matcher(key)]) == (None, False)

@@ -3,11 +3,12 @@ Application configuration using Pydantic Settings.
 Supports environment variables and .env files.
 """
 
+import json
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import field_validator, model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, NoDecode
 
 
 class Settings(BaseSettings):
@@ -347,6 +348,53 @@ class Settings(BaseSettings):
     blocked_sample_capture_enabled: bool = False
     blocked_sample_retention_days: int = 30
     blocked_sample_max_chars: int = 500
+
+    # Retrieval-miss insights (BITB-256). Stores only derived signals (topics,
+    # language, translation, scores, verse refs) for turns where retrieval came
+    # back empty/weak or the reply cited verses outside the retrieved context.
+    # Never stores message text. Default off -- operators opt in per environment.
+    retrieval_miss_capture_enabled: bool = False
+    retrieval_miss_retention_days: int = 90  # fixed from first sight, not refreshed
+    # Explicit low_score threshold; when None the per-model table below is used.
+    retrieval_miss_low_score_threshold: float | None = None
+    # PROVISIONAL placeholders keyed '{embedding model}:{hybrid|semantic}' (or just
+    # '{model}'), to be replaced by the p10 of top-1 scores of correct hits in the
+    # BITB-139 golden set: python scripts/run_search_eval.py --run --config hybrid
+    # --score-distribution. Not yet measured (no embeddings DB in the sandbox).
+    retrieval_miss_low_score_thresholds: Annotated[dict[str, float], NoDecode] = {
+        "mxbai-embed-large:hybrid": 0.50,
+        "text-embedding-3-small:hybrid": 0.45,
+        "mxbai-embed-large:semantic": 0.55,
+        "text-embedding-3-small:semantic": 0.50,
+    }
+
+    @field_validator("retrieval_miss_low_score_threshold", mode="before")
+    @classmethod
+    def blank_threshold_is_unset(cls, v: object) -> object:
+        """An empty env var (RETRIEVAL_MISS_LOW_SCORE_THRESHOLD=) means 'not set'."""
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
+
+    @field_validator("retrieval_miss_low_score_thresholds", mode="before")
+    @classmethod
+    def blank_thresholds_use_default(cls, v: object) -> object:
+        """An empty env var means 'use the shipped per-model defaults'."""
+        if isinstance(v, str):
+            # NoDecode: pydantic-settings hands us the raw env string (it would otherwise
+            # raise on an empty value before any validator runs), so parse JSON here.
+            if not v.strip():
+                return cls.model_fields["retrieval_miss_low_score_thresholds"].default
+            return json.loads(v)
+        return v
+
+    @field_validator("retrieval_miss_retention_days")
+    @classmethod
+    def retention_within_policy(cls, v: int) -> int:
+        """The privacy policy promises retention of up to 90 days."""
+        if not 1 <= v <= 90:
+            raise ValueError("retrieval_miss_retention_days must be between 1 and 90")
+        return v
 
     @field_validator("database_url")
     @classmethod
