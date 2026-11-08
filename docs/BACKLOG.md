@@ -3461,6 +3461,7 @@ or Semgrep CE (android), scip-java pilot for precise refs; jQAssistant/Joern/Cod
 reasoning. Call-graph resolution stays out of scope (reliable edge classes only).
 
 **Acceptance Criteria (summary):**
+
 - [ ] All three clients' extraction emits into `graph.json`, freshness-checked in CI
 - [ ] Answers blast-radius / untested-code / string-key-usage queries
 - [ ] android-expert reviews Android rows; verifier spot-checks ≥10 edges
