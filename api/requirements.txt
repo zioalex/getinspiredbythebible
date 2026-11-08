@@ -37,7 +37,11 @@ azure-ai-contentsafety==1.0.0
 
 # Utilities
 python-dotenv==1.2.4
-numpy==1.26.4
+# NOTE: numpy has no direct imports in this repo, but stays pinned here.
+# 1.26.4 was a hard blocker for Python 3.13+ images: its wheels stop at cp312
+# and its sdist cannot be built on newer CPython (PR #1240). 2.5.4 ships
+# cp312-cp315 wheels.
+numpy==2.5.4
 lingua-language-detector==2.2.0
 pyyaml>=6.0.3
 

@@ -166,6 +166,12 @@ chat_scripture_unavailable_counter = meter.create_counter(
     unit="1",
 )  # attributes: language
 
+chat_retrieval_miss_counter = meter.create_counter(
+    name="chat.retrieval_miss",
+    description="Chat turns where scripture retrieval was empty, weak, or the reply cited outside the retrieved pool (BITB-256)",
+    unit="1",
+)  # attributes: reason (empty|low_score|cited_outside_pool), language, translation, intent
+
 chat_crisis_card_shown_counter = meter.create_counter(
     name="chat.crisis_card_shown",
     description="Crisis hotline cards sent for threats to self or others (BITB-255)",

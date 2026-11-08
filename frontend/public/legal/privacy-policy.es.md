@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-29
+lastUpdated: 2026-11-03
 ---
 
 # Política de privacidad
 
 > _Esta traducción ha sido generada por inteligencia artificial y se proporciona únicamente como cortesía. En caso de omisión, ambigüedad o contradicción con el original en inglés, prevalece la versión en inglés, que es la canónica._
 
-Última actualización: 29 de octubre de 2026
+Última actualización: 3 de noviembre de 2026
 
 ## Quiénes somos
 
@@ -78,6 +78,16 @@ Contamos el uso de la lectura en voz alta de forma anónima, por idioma, familia
   y un hash unidireccional del identificador de sesión. No almacenamos
   tu dirección IP, tu cuenta ni ninguna cadena user-agent junto con
   estos registros, y solo se usan para ajustar el filtro de seguridad.
+- **Estadísticas anónimas de calidad de búsqueda**: para mejorar cómo
+  encontramos pasajes bíblicos relevantes, podemos conservar registros
+  anónimos hasta 90 días cuando una búsqueda devuelve resultados débiles o
+  ninguno. Un registro contiene solo información derivada: los temas
+  detectados, el idioma y la traducción bíblica, las puntuaciones de
+  relevancia, las referencias de versículos y un hash unidireccional del
+  identificador de sesión. Nunca contiene el texto de tu mensaje ni de la
+  respuesta, y no almacenamos tu dirección IP, tu cuenta ni ninguna cadena
+  user-agent con él. Estos registros se usan solo para mejorar la calidad
+  de la búsqueda.
 - **Informes de fallos y análisis**: conservados por Google hasta 14 meses según su política estándar.
 - **Historial local de conversaciones**: almacenado en tu dispositivo hasta que lo elimines mediante la aplicación o desinstales la aplicación.
 
