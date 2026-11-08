@@ -980,7 +980,7 @@ _VN_LANG = {
     },
     "de": {"q": r"(?:warum|wieso|weshalb|wie|wann)", "in": r"(?:in|im\s+buch)\s+"},
 }
-_VN_EN_VERB = r"(?:kill|murder|slay|slaughter|stab|shoot)"
+_VN_EN_VERB = r"(?:kill|murder|slay|slaughter|stab)"  # no "shoot": no curated event is one
 _NUMBERED_PREFIX_RE = re.compile(r"^(?:i{1,3}|[1-3ea])\.?\s+")
 
 

@@ -35,7 +35,7 @@ down, so extra blocks are the cheaper error (see BITB-267 to make the fallback r
 ## Acceptance criteria
 
 - [x] Third-person Bible narrative is not blocked in the keyword fallback ONLY when the WHOLE message
-      (<= 200 chars, one sentence) fully matches a closed frame with a named Bible subject (en, it,
+      (<= 200 chars, one sentence) fully matches a closed frame whose (killer, victim) pair is a curated Bible killing event (en, it,
       de, es, fr, pt, ar). Anything else, narrative phrasings outside the frames included, blocks
       exactly as on main (fail safe). ru/zh/hi/ko narrative handling is unchanged (BITB-198)
 - [x] Recall regressions blocked on main block again (ar قتلت/هقتلك/بقتل/أقتل forms, en/fr unanchored,
@@ -104,8 +104,8 @@ only when the table matched (linear cost; 50k chars stay well under 200 ms):
 - es and pt share the infinitive "matar" (one violence pattern), so each language accepts BOTH
   the es and the pt frame sets: a Spanish question is exempt under the pt table and vice versa.
 - Arabic commandment frames: `(ماذا تعني|ما معنى) [وصية] لا تقتل` and `وصية لا تقتل [ماذا تعني]`.
-  Archaic English "thou shalt not kill|murder" may stand alone; modern "you shall not" is only
-  accepted after a "what does ... mean" style lead (bare, it reads as a command).
+  (Superseded by round 5: only archaic "thou shalt not kill|murder" with a "mean" /
+  "what does ... mean" lead or tail is exempt; bare commandments and "you shall not" block.)
 - Arabic subject/object: a single anchor never reads as "killing X". Either subject + object
   (`قتل S O`, `S قتل O`, `أراد S أن يقتل O`), or a subject followed by the in-book slot. `هل`
   is not an accepted question word. The article `ال` is matched outside the captured name, so
@@ -125,7 +125,8 @@ only when the table matched (linear cost; 50k chars stay well under 200 ms):
   did Saul want to kill David?" keeps passing. Samson stays distinctive only in Arabic (the
   example `لماذا قتل شمشون الفلسطينيين` must pass); in the other languages he is a common name.
 
-**Trade-off (fail safe, by design).** Every narrative phrasing outside the closed frames blocks
+**Trade-off (fail safe, by design; examples SUPERSEDED by round 5, where Moses/the Egyptian,
+Phinehas/Zimri, Samson/the Philistines and the Pharisees/Jesus are curated events and pass).** Every narrative phrasing outside the closed frames blocks
 exactly as on main, e.g. "How did David kill Goliath with a sling in 1 Samuel 17?", "Why did Cain
 kill Abel and what does it teach us?", "Why did David kill him?", "Why did Moses kill the
 Egyptian?", "Why did Phinehas kill Zimri?" (not in the name list). Newly blocked in round 4:
@@ -137,7 +138,7 @@ the owner wants more recall; widening always means adding to the allowlist, neve
 
 **Tests** (`test_violence_keyword_fallback_languages.py`, `test_chat_crisis_path.py`):
 `REGRESSIONS_MUST_BLOCK`, `ANCHOR_BYPASS_MUST_BLOCK`, the 110-row `ALLOWLIST_BYPASS_MUST_BLOCK`,
-`ANCHOR_DATA_MUST_BLOCK` (round 4) and `EVENT_PAIR_MUST_BLOCK` (round 5, 160 rows)
+`ANCHOR_DATA_MUST_BLOCK` (round 4) and `EVENT_PAIR_MUST_BLOCK` (round 5, 161 rows)
 (every round-2 verifier threat/real-world row) via `find_violence_matches` and the real fallback,
 plus the threat-card subset; fail-safe-blocks cases; allowed narrative in every language;
 5,000/50,000-char timing tests (< 200 ms) for `_full_keyword_fallback` and `_has_crisis_wording`.
@@ -191,7 +192,7 @@ the Saul/Amalekites, Saul/Agag and Herod/Moses examples above.
 - Pre-existing on main, unchanged: English `killed` is not a violence pattern ("I wonder why Cain
   killed Abel" passes); Arabic with diacritics (`قَتَلَ`) is not matched by the table; ru "Я убью
   своего соседа" is not caught.
-- "Why did God kill Uzzah?" blocks (God is not an anchor); likewise any narrative question outside
+- "Why did God kill Uzzah?" blocks (God → Uzzah is not a curated event); likewise any narrative question outside
   the frames (see the trade-off above).
 - Arabic: `يقتل`/`القتل`/`قتله` narrative outside the Arabic frames blocks.
 - ar `سلاح`/`هجوم` (weapon/attack) remain bare patterns (Bible-narrative senses) and are out of scope.

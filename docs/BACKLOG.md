@@ -22,16 +22,16 @@ Prioritized list of user stories and features for Vox Quieta.
 
 - 2026-11-08: BITB-257 🔍 In review — narrative exemption now requires a curated Bible killing event (killer→victim pair) after name-list anchors leaked modern given names (#1241)
 - 2026-11-08: BITB-257 🔍 In review — redesigned narrative exemption as a strict whole-message allowlist (mirrors BITB-238/#1249) after verification found denylist bypasses (#1241)
-- 2026-11-07: BITB-261 in progress — committed OpenAPI contract artifact (docs/parity/openapi.json) + offline export script, parity-ci.yml stale-artifact gate & oasdiff breaking-change report (PR #1253)
-- 2026-11-07: BITB-260 ✅ Done — decision record + stage stories merged (#1237); implementation continues in BITB-261/262/263
 - 2026-11-04: BITB-257 🔍 In review — fail-safe narrative guard (option A): exemption needs a Bible anchor and no first-person marker; ar bare قتل restored; recall regressions re-blocked (#1241)
 - 2026-11-04: BITB-267 created — make ML content-safety classification reliable (cross-provider failover, fallback-share SLO) so the BITB-257 fail-safe keyword fallback is rare (#1241)
+- 2026-11-02: BITB-257 🔍 In review — keyword fallback no longer blocks third-person Bible narrative (en do-support/commandment guard, ar intent-only patterns, fr/it/es/pt/de past-tense guards); first-person threats still blocked with the card
+- 2026-11-07: BITB-261 in progress — committed OpenAPI contract artifact (docs/parity/openapi.json) + offline export script, parity-ci.yml stale-artifact gate & oasdiff breaking-change report (PR #1253)
 - 2026-11-03: BITB-258 in review — Llama Guard S11 combined with S1/S6/S10 now blocks with the self-harm reply + crisis card (`violated_categories` exposed on safety outcome); chat() + chat_stream() tests in 11 languages (#1248)
 - 2026-11-03: BITB-265 in review — info/warning logs carry lengths only (no message or expansion text), sentinel tests on chat()/chat_stream() in 11 languages (#1248)
 - 2026-11-03: BITB-256 verification fixes — allow-list-only sanitizer, hourly purge + 1..90 day retention, bounded writes, wider signature, psycopg2 exporter URL
 - 2026-11-03: BITB-264/265 opened — follow-ups from BITB-256 verification (ru/zh/hi/ko topic detection coverage; query-expansion logging of user text)
 - 2026-11-03: BITB-256 in progress — retrieval_miss_samples (r0009), fixed 90-day TTL + daily purge, provisional per-model thresholds pending search-eval p10
-- 2026-11-02: BITB-257 🔍 In review — keyword fallback no longer blocks third-person Bible narrative (en do-support/commandment guard, ar intent-only patterns, fr/it/es/pt/de past-tense guards); first-person threats still blocked with the card
+- 2026-11-07: BITB-260 ✅ Done — decision record + stage stories merged (#1237); implementation continues in BITB-261/262/263
 - 2026-11-01: BITB-258 in review — Llama Guard S11 combined with other categories now blocks with the self-harm reason (crisis card + self-harm reply) (#1239)
 - 2026-10-30: BITB-260 created — cross-client parity knowledge-graph decision record: per-layer OSS adopt/defer matrix (OpenAPI+oasdiff, registry, Mermaid, Neo4j CE lens), git artifact as store of record; stages filed as BITB-261/262/263
 - 2026-10-30: BITB-261 created — Stage 1: committed OpenAPI contract artifact + stale-artifact CI check + oasdiff breaking-change PR report
@@ -89,13 +89,11 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-10-23: BITB-142 done — first-run feature spotlight coach-marks with RTL support (PR #1192)
 - 2026-10-23: BITB-220 done — audit all 128 Makefile targets, fix 13 defects, add regression tests (PR #1196)
 - 2026-10-23: release v1.58.0 — release-please (#1167)
-
 - 2026-10-23: BITB-234 created — second-tenant ($50 credit) rehearsal environment for the migration chain; production split and reservation-in-new-tenant declined with reasoning
 - 2026-10-23: BITB-227 cancelled — reserved capacity not purchasable in current billing setup (owner-confirmed); BITB-231 inherits the compute lever
 - 2026-10-23: BITB-223..233 renumbered from 212..222 — those IDs were taken on main by parallel sessions (BITB-212 delegation discipline, BITB-213..218 read-aloud epic + next bump); content unchanged (PR #1189)
 - 2026-10-23: BITB-218 done — bump Next.js to 16.4.2 for critical RCE advisories (PR #1195)
 - 2026-10-23: BITB-210 done + BITB-211 done — read-aloud voice availability, hidden verse list; follow-ups BITB-213/214/215/216/217 opened (PR #1190, #1194)
-
 - 2026-10-23: BITB-150 collector metrics fixed — 90-day Postgres CPU/memory/storage evidence is now three contiguous 30-day Azure Monitor requests per metric (Azure truncated one 90-day request to ~31 days), merged and validated; any failed/truncated chunk fails the file and the run (PR #1189)
 - 2026-10-23: BITB-150 collector throttling and alerts pagination fixed — bounded 429/503 retry with backoff in `run_cli`; Alerts `nextLink` (live shape `https://management.azure.com:443/...&ctoken=`) now validated by strict normalization instead of exact-host match; offline tests added (PR #1189)
 - 2026-10-23: BITB-150 firewall helpers fixed — `az-pg-add-ip`/`list-rules`/`remove-ip` use `--server-name` for the server and `--name` for the rule; offline Makefile tests added (PR #1189)
