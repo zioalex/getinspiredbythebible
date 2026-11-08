@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
+- 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
 - 2026-11-04: BITB-266 opened — directed-harm taunt gaps ("killing yourself", "you should") found verifying BITB-238
 - 2026-11-04: BITB-238 🔍 In Review — exempt help-seeking/theological English phrases from Stage 1 directed harm
@@ -3876,9 +3878,10 @@ Follow-up to BITB-185 v2: only `self_harm_blocked` was localized for ru, zh, hi,
 
 Full story: [`BITB-197-blocked-templates-ru-zh-hi-ko.md`](BACKLOG_STORIES/BITB-197-blocked-templates-ru-zh-hi-ko.md)
 
-### 🎯 BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
+### ✅ BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done (PR #1250, 2026-11-05)
+**Completed:** 2026-11-05
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-12
@@ -3889,10 +3892,32 @@ BITB-179 follow-up.
 
 **Acceptance Criteria (summary):**
 
-- [ ] Closing-bracket citations parse in all three parsers (shared corpus); grounding test with no space
-- [ ] No corpus regression; boundary parity documented
+- [x] Closing-bracket citations parse in all three parsers (shared corpus); grounding test with no space
+- [x] No corpus regression; boundary parity documented
 
-**Full Story:** `docs/BACKLOG_STORIES/BITB-189-citation-after-closing-bracket.md`
+Follow-ups: BITB-267 (backend `**John 3:16**` / `—John` / `¿Juan` boundary gap).
+
+**Full Story:** `docs/DONE/BITB-189-citation-after-closing-bracket.md`
+
+---
+
+### 🎯 BITB-267: Backend Verse Parser Misses a Citation After `**`, `—` or `¿`
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-11-05
+
+The backend's whitelist lookbehind (BITB-189 widened it to closing brackets/quotes) still rejects a book
+name directly after bold markers (`**John 3:16**`), a dash (`—John 3:16`) or an inverted question mark
+(`¿Juan 3:16?`), which the web/Android letter-negative boundary accepts. BITB-189 follow-up.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Backend accepts the three starts, with corpus cases on all three parsers
+- [ ] Letter-glued starts (`abcJohn`, `_John`, `3John`) stay rejected
+
+**Full Story:** `docs/BACKLOG_STORIES/BITB-267-backend-boundary-bold-dash-inverted-question.md`
 
 ---
 

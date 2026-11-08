@@ -35,7 +35,11 @@ import json
 import re
 from pathlib import Path
 
-from utils.verse_parser import CV_PATTERN, _build_verse_pattern
+from utils.verse_parser import (
+    CV_PATTERN,
+    _build_verse_pattern,
+    extract_all_references,
+)
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _JSON_PATH = _REPO_ROOT / "tests" / "fixtures" / "verse_grammar.json"
@@ -153,3 +157,14 @@ def test_every_canonical_non_ascii_digit_matches_and_converts():
             m = compiled.search(f"John {ch}:{ch}")
             assert m, f"compiled verse pattern rejected {entry['label']} digit {ch!r}"
             assert (int(m.group(2)), int(m.group(3))) == (offset, offset)
+
+
+def test_every_cjk_bracket_pair_is_a_valid_citation_boundary():
+    """BITB-189: both the opening and the closing character of every canonical bracket pair
+    must be accepted directly before a book name by the backend's whitelist lookbehind."""
+    assert _GRAMMAR["cjk_bracket_pairs"]
+    for pair in _GRAMMAR["cjk_bracket_pairs"]:
+        for key in ("open", "close"):
+            char = pair[key]
+            refs = [str(r) for r in extract_all_references(f"x{char}约翰福音3:16")]
+            assert refs == ["John 3:16"], f"{pair['label']} {key} {char!r} -> {refs}"

@@ -6,6 +6,7 @@ from utils import translation_registry as _registry
 from utils.verse_parser import (
     VerseReference,
     extract_all_references,
+    extract_citation_spans,
     extract_reference_mentions,
     extract_references,
     find_prayer_reference,
@@ -1721,3 +1722,81 @@ class TestFullwidthSeparatorsAndDigits:
     def test_other_colon_lookalikes_and_fullwidth_comma_stay_rejected(self):
         for text in ("约翰福音3﹕16", "约翰福音3∶16", "约翰福音3，16"):
             assert parse_verse_reference(text) is None, text
+
+
+# ---------------------------------------------------------------------------
+# BITB-189: a citation directly after a closing bracket/quote, all 11 languages
+# ---------------------------------------------------------------------------
+
+_CLOSING_PREFIXES = [
+    "「神爱世人」",
+    "『x』",
+    "《x》",
+    "（x）",
+    "(x)",
+    "[x]",
+    '"x"',
+    "'x'",
+    "\u201cx\u201d",
+    "«x»",
+    "»x«",
+    "\u201ex\u201c",
+    "＂x＂",
+    "x】",
+    "x］",
+]
+
+
+class TestCitationAfterClosingBracket:
+    @pytest.mark.parametrize("lang", list(_LANG_BOOK_TABLES))
+    @pytest.mark.parametrize("prefix", _CLOSING_PREFIXES)
+    @pytest.mark.parametrize(
+        "cv", ["3:16", "3：16", "３：１６"], ids=["ascii", "fw-colon", "fw-all"]
+    )
+    def test_citation_glued_to_closer(self, lang, prefix, cv):
+        table = _LANG_BOOK_TABLES[lang]
+        book = "John" if table is None else table["John"]
+        text = prefix + _join(lang, book, cv) + "。"
+        refs = [str(r) for r in extract_all_references(text)]
+        assert refs == ["John 3:16"], f"[{lang}] {text!r} -> {refs}"
+
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("「神爱世人」约翰福音3:16。", "John 3:16"),
+            ("「神爱世人」约翰福音3：16", "John 3:16"),
+            ("」John 3:16", "John 3:16"),
+            ("「神爱世人」 约翰福音3:16", "John 3:16"),
+            ("」1 John 3:16", "1 John 3:16"),
+            ("」約翰福音3:16", "John 3:16"),
+        ],
+    )
+    def test_story_inputs(self, text, expected):
+        assert [str(r) for r in extract_all_references(text)] == [expected]
+
+    def test_span_starts_at_book_name(self):
+        text = "「神爱世人」约翰福音3：16"
+        spans = extract_citation_spans(text)
+        assert len(spans) == 1
+        assert spans[0].start == text.index("约")
+        assert spans[0].text == "约翰福音3：16"
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "」Johnny 3:16",
+            "x)Johnny 3:16",
+            "」abcJohn 3:16",
+            "」am 3:16",
+            "」is 3:16",
+            "」3:16",
+            "」 10:30",
+            '"5:30" pm',
+        ],
+    )
+    def test_no_false_positive_after_closer(self, text):
+        assert extract_all_references(text) == []
+
+    @pytest.mark.parametrize("text", ["abcJohn 3:16", "_John 3:16", "3John 3:16"])
+    def test_letter_glued_starts_stay_rejected(self, text):
+        assert extract_all_references(text) == []
