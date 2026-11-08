@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-10-29
+lastUpdated: 2026-11-03
 ---
 
 # Politique de confidentialité
 
 > _Cette traduction a été générée par intelligence artificielle et est fournie à titre de commodité uniquement. En cas d'omission, d'ambiguïté ou de contradiction avec l'original anglais, la version anglaise fait foi et prévaut._
 
-Dernière mise à jour : 29 octobre 2026
+Dernière mise à jour : 3 novembre 2026
 
 ## Qui nous sommes
 
@@ -80,6 +80,17 @@ Nous comptabilisons l'utilisation de la lecture à voix haute de manière anonym
   adresse IP, ni votre compte, ni aucune chaîne user-agent avec ces
   enregistrements, et ils ne sont utilisés que pour affiner le filtre
   de sécurité.
+- **Statistiques anonymes de qualité de recherche** : pour améliorer la
+  façon dont nous trouvons les passages bibliques pertinents, nous pouvons
+  conserver des enregistrements anonymes jusqu'à 90 jours lorsqu'une
+  recherche renvoie des résultats faibles ou aucun résultat. Un
+  enregistrement ne contient que des informations dérivées : les thèmes
+  détectés, la langue et la traduction biblique, les scores de pertinence,
+  les références de versets et un hachage à sens unique de l'identifiant de
+  session. Il ne contient jamais le texte de votre message ni de la
+  réponse, et nous ne stockons ni votre adresse IP, ni votre compte, ni
+  aucune chaîne user-agent avec lui. Ces enregistrements ne sont utilisés
+  que pour améliorer la qualité de la recherche.
 - **Rapports de plantage et analyses** : conservés par Google jusqu'à 14 mois conformément à leur politique standard.
 - **Historique local des conversations** : stocké sur votre appareil jusqu'à ce que vous le supprimiez via l'application ou désinstalliez l'application.
 
