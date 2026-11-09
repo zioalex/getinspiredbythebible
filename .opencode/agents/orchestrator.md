@@ -3,7 +3,7 @@ description: High-level planner and coordinator. Plans, decomposes, and delegate
 mode: primary
 model: openrouter/z-ai/glm-5.3
 fallback_models:
-  - opencode/nemotron-3-ultra-free
+  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
   - openrouter/deepseek/deepseek-v3.2-exp
 tools:
   bash: true
@@ -116,6 +116,19 @@ If you catch yourself doing any of these, stop and dispatch instead:
 - Briefs name the worktree and branch to work in — subagents never touch
   the shared main checkout
 - One fix brief per CI round; don't batch unrelated fixes into one dispatch
+- Identify PRs in briefs by number + `refs/pull/<n>/head` (plus the head SHA
+  you verified), NEVER by a hand-copied branch name. 2026-11-07: a brief
+  that copied the wrong branch name (PR 1241's for PR 1248's) sent a child
+  hunting a lint violation that did not exist on that branch — the child
+  then asked a question and deadlocked the whole run (see BITB-269 below)
+- Subagents never ask questions — `question` is denied for every
+  `mode: subagent` agent (BITB-269). A confused child must report blockers
+  and recommendations in its task result, not park itself on a question
+  nobody can answer
+- Run-closure rule: a run is NOT complete while any dispatched token lacks a
+  terminal outcome (result delivered / recovered via `task_id` / confirmed
+  dead). After a cancelled or long-waiting dispatch, execute the recovery
+  checklist below before yielding to the user
 
 ### Report contract
 
@@ -194,6 +207,34 @@ When the task tool returns `Task cancelled`:
 A single healthy dispatch seconds after a cancelled one (e.g. a trivial smoke
 test succeeding) does not mean the failed prompt was the problem — check the
 log's stream-error line before assuming anything about your own prompt.
+
+### The 2026-11-07 hang — question-tool deadlock (BITB-269)
+
+A fullstack child dispatched with a wrong branch name found no lint violation
+where the brief said one would be, and invoked the `question` tool at step 17.
+A subagent has no interactive user, so the question could never be answered:
+the child parked in `asking` state forever, and the parent's task call blocked
+with it for **9h34m** (23:02→08:36) — even the parallel verifier's *finished*
+result was trapped behind the blocked call, and the runtime log recorded only
+a single `message=asking` line at 23:09:29 before going silent. The deadlock
+broke only when the user resumed the parent the next morning: the runtime
+aborted the parked child and delivered `Task cancelled`, after which the
+recovery checklist (log grep → `task_id` resume) recovered the child cleanly —
+it caught the branch-name bug itself and completed the fix in ~30 min.
+
+Mitigations: `question: deny` on all 11 subagent agents, brief PR-reference
+hygiene above, and the resume-after-idle ritual below. Runtime-side work
+(watchdog for parked/stalled children, loading the task-reliability plugin
+into the pod's generated config) is story BITB-269.
+
+**Resume-after-idle ritual.** When you resume after a gap (any dispatch older
+than ~10 minutes), before dispatching anything new: grep the runtime log for
+your live tokens / your children's session ids and check each for a terminal
+state (`exiting loop`, or a registry `status` line). Recover results, and
+treat any child with no terminal state as a potential zombie — a wedged child
+from a previous run can freeze your next dispatch the same way. Prefer
+bounded commands in briefs (`timeout 1800 make pre-commit`, poll loops with a
+maximum iteration count) so children never hang on unbounded waits either.
 
 ## Self-Improvement
 
