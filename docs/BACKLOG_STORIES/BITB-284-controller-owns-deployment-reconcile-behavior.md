@@ -132,7 +132,7 @@ server container's image comes solely from the Agent's
 
 ## Requirements
 
-1. Document all of the above in `deployment/kubeopencode/README.md` in a
+1. Document all of the above in `k8s/kubeopencode/README.md` in a
    **"What the controller owns"** section, explicitly separating
    observed facts from source-investigated findings (done in this PR).
 2. State the operational rule (hand-patches revert; express it in the

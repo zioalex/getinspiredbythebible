@@ -124,7 +124,7 @@ seconds).
 
 **Verdict: path (c) of the investigation plan** — the probe budget is
 not spec-expressible, so this story (a) documents the constraint here
-and in `deployment/kubeopencode/README.md`, (b) drafts a paste-ready
+and in `k8s/kubeopencode/README.md`, (b) drafts a paste-ready
 upstream issue for the kubeopencode repo requesting spec-expressible
 probe overrides (same pattern as BITB-271's upstream opencode issue), and
 (c) records the interim mitigation (rollback anchors, BITB-283/284)
@@ -149,7 +149,7 @@ tighter than today's.
    never broken (digest verified equal to upstream `:latest`).
 2. **Known-good digest rollback anchors** (BITB-283, README): if a cold
    boot outage is ever caused by image *content*, the one-command rollback
-   is recorded in `deployment/kubeopencode/README.md` →
+   is recorded in `k8s/kubeopencode/README.md` →
    *Known-good image digests (rollback anchors)* — with the BITB-284
    caveat that a controller reconcile may revert a deployment-level
    patch, and the durable (Agent-spec) alternative.
@@ -166,7 +166,7 @@ tighter than today's.
 ## Requirements (deliverables in this story)
 
 1. Document the constraint and the budget math (this story +
-   `deployment/kubeopencode/README.md` → *What the controller owns* →
+   `k8s/kubeopencode/README.md` → *What the controller owns* →
    *Startup-probe budget*).
 2. Draft the paste-ready upstream issue (below), covering: the incident
    narrative with probe-failure evidence, the hardcoded probe location,
@@ -178,8 +178,9 @@ tighter than today's.
 3. Record the interim mitigation (above) and the rollback anchors
    (BITB-283 lane).
 4. Owner steps: file the upstream issue; track the outcome; when upstream
-   ships probe fields, wire the ~300s budget into `agent.yaml`,
-   `agent-wf3.yaml` (and the desktop manifest once BITB-283's owner step
+   ships probe fields, wire the ~300s budget into the canonical k8s
+   manifests (`k8s/kubeopencode/agent-default-wf2.yaml`,
+   `agent-default-wf3.yaml`, and the desktop manifest once BITB-283's owner step
    exports it) and apply.
 
 ## Acceptance Criteria
@@ -188,7 +189,7 @@ tighter than today's.
       constants, budget math vs observed kill times, expressibility check
       across AgentSpec/podSpec/systemContainers/AgentTemplate/
       KubeOpenCodeConfig (all negative, on v0.1.9 and main)
-- [x] Constraint documented in `deployment/kubeopencode/README.md`
+- [x] Constraint documented in `k8s/kubeopencode/README.md`
       (with the probe-failure → kill-loop failure mode spelled out)
 - [x] Paste-ready upstream issue drafted in this story (below), following
       the BITB-271 pattern
@@ -200,7 +201,8 @@ tighter than today's.
       the closed podSpec-extension request #282, which shipped without
       probes); URL recorded here and in the backlog entry
 - [ ] (owner) upstream outcome tracked; when probe fields ship, set a
-      ~300s startup budget in `agent.yaml` + `agent-wf3.yaml` (+ the
+      ~300s startup budget in the canonical k8s manifests
+      (`agent-default-wf2.yaml` + `agent-default-wf3.yaml` (+ the
       desktop manifest, BITB-283) and apply — the live `kubectl apply`
       is an owner step
 - [ ] (owner) after the probe budget lands, re-run the 2026-11-09

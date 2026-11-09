@@ -20,8 +20,9 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-09: BITB-285 opened — owner ruling: k8s/kubeopencode/ is THE canonical KubeOpenCode manifest/docs home, deployment/kubeopencode/ obsolete; story covers runbook migration, manifest twin reconciliation, deprecation stub, AGENTS.md Repository Layout fix + stale ~L300 pointer, and the 30-hit live reference repoint (reproducible grep in the story); implementation deferred to a follow-up PR (#1272)
 - 2026-11-09: BITB-282 opened — 2026-11-09 outage root cause: hardcoded ~62s startup-probe budget races worst-case cold boots (~100-115s kills observed); probe fields not Agent-spec-expressible — upstream kubeopencode issue drafted (BITB-271 pattern), filing is an owner step (#1272)
-- 2026-11-09: BITB-283 opened — default-wf3 Agent manifest added to the canonical deployment folder from the verified live spec (field-for-field identical to its k8s twin; whole-spec parity tests added, BITB-171 pattern); desktop manifest unverified (k8s example sketch — export/diff/pin are owner steps; its init runs unpinned agent-opencode:latest, a binary-contract risk); known-good devbox digest rollback anchors added to the kubeopencode README (#1272)
+- 2026-11-09: BITB-283 corrected per the owner ruling — deployment/kubeopencode/ is obsolete (k8s/ is canonical): the deployment-folder agent-wf3.yaml addition is removed, parity tests retargeted to the k8s wf2/wf3 twins (whole-spec), rollback anchors moved to the k8s README; the k8s wf3 manifest verified field-for-field against the 2026-11-09 live export; desktop sketch still unverified (export/diff/pin owner steps; its init runs unpinned agent-opencode:latest) (#1272)
 - 2026-11-09: BITB-284 opened — controller reconcile re-renders Deployment templates and reverts hand-patches (observed 2026-11-09 + verified in upstream source v0.1.9): trigger set, configRef-not-watched nuance, and "express it in the Agent spec" guidance documented in README "What the controller owns" (#1272)
 - 2026-11-08: BITB-280 in progress — pre-merge live-config load gate: CI boots a scratch opencode 1.18.31 on the committed opencode.json (zero plugin-load failures, roster/question-deny checks, self-test catches the injected 18:51 bug, env-gated subagent dispatch)
 - 2026-11-08: BITB-279 in progress — generator constants (small_model, builtin fallbacks, dead MIMO/Zen IDs) moved to verified openrouter/:free models; test suite + agents.md now assert the free-tier tier-1 invariant (cross-provider rule retired) (#1259)
@@ -3515,32 +3516,57 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
-### 🔄 BITB-283: Agent Manifest Coverage Gap — `default-wf3` Absent From the Canonical Deployment Folder; `desktop` Manifest Unverified and Unpinned
+### 🔄 BITB-283: desktop Agent Manifest Unverified and Unpinned; wf3 Live-Spec Verification; KubeOpenCode Manifest Home Ruled `k8s/` (Owner Correction)
 
-**Status:** 🔄 In progress (`agent-wf3.yaml` + parity tests added; desktop verification is an unticked owner step)
+**Status:** 🔄 In progress — PR #1272 (desktop verification is an unticked owner step)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-11-09
 
-The cluster runs three Agent instances, but the canonical `deployment/kubeopencode/` folder — the
-runbook an operator follows in an incident — covered only `default-wf2`; wf3/desktop lived only in
-the `k8s/kubeopencode/` home-cluster tree (and desktop's entry there is an unverified "Example"
-sketch). During the 2026-11-09 outage, "what does default-wf3 run?" had to be answered from the
-live cluster. This PR adds `deployment/kubeopencode/agent-wf3.yaml` from the verified 2026-11-09
-live export (field-for-field identical to `k8s/kubeopencode/agent-default-wf3.yaml` — verified
-while transcribing) and, because two manifests now declare one object (the BITB-171 drift shape),
-extends `scripts/test_kubeopencode_manifests.py` with whole-spec parity tests + image-pin and
-credential-documentation coverage for the new file (30 tests green; parity proven to fail on
-injected drift). `desktop` gets **no new manifest** — its k8s sketch is unverified and applying it
-blindly would strip live fields (BITB-171 class); owner steps: export live, diff against the
-sketch, **pin its unpinned `agentImage:latest`** (binary-version contract risk — an upstream
-opencode bump changes the config/loader contract and the BITB-280 gate can't see an untracked
-agent), promote a verified copy. Also adds the README *Known-good image digests (rollback anchors)*
-note: `kubeopencode-agent-devbox@sha256:1be2d086…` (verified working + == upstream `:latest` on
-2026-11-09), the one-command `set image` rollback **with** the controller-reconcile-reverts-it
-caveat (BITB-284) and the durable Agent-spec `executorImage` form.
+The original pass framed the obsolete `deployment/kubeopencode/` folder as canonical and added an
+`agent-wf3.yaml` there; the 2026-11-09 **owner ruling** says the opposite — `k8s/kubeopencode/` is
+THE canonical home. Corrected in the same PR: the deployment-folder manifest removed (the k8s tree
+already had `agent-default-wf3.yaml`, verified **field-for-field against the 2026-11-09 live export**
+— and the wf2 twin-check found the deployment and k8s copies fully identical, no drift); the whole-spec
+parity tests retargeted to the k8s wf2/wf3 twins (closing the one-sided-addition gap the T7 subset
+check misses); the controller-ownership/probe-budget/rollback-anchor README sections moved to the
+k8s README; and the folder sunset + steering-facts root cause filed as **BITB-285**. What remains
+here: the **desktop gap** — `k8s/kubeopencode/agent-desktop.yaml` is an unverified example sketch
+(no configRef, no credentials, **unpinned `agentImage:latest`** — binary-contract risk); owner steps
+are export live, diff against the sketch, pin `agentImage` (recommended `…:v0.1.9-oc1.18.31`),
+apply, and optionally extend the manifest tests once verified. Rollback anchors recorded in the k8s
+README: devbox `@sha256:1be2d086…` (verified working + == upstream `:latest` on 2026-11-09), the
+one-command `set image` rollback **with** the controller-reconcile-reverts-it caveat (BITB-284) and
+the durable Agent-spec `executorImage` form.
 
 **Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-283-agent-manifest-coverage-gap-wf3-desktop.md)
+
+### 🎯 BITB-285: Sunset the Obsolete `deployment/kubeopencode/` Folder — Consolidate KubeOpenCode Manifests and Docs in `k8s/kubeopencode/`
+
+**Status:** 🎯 Todo (implementation in a dedicated follow-up PR — CI-critical retargets deserve their own review; filed from the BITB-283 correction)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-09
+
+Owner ruling (2026-11-09): `k8s/kubeopencode/` is THE canonical home for all KubeOpenCode manifests
+and docs; `deployment/kubeopencode/` is obsolete — yet it still holds a live-looking `agent.yaml`
+(twin-checked identical to the canonical copy), the `agents.md` model table, and a ~440-line runbook
+accumulated by merged PRs #1254/#1259/#1260, with **no deprecation pointer**. The story's scope:
+migrate the runbook (sync/lockstep flow, fallback resilience, pre-merge checklist, copilot/persistence
+— deduplicated) into the k8s tree; reconcile and `git rm` the manifests (k8s copy wins on drift —
+none found 2026-11-09); leave ONLY a stub README pointing at `k8s/kubeopencode/`; fix AGENTS.md's
+Repository Layout (add the missing `k8s/` entry; `deployment/` stays Terraform-for-Azure-only) and
+its stale ~L300 pre-merge-checklist pointer; repoint the repo-wide reference surface (30 live
+hits in 15 files after this PR's corrections — reproducible grep + categorized table in the
+story: gate script constants, manifest-test constants,
+workflow path filters, Makefile, plugin comments, k8s-tree self-references; `docs/DONE/*` history
+untouched). Root cause recorded so the AGENTS.md fix reads as prevention: three steering facts made
+agents land in the wrong tree (no `k8s/` layout entry; no deprecation pointer; pinned image + recent
+docs accreted there). CI-critical detail: `scripts/test-opencode-config-live.py` (the BITB-280
+live-config gate) cross-checks the deployed pin via `deployment/kubeopencode/agent.yaml` — its
+constant must follow the migration and both gate modes re-run.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-285-sunset-deployment-kubeopencode-folder.md)
 
 ### 🔄 BITB-284: Controller Owns the Deployment — Reconcile Re-Renders Templates and Reverts Hand-Patches; Behavior Undocumented
 
