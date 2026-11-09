@@ -37,7 +37,11 @@ Empirically verified opencode 1.18.31 behaviors this gate depends on
   (their strict enforcement activates once the config lists them —
   BITB-269 / PR #1254).
 * Plugin entries must be 2-element `[name, options]` tuples; a 1-element
-  entry is a fatal config error ("Missing key plugin.1.1").
+  entry is a fatal config error ("Missing key plugin.1.1"). A BARE STRING
+  entry is valid too: the committed config (since #1254) lists the
+  task-reliability plugin as a plain `file:///…` string, and 1.18.31 loads
+  it (proved live by the dispatch phase's registry lines) — the gate tracks
+  file:// entries of BOTH shapes for its strict zero-failure assertion.
 * A fresh scratch can transiently stall before instance init (npm plugin
   resolution). Signature: log has config-loading lines but no `message=init`.
   The gate retries once, then fails loudly.
@@ -213,13 +217,24 @@ def rewrite_file_url(url: str) -> str:
 
 
 def build_scratch_config(scratch: pathlib.Path, config: dict) -> list:
-    """Write the scratch config; return the (rewritten) file:// entries."""
+    """Write the scratch config; return the (rewritten) file:// entries.
+
+    Both entry shapes must be tracked: the committed config lists the
+    task-reliability plugin as a BARE STRING ('file:///workspace/repo/...')
+    — opencode 1.18.31 accepts and loads it (proved live: the dispatch
+    registry lines) — while opencode-runtime-fallback uses the
+    [name, options] tuple. A file:// entry of either shape that the loader
+    rejects is a strict failure, so both must reach the classifier.
+    """
     cfg = json.loads(json.dumps(config))  # deep copy: committed file untouched
     rewritten = []
     entries = []
     for entry in cfg.get("plugin", []):
         if isinstance(entry, str):
-            entries.append(rewrite_file_url(entry))
+            name = rewrite_file_url(entry)
+            entries.append(name)
+            if name.startswith("file://"):
+                rewritten.append(name)
         elif isinstance(entry, list) and entry:
             name = rewrite_file_url(entry[0])
             new_entry = [name] + [e for e in entry[1:]]
@@ -683,11 +698,45 @@ def normal_mode(binary: str, args) -> int:
 # --------------------------------------------------------------- self-test
 
 
+RELATIVE_IMPORT_RE = re.compile(r'from\s+"(\./[^"]+)"')
+
+
+def copy_import_closure(source: pathlib.Path, dest_dir: pathlib.Path) -> list:
+    """Copy `source` into `dest_dir` plus its same-dir relative imports.
+
+    Since #1254 the committed plugin splits its helpers into
+    task-reliability-helpers.ts (opencode 1.18.31 single-export loader
+    contract), so a canary copy of the plugin file ALONE cannot resolve its
+    `./task-reliability-helpers.ts` import: the loader would fail with a
+    module-resolution error — a different failure class than the 18:51 bug
+    the self-test must reproduce. Copying the transitive same-dir closure
+    makes the injected non-function export the ONLY load defect in the
+    canary. Returns the copied files.
+    """
+    copied: list = []
+    seen: set = set()
+    queue = [source]
+    while queue:
+        current = queue.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        text = current.read_text()
+        (dest_dir / current.name).write_text(text)
+        copied.append(dest_dir / current.name)
+        for m in RELATIVE_IMPORT_RE.finditer(text):
+            dep = current.parent / m.group(1)
+            if dep.exists() and dep not in seen:
+                queue.append(dep)
+    return copied
+
+
 def self_test(binary: str, args) -> int:
     """Regression-prove the gate itself: inject the exact 18:51 bug.
 
     Copies the first available plugin (config-listed file:// entry, else the
-    tree's first .opencode/plugin/*.ts), appends
+    tree's first .opencode/plugin/*.ts) together with its same-dir
+    relative-import closure (helpers), appends
     `export const CANARY_LOAD_BREAKER = "x";` — a non-function export, the
     exact class of defect that slipped past 26 green unit tests on
     2026-11-08 18:51 — points a scratch config entry at the copy, boots, and
@@ -716,11 +765,18 @@ def self_test(binary: str, args) -> int:
     scratch = make_scratch("selftest")
     canary_dir = scratch / "canary"
     canary_dir.mkdir(parents=True, exist_ok=True)
+    copied = copy_import_closure(source, canary_dir)
     canary = canary_dir / source.name
     canary.write_text(
-        source.read_text() + '\nexport const CANARY_LOAD_BREAKER = "x";\n'
+        canary.read_text() + '\nexport const CANARY_LOAD_BREAKER = "x";\n'
     )
     log(f"self-test: injected the 18:51 bug into a copy at {canary}")
+    if len(copied) > 1:
+        log(
+            "self-test: copied the plugin's relative-import closure "
+            + "(single-export loader contract, #1254): "
+            + ", ".join(str(p) for p in copied)
+        )
 
     cfg = json.loads(json.dumps(config))
     cfg.setdefault("plugin", []).append(["file://" + str(canary), {}])
