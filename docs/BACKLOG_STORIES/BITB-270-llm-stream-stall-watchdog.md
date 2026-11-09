@@ -96,7 +96,7 @@ re-drive is possible from plugin land in 1.18.31.
 
 ### 3. Native knob — `chunkTimeout` exists in the config schema, enforced for custom providers only
 
-The config schema (https://opencode.ai/config.json) exposes a per-provider
+The config schema (<https://opencode.ai/config.json>) exposes a per-provider
 `options.chunkTimeout`: *"Timeout in milliseconds between streamed SSE
 chunks for this provider (default: 300000). If no chunk arrives within
 this window, the request is aborted."* Empirically on 1.18.31:
