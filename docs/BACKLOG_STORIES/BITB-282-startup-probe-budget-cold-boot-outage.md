@@ -1,6 +1,6 @@
 # BITB-282: Startup-Probe Budget Too Tight for Cold Boots — 2026-11-09 Agent Outage (Slow Boot + Transient Network Dip = Kill Loop)
 
-**Status:** 🔄 In progress (constraint documented + upstream issue drafted in this PR; the probe budget itself is not fixable from this repo — it is hardcoded in the kubeopencode controller)
+**Status:** 🔄 In progress — PR #1272 (constraint documented + upstream issue drafted; the probe budget itself is not fixable from this repo — it is hardcoded in the kubeopencode controller)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-09

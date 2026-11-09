@@ -1,6 +1,6 @@
 # BITB-283: Agent Manifest Coverage Gap — `default-wf3` Absent From the Canonical Deployment Folder; `desktop` Manifest Unverified and Unpinned
 
-**Status:** 🔄 In progress (`agent-wf3.yaml` + parity tests added in this PR; desktop verification is an unticked owner step)
+**Status:** 🔄 In progress — PR #1272 (`agent-wf3.yaml` + parity tests added; desktop verification is an unticked owner step)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-11-09

@@ -1,6 +1,6 @@
 # BITB-284: Controller Owns the Deployment — Reconcile Re-Renders Templates and Reverts Hand-Patches; Behavior Undocumented
 
-**Status:** 🔄 In progress (README section + this investigation shipped in this PR)
+**Status:** 🔄 In progress — PR #1272 (README section + this investigation shipped)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-11-09
