@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the KubeOpenCode deployment manifests and the committed opencode.json.
+"""Tests for the KubeOpenCode manifests and the committed opencode.json.
 
 BITB-129. `scripts/test_generate_opencode_config.py` covers the *generator*;
 nothing covered the *committed artifact* or the manifests that ship it to the
@@ -9,38 +9,38 @@ cluster. The gaps these close:
   generated, committed artifact. Editing an agent without running
   `make gen-opencode-config` leaves a stale `opencode.json`, which is exactly
   what `make sync-opencode-configmap` pushes to the cluster -- silently.
-- T2: `agent.yaml` points at a ConfigMap by name. If that name and the one
-  `make sync-opencode-configmap` creates ever diverge, the Agent references a
-  ConfigMap that does not exist and (per the README) will not start.
+- T2: the Agent manifest points at a ConfigMap by name. If that name and the
+  one `make sync-opencode-configmap` creates ever diverge, the Agent references
+  a ConfigMap that does not exist and (per the README) will not start.
 - T3: an undocumented credential secret means the agent silently degrades to the
   free fallback model instead of failing loudly.
 - T4: the README is the only runbook for this deployment; a renamed make target
   makes it wrong.
 - T5: BITB-128 persistence -- a typo in the `persistence` block means the
   workspace silently stays an EmptyDir, which is the bug BITB-128 fixes.
-- T6: BITB-171 -- `k8s/kubeopencode/agent-default-wf2.yaml` declares the SAME
-  Agent object as `deployment/kubeopencode/agent.yaml`. It was once a bare
-  sketch (inline config, no persistence, fewer credentials), and `kubectl
-  apply` of it stripped persistence/configRef/credentials from the live Agent,
-  reverting the workspace to an EmptyDir. These tests keep the two manifests
-  in sync so applying either converges instead of regressing the other.
+- T6 (BITB-171, historical): `k8s/kubeopencode/agent-default-wf2.yaml` and the
+  removed `deployment/kubeopencode/agent.yaml` once declared the SAME Agent
+  object; applying the thinner one stripped fields from the live Agent. The
+  pair-parity tests died with the deployment copy when BITB-285 sunset the
+  obsolete folder (verified zero drift first, and owner `kubectl diff`
+  confirmed live == the k8s manifests, 2026-11-09); T2/T3/T5 now run directly
+  against the single canonical manifest.
 - T7: BITB-172 -- the live Agent ran a custom agentImage wired only on the
   cluster (kubectl patch), so repo applies silently fell back to the default
   :latest image; and the pre-wired server-password credential crashlooped
   pods on clusters without the opencode-server-auth secret (the default-wf3
   failure that surfaced the drift). These tests pin the custom image + pull
-  secret on every manifest, keep default-wf3 in parity with default-wf2, and
+  secret on every manifest (desktop's pin is DESIRED state pending its apply,
+  BITB-283), keep default-wf3 in parity with default-wf2, and
   keep the mobile credential opt-in (exact credential match, no additions).
-- T8: BITB-283 -- the 2026-11-09 outage recovery check verified the k8s
-  wf3 manifest field-for-field against the live export. The owner then ruled
-  k8s/kubeopencode/ THE canonical manifest home (deployment/kubeopencode/ is
-  obsolete -- sunset filed as BITB-285), so the wf2/wf3 parity here is
-  upgraded from a field subset to WHOLE-SPEC equality: the subset loop misses
-  one-sided additions (a field gained by only one twin ships silently), and
-  wf3's documented contract is "the wf2 shape under a new name" with nothing
-  spec-level differing. A same-object pair in the obsolete deployment/ folder
-  was briefly added by the original BITB-283 pass and removed by the ruling;
-  its drift-detection intent lives on here, pointed at the canonical tree.
+- T8: BITB-283/285 -- the 2026-11-09 outage recovery check verified the k8s
+  wf3 manifest field-for-field against the live export; the wf2/wf3 parity is
+  enforced at WHOLE-SPEC level (the subset loop misses one-sided additions,
+  and wf3's documented contract is "the wf2 shape under a new name"). The
+  obsolete deployment/kubeopencode/ folder must stay a stub-only README --
+  nothing guards against docs and manifests re-accumulating in a dead folder
+  by accident, which is the steering failure that motivated BITB-285 in the
+  first place.
 """
 
 import pathlib
@@ -55,17 +55,19 @@ import yaml
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 COMMITTED_CONFIG = REPO_ROOT / "opencode.json"
-KUBE_DIR = REPO_ROOT / "deployment" / "kubeopencode"
-AGENT_YAML = KUBE_DIR / "agent.yaml"
-README = KUBE_DIR / "README.md"
 MAKEFILE = REPO_ROOT / "Makefile"
 
-# BITB-171: the second manifest for the same Agent object.
-K8S_AGENT_YAML = REPO_ROOT / "k8s" / "kubeopencode" / "agent-default-wf2.yaml"
-K8S_README = REPO_ROOT / "k8s" / "kubeopencode" / "README.md"
+# BITB-285: k8s/kubeopencode/ is THE canonical manifest/docs home (owner ruling
+# 2026-11-09); the deployment/kubeopencode/ folder is a stub-only relic.
+K8S_DIR = REPO_ROOT / "k8s" / "kubeopencode"
+AGENT_YAML = K8S_DIR / "agent-default-wf2.yaml"
+README = K8S_DIR / "README.md"
+STUB_DIR = REPO_ROOT / "deployment" / "kubeopencode"
+STUB_README = STUB_DIR / "README.md"
 
-# BITB-172: the wf3 test agent + the custom agent image every manifest pins.
-K8S_WF3_AGENT_YAML = REPO_ROOT / "k8s" / "kubeopencode" / "agent-default-wf3.yaml"
+# BITB-172: the wf3 test agent + the suspended desktop agent.
+K8S_WF3_AGENT_YAML = K8S_DIR / "agent-default-wf3.yaml"
+K8S_DESKTOP_AGENT_YAML = K8S_DIR / "agent-desktop.yaml"
 CUSTOM_AGENT_IMAGE = "ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31"
 GHCR_PULL_NAME = "ghcr-pull"
 
@@ -184,23 +186,40 @@ def test_agent_config_and_configref_are_mutually_exclusive(agent_spec):
 
 
 # --- T3: credentials are documented ---------------------------------------
+#
+# BITB-285: runs against the canonical k8s manifests + k8s README; covers
+# every credential-bearing Agent (desktop wires none, so it is excluded).
 
 
-def test_every_credential_secret_is_documented(agent_spec, readme_text):
-    for credential in agent_spec.get("credentials", []):
+@pytest.mark.parametrize(
+    "agent_yaml",
+    [AGENT_YAML, K8S_WF3_AGENT_YAML],
+    ids=["wf2", "wf3"],
+)
+def test_every_credential_secret_is_documented(agent_yaml, readme_text):
+    spec = yaml.safe_load(agent_yaml.read_text())["spec"]
+    for credential in spec.get("credentials", []):
         secret_name = credential["secretRef"]["name"]
         assert secret_name in readme_text, (
-            f"secret '{secret_name}' is wired in agent.yaml but not documented "
-            "in README.md -- an operator would not know to create it, and the "
-            "agent silently degrades to the fallback model"
+            f"secret '{secret_name}' is wired in {agent_yaml.name} but not "
+            "documented in k8s/kubeopencode/README.md -- an operator would "
+            "not know to create it, and the agent silently degrades to the "
+            "fallback model"
         )
 
 
-def test_every_credential_env_var_is_documented(agent_spec, readme_text):
-    for credential in agent_spec.get("credentials", []):
+@pytest.mark.parametrize(
+    "agent_yaml",
+    [AGENT_YAML, K8S_WF3_AGENT_YAML],
+    ids=["wf2", "wf3"],
+)
+def test_every_credential_env_var_is_documented(agent_yaml, readme_text):
+    spec = yaml.safe_load(agent_yaml.read_text())["spec"]
+    for credential in spec.get("credentials", []):
         env_var = credential["env"]
         assert env_var in readme_text, (
-            f"env var '{env_var}' is injected by agent.yaml but undocumented in README.md"
+            f"env var '{env_var}' is injected by {agent_yaml.name} but "
+            "undocumented in k8s/kubeopencode/README.md"
         )
 
 
@@ -368,143 +387,17 @@ def test_task_reliability_plugin_helpers_run():
     assert re.search(r"[#ℹ]\s*fail\s+0\b", result.stdout), (
         f"task-reliability helper tests reported failures:\n{result.stdout}"
     )
-# --- T6: BITB-171 k8s/kubeopencode parity ----------------------------------
-#
-# `k8s/kubeopencode/agent-default-wf2.yaml` and `deployment/kubeopencode/agent.yaml`
-# declare the same Agent object. If they drift, `kubectl apply` of the thinner one
-# strips fields from the live object (three-way merge: fields in last-applied but
-# absent in the new manifest get removed) -- the exact regression BITB-171 fixes.
-
-
-@pytest.fixture(scope="module")
-def k8s_agent_manifest():
-    return yaml.safe_load(K8S_AGENT_YAML.read_text())
-
-
-@pytest.fixture(scope="module")
-def k8s_agent_spec(k8s_agent_manifest):
-    return k8s_agent_manifest["spec"]
-
-
-@pytest.fixture(scope="module")
-def k8s_readme_text():
-    return K8S_README.read_text()
-
-
-def test_k8s_agent_targets_same_object(agent_spec, k8s_agent_manifest, k8s_agent_spec):
-    """Same name/namespace and identical identity fields -> converging applies."""
-    # metadata parity
-    meta_expected = {"name": "default-wf2", "namespace": "kubeopencode-system"}
-    for field, expected in meta_expected.items():
-        assert k8s_agent_manifest["metadata"][field] == expected, (
-            f"k8s agent-default-wf2.yaml metadata.{field}={k8s_agent_manifest['metadata'][field]!r} "
-            f"!= deployment agent.yaml {expected!r} -- they are different objects"
-        )
-    for field in ("profile", "workspaceDir", "serviceAccountName"):
-        assert k8s_agent_spec[field] == agent_spec[field], (
-            f"k8s agent-default-wf2.yaml spec.{field} drifts from deployment/agent.yaml; "
-            "applying one over the other flips the field (BITB-171)"
-        )
-
-
-def test_k8s_agent_persistence_matches_deployment(agent_spec, k8s_agent_spec):
-    """The k8s variant must carry the same persistence block, or applying it
-    over the live Agent reverts the workspace to an EmptyDir (BITB-128/171)."""
-    assert "persistence" in k8s_agent_spec, (
-        "spec.persistence missing from k8s/agent-default-wf2.yaml -- applying it "
-        "over the live Agent strips the PVCs and the workspace falls back to "
-        "EmptyDir, destroyed on every pod restart (BITB-171)"
-    )
-    expected = {
-        name: volume["size"] for name, volume in agent_spec["persistence"].items()
-    }
-    actual = {
-        name: volume["size"] for name, volume in k8s_agent_spec["persistence"].items()
-    }
-    assert actual == expected, (
-        f"persistence drift between deployment/agent.yaml ({expected}) and "
-        f"k8s/agent-default-wf2.yaml ({actual}) -- one apply would resize or "
-        "drop the other's volumes"
-    )
-
-
-def test_k8s_agent_configref_matches_makefile_configmap(k8s_agent_spec, makefile_text):
-    config_ref = k8s_agent_spec["configRef"]["configMapRef"]
-    sync_target = _extract_make_target_recipe(makefile_text, "sync-opencode-configmap")
-
-    assert f"configmap {config_ref['name']}" in sync_target, (
-        f"k8s agent-default-wf2.yaml references ConfigMap '{config_ref['name']}' but "
-        "`make sync-opencode-configmap` creates a differently-named one"
-    )
-    assert f"--from-file={config_ref['key']}=" in sync_target, (
-        f"k8s agent-default-wf2.yaml expects key '{config_ref['key']}' which the "
-        "Makefile does not create"
-    )
-
-
-def test_k8s_agent_config_and_configref_are_mutually_exclusive(k8s_agent_spec):
-    """The CRD runtime-validates this; catch it before it reaches the cluster."""
-    assert not ("config" in k8s_agent_spec and "configRef" in k8s_agent_spec), (
-        "spec.config and spec.configRef are mutually exclusive"
-    )
-    assert "configRef" in k8s_agent_spec, (
-        "k8s/agent-default-wf2.yaml has neither configRef nor config; it should "
-        "use configRef to consume the full 12-agent config (BITB-171)"
-    )
+# --- T6 (BITB-171, retired with the twin): the pair-parity tests between
+# k8s/kubeopencode/agent-default-wf2.yaml and the removed
+# deployment/kubeopencode/agent.yaml died with the deployment copy when
+# BITB-285 sunset the obsolete folder (verified field-for-field identical
+# before removal; owner kubectl diff confirmed live == the k8s manifests,
+# 2026-11-09). T2/T3/T5 now run directly against the single canonical
+# manifest; the BITB-171 lesson lives on in the wf2<->wf3 parity below.
 
 
 def _credentials_by_name(spec):
     return {cred["name"]: cred for cred in spec.get("credentials", [])}
-
-
-def test_k8s_agent_credentials_match_deployment(agent_spec, k8s_agent_spec):
-    """Exact same credential set in both manifests (BITB-172).
-
-    BITB-171 pre-wired a fourth credential (server-password ->
-    OPENCODE_SERVER_PASSWORD) here; that made every pod crashloop with
-    CreateContainerConfigError on clusters without the opencode-server-auth
-    secret — the exact failure default-wf3 hit. Mobile Basic auth is now
-    opt-in per agent via mobile-access.md, NOT pre-wired: applying either
-    manifest over the live object must change no credentials.
-    """
-    deployment_creds = _credentials_by_name(agent_spec)
-    k8s_creds = _credentials_by_name(k8s_agent_spec)
-
-    assert k8s_creds == deployment_creds, (
-        "credential drift between deployment/agent.yaml and "
-        f"k8s/agent-default-wf2.yaml: deployment={sorted(deployment_creds)} "
-        f"k8s={sorted(k8s_creds)} -- applying one over the other changes "
-        "wired credentials (BITB-171/172)"
-    )
-    assert "server-password" not in k8s_creds, (
-        "server-password must not be pre-wired: the mobile Basic-auth secret "
-        "opencode-server-auth is optional (see mobile-access.md) and pods "
-        "crashloop without it (BITB-172)"
-    )
-
-
-@pytest.mark.parametrize(
-    "agent_yaml",
-    [K8S_AGENT_YAML, K8S_WF3_AGENT_YAML],
-    ids=["wf2", "wf3"],
-)
-def test_k8s_credential_secrets_and_envs_documented(agent_yaml, k8s_readme_text):
-    """The k8s README is the runbook for the k8s manifests: every secret and
-    env var each manifest wires must be documented there (T3, extended to
-    both k8s manifests by BITB-172)."""
-    spec = yaml.safe_load(agent_yaml.read_text())["spec"]
-    for credential in spec.get("credentials", []):
-        secret_name = credential["secretRef"]["name"]
-        assert secret_name in k8s_readme_text, (
-            f"secret '{secret_name}' is wired in {agent_yaml.name} but not "
-            "documented in k8s/kubeopencode/README.md -- an operator following "
-            "that README would never create it"
-        )
-        env_var = credential["env"]
-        assert env_var in k8s_readme_text, (
-            f"env var '{env_var}' is injected by {agent_yaml.name} but "
-            "undocumented in k8s/kubeopencode/README.md"
-        )
 
 
 # --- T7: BITB-172 custom image wiring + wf3 parity -------------------------
@@ -522,17 +415,20 @@ def wf3_agent_spec():
 
 @pytest.mark.parametrize(
     "agent_yaml",
-    [AGENT_YAML, K8S_AGENT_YAML, K8S_WF3_AGENT_YAML],
-    ids=["deployment-wf2", "k8s-wf2", "k8s-wf3"],
+    [AGENT_YAML, K8S_WF3_AGENT_YAML, K8S_DESKTOP_AGENT_YAML],
+    ids=["wf2", "wf3", "desktop"],
 )
 def test_agent_image_pinned_with_pull_secret(agent_yaml):
     """Every Agent manifest pins the custom build (never :latest) and wires
-    the pull secret for the private GHCR package (BITB-172)."""
+    the pull secret for the private GHCR package (BITB-172). desktop's pin is
+    DESIRED state pending its apply (live runs unpinned until then,
+    BITB-283) — the test guards the committed manifest so the pin cannot be
+    quietly dropped while the apply decision is pending."""
     spec = yaml.safe_load(agent_yaml.read_text())["spec"]
 
     image = spec.get("agentImage")
     assert image, (
-        f"{agent_yaml.name} does not pin spec.agentImage -- the live Agent runs "
+        f"{agent_yaml.name} does not pin spec.agentImage -- the live Agents run "
         "a custom build; an unpinned manifest applies the default :latest image "
         "and repo drifts from live (BITB-172)"
     )
@@ -541,8 +437,9 @@ def test_agent_image_pinned_with_pull_secret(agent_yaml):
         "node silently keeps a stale cache (custom-opencode-image.md)"
     )
     assert image == CUSTOM_AGENT_IMAGE, (
-        f"{agent_yaml.name} agentImage {image!r} != the live build "
-        f"{CUSTOM_AGENT_IMAGE!r} -- the manifests must converge with live"
+        f"{agent_yaml.name} agentImage {image!r} != the fleet build "
+        f"{CUSTOM_AGENT_IMAGE!r} -- the manifests must converge with live "
+        "(and keep the opencode binary contract one version across the fleet)"
     )
 
     pull_secrets = [s["name"] for s in spec.get("imagePullSecrets", [])]
@@ -552,7 +449,7 @@ def test_agent_image_pinned_with_pull_secret(agent_yaml):
     )
 
 
-def test_wf3_agent_matches_wf2_shape(k8s_agent_spec, wf3_agent_spec):
+def test_wf3_agent_matches_wf2_shape(agent_spec, wf3_agent_spec):
     """default-wf3 is the wf2 shape under a new name: same config, persistence,
     credentials, and image wiring — only its own PVCs/Service differ (the
     operator provisions those per name). Parity is what made wf3 a faithful
@@ -566,22 +463,22 @@ def test_wf3_agent_matches_wf2_shape(k8s_agent_spec, wf3_agent_spec):
         "agentImage",
         "imagePullSecrets",
     ):
-        assert wf3_agent_spec[field] == k8s_agent_spec[field], (
+        assert wf3_agent_spec[field] == agent_spec[field], (
             f"agent-default-wf3.yaml spec.{field} drifts from "
             "agent-default-wf2.yaml -- wf3 stopped being a faithful test of "
             "the custom image (BITB-172)"
         )
-    assert _credentials_by_name(wf3_agent_spec) == _credentials_by_name(k8s_agent_spec), (
+    assert _credentials_by_name(wf3_agent_spec) == _credentials_by_name(agent_spec), (
         "agent-default-wf3.yaml credentials drift from agent-default-wf2.yaml (BITB-172)"
     )
 
 
-# --- T8: BITB-283 k8s wf2/wf3 whole-spec parity ------------------------------
+# --- T8: BITB-283/285 whole-spec parity + obsolete-folder guard --------------
 #
 # k8s/kubeopencode/ is THE canonical manifest home (owner ruling 2026-11-09;
-# the obsolete deployment/kubeopencode/ folder is sunset by BITB-285). wf3's
-# documented contract (its own header + T7) is "the wf2 shape under a new
-# name" — nothing spec-level differs; only its operator-provisioned
+# BITB-285 implemented the sunset of the obsolete deployment/kubeopencode/
+# folder). wf3's documented contract (its own header + T7) is "the wf2 shape
+# under a new name" — nothing spec-level differs; only its operator-provisioned
 # PVCs/Service differ, which are not spec fields. The T7 subset loop above
 # gives per-field diagnostics but misses ONE-SIDED ADDITIONS (a field gained
 # by only one twin — e.g. someone adds `suspend` or `maxConcurrentTasks` to
@@ -597,7 +494,7 @@ def test_k8s_wf3_spec_identical_to_k8s_wf2():
     two Agents legitimately need different specs someday, change this test
     DELIBERATELY (and the wf3 header) rather than letting it drift.
     """
-    wf2_spec = yaml.safe_load(K8S_AGENT_YAML.read_text())["spec"]
+    wf2_spec = yaml.safe_load(AGENT_YAML.read_text())["spec"]
     wf3_spec = yaml.safe_load(K8S_WF3_AGENT_YAML.read_text())["spec"]
 
     assert wf3_spec == wf2_spec, (
@@ -605,4 +502,35 @@ def test_k8s_wf3_spec_identical_to_k8s_wf2():
         "agent-default-wf3.yaml -- wf3's contract is the wf2 shape under a "
         "new name (BITB-172); the T7 field-subset test stays green on "
         "one-sided additions, so treat any failure here as real drift"
+    )
+
+
+def test_obsolete_deployment_folder_is_stubbed_only():
+    """BITB-285: the obsolete deployment/kubeopencode/ folder must contain
+    ONLY the stub README.
+
+    The folder kept accreting real content (the pinned manifest, runbook
+    sections from merged PRs) with nothing stopping it — the steering failure
+    that made two PRs treat the dead tree as canonical. This test is the
+    mechanical backstop: any new file there fails CI until it is either
+    moved to k8s/kubeopencode/ or explicitly justified in this test.
+    """
+    assert STUB_DIR.is_dir(), (
+        f"{STUB_DIR} should still exist as a stub-only folder with a README "
+        "pointing at k8s/kubeopencode/ (BITB-285)"
+    )
+    entries = sorted(p.name for p in STUB_DIR.iterdir())
+    assert entries == ["README.md"], (
+        f"deployment/kubeopencode/ must be stub-only (obsolete, BITB-285); "
+        f"found extra entries: {[e for e in entries if e != 'README.md']} -- "
+        "move new content to k8s/kubeopencode/ instead"
+    )
+    stub_text = STUB_README.read_text()
+    assert "obsolete" in stub_text.lower(), (
+        "the deployment/kubeopencode/ stub README must state the folder is "
+        "obsolete (BITB-285)"
+    )
+    assert "k8s/kubeopencode" in stub_text, (
+        "the deployment/kubeopencode/ stub README must point at the canonical "
+        "k8s/kubeopencode/ home (BITB-285)"
     )

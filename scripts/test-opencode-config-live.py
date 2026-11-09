@@ -77,13 +77,16 @@ import time
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
 PLUGIN_DIR = REPO_ROOT / ".opencode" / "plugin"
-AGENT_YAML = REPO_ROOT / "deployment" / "kubeopencode" / "agent.yaml"
+# BITB-285: the canonical Agent manifest lives in k8s/kubeopencode/ (owner
+# ruling 2026-11-09); the deployment/kubeopencode/ copy was removed after a
+# verified zero-drift twin-check.
+AGENT_YAML = REPO_ROOT / "k8s" / "kubeopencode" / "agent-default-wf2.yaml"
 
 # The opencode version the deployed pod runs. Single pinned source of truth:
 # - CI installs exactly this via `npm install -g opencode-ai@$(--print-version)`.
 # - The gate FAILS if the booted binary reports a different version, and
 #   cross-checks the `oc<x.y.z>` suffix of `agentImage` in
-#   deployment/kubeopencode/agent.yaml (the deployed pin). When the pod's
+#   k8s/kubeopencode/agent-default-wf2.yaml (the deployed pin). When the pod's
 #   opencode is upgraded, bump BOTH the image tag and this constant in the
 #   same change or the gate will block the merge — by design.
 PINNED_OPENCODE_VERSION = "1.18.31"
@@ -143,7 +146,7 @@ def check_version(binary: str) -> None:
             deployed = match.group(1)
             if deployed != PINNED_OPENCODE_VERSION:
                 raise GateError(
-                    f"deployment/kubeopencode/agent.yaml pins oc{deployed} "
+                    f"k8s/kubeopencode/agent-default-wf2.yaml pins oc{deployed} "
                     f"but the gate pins {PINNED_OPENCODE_VERSION}. Bump both "
                     "in the same change (the gate must test what the pod "
                     "runs)."

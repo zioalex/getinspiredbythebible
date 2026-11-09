@@ -139,7 +139,7 @@ fresh pod is a cache hit for free.
 This also fixes the underlying problem the story names: the base image sets
 `XDG_CACHE_HOME=/tmp/.cache`, and pre-commit's default cache path follows
 `$XDG_CACHE_HOME/pre-commit` when that's set -- landing in `/tmp`, which
-`deployment/kubeopencode/README.md` already establishes is **not** persisted
+`k8s/kubeopencode/README.md` already establishes is **not** persisted
 across the mandatory `kubectl delete pod` after every
 `make sync-opencode-configmap`. Overriding `PRE_COMMIT_HOME` explicitly
 sidesteps that regardless of where `/tmp` lives.
@@ -273,9 +273,9 @@ registry push, no cluster access -- CI has neither). Not exercised here, and
 left as a manual follow-up on the live cluster:
 
 - Pushing the built image to a registry
-- Setting `spec.executorImage` on `deployment/kubeopencode/agent.yaml` /
-  `k8s/kubeopencode/agent-default-wf2.yaml`
+- Setting `spec.executorImage` on `k8s/kubeopencode/agent-default-wf2.yaml` (or
+  `agent-default-wf3.yaml`)
 - In-pod verification against a real `Agent` rollout
 
-See `k8s/kubeopencode/README.md` and `deployment/kubeopencode/README.md` for
-where this fits into the rest of the KubeOpenCode config.
+See `k8s/kubeopencode/README.md` (the canonical runbook) for where this
+fits into the rest of the KubeOpenCode config.

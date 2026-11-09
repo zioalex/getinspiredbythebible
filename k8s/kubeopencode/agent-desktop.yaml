@@ -1,3 +1,31 @@
+# Agent: desktop — suspended experiment, verified against live 2026-11-09 (BITB-283).
+#
+# This manifest is the verified live spec (kubectl -n kubeopencode-system get
+# agent desktop -o yaml, exported 2026-11-09; generation 2 — `suspend: true`
+# was added after the original apply per the last-applied annotation; status:
+# suspended since 2026-09-18, ServerReady False) PLUS the pinning fix as
+# DESIRED state:
+#
+#   - agentImage pinned to the same custom opencode build wf2/wf3 run, so the
+#     binary/config/loader contract stays consistent with the fleet whenever
+#     desktop wakes. Live currently has NO agentImage (unpinned :latest) —
+#     applying this manifest adds the pin.
+#   - imagePullSecrets REQUIRED with the pin: the image is a private GHCR
+#     package (custom-opencode-image.md Option B); without the pull secret an
+#     unsuspend would ImagePullBackOff.
+#
+# desktop is intentionally DIFFERENT from default-wf2/wf3 (no wf2-style
+# parity applies): it has NO configRef and NO credentials — it runs the
+# controller's DEFAULT opencode config, NOT the synced opencode.json (no
+# 12-agent roster, no fallback plugin). Sessions-only persistence + standby
+# scale-to-zero; strict-tier sandbox annotations.
+#
+# It is SUSPENDED, so applying the pin is a no-op while suspended (the
+# deployment scales to 0; no pod, no pull, no probe). OWNER DECISION pending:
+# wake it pinned (kubectl apply + remove suspend, or just apply to record the
+# desired state) — or delete the Agent entirely. Either way the pin protects
+# the contract if it ever wakes; see the BITB-283 story for the decision
+# record.
 apiVersion: kubeopencode.io/v1alpha1
 kind: Agent
 metadata:
@@ -14,13 +42,20 @@ spec:
   # agent cannot patch its own annotations or create NetworkPolicies
   # (see docs/SECURITY-KUBEOPENCODE.md).
   serviceAccountName: kubeopencode-agent
-  # Hardening: operator should bind serve to 127.0.0.1, mount
-  # secret/opencode-api-key (created imperatively, see SECURITY doc) as 0400
-  # /run/secrets/opencode/api-key, prefer OPENCODE_API_KEY_FILE over ENV,
-  # and unset ENV after start.
+  # DESIRED state (not yet live, BITB-283): pin the opencode binary to the
+  # fleet build — never :latest (:latest + IfNotPresent means a node silently
+  # keeps a stale cache, and an upstream opencode bump changes the
+  # config/loader contract; see custom-opencode-image.md).
+  agentImage: ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31
+  # Private GHCR package — the pin is unusable without the pull secret.
+  imagePullSecrets:
+    - name: ghcr-pull
   # LAN access is opt-in via kubeopencode.io/allow-lan (e.g. "ollama:11434").
   persistence:
     sessions:
       size: 2Gi
   standby:
     idleTimeout: 30m
+  # Live state since 2026-09-18 (generation 2): suspended. The controller
+  # scales the deployment to 0; PVCs and Service are retained.
+  suspend: true

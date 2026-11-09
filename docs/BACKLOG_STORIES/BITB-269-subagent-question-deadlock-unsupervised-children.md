@@ -202,7 +202,7 @@ opencode 1.18.31 binary, scratch-instance probes; live server untouched):
    the checkout but would silently leave the plugin *missing* until the next
    sync, while a re-cloned checkout (Option B) always carries the merged
    plugin. Runbook: **merge → `make sync-opencode-configmap` → delete pod →
-   verify** (greps in deployment/kubeopencode/README.md).
+   verify** (greps in deployment/kubeopencode/README.md). *(the runbook now lives in k8s/kubeopencode/README.md — BITB-285)*
 6. **CI now enforces the tests.** The plugin suite was never wired into CI
    (why the gap shipped). `.github/workflows/opencode-ci.yml` now runs it on
    every `.opencode/**` change (Node 22.x, type-stripping), and

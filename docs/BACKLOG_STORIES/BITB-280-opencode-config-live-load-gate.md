@@ -88,7 +88,8 @@ runtime won't accept it.
 5. **Pinned version**: `PINNED_OPENCODE_VERSION = "1.18.31"` in the script
    is the single constant; CI installs it, the gate asserts the booted
    binary reports exactly it, and it cross-checks the `oc<x.y.z>` suffix of
-   `agentImage` in `deployment/kubeopencode/agent.yaml` (the deployed pin).
+   `agentImage` in `deployment/kubeopencode/agent.yaml` (the deployed pin). *(retargeted to
+   `k8s/kubeopencode/agent-default-wf2.yaml` by BITB-285)*
    Bumping the pod's opencode without bumping the constant fails the gate —
    by design.
 6. **In-pod pre-flight extension** (`sync-opencode-workspace.sh`): SKIPPED —
