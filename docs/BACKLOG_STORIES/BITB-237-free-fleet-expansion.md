@@ -63,7 +63,7 @@ near-primary quality, and the free tier carries real workload instead of idling.
 - [ ] Agent-count invariants updated: `make verify-opencode-config` hardcodes
       "expected 12 agents"; the generator test file and Makefile check must be
       bumped to 13 (or derived from the agents directory) — and the doc table
-      in `deployment/kubeopencode/agents.md` gains the row.
+      in `deployment/kubeopencode/agents.md` gains the row. *(now `k8s/kubeopencode/agents.md`, moved by BITB-285)*
 
 ### 2. Family-matched tier-1 failover hops
 
@@ -79,7 +79,8 @@ near-primary quality, and the free tier carries real workload instead of idling.
 - [ ] Chain rules preserved (BITB-173): tier-1 free + cross-provider (Zen hop
       behind an OpenRouter primary), tier-2 paid = the other pair member.
 - [ ] All 12 `.md` frontmatters + generator chain-design comments + test
-      expectations + `deployment/kubeopencode/agents.md` + regenerated
+      expectations + `deployment/kubeopencode/agents.md` + regenerated *(now
+      `k8s/kubeopencode/agents.md`, moved by BITB-285)*
       `opencode.json` updated together (the BITB-236 lesson: these move as
       one unit guarded by the same tests).
 

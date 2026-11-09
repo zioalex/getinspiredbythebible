@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-08
+**Last Updated:** 2026-11-09
 
 ## Changelog
 
@@ -21,6 +21,19 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-11-08: BITB-261 ✅ Done — stage 1 of the parity KG merged: OpenAPI artifact + stale-artifact CI gate + oasdiff-action (#1253); env-stripping determinism + audit regen adopted from #1251; follow-ups BITB-274/275/276/277 filed
+- 2026-11-09: BITB-285 in progress — implemented: runbooks migrated into k8s/kubeopencode/README.md (sync/lockstep, pre-merge checklist, copilot, fallback, persistence; agents.md moved as sibling), deployment folder stubbed with anchor redirects (agent.yaml removed after zero-drift twin-check), ~30 live refs repointed (live-gate AGENT_YAML + both modes re-run green in-pod), AGENTS.md Repository Layout gains k8s/ (root-cause fix), stub-only-folder guard test; desktop manifest promoted from the owner-exported verified live spec with the agentImage pin as desired state (wake-or-delete = owner decision) (#1273)
+- 2026-11-09: BITB-285 opened — owner ruling: k8s/kubeopencode/ is THE canonical KubeOpenCode manifest/docs home, deployment/kubeopencode/ obsolete; story covers runbook migration, manifest twin reconciliation, deprecation stub, AGENTS.md Repository Layout fix + stale ~L300 pointer, and the 30-hit live reference repoint (reproducible grep in the story); implementation deferred to a follow-up PR (#1272)
+- 2026-11-09: BITB-282 opened — 2026-11-09 outage root cause: hardcoded ~62s startup-probe budget races worst-case cold boots (~100-115s kills observed); probe fields not Agent-spec-expressible — upstream kubeopencode issue drafted (BITB-271 pattern), filing is an owner step (#1272)
+- 2026-11-09: BITB-283 corrected per the owner ruling — deployment/kubeopencode/ is obsolete (k8s/ is canonical): the deployment-folder agent-wf3.yaml addition is removed, parity tests retargeted to the k8s wf2/wf3 twins (whole-spec), rollback anchors moved to the k8s README; the k8s wf3 manifest verified field-for-field against the 2026-11-09 live export; desktop sketch still unverified (export/diff/pin owner steps; its init runs unpinned agent-opencode:latest) (#1272)
+- 2026-11-09: BITB-284 opened — controller reconcile re-renders Deployment templates and reverts hand-patches (observed 2026-11-09 + verified in upstream source v0.1.9): trigger set, configRef-not-watched nuance, and "express it in the Agent spec" guidance documented in README "What the controller owns" (#1272)
+- 2026-11-09: BITB-270 in progress — stream-stall watchdog implemented: message.part.delta heartbeat + tool-in-flight guard, STREAM_IDLE_SECONDS (180) stalled-stream registry line + best-effort abort; abort proven lossy on 1.18.31 (session.abort errors mid-generation), native chunkTimeout honored for custom providers only — plugin is the fix; 37/37 tests, hanging-mock e2e + clean control run
+- 2026-11-08: BITB-280 in progress — pre-merge live-config load gate: CI boots a scratch opencode 1.18.31 on the committed opencode.json (zero plugin-load failures, roster/question-deny checks, self-test catches the injected 18:51 bug, env-gated subagent dispatch)
+- 2026-11-08: BITB-279 in progress — generator constants (small_model, builtin fallbacks, dead MIMO/Zen IDs) moved to verified openrouter/:free models; test suite + agents.md now assert the free-tier tier-1 invariant (cross-provider rule retired) (#1259)
+- 2026-11-08: BITB-279 in progress — fallback chains broken: opencode/* Zen models never served (no pod credentials) and paid tier-2 can't rescue an exhausted key; all tier-1 fallbacks + mechanical-lane primaries moved to verified openrouter/:free models (#1259)
+- 2026-11-08: BITB-269 addendum — plugin load failed live (`Plugin export is not a function`): loader contract pinned (single default export; helpers split into task-reliability-helpers.ts; nested `properties.info.parentID` read), tests wired into CI + pod pre-flight, `make sync-opencode-configmap` now also fast-forwards the pod checkout so config and plugin code stay in lockstep (#1254)
+- 2026-11-08: BITB-271 created — upstream opencode issue: subagent `question` call parks forever (no default deny/timeout/parent routing); paste-ready draft in the story, filing is an owner step (#1254)
+- 2026-11-08: BITB-270 created — LLM stream-stall watchdog: error-driven fallback misses silently-stalled streams; stream-idle detection + abort/registry line with a tight threshold (#1254)
+- 2026-11-08: BITB-269 in progress — subagent `question`-tool deadlock hung the orchestrator 9h34m (2026-11-07): question denied for all 11 subagents + dispatch hygiene rules; task-reliability plugin wiring + stuck-child watchdog in the same PR
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
@@ -340,7 +353,66 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🔍 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
+### 🔄 BITB-282: Startup-Probe Budget Too Tight for Cold Boots — 2026-11-09 Agent Outage (Slow Boot + Transient Network Dip = Kill Loop)
+
+**Status:** 🔄 In progress (constraint documented + upstream issue drafted; the probe is hardcoded in the kubeopencode controller — not fixable from this repo)
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-09
+
+Incident 2026-11-09 ~09:10–09:56 UTC: after a ConfigMap sync + pod replacement, new pods cold-pulled the
+748MB devbox image at ~2.2 MB/s (5m33s) and the `opencode-server` startup probe (`GET /session/status`)
+then killed the container at ~100–115s — ~65s of `connection refused` plus ~50s of `context deadline
+exceeded` while opencode plugin/npm resolution crawled on the same degraded network → kill/restart loop
+(5 restarts). It self-healed with no intervention when the network dip cleared, and the image was proven
+fine (running-healthy digest == pulled digest == upstream `:latest`, GHCR API check — an "upstream broke
+:latest" hypothesis was retracted). Root cause: the controller hardcodes the startup probe
+(`initialDelay=2, period=2, timeout=5, failureThreshold=30` — the upstream comment sizes it at "62s max
+startup time"; hanging probes stretch the wall clock toward ~150s) and the Agent spec exposes no probe
+fields (verified across `AgentSpec`/`podSpec`/`systemContainers`/`AgentTemplate`/`KubeOpenCodeConfig`,
+v0.1.9 + current main), so worst-case cold boots needing ~300s cannot boot and deployment-level probe
+patches are reverted by the reconcile (BITB-284). Interim: don't panic-roll images on probe-kill loops
+(self-heal is the observed outcome), keep pods warm (BITB-128), rollback anchors for verified image
+breakage (BITB-283). Upstream issue drafted in the story (BITB-271 pattern; filing = owner step);
+README *What the controller owns* → *Startup-probe budget* documents the constraint.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-282-startup-probe-budget-cold-boot-outage.md)
+
+### 🔄 BITB-279: Broken Fallback Chains — `opencode/*` Models Never Serve; Paid Tier-2 Can't Rescue an Exhausted Key
+
+**Status:** 🔄 In progress (chains + generator constants fixed; BITB-280 live-load gate follows)
+**Size:** S + S follow-up
+**Created:** 2026-11-08
+
+Incident 2026-11-08 21:30-21:36: during weekly-key exhaustion every paid call 402'd and the
+fallback plugin could not recover — tier-1 (`opencode/nemotron-3-ultra-free`) failed silently
+(no Zen-gateway credentials in the pod) and tier-2 (paid glm/deepseek) shared the dead key;
+`Max fallback attempts reached` killed every lane until a manual model switch. Fix: all tier-1
+fallbacks and the mechanical lanes' primaries now use verified `openrouter/nvidia/*:free`
+models (free models draw no credit, so the chain survives a dead key); paid tier-2 stays as the
+defense for rate caps / upstream outages. Generator constants (`small_model`, builtin
+fallbacks) fixed in the same PR; remaining follow-up: BITB-280 live-load CI gate.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-279-opencode-fallback-chain-broken.md)
+
+### 🔄 BITB-269: Subagent `question`-Tool Deadlock — Orchestrator Hang + Unsupervised Detached Children
+
+**Status:** 🔄 In progress (mitigations + runtime hardening in one PR)
+**Size:** M
+**Created:** 2026-11-08
+
+Incident 2026-11-07: a subagent hit a wrong-branch brief and invoked the `question` tool —
+a subagent has no interactive user, so the call parked the session forever and blocked the
+parent's dispatch for 9h34m (even a finished sibling result was trapped behind it), until the
+user manually resumed the parent. Fixes: `question: deny` for all 11 subagent agents;
+brief PR-reference hygiene (`refs/pull/<n>/head`, never hand-copied branch names); run-closure +
+resume-after-idle rules; load the task-reliability plugin into the pod's generated config;
+registry visibility (asking/stuck watchdog) for parked children.
+Follow-ups filed: BITB-270 (stream-stall watchdog), BITB-271 (upstream opencode issue).
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-269-subagent-question-deadlock-unsupervised-children.md)
+
+### 🎯 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
 
 **Status:** 🔍 In review (2026-11-08)
 **Size:** M
@@ -3471,6 +3543,132 @@ reasoning. Call-graph resolution stays out of scope (reliable edge classes only)
 ### 🎯 BITB-274: Wire All scripts/test_*.py Into CI — One Job, Not One-off Wiring
 
 **Status:** 🎯 Todo
+### 🔄 BITB-283: desktop Agent Manifest Unverified and Unpinned; wf3 Live-Spec Verification; KubeOpenCode Manifest Home Ruled `k8s/` (Owner Correction)
+
+**Status:** 🔄 In progress — wf2/wf3 converged (owner-verified); desktop promoted with its pin (BITB-285 PR); remaining: the desktop wake-or-delete decision
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-09
+
+The original pass framed the obsolete `deployment/kubeopencode/` folder as canonical and added an
+`agent-wf3.yaml` there; the 2026-11-09 **owner ruling** says the opposite — `k8s/kubeopencode/` is
+THE canonical home. Corrected in PR #1272: the deployment-folder manifest removed (the k8s tree
+already had `agent-default-wf3.yaml`, verified **field-for-field against the 2026-11-09 live export**
+— and the wf2 twin-check found the deployment and k8s copies fully identical, no drift); the whole-spec
+parity tests retargeted to the k8s wf2/wf3 twins; the controller-ownership/probe-budget/rollback-anchor
+README sections moved to the k8s README; and the folder sunset filed as **BITB-285**.
+**Owner-confirmed since (2026-11-09):** `kubectl diff` on the k8s wf2/wf3 manifests — **both empty**,
+live == repo, no apply needed for either; and the live `desktop` spec exported, so the BITB-285 PR
+**promoted `agent-desktop.yaml`** to the verified live spec (suspended since 2026-09-18, generation 2;
+no configRef/credentials — runs the controller default config, NOT the synced opencode.json) **plus
+the pin as desired state** (`agentImage:…:v0.1.9-oc1.18.31` + the `ghcr-pull` pull secret — without
+which an unsuspend would ImagePullBackOff), guarded by the manifest image-pin test. Remaining owner
+step: **decide desktop's fate** — wake it pinned or delete the Agent entirely. Rollback anchors
+recorded in the k8s README: devbox `@sha256:1be2d086…` (verified working + == upstream `:latest` on
+2026-11-09), the one-command `set image` rollback **with** the controller-reconcile-reverts-it
+caveat (BITB-284) and the durable Agent-spec `executorImage` form.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-283-agent-manifest-coverage-gap-wf3-desktop.md)
+
+### 🔄 BITB-285: Sunset the Obsolete `deployment/kubeopencode/` Folder — Consolidate KubeOpenCode Manifests and Docs in `k8s/kubeopencode/`
+
+**Status:** 🔄 In progress — implementation PR (owner sign-off pending)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-09
+
+Owner ruling (2026-11-09): `k8s/kubeopencode/` is THE canonical home for all KubeOpenCode manifests
+and docs; `deployment/kubeopencode/` is obsolete — yet it still held a live-looking `agent.yaml`
+(twin-checked identical to the canonical copy; owner `kubectl diff` on the k8s wf2/wf3 manifests
+**empty**, 2026-11-09), the `agents.md` model table, and a ~440-line runbook accumulated by merged
+PRs #1254/#1259/#1260, with no deprecation pointer. **Implemented:** the runbooks migrated and
+deduplicated into `k8s/kubeopencode/README.md` (sync/lockstep runbook + plugin verification around
+the existing *OpenCode config* section; pre-merge checklist (BITB-280); copilot access; fallback
+resilience linking the sibling-moved `agents.md`; persistence), `agent.yaml` `git rm`'d and
+`agents.md` `git mv`'d after the zero-drift twin-check, the folder left as a **stub README with
+old-section anchor redirects**, every live reference repointed per the story's table (incl. the
+BITB-280 live-gate `AGENT_YAML` constant — **both gate modes re-run green in-pod** post-retarget —
+workflow path filters, Makefile, AGENTS.md ~L300 pointer, plugin comment, SECURITY doc, k8s-tree
+self-references), **AGENTS.md Repository Layout gains the `k8s/` entry** (root-cause fix: three
+steering facts made agents land in the dead tree), and a **stub-only-folder guard test** fails CI if
+content re-accumulates. Load-bearing open-story references (BITB-161/237/269/280) got
+"(now k8s/kubeopencode/)" notes; DONE/changelog history untouched. Desktop manifest promoted in the
+same PR per BITB-283. Remaining: owner review sign-off (docs + test retargets only — no cluster
+action required).
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-285-sunset-deployment-kubeopencode-folder.md)
+
+### 🔄 BITB-284: Controller Owns the Deployment — Reconcile Re-Renders Templates and Reverts Hand-Patches; Behavior Undocumented
+
+**Status:** 🔄 In progress (README section + source investigation shipped)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-09
+
+Observed in the 2026-11-09 outage: a deployment-level `kubectl set image` was wiped by a reconcile, and
+controller restarts (40→41) re-rendered templates; BITB-172's hand-wired image historically survived only
+until the first re-render. Verified in upstream source (v0.1.9 `a54986b`, identical on main):
+`reconcileDeployment` does an unconditional `existing.Spec = desired.Spec` overwrite — and the controller
+`Owns()` the Deployment, so a hand-patch *itself triggers* the reverting reconcile. Trigger set documented:
+Agent changes, any owned-object event (including Deployment status churn from pod deletion — which is why
+the config-sync runbook's pod replacement also lands fresh `configRef` content, since the referenced
+ConfigMap is **not** watched), AgentTemplate/Task watches, controller restart, ~10h default resync.
+Guidance: nothing in the Deployment `.spec` survives reconciles — express changes in the Agent spec
+(`agentImage`/`executorImage`/`podSpec.*`…), hand-patch only as a controller-down emergency measure;
+probes are owned and not spec-expressible anywhere (→ BITB-282's upstream ask); `KubeOpenCodeConfig`
+adds no probe/server-image knobs (`systemImage` covers internal init containers only). README gains
+*What the controller owns*.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-284-controller-owns-deployment-reconcile-behavior.md)
+
+### 🚧 BITB-280: Pre-Merge Live-Config Load Gate — Boot a Scratch opencode on the Committed Config Before It Reaches the Pod
+
+**Status:** 🚧 In Progress — PR pending review
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-08
+
+The 2026-11-08 18:51 incident: the task-reliability plugin shipped with 26 green unit tests and
+was dead on arrival in the live opencode 1.18.31 loader ("Plugin export is not a function") —
+green unit tests and a dead live loader are fully compatible, because nothing in CI ever loads
+the config in a real runtime. `scripts/test-opencode-config-live.py` boots a scratch opencode
+(pinned to the pod's version, cross-checked against agent.yaml's image tag) on the tree's
+COMMITTED opencode.json with isolated HOME/XDG, asserts zero `failed to load plugin` for every
+config-listed file:// plugin (npm-resolution flakiness = warning), the roster + question-deny
+posture, verify-opencode-config and the node plugin suite, and — with a provider key — a real
+subagent dispatch (child created + completed; registry lines once #1254's config entry lands).
+`--self-test` injects the exact 18:51 bug into a plugin copy and fails unless the gate catches
+it. Runs as the `opencode Live Config Gate` CI job on every `.opencode/**`/opencode.json/
+generator/Makefile change. Follow-up when #1254 merges: wire the gate into the pod pre-flight
+(sync-opencode-workspace.sh) and let its strict scope activate.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-280-opencode-config-live-load-gate.md)
+
+### 🔄 BITB-270: LLM Stream-Stall Watchdog — Silently-Stalled Provider Streams Are Uncovered
+
+**Status:** 🔄 In progress — implementation + proofs done, PR pending review
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-08
+
+Follow-up to BITB-269 (out-of-scope item). The runtime-fallback plugin is error-driven, so a
+stream that stalls mid-generation without closing trips no retry and no timeout — only the
+1200 s stuck watchdog eventually aborts, lossily. Implemented in the task-reliability plugin:
+`message.part.delta` is the stream heartbeat; a tracked child idle beyond `STREAM_IDLE_SECONDS`
+(default 180 s) with **no tool part in `running` state** (bash-waiting is guarded) gets one
+`status: "stalled-stream"` registry line + best-effort abort. Empirical verdicts (story §1–3):
+`client.session.abort` CANNOT abort a mid-generation message on 1.18.31 (server error —
+recovery is the registry-driven parent ritual); the native `chunkTimeout` knob exists but is
+enforced for custom providers only (built-in OpenRouter ignores it) and is lossy-silent where
+it works — the plugin is the fix, `chunkTimeout` the long-term replacement if a future release
+fixes both gaps. 37/37 plugin tests; hanging-mock e2e: stall detected + recorded at ~18 s
+(10 s threshold), clean control run records no stall.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-270-llm-stream-stall-watchdog.md)
+
+### 🎯 BITB-271: Upstream opencode Issue — Subagent `question` Call Parks Forever
+
+**Status:** 🎯 Todo (owner-run external step: filing the issue)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-11-08
@@ -3481,6 +3679,14 @@ Fix: audit all ~15 scripts tests, add a `test-scripts` Make target, one CI step 
 path filter so future test files run with zero wiring.
 
 **Full Story:** [`BITB-274-scripts-tests-ci-wiring.md`](BACKLOG_STORIES/BITB-274-scripts-tests-ci-wiring.md)
+Follow-up to BITB-269 (out-of-scope item). opencode ≤1.18 lets `mode: subagent` sessions invoke
+the `question` tool with no interactive user: no default denial, no timeout, no parent routing —
+and the parent's task call is equally unbounded. Story contains a paste-ready issue draft
+(repro, log excerpts, proposed behaviors a–d); file it upstream after verifying the canonical
+tracker, record the URL, and later decide keep/retire for the local `question: deny` +
+watchdog layers.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-271-upstream-opencode-subagent-question-deadlock.md)
 
 ### 🚧 BITB-273: parity-ci oasdiff Job — Workspace-Relative Spec Paths for the Container Action
 

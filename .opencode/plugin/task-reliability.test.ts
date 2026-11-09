@@ -1,12 +1,21 @@
 /**
- * Unit tests for the task-reliability plugin's helpers (BITB-169).
+ * Unit tests for the task-reliability plugin (BITB-169) and its helper
+ * library (BITB-269 / T-1254PLG).
  *
  * Run with: node --experimental-strip-types --test .opencode/plugin/task-reliability.test.ts
  *
- * The plugin module has a side-effect-free top level and zero runtime
- * dependencies beyond node: builtins, so it can be imported directly under
- * Node's TS type-stripping. All filesystem tests run against a temp directory
- * via an explicit path argument — never the real /workspace registry.
+ * Both modules have side-effect-free top levels and zero runtime dependencies
+ * beyond node: builtins, so they can be imported directly under Node's TS
+ * type-stripping. All filesystem tests run against a temp directory via an
+ * explicit path argument — never the real /workspace registry.
+ *
+ * The helpers live in task-reliability-helpers.ts; task-reliability.ts is the
+ * opencode-loaded plugin entry whose export surface must stay exactly one
+ * default function (the opencode 1.18.31 loader contract — see the plugin
+ * module header). The last two tests enforce that contract: they are the
+ * regression tests for the 2026-11-08 live incident where the plugin was
+ * rejected with `Plugin export is not a function` because a string constant
+ * sat on the plugin module's export surface.
  */
 
 import { appendFileSync as appendFileSyncToTemp, mkdtempSync, existsSync, rmSync } from "node:fs";
@@ -17,17 +26,43 @@ import assert from "node:assert/strict";
 
 import {
   DEFAULT_REGISTRY_PATH,
+  DEFAULT_STUCK_SECONDS,
+  DEFAULT_STREAM_IDLE_SECONDS,
+  abortSession,
   appendRegistryLine,
+  detectStuckChildren,
+  detectStreamStalls,
   findActiveChild,
+  handleBusEvent,
   isCancelledTaskOutput,
   parseRegistryLine,
   readRegistryLines,
   readRegistryPath,
+  readStuckSeconds,
+  readStreamIdleSeconds,
+  recordActivity,
   recoveryHint,
   registryLineToString,
+  sweepIntervalMs,
+  trackChild,
+  untrackChild,
   type ChildInfo,
   type RegistryLine,
-} from "./task-reliability.ts";
+  type WatchdogState,
+} from "./task-reliability-helpers.ts";
+
+const freshState = (): WatchdogState => ({
+  lastActivity: new Map(),
+  stuckMarked: new Set(),
+  lastStreamActivity: new Map(),
+  toolInFlight: new Set(),
+  streamMarked: new Set(),
+});
+
+const busEvent = (type: string, properties: Record<string, unknown>): unknown => ({
+  type,
+  properties,
+});
 
 // ── parseRegistryLine ───────────────────────────────────────────────────────
 
@@ -141,7 +176,10 @@ const created = (childID: string, parentID: string): RegistryLine => ({
   childID,
   parentID,
 });
-const status = (childID: string, s: "idle" | "stop" | "error" | "deleted"): RegistryLine => ({
+const status = (
+  childID: string,
+  s: "idle" | "stop" | "error" | "deleted" | "asking" | "stuck",
+): RegistryLine => ({
   ts: "2026-09-30T18:00:01.000Z",
   kind: "status",
   childID,
@@ -241,6 +279,211 @@ test("readRegistryPath honours TASK_RELIABILITY_REGISTRY and falls back to the d
   }
 });
 
+// ── stuck-child watchdog (BITB-269) ─────────────────────────────────────────
+
+test("parseRegistryLine round-trips asking and stuck status lines", () => {
+  for (const s of ["asking", "stuck"] as const) {
+    const parsed = parseRegistryLine(
+      registryLineToString({
+        ts: "2026-11-07T23:09:29.000Z",
+        kind: "status",
+        childID: "ses_child",
+        status: s,
+      }),
+    );
+    assert.ok(parsed !== null);
+    assert.equal(parsed.kind, "status");
+    if (parsed.kind === "status") assert.equal(parsed.status, s);
+  }
+  // asking/stuck are NOT terminal — a stuck child stays recoverable.
+  const child = findActiveChild(
+    [created("ses_a", "ses_p"), status("ses_a", "asking"), status("ses_a", "stuck")],
+    "ses_p",
+  );
+  assert.ok(child !== null);
+  assert.equal(child.childID, "ses_a");
+});
+
+test("handleBusEvent records a created child and an asking line for it", () => {
+  const state = freshState();
+  const t0 = Date.parse("2026-11-07T23:02:41.000Z");
+  const lines = handleBusEvent(
+    state,
+    busEvent("session.created", { sessionID: "ses_child", parentID: "ses_parent", agent: "fullstack-engineer" }),
+    t0,
+  );
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0]?.kind, "created");
+
+  const t1 = Date.parse("2026-11-07T23:09:29.000Z");
+  const asking = handleBusEvent(
+    state,
+    busEvent("question.asked", { sessionID: "ses_child", id: "que_1b8462d6", questions: [{ question: "?" }] }),
+    t1,
+  );
+  assert.equal(asking.length, 1);
+  assert.equal(asking[0]?.kind, "status");
+  if (asking[0]?.kind === "status") {
+    assert.equal(asking[0].status, "asking");
+    assert.equal(asking[0].childID, "ses_child");
+  }
+});
+
+test("handleBusEvent ignores asking events for untracked (top-level) sessions", () => {
+  const state = freshState();
+  const lines = handleBusEvent(
+    state,
+    busEvent("question.asked", { sessionID: "ses_toplevel_user" }),
+    Date.now(),
+  );
+  assert.deepEqual(lines, []);
+});
+
+test("handleBusEvent reads the empirical opencode 1.18.31 nested session.created shape", () => {
+  // Captured live in a scratch instance (T-1254PLG): 1.18.31 emits
+  // properties = {sessionID, info: {parentID, agent, title}} — the parent
+  // linkage is nested under `info`, NOT at the properties top level. The
+  // flat-property shape (accepted as a fallback above) never occurs in
+  // 1.18.31; without this nested read no `created` line is ever written and
+  // the stuck-child watchdog never arms.
+  const state = freshState();
+  const lines = handleBusEvent(
+    state,
+    busEvent("session.created", {
+      sessionID: "ses_child",
+      info: {
+        id: "ses_child",
+        parentID: "ses_parent",
+        agent: "fullstack-engineer",
+        title: "[T-1254PLG] demo (@fullstack-engineer subagent)",
+      },
+    }),
+    Date.parse("2026-11-08T20:57:51.905Z"),
+  );
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0]?.kind, "created");
+  if (lines[0]?.kind === "created") {
+    assert.equal(lines[0].childID, "ses_child");
+    assert.equal(lines[0].parentID, "ses_parent");
+    assert.equal(lines[0].agent, "fullstack-engineer");
+    assert.equal(lines[0].title, "[T-1254PLG] demo (@fullstack-engineer subagent)");
+  }
+  // created → the child is armed in the watchdog for stuck detection.
+  assert.equal(state.lastActivity.has("ses_child"), true);
+
+  // An info object WITHOUT parentID is a top-level session — no line.
+  const topLevel = handleBusEvent(
+    state,
+    busEvent("session.created", { sessionID: "ses_top", info: { id: "ses_top" } }),
+    Date.now(),
+  );
+  assert.deepEqual(topLevel, []);
+});
+
+test("handleBusEvent marks stuck after the threshold, once per stall, and re-arms on activity", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  recordActivity(state, "ses_c", t0);
+
+  const threshold = DEFAULT_STUCK_SECONDS * 1000;
+  // Just under the threshold: not stuck yet.
+  assert.deepEqual(detectStuckChildren(state, t0 + threshold - 1, DEFAULT_STUCK_SECONDS), []);
+  // Over the threshold: stuck detected exactly once…
+  assert.deepEqual(detectStuckChildren(state, t0 + threshold, DEFAULT_STUCK_SECONDS), ["ses_c"]);
+  // …and not again for the same stall, however many sweeps run.
+  assert.deepEqual(detectStuckChildren(state, t0 + 10 * threshold, DEFAULT_STUCK_SECONDS), []);
+
+  // New activity ends the stall and re-arms detection.
+  recordActivity(state, "ses_c", t0 + 11 * threshold);
+  assert.deepEqual(detectStuckChildren(state, t0 + 11 * threshold + threshold, DEFAULT_STUCK_SECONDS), [
+    "ses_c",
+  ]);
+});
+
+test("handleBusEvent untracks children on terminal status (no stuck lines for dead children)", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  handleBusEvent(state, busEvent("session.stop", { sessionID: "ses_c" }), t0);
+  assert.deepEqual(detectStuckChildren(state, t0 + 100 * DEFAULT_STUCK_SECONDS * 1000, DEFAULT_STUCK_SECONDS), []);
+});
+
+test("handleBusEvent is inert on malformed events", () => {
+  const state = freshState();
+  assert.deepEqual(handleBusEvent(state, null, Date.now()), []);
+  assert.deepEqual(handleBusEvent(state, undefined, Date.now()), []);
+  assert.deepEqual(handleBusEvent(state, "string", Date.now()), []);
+  assert.deepEqual(handleBusEvent(state, {}, Date.now()), []);
+  assert.deepEqual(handleBusEvent(state, { type: 42 }, Date.now()), []);
+  assert.deepEqual(handleBusEvent(state, busEvent("session.created", {}), Date.now()), []);
+  assert.deepEqual(
+    handleBusEvent(state, busEvent("session.created", { parentID: "" }), Date.now()),
+    [],
+  ); // missing sessionID + empty parentID
+});
+
+test("abortSession calls client.session.abort and never throws", async () => {
+  const ok = { session: { abort: async () => ({}) } };
+  assert.equal(await abortSession(ok, "ses_c"), true);
+  // Throwing abort → false, not a rejection.
+  const bad = {
+    session: {
+      abort: async () => {
+        throw new Error("kaboom");
+      },
+    },
+  };
+  assert.equal(await abortSession(bad, "ses_c"), false);
+  // Missing / mis-shaped clients → false.
+  assert.equal(await abortSession(undefined, "ses_c"), false);
+  assert.equal(await abortSession(null, "ses_c"), false);
+  assert.equal(await abortSession({}, "ses_c"), false);
+  assert.equal(await abortSession({ session: {} }, "ses_c"), false);
+  assert.equal(await abortSession("nope", "ses_c"), false);
+});
+
+test("stuck threshold and sweep interval read env overrides safely", () => {
+  const previousStuck = process.env.TASK_RELIABILITY_STUCK_SECONDS;
+  try {
+    assert.equal(DEFAULT_STUCK_SECONDS, 1200);
+    assert.equal(readStuckSeconds(), 1200);
+    process.env.TASK_RELIABILITY_STUCK_SECONDS = "300";
+    assert.equal(readStuckSeconds(), 300);
+    process.env.TASK_RELIABILITY_STUCK_SECONDS = "not-a-number";
+    assert.equal(readStuckSeconds(), 1200);
+    process.env.TASK_RELIABILITY_STUCK_SECONDS = "-5";
+    assert.equal(readStuckSeconds(), 1200);
+    delete process.env.TASK_RELIABILITY_STUCK_SECONDS;
+    // Sweep cadence: clamped to [1s, 60s].
+    assert.equal(sweepIntervalMs(1200), 60_000);
+    assert.equal(sweepIntervalMs(100), 25_000);
+    assert.equal(sweepIntervalMs(2), 1_000);
+    assert.equal(sweepIntervalMs(-1), 1_000);
+  } finally {
+    if (previousStuck === undefined) {
+      delete process.env.TASK_RELIABILITY_STUCK_SECONDS;
+    } else {
+      process.env.TASK_RELIABILITY_STUCK_SECONDS = previousStuck;
+    }
+  }
+});
+
+test("trackChild/untrackChild keep watchdog state consistent", () => {
+  const state = freshState();
+  const t0 = 5_000_000;
+  trackChild(state, "ses_c", t0);
+  assert.equal(state.lastActivity.get("ses_c"), t0);
+  // A stuck-marked child that becomes active again is re-armed by recordActivity.
+  detectStuckChildren(state, t0 + 100 * DEFAULT_STUCK_SECONDS * 1000, DEFAULT_STUCK_SECONDS);
+  assert.equal(state.stuckMarked.has("ses_c"), true);
+  trackChild(state, "ses_c", t0 + 1); // trackChild also re-arms
+  assert.equal(state.stuckMarked.has("ses_c"), false);
+  untrackChild(state, "ses_c");
+  assert.equal(state.lastActivity.has("ses_c"), false);
+  assert.equal(state.stuckMarked.has("ses_c"), false);
+});
+
 // ── module import is side-effect-free ───────────────────────────────────────
 
 test("importing the plugin module writes nothing to the filesystem", async () => {
@@ -255,4 +498,238 @@ test("importing the plugin module writes nothing to the filesystem", async () =>
     delete process.env.TASK_RELIABILITY_REGISTRY;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ── stream-idle watchdog (BITB-270) ──────────────────────────────────────────
+
+test("stalled-stream registry lines round-trip", () => {
+  const line = registryLineToString({
+    ts: "2026-11-09T12:00:00.000Z",
+    kind: "status",
+    childID: "ses_c",
+    status: "stalled-stream",
+  });
+  const parsed = parseRegistryLine(line);
+  assert.ok(parsed !== null);
+  assert.equal(parsed.kind, "status");
+  if (parsed.kind === "status") {
+    assert.equal(parsed.status, "stalled-stream");
+    assert.equal(parsed.childID, "ses_c");
+  }
+});
+
+test("stream clock arms at track time; part deltas refresh it; idle fires once per stall", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+
+  const threshold = DEFAULT_STREAM_IDLE_SECONDS * 1000;
+  // Armed at spawn (a first token that never arrives is a stall too).
+  assert.deepEqual(detectStreamStalls(state, t0 + threshold - 1, DEFAULT_STREAM_IDLE_SECONDS), []);
+  assert.deepEqual(detectStreamStalls(state, t0 + threshold, DEFAULT_STREAM_IDLE_SECONDS), [
+    "ses_c",
+  ]);
+  // Once per stall, however many sweeps run.
+  assert.deepEqual(detectStreamStalls(state, t0 + 10 * threshold, DEFAULT_STREAM_IDLE_SECONDS), []);
+
+  // A fresh delta ends the stall and re-arms detection.
+  handleBusEvent(
+    state,
+    busEvent("message.part.delta", { sessionID: "ses_c", delta: "hi" }),
+    t0 + 11 * threshold,
+  );
+  assert.deepEqual(detectStreamStalls(state, t0 + 11 * threshold + threshold - 1, DEFAULT_STREAM_IDLE_SECONDS), []);
+  assert.deepEqual(detectStreamStalls(state, t0 + 11 * threshold + threshold, DEFAULT_STREAM_IDLE_SECONDS), [
+    "ses_c",
+  ]);
+});
+
+test("actively-streaming children are never flagged", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  // Deltas keep arriving well past the threshold.
+  for (let i = 1; i <= 5; i++) {
+    handleBusEvent(
+      state,
+      busEvent("message.part.delta", { sessionID: "ses_c", delta: "tok" }),
+      t0 + i * DEFAULT_STREAM_IDLE_SECONDS * 1000,
+    );
+  }
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 5 * DEFAULT_STREAM_IDLE_SECONDS * 1000 + 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    [],
+  );
+});
+
+test("a tool call in flight guards the detector (bash-waiting is not a stall)", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  // Tool part enters running state (empirical 1.18.31 shape: part.state.status).
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", {
+      sessionID: "ses_c",
+      part: { type: "tool", tool: "bash", state: { status: "running" } },
+    }),
+    t0,
+  );
+  // Deltas go stale far past the threshold while bash runs — no stall.
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 10 * DEFAULT_STREAM_IDLE_SECONDS * 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    [],
+  );
+  // Tool completes: the guard lifts and the clock restarts from the tool end.
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", {
+      sessionID: "ses_c",
+      part: { type: "tool", tool: "bash", state: { status: "completed" } },
+    }),
+    t0 + 10 * DEFAULT_STREAM_IDLE_SECONDS * 1000,
+  );
+  assert.deepEqual(
+    detectStreamStalls(
+      state,
+      t0 + 10 * DEFAULT_STREAM_IDLE_SECONDS * 1000 + DEFAULT_STREAM_IDLE_SECONDS * 1000 - 1,
+      DEFAULT_STREAM_IDLE_SECONDS,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    detectStreamStalls(
+      state,
+      t0 + 10 * DEFAULT_STREAM_IDLE_SECONDS * 1000 + DEFAULT_STREAM_IDLE_SECONDS * 1000,
+      DEFAULT_STREAM_IDLE_SECONDS,
+    ),
+    ["ses_c"],
+  );
+});
+
+test("session.idle clears stream tracking — no bogus stall on a collectable idle child", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  handleBusEvent(
+    state,
+    busEvent("message.part.delta", { sessionID: "ses_c", delta: "hi" }),
+    t0,
+  );
+  handleBusEvent(state, busEvent("session.idle", { sessionID: "ses_c" }), t0 + 5_000);
+  // The child sits idle (result collectable via task_id) — no stalled-stream.
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 100 * DEFAULT_STREAM_IDLE_SECONDS * 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    [],
+  );
+});
+
+test("terminal status untracks stream state along with the stuck watchdog", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  handleBusEvent(state, busEvent("session.stop", { sessionID: "ses_c" }), t0);
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 100 * DEFAULT_STREAM_IDLE_SECONDS * 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    [],
+  );
+});
+
+test("stream tracking is inert on malformed part events", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  // Garbage shapes: no throws, no state changes, no detections.
+  handleBusEvent(state, busEvent("message.part.delta", {}), t0);
+  handleBusEvent(state, busEvent("message.part.delta", { sessionID: 42 }), t0);
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", { sessionID: "ses_c", part: "not-an-object" }),
+    t0,
+  );
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", { sessionID: "ses_c", part: { type: "tool", state: "nope" } }),
+    t0,
+  );
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", { sessionID: "ses_c", part: { type: 7 } }),
+    t0,
+  );
+  // Untracked (top-level) sessions never arm stream tracking.
+  handleBusEvent(
+    state,
+    busEvent("message.part.delta", { sessionID: "ses_top", delta: "x" }),
+    t0,
+  );
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 100 * DEFAULT_STREAM_IDLE_SECONDS * 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    ["ses_c"],
+  ); // only the tracked child, armed at spawn; nothing threw
+});
+
+test("STREAM_IDLE_SECONDS env override is read safely", () => {
+  const previous = process.env.STREAM_IDLE_SECONDS;
+  try {
+    assert.equal(DEFAULT_STREAM_IDLE_SECONDS, 180);
+    assert.equal(readStreamIdleSeconds(), 180);
+    process.env.STREAM_IDLE_SECONDS = "45";
+    assert.equal(readStreamIdleSeconds(), 45);
+    process.env.STREAM_IDLE_SECONDS = "not-a-number";
+    assert.equal(readStreamIdleSeconds(), 180);
+    process.env.STREAM_IDLE_SECONDS = "0";
+    assert.equal(readStreamIdleSeconds(), 180);
+    process.env.STREAM_IDLE_SECONDS = "-9";
+    assert.equal(readStreamIdleSeconds(), 180);
+    delete process.env.STREAM_IDLE_SECONDS;
+    assert.equal(readStreamIdleSeconds(), 180);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.STREAM_IDLE_SECONDS;
+    } else {
+      process.env.STREAM_IDLE_SECONDS = previous;
+    }
+  }
+});
+
+// ── opencode 1.18.31 loader contract (BITB-269 / T-1254PLG regression) ──────
+
+test("plugin module's runtime export surface is exactly one default function", async () => {
+  // opencode 1.18.31 iterates Object.values(module) over the plugin module's
+  // export surface: ANY non-function export (a string/number constant, an
+  // options object, …) makes the whole plugin fail to load with
+  // `TypeError: Plugin export is not a function` — the exact 2026-11-08 live
+  // incident (runtime log 18:52:00Z, path
+  // file:///workspace/repo/.opencode/plugin/task-reliability.ts). The old
+  // module died on `export const DEFAULT_REGISTRY_PATH = "…"`. Helpers must
+  // live in task-reliability-helpers.ts, never re-exported here.
+  const mod = await import("./task-reliability.ts");
+  assert.deepEqual(
+    Object.keys(mod).sort(),
+    ["default"],
+    `plugin module must export only 'default', got: ${Object.keys(mod).join(", ")}`,
+  );
+  for (const [name, value] of Object.entries(mod)) {
+    assert.equal(
+      typeof value,
+      "function",
+      `export '${name}' must be a function (opencode 1.18.31 loader contract)`,
+    );
+  }
+});
+
+test("default export called as the loader calls it returns the hooks object", async () => {
+  // The loader invokes every function export as plugin(ctx, options) and
+  // registers the resolved value as the plugin's hooks. Prove the default
+  // export tolerates the real call shape and yields the hooks contract.
+  const mod = await import("./task-reliability.ts");
+  const hooks = await mod.default({ client: {}, directory: "/tmp", project: {} }, {});
+  assert.equal(hooks.name, "task-reliability");
+  assert.equal(typeof hooks.event, "function");
+  assert.equal(typeof hooks["tool.execute.after"], "function");
+  assert.equal(typeof hooks["tool.definition"], "function");
+  // A second load (auto-discovery + explicit config entry) must be harmless.
+  const again = await mod.default(undefined, undefined);
+  assert.equal(again.name, "task-reliability");
 });

@@ -81,6 +81,63 @@ one-liners may skip the relay, but still need tests where behaviour changes.
 > One-shot entry point: the `/plan-build-verify <task>` slash command
 > (`.claude/commands/plan-build-verify.md`) runs this relay end to end.
 
+## Subagent Delegation Reliability (opencode runtime)
+
+- **Subagents never ask questions.** Every `mode: subagent` agent in
+  `.opencode/agents/` has the `question` tool denied. A subagent has no
+  interactive user: a question can never be answered, and on opencode ≤1.18
+  the call parks the session forever while the parent's dispatch blocks with
+  it (incident 2026-11-07, BITB-269 — a 9h34m orchestrator hang traced to one
+  `message=asking` line in the runtime log). A builder that hits an
+  ambiguity proceeds with the best evidence-based option and reports the
+  blocker + recommendation in its final task result.
+- **Dispatch briefs identify PRs by number + `refs/pull/<n>/head`, never
+  hand-copied branch names.** The 2026-11-07 hang was triggered by a brief
+  naming the wrong branch (PR 1241's for PR 1248's), sending the child after
+  a lint violation that did not exist there until it asked.
+- **A run is not complete while a dispatched token lacks a terminal outcome**
+  (result delivered / recovered via `task_id` / confirmed dead). See the
+  orchestrator agent definition (`.opencode/agents/orchestrator.md`) for the
+  `Task cancelled` recovery checklist and the resume-after-idle ritual.
+- **The task-reliability plugin loads in the pod and watches for stuck
+  children (BITB-269).** It is wired into the generated `opencode.json`
+  (`scripts/generate-opencode-config.py`) as an absolute
+  `file:///workspace/repo/.opencode/plugin/task-reliability.ts` entry —
+  auto-discovery cannot find it in the pod (it scans `/workspace/.opencode/`,
+  which is empty; only `opencode.json` is synced into the ConfigMap) — and a
+  missing path is harmless on developer laptops (opencode silently skips it;
+  laptops load it via repo auto-discovery). On top of the BITB-169 registry it
+  records `question.asked` bus events for subagent sessions as
+  `status: "asking"` lines and, when a tracked child shows no activity for
+  `TASK_RELIABILITY_STUCK_SECONDS` (default 1200s), appends one
+  `status: "stuck"` line per stall and aborts the session best-effort via
+  the plugin `client` (`client.session.abort`) — the same un-wedge a human
+  prompt performed 9.5 hours into the 2026-11-07 incident. It also watches
+  for silently-stalled LLM streams (BITB-270, the "Class B" hang): a
+  tracked child whose stream produces no part delta/update beyond
+  `STREAM_IDLE_SECONDS` (default 180s) — with a tool call in flight
+  explicitly guarded, so a long bash run is never flagged — gets one
+  `status: "stalled-stream"` line plus the same best-effort abort. On
+  opencode 1.18.31 the abort itself cannot kill a mid-generation message
+  (`session.abort` returns a server error), so the registry line is the
+  deliverable: read it, abort/re-dispatch per the recovery ritual. The
+  stream-idle watchdog is the fast path for frozen streams; the 1200s
+  stuck watchdog remains the catch-all for hung tools. Everything stays
+  inert-by-design: hooks are try/catch-wrapped and never break a tool call
+  or startup.
+- **Plugin modules are single-export (opencode 1.18.31 loader contract,
+  BITB-269 addendum).** The runtime iterates every export of a plugin module:
+  any non-function export fails the whole load (`Plugin export is not a
+  function` — the 2026-11-08 live failure) and every function export is
+  called as `plugin(ctx, options)`, so co-resident helpers break the load
+  too. `task-reliability.ts` therefore exports ONLY the default plugin
+  function; every named helper the tests import lives in
+  `task-reliability-helpers.ts`. `make test-opencode-plugin` (and
+  `opencode-ci.yml`) run the suite that enforces this — keep it green when
+  touching the plugin. `make sync-opencode-configmap` fast-forwards the
+  pod's shared checkout to `origin/main` and runs that suite in the pod
+  before syncing the config (merge the PR first, then sync).
+
 ## Repository Layout
 
 ```text
@@ -106,7 +163,18 @@ android/              Native Android app (Kotlin / Jetpack Compose)
   app/src/main/       Main source set
   app/src/test/       JVM unit tests
 
-deployment/           Terraform configs for Azure
+k8s/                  Home-cluster KubeOpenCode deployment — THE canonical
+  kubeopencode/       home for ALL kubeopencode manifests + docs (BITB-285):
+                        Agent CRs (agent-default-wf2.yaml, agent-default-wf3.yaml,
+                        suspended agent-desktop.yaml), the agents.md model table,
+                        NetworkPolicies, least-privilege RBAC, mobile access,
+                        dev-image/, custom-opencode-image.md. deployment/kubeopencode/
+                        is an obsolete stub — never add content there.
+                        The opencode config-sync runbook + pre-merge live-config
+                        gate live in k8s/kubeopencode/README.md.
+
+deployment/           Terraform configs for Azure — ONLY Terraform (the old
+                        kubeopencode/ subfolder is an obsolete stub, BITB-285)
 scripts/              DB init, embedding generation, migrations, env validation
 data/                 Bible data files
 docs/                 Project documentation
@@ -240,6 +308,18 @@ make test                  # Backend + frontend
 make android-test          # Android JVM unit tests
 make android-test-compose  # Android Compose UI tests (Robolectric — separate tier)
 ```
+
+### opencode config changes (BITB-280)
+
+Any change to `opencode.json`, `.opencode/**`, or
+`scripts/generate-opencode-config.py` must pass the **live-config gate**
+before pushing: `make test-opencode-config-live` (boots a scratch opencode
+pinned to the pod's version against the committed config — isolated
+HOME/XDG, never the live server) and `make test-opencode-config-live-selftest`
+(proves the gate catches the 18:51 bug class: a plugin green in unit tests
+but rejected by the live loader). CI runs both on every config-path change.
+See `k8s/kubeopencode/README.md` → *Pre-merge checklist for opencode
+config changes*.
 
 ## Code Style & Linting
 
