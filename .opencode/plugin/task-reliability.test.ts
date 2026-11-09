@@ -27,9 +27,11 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_REGISTRY_PATH,
   DEFAULT_STUCK_SECONDS,
+  DEFAULT_STREAM_IDLE_SECONDS,
   abortSession,
   appendRegistryLine,
   detectStuckChildren,
+  detectStreamStalls,
   findActiveChild,
   handleBusEvent,
   isCancelledTaskOutput,
@@ -37,6 +39,7 @@ import {
   readRegistryLines,
   readRegistryPath,
   readStuckSeconds,
+  readStreamIdleSeconds,
   recordActivity,
   recoveryHint,
   registryLineToString,
@@ -51,6 +54,9 @@ import {
 const freshState = (): WatchdogState => ({
   lastActivity: new Map(),
   stuckMarked: new Set(),
+  lastStreamActivity: new Map(),
+  toolInFlight: new Set(),
+  streamMarked: new Set(),
 });
 
 const busEvent = (type: string, properties: Record<string, unknown>): unknown => ({
@@ -491,6 +497,199 @@ test("importing the plugin module writes nothing to the filesystem", async () =>
   } finally {
     delete process.env.TASK_RELIABILITY_REGISTRY;
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── stream-idle watchdog (BITB-270) ──────────────────────────────────────────
+
+test("stalled-stream registry lines round-trip", () => {
+  const line = registryLineToString({
+    ts: "2026-11-09T12:00:00.000Z",
+    kind: "status",
+    childID: "ses_c",
+    status: "stalled-stream",
+  });
+  const parsed = parseRegistryLine(line);
+  assert.ok(parsed !== null);
+  assert.equal(parsed.kind, "status");
+  if (parsed.kind === "status") {
+    assert.equal(parsed.status, "stalled-stream");
+    assert.equal(parsed.childID, "ses_c");
+  }
+});
+
+test("stream clock arms at track time; part deltas refresh it; idle fires once per stall", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+
+  const threshold = DEFAULT_STREAM_IDLE_SECONDS * 1000;
+  // Armed at spawn (a first token that never arrives is a stall too).
+  assert.deepEqual(detectStreamStalls(state, t0 + threshold - 1, DEFAULT_STREAM_IDLE_SECONDS), []);
+  assert.deepEqual(detectStreamStalls(state, t0 + threshold, DEFAULT_STREAM_IDLE_SECONDS), [
+    "ses_c",
+  ]);
+  // Once per stall, however many sweeps run.
+  assert.deepEqual(detectStreamStalls(state, t0 + 10 * threshold, DEFAULT_STREAM_IDLE_SECONDS), []);
+
+  // A fresh delta ends the stall and re-arms detection.
+  handleBusEvent(
+    state,
+    busEvent("message.part.delta", { sessionID: "ses_c", delta: "hi" }),
+    t0 + 11 * threshold,
+  );
+  assert.deepEqual(detectStreamStalls(state, t0 + 11 * threshold + threshold - 1, DEFAULT_STREAM_IDLE_SECONDS), []);
+  assert.deepEqual(detectStreamStalls(state, t0 + 11 * threshold + threshold, DEFAULT_STREAM_IDLE_SECONDS), [
+    "ses_c",
+  ]);
+});
+
+test("actively-streaming children are never flagged", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  // Deltas keep arriving well past the threshold.
+  for (let i = 1; i <= 5; i++) {
+    handleBusEvent(
+      state,
+      busEvent("message.part.delta", { sessionID: "ses_c", delta: "tok" }),
+      t0 + i * DEFAULT_STREAM_IDLE_SECONDS * 1000,
+    );
+  }
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 5 * DEFAULT_STREAM_IDLE_SECONDS * 1000 + 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    [],
+  );
+});
+
+test("a tool call in flight guards the detector (bash-waiting is not a stall)", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  // Tool part enters running state (empirical 1.18.31 shape: part.state.status).
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", {
+      sessionID: "ses_c",
+      part: { type: "tool", tool: "bash", state: { status: "running" } },
+    }),
+    t0,
+  );
+  // Deltas go stale far past the threshold while bash runs — no stall.
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 10 * DEFAULT_STREAM_IDLE_SECONDS * 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    [],
+  );
+  // Tool completes: the guard lifts and the clock restarts from the tool end.
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", {
+      sessionID: "ses_c",
+      part: { type: "tool", tool: "bash", state: { status: "completed" } },
+    }),
+    t0 + 10 * DEFAULT_STREAM_IDLE_SECONDS * 1000,
+  );
+  assert.deepEqual(
+    detectStreamStalls(
+      state,
+      t0 + 10 * DEFAULT_STREAM_IDLE_SECONDS * 1000 + DEFAULT_STREAM_IDLE_SECONDS * 1000 - 1,
+      DEFAULT_STREAM_IDLE_SECONDS,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    detectStreamStalls(
+      state,
+      t0 + 10 * DEFAULT_STREAM_IDLE_SECONDS * 1000 + DEFAULT_STREAM_IDLE_SECONDS * 1000,
+      DEFAULT_STREAM_IDLE_SECONDS,
+    ),
+    ["ses_c"],
+  );
+});
+
+test("session.idle clears stream tracking — no bogus stall on a collectable idle child", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  handleBusEvent(
+    state,
+    busEvent("message.part.delta", { sessionID: "ses_c", delta: "hi" }),
+    t0,
+  );
+  handleBusEvent(state, busEvent("session.idle", { sessionID: "ses_c" }), t0 + 5_000);
+  // The child sits idle (result collectable via task_id) — no stalled-stream.
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 100 * DEFAULT_STREAM_IDLE_SECONDS * 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    [],
+  );
+});
+
+test("terminal status untracks stream state along with the stuck watchdog", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  handleBusEvent(state, busEvent("session.stop", { sessionID: "ses_c" }), t0);
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 100 * DEFAULT_STREAM_IDLE_SECONDS * 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    [],
+  );
+});
+
+test("stream tracking is inert on malformed part events", () => {
+  const state = freshState();
+  const t0 = 1_000_000;
+  handleBusEvent(state, busEvent("session.created", { sessionID: "ses_c", parentID: "ses_p" }), t0);
+  // Garbage shapes: no throws, no state changes, no detections.
+  handleBusEvent(state, busEvent("message.part.delta", {}), t0);
+  handleBusEvent(state, busEvent("message.part.delta", { sessionID: 42 }), t0);
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", { sessionID: "ses_c", part: "not-an-object" }),
+    t0,
+  );
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", { sessionID: "ses_c", part: { type: "tool", state: "nope" } }),
+    t0,
+  );
+  handleBusEvent(
+    state,
+    busEvent("message.part.updated", { sessionID: "ses_c", part: { type: 7 } }),
+    t0,
+  );
+  // Untracked (top-level) sessions never arm stream tracking.
+  handleBusEvent(
+    state,
+    busEvent("message.part.delta", { sessionID: "ses_top", delta: "x" }),
+    t0,
+  );
+  assert.deepEqual(
+    detectStreamStalls(state, t0 + 100 * DEFAULT_STREAM_IDLE_SECONDS * 1000, DEFAULT_STREAM_IDLE_SECONDS),
+    ["ses_c"],
+  ); // only the tracked child, armed at spawn; nothing threw
+});
+
+test("STREAM_IDLE_SECONDS env override is read safely", () => {
+  const previous = process.env.STREAM_IDLE_SECONDS;
+  try {
+    assert.equal(DEFAULT_STREAM_IDLE_SECONDS, 180);
+    assert.equal(readStreamIdleSeconds(), 180);
+    process.env.STREAM_IDLE_SECONDS = "45";
+    assert.equal(readStreamIdleSeconds(), 45);
+    process.env.STREAM_IDLE_SECONDS = "not-a-number";
+    assert.equal(readStreamIdleSeconds(), 180);
+    process.env.STREAM_IDLE_SECONDS = "0";
+    assert.equal(readStreamIdleSeconds(), 180);
+    process.env.STREAM_IDLE_SECONDS = "-9";
+    assert.equal(readStreamIdleSeconds(), 180);
+    delete process.env.STREAM_IDLE_SECONDS;
+    assert.equal(readStreamIdleSeconds(), 180);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.STREAM_IDLE_SECONDS;
+    } else {
+      process.env.STREAM_IDLE_SECONDS = previous;
+    }
   }
 });
 

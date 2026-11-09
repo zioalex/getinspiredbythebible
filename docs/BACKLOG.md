@@ -24,6 +24,7 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-11-09: BITB-282 opened — 2026-11-09 outage root cause: hardcoded ~62s startup-probe budget races worst-case cold boots (~100-115s kills observed); probe fields not Agent-spec-expressible — upstream kubeopencode issue drafted (BITB-271 pattern), filing is an owner step (#1272)
 - 2026-11-09: BITB-283 corrected per the owner ruling — deployment/kubeopencode/ is obsolete (k8s/ is canonical): the deployment-folder agent-wf3.yaml addition is removed, parity tests retargeted to the k8s wf2/wf3 twins (whole-spec), rollback anchors moved to the k8s README; the k8s wf3 manifest verified field-for-field against the 2026-11-09 live export; desktop sketch still unverified (export/diff/pin owner steps; its init runs unpinned agent-opencode:latest) (#1272)
 - 2026-11-09: BITB-284 opened — controller reconcile re-renders Deployment templates and reverts hand-patches (observed 2026-11-09 + verified in upstream source v0.1.9): trigger set, configRef-not-watched nuance, and "express it in the Agent spec" guidance documented in README "What the controller owns" (#1272)
+- 2026-11-09: BITB-270 in progress — stream-stall watchdog implemented: message.part.delta heartbeat + tool-in-flight guard, STREAM_IDLE_SECONDS (180) stalled-stream registry line + best-effort abort; abort proven lossy on 1.18.31 (session.abort errors mid-generation), native chunkTimeout honored for custom providers only — plugin is the fix; 37/37 tests, hanging-mock e2e + clean control run
 - 2026-11-08: BITB-280 in progress — pre-merge live-config load gate: CI boots a scratch opencode 1.18.31 on the committed opencode.json (zero plugin-load failures, roster/question-deny checks, self-test catches the injected 18:51 bug, env-gated subagent dispatch)
 - 2026-11-08: BITB-279 in progress — generator constants (small_model, builtin fallbacks, dead MIMO/Zen IDs) moved to verified openrouter/:free models; test suite + agents.md now assert the free-tier tier-1 invariant (cross-provider rule retired) (#1259)
 - 2026-11-08: BITB-279 in progress — fallback chains broken: opencode/* Zen models never served (no pod credentials) and paid tier-2 can't rescue an exhausted key; all tier-1 fallbacks + mechanical-lane primaries moved to verified openrouter/:free models (#1259)
@@ -3614,19 +3615,25 @@ generator/Makefile change. Follow-up when #1254 merges: wire the gate into the p
 
 **Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-280-opencode-config-live-load-gate.md)
 
-### 🎯 BITB-270: LLM Stream-Stall Watchdog — Silently-Stalled Provider Streams Are Uncovered
+### 🔄 BITB-270: LLM Stream-Stall Watchdog — Silently-Stalled Provider Streams Are Uncovered
 
-**Status:** 🎯 Todo
+**Status:** 🔄 In progress — implementation + proofs done, PR pending review
 **Priority:** P2
 **Size:** M
 **Created:** 2026-11-08
 
 Follow-up to BITB-269 (out-of-scope item). The runtime-fallback plugin is error-driven, so a
 stream that stalls mid-generation without closing trips no retry and no timeout — only the
-1200 s stuck watchdog eventually aborts, lossily. Add stream-idle detection (env-thresholdable,
-~180 s) with best-effort abort + a `stalled-stream` registry line; investigate whether abort
-re-drives the loop through the fallback machinery (preferred) and whether a native config knob
-exists. Inert-by-design preserved; plugin tests extended.
+1200 s stuck watchdog eventually aborts, lossily. Implemented in the task-reliability plugin:
+`message.part.delta` is the stream heartbeat; a tracked child idle beyond `STREAM_IDLE_SECONDS`
+(default 180 s) with **no tool part in `running` state** (bash-waiting is guarded) gets one
+`status: "stalled-stream"` registry line + best-effort abort. Empirical verdicts (story §1–3):
+`client.session.abort` CANNOT abort a mid-generation message on 1.18.31 (server error —
+recovery is the registry-driven parent ritual); the native `chunkTimeout` knob exists but is
+enforced for custom providers only (built-in OpenRouter ignores it) and is lossy-silent where
+it works — the plugin is the fix, `chunkTimeout` the long-term replacement if a future release
+fixes both gaps. 37/37 plugin tests; hanging-mock e2e: stall detected + recorded at ~18 s
+(10 s threshold), clean control run records no stall.
 
 **Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-270-llm-stream-stall-watchdog.md)
 

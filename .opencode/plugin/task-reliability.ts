@@ -4,7 +4,9 @@
  * BITB-169 (L1). When the runtime-fallback plugin saves a subagent session after
  * a mid-dispatch provider failure (503, etc.), the parent's in-flight task tool
  * call is torn down anyway and reports a bare "Task cancelled" — the surviving
- * child runs on detached and its result never reaches the caller. This plugin:
+ * child runs on detached and its result never reaches the caller. This plugin
+ * (BITB-169 registry + hints, BITB-269 stuck/asking watchdog, BITB-270
+ * stream-idle watchdog):
  *
  *   1. appends every subagent session lifecycle event to a durable JSONL
  *      registry on the persistent workspace volume (survives pod restarts and
@@ -19,6 +21,17 @@
  *      child is then aborted best-effort via the plugin `client`
  *      (`client.session.abort`) — the same un-wedge a human prompt performed
  *      in the 2026-11-07 incident, which needed 9h34m to arrive.
+ *   5. watches for silently stalled LLM streams (BITB-270, the "Class B"
+ *      hang): a provider stream that freezes mid-generation without closing
+ *      throws NO error, so the error-driven runtime-fallback plugin never
+ *      fires and message processing waits. `message.part.delta` /
+ *      `message.part.updated` bus events are the stream heartbeat; when a
+ *      tracked child's stream is idle beyond STREAM_IDLE_SECONDS (default
+ *      180s) with no tool call in flight (a running tool part — e.g. a long
+ *      bash command — is legitimate work, not a stall), the watchdog appends
+ *      one `status: "stalled-stream"` registry line and aborts best-effort.
+ *      This is the FAST path; the 1200s stuck watchdog remains the catch-all
+ *      for hung tools.
  *
  * Inert by design: every hook is wrapped in try/catch, unexpected shapes are
  * no-ops, and this plugin must never break a tool call, a session, or opencode
@@ -50,12 +63,14 @@ import {
   abortSession,
   appendRegistryLine,
   detectStuckChildren,
+  detectStreamStalls,
   findActiveChild,
   handleBusEvent,
   isCancelledTaskOutput,
   readRegistryLines,
   readRegistryPath,
   readStuckSeconds,
+  readStreamIdleSeconds,
   recoveryHint,
   sweepIntervalMs,
 } from "./task-reliability-helpers.ts";
@@ -78,6 +93,9 @@ import type {
 const watchdog: WatchdogState = {
   lastActivity: new Map<string, number>(),
   stuckMarked: new Set<string>(),
+  lastStreamActivity: new Map<string, number>(),
+  toolInFlight: new Set<string>(),
+  streamMarked: new Set<string>(),
 };
 
 /** The plugin `client` captured from the plugin input (has session.abort). */
@@ -86,15 +104,26 @@ let capturedClient: unknown = undefined;
 /** One-shot inactivity sweep: stuck lines + best-effort abort. Never throws. */
 function sweep(nowMs: number): void {
   try {
-    const stuck = detectStuckChildren(watchdog, nowMs, readStuckSeconds());
-    if (stuck.length === 0) return;
     const registryPath = readRegistryPath();
     const ts = new Date(nowMs).toISOString();
+    const stuck = detectStuckChildren(watchdog, nowMs, readStuckSeconds());
     for (const childID of stuck) {
       const line: RegistryLine = { ts, kind: "status", childID, status: "stuck" };
       appendRegistryLine(registryPath, line);
       // Best-effort un-wedge (BITB-269): the same cancel a human prompt
       // performed 9h34m into the incident, delivered by the watchdog.
+      void abortSession(capturedClient, childID).catch(() => {});
+    }
+    // BITB-270 stream-idle watchdog: a tracked child whose in-flight stream
+    // went silent (no part deltas, no tool running) for STREAM_IDLE_SECONDS
+    // (default 180 — far tighter than the stuck catch-all) is a Class B
+    // silent stall: the error-driven runtime-fallback plugin never fires on
+    // it, so the watchdog records it and aborts best-effort. One line per
+    // stall; any stream signal re-arms.
+    const stalled = detectStreamStalls(watchdog, nowMs, readStreamIdleSeconds());
+    for (const childID of stalled) {
+      const line: RegistryLine = { ts, kind: "status", childID, status: "stalled-stream" };
+      appendRegistryLine(registryPath, line);
       void abortSession(capturedClient, childID).catch(() => {});
     }
   } catch {
@@ -109,7 +138,12 @@ function ensureSweepTimer(): void {
   try {
     if (sweepTimer !== null) return;
     if (watchdog.lastActivity.size === 0) return; // nothing to watch yet
-    const interval = sweepIntervalMs(readStuckSeconds());
+    // Cadence follows the TIGHTER threshold so a low STREAM_IDLE_SECONDS
+    // is actually honoured at sweep granularity (BITB-270).
+    const interval = Math.min(
+      sweepIntervalMs(readStuckSeconds()),
+      sweepIntervalMs(readStreamIdleSeconds()),
+    );
     sweepTimer = setInterval(() => {
       sweep(Date.now());
     }, interval);

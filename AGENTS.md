@@ -112,7 +112,17 @@ one-liners may skip the relay, but still need tests where behaviour changes.
   `TASK_RELIABILITY_STUCK_SECONDS` (default 1200s), appends one
   `status: "stuck"` line per stall and aborts the session best-effort via
   the plugin `client` (`client.session.abort`) — the same un-wedge a human
-  prompt performed 9.5 hours into the 2026-11-07 incident. Everything stays
+  prompt performed 9.5 hours into the 2026-11-07 incident. It also watches
+  for silently-stalled LLM streams (BITB-270, the "Class B" hang): a
+  tracked child whose stream produces no part delta/update beyond
+  `STREAM_IDLE_SECONDS` (default 180s) — with a tool call in flight
+  explicitly guarded, so a long bash run is never flagged — gets one
+  `status: "stalled-stream"` line plus the same best-effort abort. On
+  opencode 1.18.31 the abort itself cannot kill a mid-generation message
+  (`session.abort` returns a server error), so the registry line is the
+  deliverable: read it, abort/re-dispatch per the recovery ritual. The
+  stream-idle watchdog is the fast path for frozen streams; the 1200s
+  stuck watchdog remains the catch-all for hung tools. Everything stays
   inert-by-design: hooks are try/catch-wrapped and never break a tool call
   or startup.
 - **Plugin modules are single-export (opencode 1.18.31 loader contract,
