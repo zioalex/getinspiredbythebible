@@ -7,7 +7,7 @@
 	android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
 	follow-up-eval follow-up-checklist golden-test golden-live \
-	gen-opencode-config verify-opencode-config sync-opencode-configmap \
+	gen-opencode-config verify-opencode-config sync-opencode-configmap sync-opencode-workspace test-opencode-plugin \
 	parity-export parity-check \
 	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
 	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
@@ -398,13 +398,26 @@ verify-opencode-config: gen-opencode-config ## Verify generated opencode.json
 	if not any('opencode-runtime-fallback' in str(e) for e in p) else None"
 	@echo "$(GREEN)✓ Runtime-fallback plugin configured$(NC)"
 
-sync-opencode-configmap: verify-opencode-config ## Update KubeOpenCode ConfigMap from local opencode.json (manual)
+# BITB-269/T-1254PLG: the pod's shared checkout must be fast-forwarded in
+# lockstep with the config — the config loads the task-reliability plugin via
+# file:///workspace/repo/..., and a stale checkout made that entry load the
+# OLD plugin (live "Plugin export is not a function" failure, 2026-11-08).
+# Runs BEFORE the ConfigMap update: if the workspace sync (or the in-pod
+# plugin pre-flight tests) fails, nothing is synced. Merge the PR first.
+sync-opencode-configmap: verify-opencode-config sync-opencode-workspace ## Update KubeOpenCode ConfigMap + pod checkout from local opencode.json (manual)
 	@echo "$(BLUE)Syncing ConfigMap opencode-config...$(NC)"
 	@kubectl create configmap opencode-config \
 		--from-file=opencode.json=opencode.json \
 		-n kubeopencode-system \
 		--dry-run=client -o yaml | kubectl apply -f -
 	@echo "$(GREEN)✓ ConfigMap updated$(NC)"
+	@echo "$(YELLOW)Next: kubectl -n kubeopencode-system delete pod <agent-pod> — then check the runtime log for plugin load errors (see deployment/kubeopencode/README.md)$(NC)"
+
+sync-opencode-workspace: ## Fast-forward the pod's shared checkout so file:// plugins load merged code (manual, BITB-269)
+	@bash scripts/sync-opencode-workspace.sh
+
+test-opencode-plugin: ## Run the task-reliability plugin unit tests (node 22+ type-stripping, BITB-269)
+	@node --experimental-strip-types --test .opencode/plugin/task-reliability.test.ts
 
 test-kubeopencode-netpol: ## Static checks on the strict-tier NetworkPolicies (no cluster needed)
 	@$(SCRIPT_PYTHON) -m pytest scripts/test_kubeopencode_netpol.py -q

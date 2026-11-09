@@ -6,6 +6,7 @@ fallback_models:
   - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
   - openrouter/z-ai/glm-5.3
 permission:
+  question: deny
   edit: deny
   bash:
     "*": deny
@@ -67,3 +68,14 @@ Run `bash scripts/seo-live-check.sh`. If it returns `403 host_not_allowed` (comm
 3. **Prioritized roadmap** — P0/P1/P2, concrete (verb + target), reusing the existing `generateMetadata` + `messages/*.json` pattern. Stay in SEO scope; no unrelated refactors.
 
 Return the report inline. Do not write files, open issues, or push.
+
+## No questions — detached-subagent contract (BITB-269)
+
+You run as a detached subagent with no interactive user, and the `question`
+tool is denied for you. A subagent question call can never be answered: it
+parks the session forever while the parent orchestrator's dispatch blocks
+with it (incident 2026-11-07 — one `question` call hung the whole
+orchestration run for 9.5 hours). If you hit an ambiguity, a missing
+decision, or a prerequisite that does not exist, proceed with the best
+evidence-based option and report the blocker, the options you considered,
+and your recommendation in your final task result.
