@@ -31,6 +31,16 @@ cluster. The gaps these close:
   failure that surfaced the drift). These tests pin the custom image + pull
   secret on every manifest, keep default-wf3 in parity with default-wf2, and
   keep the mobile credential opt-in (exact credential match, no additions).
+- T8: BITB-283 -- the 2026-11-09 outage recovery check verified the k8s
+  wf3 manifest field-for-field against the live export. The owner then ruled
+  k8s/kubeopencode/ THE canonical manifest home (deployment/kubeopencode/ is
+  obsolete -- sunset filed as BITB-285), so the wf2/wf3 parity here is
+  upgraded from a field subset to WHOLE-SPEC equality: the subset loop misses
+  one-sided additions (a field gained by only one twin ships silently), and
+  wf3's documented contract is "the wf2 shape under a new name" with nothing
+  spec-level differing. A same-object pair in the obsolete deployment/ folder
+  was briefly added by the original BITB-283 pass and removed by the ruling;
+  its drift-detection intent lives on here, pointed at the canonical tree.
 """
 
 import pathlib
@@ -563,4 +573,36 @@ def test_wf3_agent_matches_wf2_shape(k8s_agent_spec, wf3_agent_spec):
         )
     assert _credentials_by_name(wf3_agent_spec) == _credentials_by_name(k8s_agent_spec), (
         "agent-default-wf3.yaml credentials drift from agent-default-wf2.yaml (BITB-172)"
+    )
+
+
+# --- T8: BITB-283 k8s wf2/wf3 whole-spec parity ------------------------------
+#
+# k8s/kubeopencode/ is THE canonical manifest home (owner ruling 2026-11-09;
+# the obsolete deployment/kubeopencode/ folder is sunset by BITB-285). wf3's
+# documented contract (its own header + T7) is "the wf2 shape under a new
+# name" — nothing spec-level differs; only its operator-provisioned
+# PVCs/Service differ, which are not spec fields. The T7 subset loop above
+# gives per-field diagnostics but misses ONE-SIDED ADDITIONS (a field gained
+# by only one twin — e.g. someone adds `suspend` or `maxConcurrentTasks` to
+# wf3 alone — ships silently). Whole-spec equality closes that gap.
+
+
+def test_k8s_wf3_spec_identical_to_k8s_wf2():
+    """Whole-spec parity between the canonical wf2/wf3 manifests.
+
+    wf3 exists to exercise the custom agent image as a faithful clone of
+    wf2 (BITB-172); any spec difference — changed field, one-sided
+    addition, or removal — means wf3 stopped being that clone. When the
+    two Agents legitimately need different specs someday, change this test
+    DELIBERATELY (and the wf3 header) rather than letting it drift.
+    """
+    wf2_spec = yaml.safe_load(K8S_AGENT_YAML.read_text())["spec"]
+    wf3_spec = yaml.safe_load(K8S_WF3_AGENT_YAML.read_text())["spec"]
+
+    assert wf3_spec == wf2_spec, (
+        "spec drift between k8s/kubeopencode/agent-default-wf2.yaml and "
+        "agent-default-wf3.yaml -- wf3's contract is the wf2 shape under a "
+        "new name (BITB-172); the T7 field-subset test stays green on "
+        "one-sided additions, so treat any failure here as real drift"
     )
