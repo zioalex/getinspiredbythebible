@@ -14,13 +14,13 @@ cluster-side wiring (the `configRef` pointer and credentials).
 - Secret `ai-credentials` with key `api-key` in `kubeopencode-system`
   → injected as `OPENCODE_API_KEY`
 - Secret `openrouter-api-key` with key `openrouter-api-key` in
-  `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required:
-  `android-gemini` uses paid-tier primary `openrouter/qwen/qwen3-coder`;
-  without it the agent's whole chain — primary and both fallbacks — is on
-  OpenRouter, so it has no working model; see
-  [Cross-provider Resilience](#cross-provider-resilience))
+  `kubeopencode-system` → injected as `OPENROUTER_API_KEY` (required: every
+  agent chain — primaries and fallbacks alike — is OpenRouter-only since
+  BITB-279, so this key is the graph's single provider dependency; see
+  [Fallback Resilience](#fallback-resilience))
 - Secret `github-copilot-auth` in `kubeopencode-system` → Copilot credential
-  for the `github-copilot/*` models (orchestrator, verifier, risk-auditor).
+  for the `github-copilot/*` models (wired but unused since the 2026-09-14
+  credit exhaustion — see the historical note in agents.md).
   Working mechanism today is key `token` (a `gho_…` OAuth user token) →
   injected as `GITHUB_TOKEN` (see `credentials` in agent.yaml). Key
   `auth.json` (an `opencode auth login` export) is the preferred long-lived
@@ -61,20 +61,50 @@ Agent references a ConfigMap that does not exist and will not start.
 From the repository root:
 
 ```bash
-# Regenerate opencode.json from .opencode/agents/*.md, verify it, and
+# Regenerate opencode.json from .opencode/agents/*.md, verify it, fast-forward
+# the pod's shared checkout (+ in-pod plugin pre-flight tests), and
 # create/update the ConfigMap in one step.
 make sync-opencode-configmap
 ```
 
-That target runs `verify-opencode-config` first, so a config missing agents,
-`fallback_models`, or the fallback plugin fails before it can reach the
-cluster. The equivalent raw command, if you are not using the Makefile:
+**Merge the PR before syncing.** The generated config loads the
+task-reliability plugin via an absolute
+`file:///workspace/repo/.opencode/plugin/task-reliability.ts` entry — a path
+into the pod's shared git checkout. That checkout is fast-forwarded to
+`origin/main` by the same target (`scripts/sync-opencode-workspace.sh`), so
+config and plugin code stay in lockstep; a pre-merge sync would pair new
+config with old plugin code — the exact cause of the 2026-11-08 live
+`failed to load plugin … error="Plugin export is not a function"` incident
+(BITB-269). The workspace update is fast-forward only: a diverged, dirty, or
+detached checkout fails loudly instead of being rewritten, and the agents'
+attached worktrees under `${WORKSPACE_DIR}/worktrees` are never touched.
+
+The target runs, in order:
+
+1. `verify-opencode-config` — a config missing agents, `fallback_models`,
+   or the fallback plugin fails before it can reach the cluster.
+2. `scripts/sync-opencode-workspace.sh` — `kubectl exec`s into the agent pod:
+   `git fetch origin && git merge --ff-only origin/main` in `/workspace/repo`,
+   then runs the plugin's unit tests (`node --experimental-strip-types
+   --test .opencode/plugin/task-reliability.test.ts`) **in the pod**. Those
+   tests enforce the opencode 1.18.31 plugin-loader contract (the plugin
+   module must export exactly one default function; helpers live in
+   `task-reliability-helpers.ts`) — the pre-live check that was missing when
+   the 2026-11-08 "verified" plugin turned out to be rejected by the real
+   loader.
+3. The ConfigMap update (raw command below, if you are not using the
+   Makefile).
+
+This requires the runner's kubeconfig to allow `get`/`list` on pods and
+`create` on `pods/exec` in `kubeopencode-system` (in addition to the
+ConfigMap write), plus `git` and Node 22+ inside the agent pod (shipped by
+the devbox executor image).
 
 ```bash
 make gen-opencode-config   # writes ./opencode.json
 kubectl -n kubeopencode-system create configmap opencode-config \
-  --from-file=opencode.json=opencode.json \
-  --dry-run=client -o yaml | kubectl apply -f -
+ --from-file=opencode.json=opencode.json \
+ --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 Re-run `make sync-opencode-configmap` after any change to
@@ -91,8 +121,27 @@ Verify what the cluster actually has:
 
 ```bash
 kubectl -n kubeopencode-system get configmap opencode-config \
-  -o jsonpath='{.data.opencode\.json}' | python3 -m json.tool | head -30
+ -o jsonpath='{.data.opencode\.json}' | python3 -m json.tool | head -30
 ```
+
+### After the pod restart: verify the plugin actually loaded
+
+The 2026-11-08 incident was found this way — check the runtime log inside
+the pod (`grep -a "failed to load plugin" /tmp/.local/share/opencode/log/opencode.log`)
+and confirm it has **no** `task-reliability` entry after the restart
+timestamp. Then dispatch any subagent task and confirm the durable registry
+is being written:
+
+```bash
+kubectl -n kubeopencode-system exec <agent-pod> -- \
+ sh -c 'grep -a "failed to load plugin" /tmp/.local/share/opencode/log/opencode.log | tail -3; \
+        test -f /workspace/.opencode/task-registry.jsonl && \
+        echo "registry OK:" && tail -3 /workspace/.opencode/task-registry.jsonl'
+```
+
+Expected: no new `failed to load plugin` lines, and after the first
+subagent dispatch a JSONL line like
+`{"kind":"created","childID":"ses_…","parentID":"ses_…","agent":"…","title":"…"}`.
 
 ## Pre-merge checklist for opencode config changes (BITB-280)
 
@@ -130,8 +179,17 @@ with 26 green unit tests was dead on arrival in the live loader with
    ("dispatch-level validation deferred to pod pre-flight"); everything
    else still runs. In-pod runs have the key and exercise the full
    parent→child dispatch.
-5. After merge, the sync flow applies: `make sync-opencode-configmap`,
-   then replace the pod (see below).
+5. **Free-tier tier-1 invariant (BITB-279)**: every fallback chain's
+   tier-1 hop must stay a free `openrouter/…:free` model — free models
+   draw no credit, so the chain keeps serving while the paid key is
+   exhausted (OpenRouter is the only credentialed provider; a paid tier-1
+   would die with the same key, as the 2026-11-08 21:30 outage showed).
+   The generator suite (`scripts/test_generate_opencode_config.py`)
+   asserts this — keep it green on every model change.
+6. After merge, the sync flow applies: `make sync-opencode-configmap`
+   (which also fast-forwards the pod's shared checkout in lockstep and
+   runs the in-pod plugin pre-flight tests), then replace the pod and
+   verify the plugin actually loaded (see the section above).
 
 ## Apply
 
@@ -255,7 +313,7 @@ kubectl -n kubeopencode-system get secret github-copilot-auth
 kubectl -n kubeopencode-system describe agent default-wf2
 ```
 
-## Cross-provider Resilience
+## Fallback resilience
 
 Every agent uses a **2-hop fallback chain** (free first, paid last, BITB-173)
 that ends on OpenRouter. The `opencode-runtime-fallback@0.2.4` plugin retries on
@@ -267,25 +325,29 @@ provider returning "subscription exhausted" still fails over) with
 Primary model ──429/5xx──▶ Tier 1 fallback ──429/5xx──▶ Tier 2 fallback
 ```
 
-The tier-1 hop is always cross-provider (the other provider than the
-primary), free-first / paid-last:
+The tier-1 hop is always a free `openrouter/:free` model — free models draw
+no credit, so the chain keeps serving while the paid key is exhausted
+(BITB-279; cross-provider hops are impossible: OpenRouter is the only
+credentialed provider and the only free slate):
 
-| Agent group | Primary | Tier 1 (free, cross-provider) | Tier 2 (paid) | Covers |
+| Agent group | Primary | Tier 1 (free) | Tier 2 (paid) | Covers |
 |---|---|---|---|---|
-| Global builtins + orchestrator (build/plan/general/explore/etc.) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` (strongest free) | `opencode/nemotron-3-ultra-free` (Zen) | `openrouter/openai/gpt-oss-120b` | OpenRouter outage → Zen catches |
-| 10 Zen-primary specialist subagents (`opencode/*`) | `opencode/nemotron-3-ultra-free` / `opencode/mimo-v2.6-flash-free` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/openai/gpt-oss-120b` | Zen outage → OpenRouter catches |
-| android-gemini | `openrouter/qwen/qwen3-coder` (paid) | `opencode/nemotron-3-ultra-free` (Zen) | `openrouter/openai/gpt-oss-120b` | OpenRouter outage → Zen catches |
+| Global builtins + orchestrator + 5 workhorse agents | `openrouter/z-ai/glm-5.3` (paid) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/deepseek/deepseek-v3.2-exp` | Paid-key exhaustion → free tier-1 serves at zero credit |
+| 4 skeptic agents (verifier / risk-auditor / failure-forecaster / seo-auditor) | `openrouter/deepseek/deepseek-v3.2-exp` (paid) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/z-ai/glm-5.3` | Free-tier rate caps / upstream 5xx → paid tier-2 rescues |
+| 2 mechanical agents (i18n-qa, verse-parity-keeper) | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/nvidia/nemotron-3.5-lightning:free` | `openrouter/z-ai/glm-5.3` | Free primary by design (BITB-236); de-duplicated tier-1 |
 
-An outage of either provider leaves the other provider's agents (and every
-tier-1 hop) unaffected; if both providers are down, every agent is down. `OPENROUTER_API_KEY` is therefore
-required for **runtime resilience**, not just for `android-gemini`'s paid
-primary. The per-agent table and rationale live in
+An OpenRouter gateway outage takes the whole graph down — the accepted
+single-provider trade-off (no other credentialed provider exists; revisit if
+one is ever added). `OPENROUTER_API_KEY` is the single point of provider
+dependency. The per-agent table and rationale live in
 [`agents.md`](agents.md), the source of truth; the `.opencode/agents/*.md`
 frontmatter compiled into `opencode.json` is what actually ships.
 
-> **Note (2026-09-14):** `github-copilot/claude-opus-5` was the primary for
-> orchestrator, verifier, and risk-auditor until Copilot subscription credits
-> were exhausted; those agents now use `opencode/nemotron-3-ultra-free`.
+> **Note (2026-09-14, historical):** `github-copilot/claude-opus-5` was the
+> primary for orchestrator, verifier, and risk-auditor until Copilot
+> subscription credits were exhausted; those agents moved to
+> `opencode/nemotron-3-ultra-free` at the time (itself since retired by
+> BITB-279 — the Zen gateway turned out to have no pod credentials).
 > GitHub Copilot remains wired in `agent.yaml` and can be re-enabled as a
 > primary (or as a third fallback hop) when access returns.
 
