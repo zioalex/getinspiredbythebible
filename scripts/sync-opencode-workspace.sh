@@ -28,7 +28,7 @@
 #      was missing on 2026-11-08, when a "verified" plugin had never actually
 #      been load-tested against the real loader.
 #
-# RUNBOOK (full flow in deployment/kubeopencode/README.md)
+# RUNBOOK (full flow in k8s/kubeopencode/README.md)
 #   1. Merge the PR that changes .opencode/** or opencode.json.
 #   2. make sync-opencode-configmap   (runs this script + the ConfigMap sync)
 #   3. kubectl -n kubeopencode-system delete pod <agent-pod>
