@@ -3,7 +3,7 @@ description: SEO audit of voxquieta.org and the Next.js frontend — metadata, t
 mode: subagent
 model: openrouter/deepseek/deepseek-v3.2-exp
 fallback_models:
-  - opencode/nemotron-3-ultra-free
+  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
   - openrouter/z-ai/glm-5.3
 permission:
   question: deny

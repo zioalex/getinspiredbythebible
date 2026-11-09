@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-279 in progress — generator constants (small_model, builtin fallbacks, dead MIMO/Zen IDs) moved to verified openrouter/:free models; test suite + agents.md now assert the free-tier tier-1 invariant (cross-provider rule retired) (#1259)
+- 2026-11-08: BITB-279 in progress — fallback chains broken: opencode/* Zen models never served (no pod credentials) and paid tier-2 can't rescue an exhausted key; all tier-1 fallbacks + mechanical-lane primaries moved to verified openrouter/:free models (#1259)
 - 2026-11-08: BITB-269 addendum — plugin load failed live (`Plugin export is not a function`): loader contract pinned (single default export; helpers split into task-reliability-helpers.ts; nested `properties.info.parentID` read), tests wired into CI + pod pre-flight, `make sync-opencode-configmap` now also fast-forwards the pod checkout so config and plugin code stay in lockstep (#1254)
 - 2026-11-08: BITB-271 created — upstream opencode issue: subagent `question` call parks forever (no default deny/timeout/parent routing); paste-ready draft in the story, filing is an owner step (#1254)
 - 2026-11-08: BITB-270 created — LLM stream-stall watchdog: error-driven fallback misses silently-stalled streams; stream-idle detection + abort/registry line with a tight threshold (#1254)
@@ -342,6 +344,23 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🔄 BITB-279: Broken Fallback Chains — `opencode/*` Models Never Serve; Paid Tier-2 Can't Rescue an Exhausted Key
+
+**Status:** 🔄 In progress (chains + generator constants fixed; BITB-280 live-load gate follows)
+**Size:** S + S follow-up
+**Created:** 2026-11-08
+
+Incident 2026-11-08 21:30-21:36: during weekly-key exhaustion every paid call 402'd and the
+fallback plugin could not recover — tier-1 (`opencode/nemotron-3-ultra-free`) failed silently
+(no Zen-gateway credentials in the pod) and tier-2 (paid glm/deepseek) shared the dead key;
+`Max fallback attempts reached` killed every lane until a manual model switch. Fix: all tier-1
+fallbacks and the mechanical lanes' primaries now use verified `openrouter/nvidia/*:free`
+models (free models draw no credit, so the chain survives a dead key); paid tier-2 stays as the
+defense for rate caps / upstream outages. Generator constants (`small_model`, builtin
+fallbacks) fixed in the same PR; remaining follow-up: BITB-280 live-load CI gate.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-279-opencode-fallback-chain-broken.md)
 
 ### 🔄 BITB-269: Subagent `question`-Tool Deadlock — Orchestrator Hang + Unsupervised Detached Children
 

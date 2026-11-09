@@ -1,9 +1,9 @@
 ---
 description: Keeps the three verse-reference parsers (backend, frontend, Android) in sync across all 11 languages and representative Bible versions
 mode: subagent
-model: opencode/mimo-v2.6-flash-free
+model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
 fallback_models:
-  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+  - openrouter/nvidia/nemotron-3.5-lightning:free
   - openrouter/z-ai/glm-5.3
 tools:
   bash: true

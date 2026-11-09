@@ -3,7 +3,7 @@ description: Full stack engineer for FastAPI backend, Next.js frontend, PostgreS
 mode: subagent
 model: openrouter/z-ai/glm-5.3
 fallback_models:
-  - opencode/nemotron-3-ultra-free
+  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
   - openrouter/deepseek/deepseek-v3.2-exp
 tools:
   bash: true
