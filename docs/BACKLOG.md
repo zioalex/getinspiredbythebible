@@ -20,6 +20,9 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-09: BITB-282 opened — 2026-11-09 outage root cause: hardcoded ~62s startup-probe budget races worst-case cold boots (~100-115s kills observed); probe fields not Agent-spec-expressible — upstream kubeopencode issue drafted (BITB-271 pattern), filing is an owner step
+- 2026-11-09: BITB-283 opened — default-wf3 Agent manifest added to the canonical deployment folder from the verified live spec (field-for-field identical to its k8s twin; whole-spec parity tests added, BITB-171 pattern); desktop manifest unverified (k8s example sketch — export/diff/pin are owner steps; its init runs unpinned agent-opencode:latest, a binary-contract risk); known-good devbox digest rollback anchors added to the kubeopencode README
+- 2026-11-09: BITB-284 opened — controller reconcile re-renders Deployment templates and reverts hand-patches (observed 2026-11-09 + verified in upstream source v0.1.9): trigger set, configRef-not-watched nuance, and "express it in the Agent spec" guidance documented in README "What the controller owns"
 - 2026-11-08: BITB-280 in progress — pre-merge live-config load gate: CI boots a scratch opencode 1.18.31 on the committed opencode.json (zero plugin-load failures, roster/question-deny checks, self-test catches the injected 18:51 bug, env-gated subagent dispatch)
 - 2026-11-08: BITB-279 in progress — generator constants (small_model, builtin fallbacks, dead MIMO/Zen IDs) moved to verified openrouter/:free models; test suite + agents.md now assert the free-tier tier-1 invariant (cross-provider rule retired) (#1259)
 - 2026-11-08: BITB-279 in progress — fallback chains broken: opencode/* Zen models never served (no pod credentials) and paid tier-2 can't rescue an exhausted key; all tier-1 fallbacks + mechanical-lane primaries moved to verified openrouter/:free models (#1259)
@@ -345,6 +348,31 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🔄 BITB-282: Startup-Probe Budget Too Tight for Cold Boots — 2026-11-09 Agent Outage (Slow Boot + Transient Network Dip = Kill Loop)
+
+**Status:** 🔄 In progress (constraint documented + upstream issue drafted; the probe is hardcoded in the kubeopencode controller — not fixable from this repo)
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-09
+
+Incident 2026-11-09 ~09:10–09:56 UTC: after a ConfigMap sync + pod replacement, new pods cold-pulled the
+748MB devbox image at ~2.2 MB/s (5m33s) and the `opencode-server` startup probe (`GET /session/status`)
+then killed the container at ~100–115s — ~65s of `connection refused` plus ~50s of `context deadline
+exceeded` while opencode plugin/npm resolution crawled on the same degraded network → kill/restart loop
+(5 restarts). It self-healed with no intervention when the network dip cleared, and the image was proven
+fine (running-healthy digest == pulled digest == upstream `:latest`, GHCR API check — an "upstream broke
+:latest" hypothesis was retracted). Root cause: the controller hardcodes the startup probe
+(`initialDelay=2, period=2, timeout=5, failureThreshold=30` — the upstream comment sizes it at "62s max
+startup time"; hanging probes stretch the wall clock toward ~150s) and the Agent spec exposes no probe
+fields (verified across `AgentSpec`/`podSpec`/`systemContainers`/`AgentTemplate`/`KubeOpenCodeConfig`,
+v0.1.9 + current main), so worst-case cold boots needing ~300s cannot boot and deployment-level probe
+patches are reverted by the reconcile (BITB-284). Interim: don't panic-roll images on probe-kill loops
+(self-heal is the observed outcome), keep pods warm (BITB-128), rollback anchors for verified image
+breakage (BITB-283). Upstream issue drafted in the story (BITB-271 pattern; filing = owner step);
+README *What the controller owns* → *Startup-probe budget* documents the constraint.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-282-startup-probe-budget-cold-boot-outage.md)
 
 ### 🔄 BITB-279: Broken Fallback Chains — `opencode/*` Models Never Serve; Paid Tier-2 Can't Rescue an Exhausted Key
 
@@ -3486,6 +3514,56 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🔄 BITB-283: Agent Manifest Coverage Gap — `default-wf3` Absent From the Canonical Deployment Folder; `desktop` Manifest Unverified and Unpinned
+
+**Status:** 🔄 In progress (`agent-wf3.yaml` + parity tests added; desktop verification is an unticked owner step)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-09
+
+The cluster runs three Agent instances, but the canonical `deployment/kubeopencode/` folder — the
+runbook an operator follows in an incident — covered only `default-wf2`; wf3/desktop lived only in
+the `k8s/kubeopencode/` home-cluster tree (and desktop's entry there is an unverified "Example"
+sketch). During the 2026-11-09 outage, "what does default-wf3 run?" had to be answered from the
+live cluster. This PR adds `deployment/kubeopencode/agent-wf3.yaml` from the verified 2026-11-09
+live export (field-for-field identical to `k8s/kubeopencode/agent-default-wf3.yaml` — verified
+while transcribing) and, because two manifests now declare one object (the BITB-171 drift shape),
+extends `scripts/test_kubeopencode_manifests.py` with whole-spec parity tests + image-pin and
+credential-documentation coverage for the new file (30 tests green; parity proven to fail on
+injected drift). `desktop` gets **no new manifest** — its k8s sketch is unverified and applying it
+blindly would strip live fields (BITB-171 class); owner steps: export live, diff against the
+sketch, **pin its unpinned `agentImage:latest`** (binary-version contract risk — an upstream
+opencode bump changes the config/loader contract and the BITB-280 gate can't see an untracked
+agent), promote a verified copy. Also adds the README *Known-good image digests (rollback anchors)*
+note: `kubeopencode-agent-devbox@sha256:1be2d086…` (verified working + == upstream `:latest` on
+2026-11-09), the one-command `set image` rollback **with** the controller-reconcile-reverts-it
+caveat (BITB-284) and the durable Agent-spec `executorImage` form.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-283-agent-manifest-coverage-gap-wf3-desktop.md)
+
+### 🔄 BITB-284: Controller Owns the Deployment — Reconcile Re-Renders Templates and Reverts Hand-Patches; Behavior Undocumented
+
+**Status:** 🔄 In progress (README section + source investigation shipped)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-09
+
+Observed in the 2026-11-09 outage: a deployment-level `kubectl set image` was wiped by a reconcile, and
+controller restarts (40→41) re-rendered templates; BITB-172's hand-wired image historically survived only
+until the first re-render. Verified in upstream source (v0.1.9 `a54986b`, identical on main):
+`reconcileDeployment` does an unconditional `existing.Spec = desired.Spec` overwrite — and the controller
+`Owns()` the Deployment, so a hand-patch *itself triggers* the reverting reconcile. Trigger set documented:
+Agent changes, any owned-object event (including Deployment status churn from pod deletion — which is why
+the config-sync runbook's pod replacement also lands fresh `configRef` content, since the referenced
+ConfigMap is **not** watched), AgentTemplate/Task watches, controller restart, ~10h default resync.
+Guidance: nothing in the Deployment `.spec` survives reconciles — express changes in the Agent spec
+(`agentImage`/`executorImage`/`podSpec.*`…), hand-patch only as a controller-down emergency measure;
+probes are owned and not spec-expressible anywhere (→ BITB-282's upstream ask); `KubeOpenCodeConfig`
+adds no probe/server-image knobs (`systemImage` covers internal init containers only). README gains
+*What the controller owns*.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-284-controller-owns-deployment-reconcile-behavior.md)
 
 ### 🚧 BITB-280: Pre-Merge Live-Config Load Gate — Boot a Scratch opencode on the Committed Config Before It Reaches the Pod
 
