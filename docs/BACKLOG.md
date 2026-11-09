@@ -8,7 +8,7 @@ Prioritized list of user stories and features for Vox Quieta.
 
 > **Convention (enforced since 2026-10-22): one entry per line, newest first, append-only.**
 >
-> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#1275)`
+> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#PR)`
 >
 > - Add your entry **directly below this blockquote**, at the top of the list.
 > - **Never edit, reword, or reorder existing entries** — a status change gets a
