@@ -40,14 +40,28 @@ by a stronger model and the bulk implementation by a faster one:
 
    > **Why the strongest model verifies (not a cheaper one).** Verification is
    > the hardest reasoning step — catching a subtle bug the builder missed is
-   > harder than writing the code — so it runs on the strongest reasoner, not a
-   > weaker model that would rubber-stamp the very bugs it should catch. The
+   > harder than writing the code — so it runs on the strongest reasoner, not
+   > a weaker one that would rubber-stamp the very bugs it should catch. The
    > lever that makes it independent is a *fresh subagent with no build context*
    > that actually **runs the tests**, not model diversity. If you want a second,
    > uncorrelated pass, add a **Sonnet 5** verifier alongside (different lineage,
    > fails differently) — but keep Opus in the primary critic seat. **Haiku 4.5**
    > is only for cheap pre-gating (lint / typecheck / a quick smoke run), never
    > the final correctness verifier.
+   >
+   > **Risk-tier the verification (BITB-286).** A fresh verifier session is
+   > **mandatory** for high-risk diffs: application code, security, the
+   > opencode plugin/config, infra manifests, anything a green CI run cannot
+   > semantically judge. For **low-risk, mechanical changes** — docs-only,
+   > generated-config regeneration, mechanical merge reconciliation,
+   > backlog/story edits — builder self-verification + green CI + the
+   > orchestrator's targeted spot-checks suffice; do not spend a verifier
+   > session on changes CI already gates mechanically (2026-11-09: two
+   > verifier dispatches returned "cannot verify" static reviews that the
+   > orchestrator redid in a handful of cheap commands). When you DO dispatch
+   > the verifier, make sure its tool allowlist actually covers the
+   > verification work (gh status polls, node test runs, venv python) — a
+   > verifier that cannot execute is theater, not verification.
 
 **Loop back until it passes.** The relay is a loop, not a single pass:
 Verify FAIL (or red CI on the PR) → hand the findings back to Build as a fix

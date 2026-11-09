@@ -11,10 +11,29 @@ permission:
   bash:
     "*": deny
     "python *pytest*": allow
+    "python3 -c *": allow
+    "python3 -m pytest*": allow
+    "/workspace/repo/.venv/bin/python *pytest*": allow
+    "/workspace/repo/.venv/bin/python -c *": allow
+    "/workspace/repo/.venv/bin/pre-commit run*": allow
+    "PATH=*python*pytest*": allow
+    "node --test*": allow
+    "node --experimental-strip-types*": allow
     "npm *lint*": allow
     "npx *tsc*": allow
     "npx *vitest*": allow
     "./gradlew *test*": allow
+    "make test*": allow
+    "make verify-opencode-config*": allow
+    "make gen-opencode-config*": allow
+    "make pre-commit*": allow
+    "gh pr view*": allow
+    "gh pr list*": allow
+    "gh pr diff*": allow
+    "gh run view*": allow
+    "gh run list*": allow
+    "timeout * *pytest*": allow
+    "timeout * node*": allow
     "git *": allow
     "grep *": allow
     "find *": allow
