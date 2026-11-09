@@ -46,4 +46,4 @@ lingua-language-detector==2.2.0
 pyyaml>=6.0.3
 
 # CORS
-python-multipart==0.0.32
+python-multipart==0.0.33
