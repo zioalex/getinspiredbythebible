@@ -408,7 +408,7 @@ variable "chat_follow_ups_enabled" {
 }
 
 variable "web_follow_ups_enabled" {
-  description = "Show the BITB-080 follow-up chips on the WEB client only. Baked into the frontend image at build time as NEXT_PUBLIC_FOLLOW_UPS_ENABLED: Next.js inlines NEXT_PUBLIC_* during `next build`, so azure-deploy.yml reads this flag from terraform.tfvars and passes it as a docker build-arg — it is NOT a runtime Container App env var. Android stays dark: its gate is compile-time (CHAT_FOLLOW_UPS_ENABLED BuildConfig, PR #1217), default off. Flipping it requires a frontend image rebuild to take effect."
+  description = "Show the BITB-080 follow-up chips on the WEB client only. Baked into the frontend image at build time as NEXT_PUBLIC_FOLLOW_UPS_ENABLED: Next.js inlines NEXT_PUBLIC_* during `next build`, so azure-deploy.yml reads this flag from terraform.tfvars and passes it as a docker build-arg — it is NOT a runtime Container App env var. Android's gate is compile-time (CHAT_FOLLOW_UPS_ENABLED BuildConfig, PR #1217) and default-on since BITB-278 (per-build kill switch: -PchatFollowUpsEnabled=false). Flipping the web flag requires a frontend image rebuild to take effect."
   type        = bool
   default     = false
 }

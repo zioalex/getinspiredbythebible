@@ -13,16 +13,16 @@ import org.voxquieta.app.presentation.screens.shouldShowFollowUps
  * message, only when the app isn't loading/session-limited, and only when the
  * backend actually sent suggestions for this turn.
  *
- * The default-off Android rollout gate (parent story BITB-080) is covered too:
- * with the flag OFF nothing renders even when `follow_ups` arrived in the
- * stream (Android stays dark until its own later rollout); with the flag ON
- * the existing behavior resumes unchanged.
+ * The Android rollout gate (parent story BITB-080) is covered too: with the
+ * flag OFF nothing renders even when `follow_ups` arrived in the stream;
+ * with the flag ON (the default since BITB-278) the existing behavior is
+ * unchanged.
  */
 class ShouldShowFollowUpsTest {
 
     // Baseline "all conditions satisfied" arguments — each test below flips
     // exactly one of them to false and asserts the result flips to false too.
-    // `enabled = true` stands in for the future flipped-on rollout state.
+    // `enabled = true` matches the default-on rollout state (BITB-278).
     private val lastIndex = 4
     private val followUps = listOf("What does this mean?", "Tell me more")
 
@@ -116,7 +116,7 @@ class ShouldShowFollowUpsTest {
         )
     }
 
-    // ── BITB-080 default-off rollout gate ─────────────────────────────────────
+    // ── BITB-080 rollout gate ─────────────────────────────────────────────────
 
     @Test
     fun `false when the rollout gate is off even with follow-ups present in the stream`() {
@@ -134,11 +134,12 @@ class ShouldShowFollowUpsTest {
     }
 
     @Test
-    fun `default gate mirrors the compile-time BuildConfig flag (default off)`() {
-        // The default value comes from BuildConfig.CHAT_FOLLOW_UPS_ENABLED, which
-        // is false unless the build passes -PchatFollowUpsEnabled=true. Unit tests
-        // run against the debug BuildConfig, so the default must be OFF here.
-        assertFalse(
+    fun `default gate mirrors the compile-time BuildConfig flag (default on)`() {
+        // The default value comes from BuildConfig.CHAT_FOLLOW_UPS_ENABLED,
+        // which is true since the BITB-278 rollout flip unless the build
+        // passes -PchatFollowUpsEnabled=false. Unit tests run against the
+        // debug BuildConfig, so the default must be ON here.
+        assertTrue(
             shouldShowFollowUps(
                 index = lastIndex,
                 lastIndex = lastIndex,

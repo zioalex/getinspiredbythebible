@@ -22,6 +22,7 @@ Prioritized list of user stories and features for Vox Quieta.
 
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
+- 2026-11-08: BITB-278 opened — Android follow-up chips round: flip the default-off `CHAT_FOLLOW_UPS_ENABLED` BuildConfig gate on and restyle the stock SuggestionChip to match the web chip colors (light: white / #E6D0B8 border / #374151 label); user-reported "colors a bit off" when side-loading a flag-on build (BITB-080/149/254 follow-up)
 - 2026-11-08: BITB-261 ✅ Done — stage 1 of the parity KG merged: OpenAPI artifact + stale-artifact CI gate + oasdiff-action (#1253); env-stripping determinism + audit regen adopted from #1251; follow-ups BITB-274/275/276/277 filed
 - 2026-11-09: BITB-285 in progress — implemented: runbooks migrated into k8s/kubeopencode/README.md (sync/lockstep, pre-merge checklist, copilot, fallback, persistence; agents.md moved as sibling), deployment folder stubbed with anchor redirects (agent.yaml removed after zero-drift twin-check), ~30 live refs repointed (live-gate AGENT_YAML + both modes re-run green in-pod), AGENTS.md Repository Layout gains k8s/ (root-cause fix), stub-only-folder guard test; desktop manifest promoted from the owner-exported verified live spec with the agentImage pin as desired state (wake-or-delete = owner decision) (#1273)
 - 2026-11-09: BITB-285 opened — owner ruling: k8s/kubeopencode/ is THE canonical KubeOpenCode manifest/docs home, deployment/kubeopencode/ obsolete; story covers runbook migration, manifest twin reconciliation, deprecation stub, AGENTS.md Repository Layout fix + stale ~L300 pointer, and the 30-hit live reference repoint (reproducible grep in the story); implementation deferred to a follow-up PR (#1272)
@@ -3576,6 +3577,34 @@ shipping user-visible features:
    lane.
 
 **Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-287-process-cost-tooling.md)
+
+### 🚧 BITB-278: Enable Follow-Up Chips on Android + Match Web Chip Colors
+
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-08
+
+Web follow-up chips are live in prod (#1219) with the drop-off fix merged (#1231); Android still ships
+dark behind the default-off compile-time `CHAT_FOLLOW_UPS_ENABLED` gate, and a side-loaded flag-on
+build showed chips with stock Material colors that don't match web. Flip the gate's default on
+(retain `-PchatFollowUpsEnabled=false` as the per-build kill switch), restyle `FollowUpChips.kt` to
+match the web chip (light: white container / #E6D0B8 border / #374151 label; dark stays
+scheme-neutral — not the blue `primary`), refresh every stale "Android stays dark" comment, and pin
+both palettes with tests. The next release-please cycle publishes the enabled AAB to the Play
+internal track.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `bundleRelease` with no -P properties ships chips enabled (BuildConfig default `true`)
+- [ ] Light-mode chip colors match web exactly — pinned by test; dark-mode stays readable/neutral — pinned by test
+- [ ] Existing render/a11y/tap/gate Compose tests pass unchanged
+- [ ] `api/tests/test_follow_ups_flag_plumbing.py` still passes after the comment refresh
+- [ ] Android CI green on the PR
+
+**Full Story:** [`BITB-278-android-follow-ups-rollout-enable-and-web-parity-colors.md`](BACKLOG_STORIES/BITB-278-android-follow-ups-rollout-enable-and-web-parity-colors.md)
+
+---
 
 ### 🎯 BITB-277: Parity KG Stage 4 — Application Code-Structure Layer
 

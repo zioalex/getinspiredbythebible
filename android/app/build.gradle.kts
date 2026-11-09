@@ -75,11 +75,14 @@ android {
 
         testInstrumentationRunner = "org.voxquieta.app.HiltTestRunner"
         // BITB-080 Android rollout gate (parent of BITB-149): the backend's
-        // chat_follow_ups_enabled flag now streams `follow_ups` to ALL clients, but
-        // Android stays DARK until its own later rollout. Default OFF; flip later
-        // per-build with -PchatFollowUpsEnabled=true (same compile-time BuildConfig
-        // pattern as FIREBASE_ENABLED below in buildTypes).
-        buildConfigField("Boolean", "CHAT_FOLLOW_UPS_ENABLED", gradleProp("chatFollowUpsEnabled", "false"))
+        // chat_follow_ups_enabled flag streams `follow_ups` to ALL clients.
+        // ON by default since BITB-278: web went live in prod via #1219 and the
+        // drop-off fix #1231 (BITB-254) merged, so Android follows with chips
+        // matching the web styling. The gradleProp override stays as the
+        // per-build kill switch: -PchatFollowUpsEnabled=false force-disables
+        // any build and reproduces the old dark behavior (same compile-time
+        // BuildConfig pattern as FIREBASE_ENABLED below in buildTypes).
+        buildConfigField("Boolean", "CHAT_FOLLOW_UPS_ENABLED", gradleProp("chatFollowUpsEnabled", "true"))
         vectorDrawables {
             useSupportLibrary = true
         }
