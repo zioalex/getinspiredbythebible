@@ -8,7 +8,7 @@ Prioritized list of user stories and features for Vox Quieta.
 
 > **Convention (enforced since 2026-10-22): one entry per line, newest first, append-only.**
 >
-> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#PR)`
+> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#1275)`
 >
 > - Add your entry **directly below this blockquote**, at the top of the list.
 > - **Never edit, reword, or reorder existing entries** — a status change gets a
@@ -20,8 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#PR)
-- 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#PR)
+- 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
+- 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-285 in progress — implemented: runbooks migrated into k8s/kubeopencode/README.md (sync/lockstep, pre-merge checklist, copilot, fallback, persistence; agents.md moved as sibling), deployment folder stubbed with anchor redirects (agent.yaml removed after zero-drift twin-check), ~30 live refs repointed (live-gate AGENT_YAML + both modes re-run green in-pod), AGENTS.md Repository Layout gains k8s/ (root-cause fix), stub-only-folder guard test; desktop manifest promoted from the owner-exported verified live spec with the agentImage pin as desired state (wake-or-delete = owner decision) (#1273)
 - 2026-11-09: BITB-285 opened — owner ruling: k8s/kubeopencode/ is THE canonical KubeOpenCode manifest/docs home, deployment/kubeopencode/ obsolete; story covers runbook migration, manifest twin reconciliation, deprecation stub, AGENTS.md Repository Layout fix + stale ~L300 pointer, and the 30-hit live reference repoint (reproducible grep in the story); implementation deferred to a follow-up PR (#1272)
 - 2026-11-09: BITB-282 opened — 2026-11-09 outage root cause: hardcoded ~62s startup-probe budget races worst-case cold boots (~100-115s kills observed); probe fields not Agent-spec-expressible — upstream kubeopencode issue drafted (BITB-271 pattern), filing is an owner step (#1272)
