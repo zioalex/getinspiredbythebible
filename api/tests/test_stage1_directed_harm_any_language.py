@@ -374,6 +374,12 @@ DIE_TO_SIN = [
 TIGHTENING_NEGATIVES = [
     "Se muori, vai in paradiso?",
     "Ok, muori?",
+    "Se non mangi, muori.",
+    "Se bevi il veleno, muori.",
+    "Nel gioco, se tocchi la lava, muori!",
+    "Prima o poi, muori.",
+    "Je pense que tu vas crever un pneu",
+    "Je pense que tu vas crever l'abcès",
     "Quando muori, dove vai?",
     "Ora muori al peccato",
     "Giochiamo a carte, morra, scacchi",

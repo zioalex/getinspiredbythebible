@@ -1845,7 +1845,9 @@ class MultiLanguageContentFilter:
             r"\bvattene a fanculo\b",
             r"\bti ammazzo\b",
             _DH_START + _DH_IT_LEAD + r"muori" + _DH_IT_TAIL + _DH_END,
-            r",\s*muori" + _DH_IT_TAIL + _DH_END_STRONG,
+            r"\b(?:inutile|stupid[oa]|idiota|bastard[oa]|schifos[oa]|maledett[oa])\s*,\s*muori"
+            + _DH_IT_TAIL
+            + _DH_END_STRONG,
             r"\bmuori,?\s+(?:bastard|stronz|maledett|schifos)\w*",
             r"\bspero che tu muoia\b" + _DH_IT_DIE_TO,
             r"\bspero che tu muoia\b[^.!?\n]{0,60}\b(?:bastard|stronz|maledett|schifos|inutil)\w*",
@@ -1870,7 +1872,7 @@ class MultiLanguageContentFilter:
             r"\bcrève,?\s+(?:(?:sale|espèce\s+de)\s+)?"
             r"(?:connard|salaud|salope|ordure|charogne|enfoiré|pourriture)\w*",
             r"\bva\s+crever\b",
-            r"\bque\s+tu\s+vas\s+crever\b(?!\s+(?:de|d['’]))",
+            r"\bque\s+tu\s+vas\s+crever" + _DH_END_STRONG,
             r"\bque tu crèves\b",
         ],
         "pt": [
