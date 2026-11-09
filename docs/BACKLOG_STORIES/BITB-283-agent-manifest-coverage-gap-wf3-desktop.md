@@ -1,6 +1,6 @@
 # BITB-283: desktop Agent Manifest Unverified and Unpinned; wf3 Live-Spec Verification; KubeOpenCode Manifest Home Ruled `k8s/` (Owner Correction)
 
-**Status:** 🔄 In progress — PR #1272 (desktop verification + upstream-adjacent steps are unticked owner steps)
+**Status:** 🔄 In progress — wf2/wf3 verified converged (owner kubectl diff, 2026-11-09) and the desktop manifest promoted with its pin (BITB-285 PR); remaining: the owner's desktop wake-or-delete decision (+ the BITB-282 upstream filings)
 **Priority:** P2
 **Size:** S
 **Created:** 2026-11-09
@@ -91,63 +91,44 @@ twin-check (2026-11-09) found **no drift** between the deployment and k8s
 copies, so BITB-285's eventual `git rm` of the deployment copy loses
 nothing.
 
-## desktop: an example sketch is not a verified manifest (owner steps)
+## desktop: sketch verified against live; pin committed as desired state
 
-`k8s/kubeopencode/agent-desktop.yaml` exists but the k8s README itself
-calls it an **"Example `desktop` Agent"** — a design sketch (strict-tier
-egress annotations, sessions-only persistence, 30m standby, **no
-configRef/config, no credentials, no `agentImage`**), with no evidence it
-matches the live object. The 2026-11-09 review of the live cluster knows
-only fragments (name `desktop`, `serviceAccountName: kubeopencode-agent`,
-derived `desktop-server` deployment / `desktop` service) — nothing
-confirms the sketch's persistence/standby/annotations are what live
-actually runs.
+**Update (2026-11-09, owner round + BITB-285 PR):** the owner exported the
+live `desktop` spec and confirmed the facts below, and the BITB-285
+implementation PR **promoted the manifest** — `k8s/kubeopencode/agent-desktop.yaml`
+is now the verified live spec (strict-tier annotations, sessions-only
+persistence, 30m standby, `suspend: true` at generation 2 — added after the
+original apply per the last-applied annotation; suspended since 2026-09-18)
+**plus the pinning fix as DESIRED state**: `agentImage:
+ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31` + the
+`ghcr-pull` pull secret (REQUIRED with the pin — the private package means
+an unsuspend without the secret would ImagePullBackOff). The manifest header
+documents all of this; applying the pin is a **no-op while suspended** (the
+controller scales the deployment to 0 — no pod, no pull, no probe).
 
-**Applying the sketch as-is would be destructive** — a `kubectl apply` of
-a manifest missing fields that exist live removes them (client-side apply
-diffs against last-applied; this is precisely how BITB-171 stripped
-persistence from live wf2). So no manifest is added or edited for desktop
-in this PR.
+The live export confirmed the earlier reading: desktop sets **no configRef
+and no credentials** — it runs the controller default config, NOT the
+synced `opencode.json` (no 12-agent roster, no fallback plugin). Whether
+that is intended is part of the owner's pending wake-or-delete decision.
 
-**Owner steps (unticked, in order):**
+**Remaining owner steps (unticked):**
 
-1. Export the live spec:
-
-   ```bash
-   kubectl -n kubeopencode-system get agent desktop -o yaml > /tmp/desktop-agent.yaml
-   ```
-
-2. **Diff the live export against `k8s/kubeopencode/agent-desktop.yaml`**
-   and reconcile the sketch with reality: update the sketch to the
-   verified live spec (stripping status/managed fields), or note where the
-   sketch was never applied. Also check what the live object's config
-   story is — the sketch has no `configRef`/`config`, so if faithful,
-   desktop runs opencode's *default* config (no 12-agent roster, no
-   fallback plugin) — confirm that is intended.
-3. **Pin `spec.agentImage`** — desktop currently runs the **unpinned**
-   `kubeopencode-agent-opencode:latest`, a binary-version contract risk:
-   an upstream opencode bump changes the config/plugin-loader contract
-   (the 2026-11-08 `Plugin export is not a function` incident class,
-   BITB-269/280), and `:latest` + `IfNotPresent` makes what actually runs
-   depend on the node's image cache
-   (`k8s/kubeopencode/custom-opencode-image.md` → *Notes*). Recommended:
-   pin to the same `ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31`
-   the other two agents run (keeps the fleet on the version the BITB-280
-   live-config gate tests), unless desktop intentionally runs a different
-   opencode — the owner decides while exporting.
-4. Commit the verified+pinned manifest (update the k8s sketch; the k8s
-   README's Files-table entry for it already flags the unverified status
-   and points here).
-5. Verify convergence: `kubectl -n kubeopencode-system diff -f
-   k8s/kubeopencode/agent-desktop.yaml` (expect no diff except the
-   deliberate `agentImage` pin), apply, and confirm `desktop-server`
-   stays/rolls healthy and the `opencode-init` log reports the pinned
-   version (`kubectl -n kubeopencode-system logs <desktop-pod> -c
+1. **Decide desktop's fate** — wake it pinned (apply the promoted manifest,
+   then remove `spec.suspend` — or just apply to record the desired state
+   while it stays suspended), or delete the Agent entirely (and the
+   manifest + its README/tests rows with it). Either way the committed pin
+   protects the binary contract if it ever wakes.
+2. On any wake/apply: verify convergence (`kubectl -n kubeopencode-system
+   diff -f k8s/kubeopencode/agent-desktop.yaml` — expect only the
+   deliberate `agentImage`/`imagePullSecrets` additions), confirm
+   `desktop-server` rolls healthy, and check the `opencode-init` log reports
+   the pinned version (`kubectl -n kubeopencode-system logs <desktop-pod> -c
    opencode-init | grep -i version`).
-6. (Optional) extend `scripts/test_kubeopencode_manifests.py` to guard
-   the verified desktop manifest (e.g. image-pin coverage once pinned) —
-   deferred until the export lands because a test against an unverified
-   sketch would enforce fiction.
+
+(Originally this section required an export-and-diff first because the
+manifest was an unverified example sketch and applying a guessed spec is
+destructive — the BITB-171 class. The export landed; the promoted manifest
+IS the verified spec, so that risk is closed.)
 
 ## Rollback anchors (canonical README, added in this PR)
 
@@ -197,25 +178,38 @@ moved to the canonical README in the correction round.)
       `executorImage` form)
 - [x] Folder-sunset story filed with the steering-facts root cause
       (BITB-285)
-- [ ] (owner) export the live `desktop` spec, diff it against
-      `k8s/kubeopencode/agent-desktop.yaml`, reconcile the sketch, pin
-      `agentImage` (recommended: `…:v0.1.9-oc1.18.31`), commit, diff-verify,
-      apply — per the steps above
-- [ ] (owner) confirm the `desktop` opencode binary version after the pin
-      matches the pinned tag's `oc<x.y.z>` suffix (opencode-init log)
-- [ ] (owner, optional) extend the manifest tests to the verified desktop
-      manifest once the export lands
+- [x] (owner, confirmed 2026-11-09) `kubectl diff` on the canonical k8s
+      `agent-default-wf2.yaml` and `agent-default-wf3.yaml` — **both
+      EMPTY**: live == repo manifests; no apply is needed for wf2/wf3
+      (the deleted deployment/agent-wf3.yaml is moot — its k8s twin was
+      always the faithful manifest)
+- [x] (owner, 2026-11-09) live `desktop` spec exported; diffed against
+      the sketch; reconciled — the BITB-285 PR promotes
+      `k8s/kubeopencode/agent-desktop.yaml` to the verified live spec
+      (incl. `suspend: true`, generation 2) **plus** the pin
+      (`…:v0.1.9-oc1.18.31`) and `ghcr-pull` pull secret as desired
+      state, with the suspended-experiment / no-configRef / no-credentials
+      facts documented in its header
+- [x] desktop image-pin coverage added to the manifest tests
+      (`test_agent_image_pinned_with_pull_secret` — guards the committed
+      desired state so the pin cannot be quietly dropped while the apply
+      decision is pending; no wf2↔wf3-style parity test — desktop is
+      intentionally different)
+- [ ] (owner) decide desktop's fate — apply the promoted manifest and
+      wake it pinned, or delete the Agent entirely — per the steps above
+- [ ] (owner) after any wake/apply: confirm the `desktop` opencode binary
+      version matches the pinned tag's `oc<x.y.z>` suffix (opencode-init
+      log) and `desktop-server` rolls healthy
 
 ## Out of Scope
 
 - Changing any live agent (no cluster access in this session; all
-  cluster actions are the unticked owner steps above)
+  cluster actions are the unticked owner steps above — the desktop apply
+  is a no-op while suspended, so it can also ride any future apply)
 - The startup-probe budget (BITB-282) and the controller-ownership
-  documentation (BITB-284) — siblings in the same PR
-- The obsolete-folder sunset itself (BITB-285: runbook migration,
-  AGENTS.md layout fix, stub, reference repointing, gate retargeting)
-- Restructuring the two manifest trees beyond what the ruling required
-  (the deployment copies stay until BITB-285 removes them properly)
+  documentation (BITB-284) — siblings from the same incident
+- The obsolete-folder sunset mechanics (BITB-285 — implemented in its
+  own PR, which also promoted the desktop manifest per this story)
 
 ## References
 

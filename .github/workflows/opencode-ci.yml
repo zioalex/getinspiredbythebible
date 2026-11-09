@@ -28,7 +28,6 @@ run-name: >-
       - "scripts/test-opencode-config-live.py"
       - "Makefile"
       - "docs/RUNBOOK-CLUSTER-TRIAGE.md"
-      - "deployment/kubeopencode/**"
       - "k8s/kubeopencode/**"
       - "docs/SECURITY-KUBEOPENCODE.md"
       - "k8s/dns-watchdog/**"
@@ -50,7 +49,6 @@ run-name: >-
       - "scripts/test-opencode-config-live.py"
       - "Makefile"
       - "docs/RUNBOOK-CLUSTER-TRIAGE.md"
-      - "deployment/kubeopencode/**"
       - "k8s/kubeopencode/**"
       - "docs/SECURITY-KUBEOPENCODE.md"
       - "k8s/dns-watchdog/**"
@@ -173,7 +171,7 @@ jobs:
 
       # The pinned version lives in scripts/test-opencode-config-live.py
       # (PINNED_OPENCODE_VERSION) and must track the pod's opencode version
-      # (the oc<x.y.z> suffix of agentImage in deployment/kubeopencode/agent.yaml).
+      # (the oc<x.y.z> suffix of agentImage in k8s/kubeopencode/agent-default-wf2.yaml).
       # The gate itself fails if binary, constant, and agent.yaml disagree.
       - name: Install the pinned opencode binary
         run: npm install -g "opencode-ai@$(python3 scripts/test-opencode-config-live.py --print-version)"

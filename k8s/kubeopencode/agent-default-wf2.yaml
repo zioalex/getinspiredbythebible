@@ -1,9 +1,11 @@
-# Agent: default-wf2 — the full, self-contained manifest (BITB-171/172).
+# Agent: default-wf2 — the canonical, full, self-contained manifest
+# (BITB-171/172/285).
 #
-# Equivalent to deployment/kubeopencode/agent.yaml (configRef -> the
-# opencode-config ConfigMap, PVC-backed persistence per BITB-128, all provider
-# credentials, the pinned custom agentImage) — the two are kept in parity by
-# scripts/test_kubeopencode_manifests.py (T6). Applying either converges.
+# configRef -> the opencode-config ConfigMap, PVC-backed persistence per
+# BITB-128, all provider credentials, the pinned custom agentImage. This is
+# THE repo source for the live object (the former deployment/kubeopencode/
+# twin was removed in BITB-285 after a verified zero-drift twin-check; owner
+# `kubectl diff` confirmed live == this manifest, 2026-11-09).
 #
 # agentImage + imagePullSecrets (BITB-172): the custom build of the opencode
 # binary in a private GHCR package. These fields lived only on the live cluster
@@ -32,7 +34,8 @@ spec:
   workspaceDir: /workspace
   serviceAccountName: kubeopencode-agent
   # Custom opencode binary (pinned tag — never :latest; see
-  # custom-opencode-image.md). Keep in sync with deployment/kubeopencode/agent.yaml.
+  # custom-opencode-image.md). Kept in whole-spec parity with
+  # agent-default-wf3.yaml by scripts/test_kubeopencode_manifests.py (T7/T8).
   agentImage: ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31
   imagePullSecrets:
     - name: ghcr-pull
@@ -66,7 +69,7 @@ spec:
       env: OPENCODE_API_KEY
     # GitHub Copilot OAuth user token (gho_...) for the github-copilot provider.
     # PATs (classic ghp_... or fine-grained github_pat_...) are rejected by the
-    # copilot_internal/v2/token exchange — see deployment/kubeopencode/README.md
+    # copilot_internal/v2/token exchange — see k8s/kubeopencode/README.md
     # "Persist GitHub Copilot access".
     - name: github-copilot
       secretRef:

@@ -112,7 +112,17 @@ one-liners may skip the relay, but still need tests where behaviour changes.
   `TASK_RELIABILITY_STUCK_SECONDS` (default 1200s), appends one
   `status: "stuck"` line per stall and aborts the session best-effort via
   the plugin `client` (`client.session.abort`) — the same un-wedge a human
-  prompt performed 9.5 hours into the 2026-11-07 incident. Everything stays
+  prompt performed 9.5 hours into the 2026-11-07 incident. It also watches
+  for silently-stalled LLM streams (BITB-270, the "Class B" hang): a
+  tracked child whose stream produces no part delta/update beyond
+  `STREAM_IDLE_SECONDS` (default 180s) — with a tool call in flight
+  explicitly guarded, so a long bash run is never flagged — gets one
+  `status: "stalled-stream"` line plus the same best-effort abort. On
+  opencode 1.18.31 the abort itself cannot kill a mid-generation message
+  (`session.abort` returns a server error), so the registry line is the
+  deliverable: read it, abort/re-dispatch per the recovery ritual. The
+  stream-idle watchdog is the fast path for frozen streams; the 1200s
+  stuck watchdog remains the catch-all for hung tools. Everything stays
   inert-by-design: hooks are try/catch-wrapped and never break a tool call
   or startup.
 - **Plugin modules are single-export (opencode 1.18.31 loader contract,
@@ -153,7 +163,18 @@ android/              Native Android app (Kotlin / Jetpack Compose)
   app/src/main/       Main source set
   app/src/test/       JVM unit tests
 
-deployment/           Terraform configs for Azure
+k8s/                  Home-cluster KubeOpenCode deployment — THE canonical
+  kubeopencode/       home for ALL kubeopencode manifests + docs (BITB-285):
+                        Agent CRs (agent-default-wf2.yaml, agent-default-wf3.yaml,
+                        suspended agent-desktop.yaml), the agents.md model table,
+                        NetworkPolicies, least-privilege RBAC, mobile access,
+                        dev-image/, custom-opencode-image.md. deployment/kubeopencode/
+                        is an obsolete stub — never add content there.
+                        The opencode config-sync runbook + pre-merge live-config
+                        gate live in k8s/kubeopencode/README.md.
+
+deployment/           Terraform configs for Azure — ONLY Terraform (the old
+                        kubeopencode/ subfolder is an obsolete stub, BITB-285)
 scripts/              DB init, embedding generation, migrations, env validation
 data/                 Bible data files
 docs/                 Project documentation
@@ -297,7 +318,7 @@ pinned to the pod's version against the committed config — isolated
 HOME/XDG, never the live server) and `make test-opencode-config-live-selftest`
 (proves the gate catches the 18:51 bug class: a plugin green in unit tests
 but rejected by the live loader). CI runs both on every config-path change.
-See `deployment/kubeopencode/README.md` → *Pre-merge checklist for opencode
+See `k8s/kubeopencode/README.md` → *Pre-merge checklist for opencode
 config changes*.
 
 ## Code Style & Linting
@@ -556,6 +577,17 @@ conflicts that must be resolved." Resolution: rebase or merge `main`
 into the branch (`git fetch origin && git merge origin/main`), resolve
 conflicts, push — CI will start. Don't sit waiting for a CI signal that
 will never arrive.
+
+**Before dispatching a build, scan open PRs for an existing implementation of
+the story.** The story-ID check (BITB-235) guards ID *claims*, not
+implementations: a parallel session may already have an in-flight PR
+implementing the same story. Run `gh pr list --state open` and grep the
+open PRs' titles/files for the story ID before handing a build brief to an
+agent; an open PR already implementing the story blocks the dispatch —
+complete it or close it first. (Observed 2026-11-08: BITB-261 was built
+twice in parallel sessions — PR #1251 vs PR #1253 — because nobody checked;
+one implementation was discarded and the other cherry-picked its ideas,
+pure waste of a build cycle.)
 
 ### Documentation Completeness
 

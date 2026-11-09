@@ -420,7 +420,7 @@ sync-opencode-configmap: verify-opencode-config sync-opencode-workspace ## Updat
 		-n kubeopencode-system \
 		--dry-run=client -o yaml | kubectl apply -f -
 	@echo "$(GREEN)✓ ConfigMap updated$(NC)"
-	@echo "$(YELLOW)Next: kubectl -n kubeopencode-system delete pod <agent-pod> — then check the runtime log for plugin load errors (see deployment/kubeopencode/README.md)$(NC)"
+	@echo "$(YELLOW)Next: kubectl -n kubeopencode-system delete pod <agent-pod> — then check the runtime log for plugin load errors (see k8s/kubeopencode/README.md)$(NC)"
 
 sync-opencode-workspace: ## Fast-forward the pod's shared checkout so file:// plugins load merged code (manual, BITB-269)
 	@bash scripts/sync-opencode-workspace.sh

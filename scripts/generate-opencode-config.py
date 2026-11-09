@@ -4,7 +4,8 @@
 Per-agent settings (model, fallback_models, tools, permission, prompt) are
 sourced from the frontmatter of `.opencode/agents/*.md`, which is the single
 source of truth. The global settings below have no other home: they used to
-live inline in `deployment/kubeopencode/agent.yaml` under `spec.config`, which
+live inline in the (removed, BITB-285) deployment/kubeopencode/agent.yaml under
+`spec.config`, which
 is now replaced by `spec.configRef` pointing at a ConfigMap built from this
 file's output.
 """
@@ -143,10 +144,14 @@ PLUGIN = [
     # The plugin itself records subagent `question.asked` events as
     # `status: "asking"` registry lines and marks (and best-effort aborts)
     # children inactive for TASK_RELIABILITY_STUCK_SECONDS (default 1200s) —
-    # the 2026-11-07 9h34m orchestrator hang class (BITB-269). On 1.18.31 the
-    # `session.created` parent linkage arrives nested in
-    # `properties.info.parentID` (pinned by test), so created lines and
-    # watchdog tracking work against the live event shape.
+    # the 2026-11-07 9h34m orchestrator hang class (BITB-269) — and, for
+    # silently-stalled LLM streams (BITB-270, the "Class B" hang that the
+    # error-driven fallback plugin cannot see), children whose stream is
+    # idle beyond STREAM_IDLE_SECONDS (default 180s) with no tool call in
+    # flight get one `status: "stalled-stream"` line plus the same
+    # best-effort abort. On 1.18.31 the `session.created` parent linkage
+    # arrives nested in `properties.info.parentID` (pinned by test), so
+    # created lines and watchdog tracking work against the live event shape.
     "file:///workspace/repo/.opencode/plugin/task-reliability.ts",
 ]
 

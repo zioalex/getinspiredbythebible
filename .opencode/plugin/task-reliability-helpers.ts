@@ -1,6 +1,6 @@
 /**
  * task-reliability-helpers — the importable helper library behind the
- * task-reliability opencode plugin (BITB-169, BITB-269).
+ * task-reliability opencode plugin (BITB-169, BITB-269, BITB-270).
  *
  * WHY THIS MODULE EXISTS (the 2026-11-08 live incident, T-1254PLG):
  * opencode 1.18.31's plugin loader iterates `Object.values(module)` over the
@@ -45,7 +45,14 @@ export interface BusEvent {
   properties?: unknown;
 }
 
-export type RegistryStatus = "idle" | "stop" | "error" | "deleted" | "asking" | "stuck";
+export type RegistryStatus =
+  | "idle"
+  | "stop"
+  | "error"
+  | "deleted"
+  | "asking"
+  | "stuck"
+  | "stalled-stream";
 
 export interface EventHookInput {
   event?: BusEvent;
@@ -103,7 +110,7 @@ export interface Hooks {
 /**
  * Default registry location: the PVC-backed workspace root, OUTSIDE the repo
  * clone (survives pod restarts and re-clones; /tmp is NOT persisted — see
- * deployment/kubeopencode/agent.yaml persistence note, BITB-128).
+ * k8s/kubeopencode/agent-default-wf2.yaml persistence note, BITB-128).
  * Override with TASK_RELIABILITY_REGISTRY (local dev / tests / laptops where
  * /workspace does not exist).
  */
@@ -120,6 +127,7 @@ const REGISTRY_STATUSES = new Set<RegistryStatus>([
   "deleted",
   "asking",
   "stuck",
+  "stalled-stream",
 ]);
 const SESSION_EVENT_STATUS: Record<string, Exclude<RegistryStatus, "asking" | "stuck">> = {
   "session.idle": "idle",
@@ -134,6 +142,19 @@ const SESSION_EVENT_STATUS: Record<string, Exclude<RegistryStatus, "asking" | "s
  * (BITB-269). Override with TASK_RELIABILITY_STUCK_SECONDS.
  */
 export const DEFAULT_STUCK_SECONDS = 1200;
+
+/**
+ * Stream-idle threshold (seconds) — a tracked child whose in-flight LLM
+ * stream produces no part delta/update for this long (and has no tool call
+ * running) is a silent Class B stall: the provider stream froze without
+ * erroring, so the error-driven runtime-fallback plugin never fires. The
+ * watchdog appends one `status: "stalled-stream"` line and aborts the child
+ * best-effort (BITB-270). Deliberately far tighter than the 1200 s stuck
+ * catch-all, which cannot distinguish an idle stream from a long bash run —
+ * this one can (tool-in-flight is guarded). Override with
+ * STREAM_IDLE_SECONDS.
+ */
+export const DEFAULT_STREAM_IDLE_SECONDS = 180;
 
 /** Watchdog sweep cadence (ms): min 1s, max 60s, default quarter of the threshold. */
 export function sweepIntervalMs(stuckSeconds: number): number {
@@ -157,6 +178,18 @@ export function readStuckSeconds(): number {
   }
 }
 
+export function readStreamIdleSeconds(): number {
+  try {
+    const raw = process.env.STREAM_IDLE_SECONDS;
+    if (raw === undefined || raw === null || raw === "") return DEFAULT_STREAM_IDLE_SECONDS;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_STREAM_IDLE_SECONDS;
+    return parsed;
+  } catch {
+    return DEFAULT_STREAM_IDLE_SECONDS;
+  }
+}
+
 // ── Stuck-child watchdog state (BITB-269) ──────────────────────────────────
 
 export interface WatchdogState {
@@ -164,6 +197,16 @@ export interface WatchdogState {
   lastActivity: Map<string, number>;
   /** childIDs already marked stuck for the current stall (one line per stall) */
   stuckMarked: Set<string>;
+  /**
+   * BITB-270 stream-idle watchdog: childID → epoch ms of its last
+   * stream-phase signal (message part delta/update — including tool-part
+   * lifecycle, which is a stream-phase signal but sets/clears toolInFlight).
+   */
+  lastStreamActivity: Map<string, number>;
+  /** childIDs with a tool call currently executing (bash-waiting ≠ stalled) */
+  toolInFlight: Set<string>;
+  /** childIDs already marked stalled-stream for the current stall */
+  streamMarked: Set<string>;
 }
 
 /** Tracks a spawned child (session.created with parentID). */
@@ -171,6 +214,11 @@ export function trackChild(state: WatchdogState, childID: string, nowMs: number)
   try {
     state.lastActivity.set(childID, nowMs);
     state.stuckMarked.delete(childID);
+    // Stream clock starts at spawn: a child whose first token never arrives
+    // is a stall too (no tool in flight, no deltas).
+    state.lastStreamActivity.set(childID, nowMs);
+    state.toolInFlight.delete(childID);
+    state.streamMarked.delete(childID);
   } catch {
     // never break the event pipeline
   }
@@ -192,6 +240,9 @@ export function untrackChild(state: WatchdogState, sessionID: string): void {
   try {
     state.lastActivity.delete(sessionID);
     state.stuckMarked.delete(sessionID);
+    state.lastStreamActivity.delete(sessionID);
+    state.toolInFlight.delete(sessionID);
+    state.streamMarked.delete(sessionID);
   } catch {
     // never break the event pipeline
   }
@@ -221,6 +272,101 @@ export function detectStuckChildren(
     // never break the event pipeline
   }
   return stuck;
+}
+
+// ── Stream-idle watchdog (BITB-270) ────────────────────────────────────────
+
+/**
+ * Records one stream-phase signal for a tracked child (BITB-270). Called
+ * from handleBusEvent for `message.part.delta` / `message.part.updated`
+ * bus events. Deltas and part lifecycle are the heartbeat of an in-flight
+ * LLM stream; a tool part entering `running` state means the child is
+ * waiting on a tool (e.g. a long bash command) — that phase is explicitly
+ * NOT a stream stall, so it arms the toolInFlight guard instead of the
+ * idle clock. Any signal re-arms the once-per-stall marker. Never throws.
+ */
+export function noteStreamSignal(
+  state: WatchdogState,
+  sessionID: string,
+  event: BusEvent,
+  nowMs: number,
+): void {
+  try {
+    if (!state.lastActivity.has(sessionID)) return; // not a tracked child
+    if (event.type === "message.part.delta") {
+      state.lastStreamActivity.set(sessionID, nowMs);
+      state.streamMarked.delete(sessionID);
+      return;
+    }
+    // message.part.updated: part lifecycle; tool parts carry a state.status
+    const props =
+      event.properties !== null && typeof event.properties === "object"
+        ? (event.properties as Record<string, unknown>)
+        : {};
+    const part =
+      props.part !== null && typeof props.part === "object"
+        ? (props.part as Record<string, unknown>)
+        : null;
+    if (part === null) return;
+    state.lastStreamActivity.set(sessionID, nowMs);
+    state.streamMarked.delete(sessionID);
+    if (part.type === "tool") {
+      const rawState = part.state;
+      const status =
+        rawState !== null && typeof rawState === "object"
+          ? (rawState as Record<string, unknown>).status
+          : undefined;
+      if (status === "running" || status === "pending") {
+        state.toolInFlight.add(sessionID);
+      } else {
+        // completed / error / anything else: the tool call ended
+        state.toolInFlight.delete(sessionID);
+      }
+    }
+  } catch {
+    // never break the event pipeline
+  }
+}
+
+/** Clears stream-idle tracking (session idle: between loops, not streaming). */
+export function clearStreamTracking(state: WatchdogState, sessionID: string): void {
+  try {
+    state.lastStreamActivity.delete(sessionID);
+    state.toolInFlight.delete(sessionID);
+    state.streamMarked.delete(sessionID);
+  } catch {
+    // never break the event pipeline
+  }
+}
+
+/**
+ * Returns tracked children whose in-flight stream is idle beyond
+ * `idleSeconds`, with no tool call running (bash-waiting never flags here —
+ * that is the whole point of the toolInFlight guard; the generic stuck
+ * watchdog remains the catch-all for genuinely hung tools). Each child
+ * yields at most one detection per stall; a later stream signal re-arms.
+ * Pure w.r.t. the filesystem.
+ */
+export function detectStreamStalls(
+  state: WatchdogState,
+  nowMs: number,
+  idleSeconds: number,
+): string[] {
+  const stalled: string[] = [];
+  try {
+    const thresholdMs = Math.max(1, idleSeconds) * 1000;
+    for (const [childID, lastMs] of state.lastStreamActivity) {
+      if (state.toolInFlight.has(childID)) continue;
+      if (state.streamMarked.has(childID)) continue;
+      if (nowMs - lastMs >= thresholdMs) {
+        state.streamMarked.add(childID);
+        stalled.push(childID);
+      }
+    }
+  } catch {
+    // never break the event pipeline
+  }
+  return stalled;
 }
 
 /**
@@ -449,6 +595,14 @@ export function handleBusEvent(
 
     if (sessionID !== undefined) recordActivity(state, sessionID, nowMs);
 
+    // BITB-270: stream-phase heartbeat for the stream-idle watchdog.
+    if (
+      sessionID !== undefined &&
+      (busEvent.type === "message.part.delta" || busEvent.type === "message.part.updated")
+    ) {
+      noteStreamSignal(state, sessionID, busEvent, nowMs);
+    }
+
     // BITB-269: an asking subagent can never be answered — record it.
     if (
       busEvent.type === "question.asked" &&
@@ -461,6 +615,12 @@ export function handleBusEvent(
     const status = SESSION_EVENT_STATUS[busEvent.type];
     if (status !== undefined && sessionID !== undefined) {
       lines.push({ ts, kind: "status", childID: sessionID, status });
+      if (status === "idle") {
+        // Idle = the loop finished; nothing is streaming. Without this the
+        // stale stream clock would fire a bogus stalled-stream line on an
+        // idle-but-collectable child (BITB-270).
+        clearStreamTracking(state, sessionID);
+      }
       if (TERMINAL_STATUSES.has(status)) untrackChild(state, sessionID);
     }
   } catch {

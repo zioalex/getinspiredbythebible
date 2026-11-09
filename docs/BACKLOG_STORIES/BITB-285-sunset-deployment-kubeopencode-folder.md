@@ -1,6 +1,6 @@
 # BITB-285: Sunset the Obsolete `deployment/kubeopencode/` Folder — Consolidate KubeOpenCode Manifests and Docs in `k8s/kubeopencode/`
 
-**Status:** 🎯 Todo (implementation deferred to a dedicated follow-up PR — rationale below; this PR files the story and does the BITB-283 corrections only)
+**Status:** 🔄 In progress — implementation PR (desktop manifest promoted, runbooks migrated, folder stubbed, references repointed; owner sign-off pending)
 **Priority:** P2
 **Size:** M
 **Created:** 2026-11-09
@@ -157,42 +157,62 @@ k8s/kubeopencode/, BITB-285)" note rather than rewriting history.
 
 ## Acceptance Criteria
 
-- [ ] Accumulated runbook docs (sync/lockstep flow, fallback resilience,
+- [x] Accumulated runbook docs (sync/lockstep flow, fallback resilience,
       pre-merge checklist, copilot/persistence sections — deduplicated)
       live in `k8s/kubeopencode/` and read coherently in its structure
-- [ ] `deployment/kubeopencode/` contains ONLY the stub README
-      (obsolescence + pointer to `k8s/kubeopencode/` + story ref);
-      `agent.yaml` and `agents.md` are `git rm`'d (or relocated for
-      agents.md) — **owner-confirm the twin-check result stands at
-      migration time** (re-run the parsed-spec diff; k8s copy wins on
-      any drift)
-- [ ] AGENTS.md Repository Layout gains the `k8s/` entry;
+      (sync runbook + plugin verification + pre-merge checklist folded
+      around the existing *OpenCode config* section; the 12-agent model
+      table kept as the sibling `k8s/kubeopencode/agents.md` with the
+      README's *Fallback resilience* prose linking to it — no copy-stack)
+- [x] `deployment/kubeopencode/` contains ONLY the stub README
+      (obsolescence + pointer to `k8s/kubeopencode/` + old-section anchor
+      redirects); `agent.yaml` is `git rm`'d, `agents.md` is `git mv`'d —
+      twin-check re-verified at migration time: the parsed specs of the
+      deployment and k8s wf2 copies were **fully identical (zero drift)**,
+      and the owner's `kubectl diff` on the k8s wf2/wf3 manifests was
+      **empty** (live == repo, 2026-11-09), so nothing was lost; a
+      stub-only-folder guard test now fails CI if content re-accumulates
+- [x] AGENTS.md Repository Layout gains the `k8s/` entry;
       `deployment/` stays Terraform-for-Azure; the ~L300 pre-merge
       checklist pointer targets the migrated location
-- [ ] Repo-wide grep clean of *live* `deployment/kubeopencode`
-      references (historical records excepted, per the table above)
-- [ ] Manifest tests retargeted and green; the T6 deployment↔k8s pair
-      tests deleted with the twin
-- [ ] `scripts/test-opencode-config-live.py` retargeted to the k8s wf2
-      manifest; BOTH live-gate modes re-run green in the migration PR
-      (the BITB-280 gate must keep testing exactly what the pod runs)
-- [ ] Conventional commits + PR; CI green
+- [x] Repo-wide grep clean of *live* `deployment/kubeopencode`
+      references (historical records excepted, per the table above);
+      remaining hits are intentional historical/explanatory mentions
+      (the stub itself, the guard test, removal notes) — the load-bearing
+      open-story references (BITB-161/237/269/280) got the
+      "(now k8s/kubeopencode/, BITB-285)" note
+- [x] Manifest tests retargeted and green (22/22); the T6 deployment↔k8s
+      pair tests deleted with the twin; T3 credential-doc coverage
+      parametrized over the canonical wf2/wf3 manifests; desktop joins
+      the image-pin test (its pin is desired state pending apply)
+- [x] `scripts/test-opencode-config-live.py` retargeted to the k8s wf2
+      manifest; BOTH live-gate modes re-run green **in-pod**
+      post-retarget (normal mode: 8/8 groups incl. the deployed-pin
+      cross-check against `agent-default-wf2.yaml`; `--self-test` caught
+      the injected 18:51 canary)
+- [x] Conventional commits + PR; CI green
 - [ ] (owner) review sign-off that the migration PR leaves no
       behavior change behind (docs + test retargets only; no cluster
       action required — the live objects already match the k8s
-      manifests)
+      manifests; the one live delta is intentional: `agent-desktop.yaml`
+      now carries the desired-state pin pending the owner's
+      wake-or-delete decision, BITB-283)
 
-## Implementation: deferred to a dedicated follow-up PR (deliberate)
+## Implementation record (2026-11-09, follow-up PR)
 
-This PR (#1272) files the story and performs only the BITB-283
-corrections (manifest removed, parity tests retargeted to the k8s
-twins, new README sections moved into the k8s README). The migration
-itself is a **separate follow-up PR**, because it rewires CI-critical
-plumbing — the BITB-280 live-config gate's deployed-pin constant, ~10
-manifest-test constants, two workflow path filters — plus a
-~440-line runbook move, and belongs in its own reviewable, revertable
-change rather than as an amendment to a review-blocked docs PR. Size
-estimate: M (mostly mechanical moves + gate re-verification).
+Filed from PR #1272 with implementation deferred to a dedicated follow-up
+PR (the reasoning stands: the change rewires CI-critical plumbing — the
+BITB-280 live-config gate's deployed-pin constant, the manifest-test
+constants, two workflow path filters — plus a ~440-line runbook move, and
+deserved its own reviewable, revertable change). That follow-up is this
+PR: the migration executed per the reference table above — runbook
+sections migrated and deduplicated into `k8s/kubeopencode/README.md`,
+`agent.yaml` removed and `agents.md` relocated after the zero-drift
+twin-check, the stub README left with anchor redirects, every live
+reference repointed, AGENTS.md's Repository Layout fixed as the
+root-cause prevention, and the `desktop` manifest promoted from the
+owner-exported verified live spec (BITB-283's owner step, executed here:
+pin + pull secret as desired state, apply still pending).
 
 ## Out of Scope
 

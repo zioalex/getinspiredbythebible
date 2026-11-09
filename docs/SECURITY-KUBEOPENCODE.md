@@ -63,7 +63,7 @@ Use:
 
 ```bash
 # Secret created imperatively (real value only in the operator's shell env,
-# never in git -- same pattern as deployment/kubeopencode/README.md):
+# never in git -- same pattern as k8s/kubeopencode/README.md):
 kubectl -n kubeopencode-system create secret generic opencode-api-key \
   --from-literal=api-key="$OPENCODE_API_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
