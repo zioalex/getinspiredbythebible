@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-08
+**Last Updated:** 2026-11-09
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#PR)
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
@@ -593,14 +594,16 @@ and "Why did Jesus have to go die on the cross?" are blocked as threats.
 
 Full story: [`BITB-238-stage1-english-help-seeking-kill-yourself.md`](BACKLOG_STORIES/BITB-238-stage1-english-help-seeking-kill-yourself.md)
 
-### 🎯 BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
+### 🔍 BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
 
 Follow-up to BITB-193: "adesso muori!", "Crève charogne", "morra seu idiota" no longer block in Stage 1 / fallback.
+
+**Resolution:** it/fr/pt patterns widened (lead-in/tail words, comma-led clause, extra insults, "que tu vas crever"); "die to sin / in Christ" wording exempted. Tests parametrized across 11 languages.
 
 Full story: [`BITB-239-directed-harm-recall-after-tightening.md`](BACKLOG_STORIES/BITB-239-directed-harm-recall-after-tightening.md)
 

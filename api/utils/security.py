@@ -434,6 +434,20 @@ _MS_PUNCT = "[.,;:!?)\\]}\"'…。、」』）،؛؟।\n]"
 # when they open a clause and close it, or are followed by an insult.
 _DH_START = r"(?:^|[.!;:\n]\s*|[¡¿]\s*)"
 _DH_END = r"(?=\s*(?:[!.,;]|$))"
+# BITB-239: recall restored after the BITB-193 tightening. A comma-led clause ("Sei inutile, muori.")
+# needs a stronger terminator (! . or end) so "Ok, muori?" / "Se muori, ..." stay clean.
+_DH_END_STRONG = r"(?=\s*(?:[!.]|$))"
+_DH_IT_LEAD = r"(?:(?:ok(?:ay)?|adesso|ora|dai|forza)[,!]?\s+)?"
+_DH_IT_TAIL = r"(?:\s+(?:adesso|ora|subito|presto))?"
+# "die to sin / in Christ" is theology, not a threat (it/pt).
+_DH_IT_DIE_TO = (
+    r"(?!\s+(?:in|con|al|alla|allo|a)\s+"
+    r"(?:cristo|gesù|gesu|peccato|te\s+stess|se\s+stess|mondo|carne))"
+)
+_DH_PT_DIE_TO = (
+    r"(?!\s+(?:para|em|com|ao|no|à)\s+(?:o\s+|a\s+)?"
+    r"(?:pecado|cristo|jesus|mundo|carne|si\s+mesm|voc[êe]\s+mesm|ti\s+mesm))"
+)
 
 # BITB-238: English help-seeking / theological exemptions for the directed-harm table.
 # The English patterns ("kill yourself", "go die", "you should die") run under every language
@@ -1830,9 +1844,11 @@ class MultiLanguageContentFilter:
         "it": [
             r"\bvattene a fanculo\b",
             r"\bti ammazzo\b",
-            _DH_START + r"muori" + _DH_END,
+            _DH_START + _DH_IT_LEAD + r"muori" + _DH_IT_TAIL + _DH_END,
+            r",\s*muori" + _DH_IT_TAIL + _DH_END_STRONG,
             r"\bmuori,?\s+(?:bastard|stronz|maledett|schifos)\w*",
-            r"\bspero che tu muoia\b",
+            r"\bspero che tu muoia\b" + _DH_IT_DIE_TO,
+            r"\bspero che tu muoia\b[^.!?\n]{0,60}\b(?:bastard|stronz|maledett|schifos|inutil)\w*",
         ],
         "de": [
             r"\bgeh sterben\b",
@@ -1851,16 +1867,19 @@ class MultiLanguageContentFilter:
             r"\bva te faire foutre\b",
             r"\bje vais te tuer\b",
             _DH_START + r"crève" + _DH_END,
-            r"\bcrève,?\s+(?:connard|salaud|salope|ordure)\w*",
+            r"\bcrève,?\s+(?:(?:sale|espèce\s+de)\s+)?"
+            r"(?:connard|salaud|salope|ordure|charogne|enfoiré|pourriture)\w*",
             r"\bva\s+crever\b",
+            r"\bque\s+tu\s+vas\s+crever\b(?!\s+(?:de|d['’]))",
             r"\bque tu crèves\b",
         ],
         "pt": [
             r"\bvá se foder\b",
             r"\bvou te matar\b",
             _DH_START + r"morra" + _DH_END,
-            r"\bmorra,?\s+(?:desgraçad|maldit|vagabund|idiota)\w*",
-            r"\bque\s+(?:voc[êe]|tu)\s+morra\b",
+            r"\bmorra,?\s+(?:(?:seu|sua|seus|suas)\s+)?"
+            r"(?:desgraçad|maldit|vagabund|idiota|imbecil|otári)\w*",
+            r"\bque\s+(?:voc[êe]|tu)\s+morra\b" + _DH_PT_DIE_TO,
         ],
     }
 
