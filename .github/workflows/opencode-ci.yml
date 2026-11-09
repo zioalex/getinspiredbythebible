@@ -76,6 +76,22 @@ jobs:
       - name: Install dependencies
         run: pip install pyyaml pytest
 
+      - name: Set up Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22.x"
+
+      # BITB-269 / T-1254PLG: the task-reliability plugin's export surface is
+      # a runtime contract of the opencode 1.18.31 plugin loader (exactly one
+      # default function export; helpers live in task-reliability-helpers.ts).
+      # The 2026-11-08 live incident (plugin rejected with `Plugin export is
+      # not a function` after a pre-merge config sync) shipped because these
+      # tests only ever ran ad-hoc on the pod — never in CI. The suite also
+      # pins the empirical 1.18.31 event shape (`properties.info.parentID`)
+      # that arms the stuck-child watchdog.
+      - name: task-reliability plugin tests (loader contract + helpers)
+        run: node --experimental-strip-types --test .opencode/plugin/task-reliability.test.ts
+
       - name: Generator regression tests
         run: python -m pytest scripts/test_generate_opencode_config.py -v
 

@@ -260,32 +260,69 @@ def test_persistence_has_no_hardcoded_storage_class(persistence):
 # ── BITB-169: task-reliability plugin ────────────────────────────────────────
 
 PLUGIN_FILE = REPO_ROOT / ".opencode" / "plugin" / "task-reliability.ts"
+PLUGIN_HELPERS_FILE = REPO_ROOT / ".opencode" / "plugin" / "task-reliability-helpers.ts"
 PLUGIN_TEST_FILE = REPO_ROOT / ".opencode" / "plugin" / "task-reliability.test.ts"
 PLUGIN_REGISTRY_DEFAULT = "/workspace/.opencode/task-registry.jsonl"
 
 
 def test_task_reliability_plugin_file():
-    """BITB-169 L1: the plugin must exist and wire all three hooks defensively."""
+    """BITB-169 L1 + BITB-269/T-1254PLG: single-export loader contract + hooks.
+
+    opencode 1.18.31 iterates every runtime export of the plugin module: any
+    non-function export fails the whole load with `Plugin export is not a
+    function` (the 2026-11-08 live incident), and every function export is
+    called as plugin(ctx, options) — so co-resident helpers break the load
+    too. The plugin module must therefore carry exactly one runtime export
+    (the default function) and import its helpers from the sibling module.
+    """
     assert PLUGIN_FILE.is_file(), (
         f"{PLUGIN_FILE.relative_to(REPO_ROOT)} is missing -- the task-reliability "
         "plugin auto-discovers from .opencode/plugin/, which ships with the clone"
     )
     text = PLUGIN_FILE.read_text(encoding="utf-8")
+    # Static mirror of the runtime contract test in task-reliability.test.ts.
+    runtime_exports = re.findall(
+        r"^export\s+(?!type\b|interface\b)(\S+)", text, re.MULTILINE
+    )
+    assert runtime_exports == ["default"], (
+        f"{PLUGIN_FILE.relative_to(REPO_ROOT)} must export exactly one default "
+        f"function (opencode 1.18.31 loader contract); found: {runtime_exports}"
+    )
     for needle in (
         "tool.execute.after",
         "tool.definition",
-        "session.created",
-        PLUGIN_REGISTRY_DEFAULT,
+        "task-reliability-helpers.ts",
     ):
         assert needle in text, (
             f"{PLUGIN_FILE.relative_to(REPO_ROOT)} must contain {needle!r} -- "
-            "a missing hook or wrong registry path breaks the recovery protocol"
+            "a missing hook or unimported helper library breaks the recovery protocol"
         )
     catch_count = text.count("catch")
     assert catch_count >= 3, (
         "task-reliability must be inert-by-design: expected >= 3 try/catch guards "
         f"(event, tool.execute.after, tool.definition), found {catch_count}"
     )
+
+
+def test_task_reliability_plugin_helpers_file():
+    """BITB-269/T-1254PLG: the helper library carries what moved out of the plugin module."""
+    assert PLUGIN_HELPERS_FILE.is_file(), (
+        f"{PLUGIN_HELPERS_FILE.relative_to(REPO_ROOT)} is missing -- the plugin's "
+        "named helpers must live outside the loader-imported module (see "
+        "test_task_reliability_plugin_file for the contract)"
+    )
+    text = PLUGIN_HELPERS_FILE.read_text(encoding="utf-8")
+    for needle in (
+        "session.created",
+        PLUGIN_REGISTRY_DEFAULT,
+        "properties.info",  # empirical 1.18.31 nested event shape (watchdog arming)
+        "export function handleBusEvent",
+        "export function detectStuckChildren",
+    ):
+        assert needle in text, (
+            f"{PLUGIN_HELPERS_FILE.relative_to(REPO_ROOT)} must contain {needle!r} -- "
+            "the registry protocol and stuck-child watchdog depend on it"
+        )
 
 
 def test_task_reliability_plugin_helpers_run():

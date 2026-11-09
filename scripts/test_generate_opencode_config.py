@@ -43,6 +43,10 @@ ZEN_FREE_HOP = "opencode/nemotron-3-ultra-free"
 STALE_MODEL_IDS = ("opencode/nemotron-3-super-free", "openrouter/openai/gpt-oss-120b:free", "openrouter/openai/gpt-oss-120b")
 BUILTINS = ("build", "plan", "general", "explore", "compaction", "title", "summary")
 PLUGIN_NAME = "opencode-runtime-fallback@0.2.4"
+# BITB-269: absolute in-pod path to the task-reliability plugin source
+# (only the generated opencode.json is synced into the ConfigMap — see the
+# PLUGIN comment in the generator for the full load-path rationale).
+TASK_RELIABILITY_PLUGIN = "file:///workspace/repo/.opencode/plugin/task-reliability.ts"
 
 
 @pytest.fixture(scope="module")
@@ -214,6 +218,59 @@ def test_top_level_model_and_plugin_present(config):
     assert config["small_model"]
     assert config["plugin"], "runtime-fallback plugin missing: fallbacks inert"
     assert config["plugin"][0][0] == PLUGIN_NAME
+
+
+def test_task_reliability_plugin_entry_present(config):
+    """BITB-269: the pod loads plugins ONLY through the generated config.
+
+    `make sync-opencode-configmap` syncs just opencode.json into the ConfigMap;
+    auto-discovery scans the effective project root (/workspace in the pod —
+    empty), while the plugin source lives in the repo checkout at
+    /workspace/repo/.opencode/plugin/. Without this absolute file:// entry the
+    pod never loads the plugin and the durable task registry is never written
+    (proven by the 2026-11-07 incident forensics).
+    """
+    plugins = [e[0] if isinstance(e, list) else e for e in config["plugin"]]
+    assert TASK_RELIABILITY_PLUGIN in plugins, (
+        "task-reliability plugin missing from generated config: "
+        "no durable child registry in the pod"
+    )
+
+
+def test_subagent_question_denied(config):
+    """BITB-269: every mode: subagent agent must deny the question tool.
+
+    A subagent has no interactive user: a question can never be answered and
+    (opencode ≤1.18) parks the session forever while the parent's dispatch
+    blocks with it. The per-agent `question: deny` permission from the .md
+    frontmatter must round-trip into the generated agent objects.
+    """
+    subagents = [
+        name
+        for name, spec in config["agent"].items()
+        if spec.get("mode") == "subagent"
+    ]
+    assert len(subagents) == 11, f"expected 11 subagent agents, got {len(subagents)}"
+    for name in subagents:
+        permission = config["agent"][name].get("permission")
+        assert isinstance(permission, dict), f"{name} has no permission block"
+        assert permission.get("question") == "deny", (
+            f"{name} does not deny the question tool: {permission.get('question')!r}"
+        )
+
+
+def test_permission_frontmatter_round_trips(config):
+    """Every permission key declared in an .md frontmatter survives generation."""
+    for path in sorted(AGENTS_DIR.glob("*.md")):
+        fm = yaml.safe_load(path.read_text().split("---", 2)[1])
+        expected = fm.get("permission")
+        if not expected:
+            continue
+        generated = config["agent"][path.stem].get("permission")
+        assert generated == expected, (
+            f"{path.name}: permission frontmatter did not round-trip: "
+            f"expected {expected}, generated {generated}"
+        )
 
 
 def test_plugin_retry_options(config):

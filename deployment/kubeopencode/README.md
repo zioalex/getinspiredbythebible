@@ -61,20 +61,50 @@ Agent references a ConfigMap that does not exist and will not start.
 From the repository root:
 
 ```bash
-# Regenerate opencode.json from .opencode/agents/*.md, verify it, and
+# Regenerate opencode.json from .opencode/agents/*.md, verify it, fast-forward
+# the pod's shared checkout (+ in-pod plugin pre-flight tests), and
 # create/update the ConfigMap in one step.
 make sync-opencode-configmap
 ```
 
-That target runs `verify-opencode-config` first, so a config missing agents,
-`fallback_models`, or the fallback plugin fails before it can reach the
-cluster. The equivalent raw command, if you are not using the Makefile:
+**Merge the PR before syncing.** The generated config loads the
+task-reliability plugin via an absolute
+`file:///workspace/repo/.opencode/plugin/task-reliability.ts` entry — a path
+into the pod's shared git checkout. That checkout is fast-forwarded to
+`origin/main` by the same target (`scripts/sync-opencode-workspace.sh`), so
+config and plugin code stay in lockstep; a pre-merge sync would pair new
+config with old plugin code — the exact cause of the 2026-11-08 live
+`failed to load plugin … error="Plugin export is not a function"` incident
+(BITB-269). The workspace update is fast-forward only: a diverged, dirty, or
+detached checkout fails loudly instead of being rewritten, and the agents'
+attached worktrees under `${WORKSPACE_DIR}/worktrees` are never touched.
+
+The target runs, in order:
+
+1. `verify-opencode-config` — a config missing agents, `fallback_models`,
+   or the fallback plugin fails before it can reach the cluster.
+2. `scripts/sync-opencode-workspace.sh` — `kubectl exec`s into the agent pod:
+   `git fetch origin && git merge --ff-only origin/main` in `/workspace/repo`,
+   then runs the plugin's unit tests (`node --experimental-strip-types
+   --test .opencode/plugin/task-reliability.test.ts`) **in the pod**. Those
+   tests enforce the opencode 1.18.31 plugin-loader contract (the plugin
+   module must export exactly one default function; helpers live in
+   `task-reliability-helpers.ts`) — the pre-live check that was missing when
+   the 2026-11-08 "verified" plugin turned out to be rejected by the real
+   loader.
+3. The ConfigMap update (raw command below, if you are not using the
+   Makefile).
+
+This requires the runner's kubeconfig to allow `get`/`list` on pods and
+`create` on `pods/exec` in `kubeopencode-system` (in addition to the
+ConfigMap write), plus `git` and Node 22+ inside the agent pod (shipped by
+the devbox executor image).
 
 ```bash
 make gen-opencode-config   # writes ./opencode.json
 kubectl -n kubeopencode-system create configmap opencode-config \
-  --from-file=opencode.json=opencode.json \
-  --dry-run=client -o yaml | kubectl apply -f -
+ --from-file=opencode.json=opencode.json \
+ --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 Re-run `make sync-opencode-configmap` after any change to
@@ -91,8 +121,27 @@ Verify what the cluster actually has:
 
 ```bash
 kubectl -n kubeopencode-system get configmap opencode-config \
-  -o jsonpath='{.data.opencode\.json}' | python3 -m json.tool | head -30
+ -o jsonpath='{.data.opencode\.json}' | python3 -m json.tool | head -30
 ```
+
+### After the pod restart: verify the plugin actually loaded
+
+The 2026-11-08 incident was found this way — check the runtime log inside
+the pod (`grep -a "failed to load plugin" /tmp/.local/share/opencode/log/opencode.log`)
+and confirm it has **no** `task-reliability` entry after the restart
+timestamp. Then dispatch any subagent task and confirm the durable registry
+is being written:
+
+```bash
+kubectl -n kubeopencode-system exec <agent-pod> -- \
+ sh -c 'grep -a "failed to load plugin" /tmp/.local/share/opencode/log/opencode.log | tail -3; \
+        test -f /workspace/.opencode/task-registry.jsonl && \
+        echo "registry OK:" && tail -3 /workspace/.opencode/task-registry.jsonl'
+```
+
+Expected: no new `failed to load plugin` lines, and after the first
+subagent dispatch a JSONL line like
+`{"kind":"created","childID":"ses_…","parentID":"ses_…","agent":"…","title":"…"}`.
 
 ## Apply
 

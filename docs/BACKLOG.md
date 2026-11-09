@@ -20,6 +20,10 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-269 addendum — plugin load failed live (`Plugin export is not a function`): loader contract pinned (single default export; helpers split into task-reliability-helpers.ts; nested `properties.info.parentID` read), tests wired into CI + pod pre-flight, `make sync-opencode-configmap` now also fast-forwards the pod checkout so config and plugin code stay in lockstep (#1254)
+- 2026-11-08: BITB-271 created — upstream opencode issue: subagent `question` call parks forever (no default deny/timeout/parent routing); paste-ready draft in the story, filing is an owner step (#1254)
+- 2026-11-08: BITB-270 created — LLM stream-stall watchdog: error-driven fallback misses silently-stalled streams; stream-idle detection + abort/registry line with a tight threshold (#1254)
+- 2026-11-08: BITB-269 in progress — subagent `question`-tool deadlock hung the orchestrator 9h34m (2026-11-07): question denied for all 11 subagents + dispatch hygiene rules; task-reliability plugin wiring + stuck-child watchdog in the same PR
 - 2026-11-05: BITB-267 todo — backend verse parser misses a citation after `**`, `—` or `¿` (boundary gap vs web/Android) (BITB-189 follow-up)
 - 2026-11-05: BITB-189 done — backend parses a citation directly after a closing bracket/quote (「…」约翰福音3:16) across 11 languages; shared-corpus parity cases added (#1250)
 - 2026-11-04: BITB-266 renumbered from BITB-264 (264/265 claimed by PR #1248) — directed-harm taunt gaps found verifying BITB-238 (#1249)
@@ -339,7 +343,24 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
-### 🔍 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
+### 🔄 BITB-269: Subagent `question`-Tool Deadlock — Orchestrator Hang + Unsupervised Detached Children
+
+**Status:** 🔄 In progress (mitigations + runtime hardening in one PR)
+**Size:** M
+**Created:** 2026-11-08
+
+Incident 2026-11-07: a subagent hit a wrong-branch brief and invoked the `question` tool —
+a subagent has no interactive user, so the call parked the session forever and blocked the
+parent's dispatch for 9h34m (even a finished sibling result was trapped behind it), until the
+user manually resumed the parent. Fixes: `question: deny` for all 11 subagent agents;
+brief PR-reference hygiene (`refs/pull/<n>/head`, never hand-copied branch names); run-closure +
+resume-after-idle rules; load the task-reliability plugin into the pod's generated config;
+registry visibility (asking/stuck watchdog) for parked children.
+Follow-ups filed: BITB-270 (stream-stall watchdog), BITB-271 (upstream opencode issue).
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-269-subagent-question-deadlock-unsupervised-children.md)
+
+### 🎯 BITB-257: Keyword Fallback Blocks Bible Narrative as Violence (Crisis Card Shown)
 
 **Status:** 🔍 In review (2026-11-08)
 **Size:** M
@@ -3445,6 +3466,38 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-270: LLM Stream-Stall Watchdog — Silently-Stalled Provider Streams Are Uncovered
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-08
+
+Follow-up to BITB-269 (out-of-scope item). The runtime-fallback plugin is error-driven, so a
+stream that stalls mid-generation without closing trips no retry and no timeout — only the
+1200 s stuck watchdog eventually aborts, lossily. Add stream-idle detection (env-thresholdable,
+~180 s) with best-effort abort + a `stalled-stream` registry line; investigate whether abort
+re-drives the loop through the fallback machinery (preferred) and whether a native config knob
+exists. Inert-by-design preserved; plugin tests extended.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-270-llm-stream-stall-watchdog.md)
+
+### 🎯 BITB-271: Upstream opencode Issue — Subagent `question` Call Parks Forever
+
+**Status:** 🎯 Todo (owner-run external step: filing the issue)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-08
+
+Follow-up to BITB-269 (out-of-scope item). opencode ≤1.18 lets `mode: subagent` sessions invoke
+the `question` tool with no interactive user: no default denial, no timeout, no parent routing —
+and the parent's task call is equally unbounded. Story contains a paste-ready issue draft
+(repro, log excerpts, proposed behaviors a–d); file it upstream after verifying the canonical
+tracker, record the URL, and later decide keep/retire for the local `question: deny` +
+watchdog layers.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-271-upstream-opencode-subagent-question-deadlock.md)
 
 ### 🚧 BITB-273: parity-ci oasdiff Job — Workspace-Relative Spec Paths for the Container Action
 
