@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-08
+**Last Updated:** 2026-11-09
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-280 in progress — pre-merge live-config load gate: CI boots a scratch opencode 1.18.31 on the committed opencode.json (zero plugin-load failures, roster/question-deny checks, self-test catches the injected 18:51 bug, env-gated subagent dispatch)
 - 2026-11-08: BITB-279 in progress — generator constants (small_model, builtin fallbacks, dead MIMO/Zen IDs) moved to verified openrouter/:free models; test suite + agents.md now assert the free-tier tier-1 invariant (cross-provider rule retired) (#1259)
 - 2026-11-08: BITB-279 in progress — fallback chains broken: opencode/* Zen models never served (no pod credentials) and paid tier-2 can't rescue an exhausted key; all tier-1 fallbacks + mechanical-lane primaries moved to verified openrouter/:free models (#1259)
 - 2026-11-08: BITB-269 addendum — plugin load failed live (`Plugin export is not a function`): loader contract pinned (single default export; helpers split into task-reliability-helpers.ts; nested `properties.info.parentID` read), tests wired into CI + pod pre-flight, `make sync-opencode-configmap` now also fast-forwards the pod checkout so config and plugin code stay in lockstep (#1254)
@@ -3485,6 +3486,29 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🚧 BITB-280: Pre-Merge Live-Config Load Gate — Boot a Scratch opencode on the Committed Config Before It Reaches the Pod
+
+**Status:** 🚧 In Progress — PR pending review
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-08
+
+The 2026-11-08 18:51 incident: the task-reliability plugin shipped with 26 green unit tests and
+was dead on arrival in the live opencode 1.18.31 loader ("Plugin export is not a function") —
+green unit tests and a dead live loader are fully compatible, because nothing in CI ever loads
+the config in a real runtime. `scripts/test-opencode-config-live.py` boots a scratch opencode
+(pinned to the pod's version, cross-checked against agent.yaml's image tag) on the tree's
+COMMITTED opencode.json with isolated HOME/XDG, asserts zero `failed to load plugin` for every
+config-listed file:// plugin (npm-resolution flakiness = warning), the roster + question-deny
+posture, verify-opencode-config and the node plugin suite, and — with a provider key — a real
+subagent dispatch (child created + completed; registry lines once #1254's config entry lands).
+`--self-test` injects the exact 18:51 bug into a plugin copy and fails unless the gate catches
+it. Runs as the `opencode Live Config Gate` CI job on every `.opencode/**`/opencode.json/
+generator/Makefile change. Follow-up when #1254 merges: wire the gate into the pod pre-flight
+(sync-opencode-workspace.sh) and let its strict scope activate.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-280-opencode-config-live-load-gate.md)
 
 ### 🎯 BITB-270: LLM Stream-Stall Watchdog — Silently-Stalled Provider Streams Are Uncovered
 

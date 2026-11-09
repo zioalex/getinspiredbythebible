@@ -8,6 +8,7 @@
 	test-functional test-functional-local test-e2e test-e2e-local \
 	follow-up-eval follow-up-checklist golden-test golden-live \
 	gen-opencode-config verify-opencode-config sync-opencode-configmap sync-opencode-workspace test-opencode-plugin \
+	test-opencode-config-live test-opencode-config-live-selftest \
 	parity-export parity-check \
 	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
 	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
@@ -397,6 +398,14 @@ verify-opencode-config: gen-opencode-config ## Verify generated opencode.json
 	sys.exit('runtime-fallback plugin missing: fallback_models would be inert') \
 	if not any('opencode-runtime-fallback' in str(e) for e in p) else None"
 	@echo "$(GREEN)✓ Runtime-fallback plugin configured$(NC)"
+
+test-opencode-config-live: ## Live-load gate: boot a scratch opencode on the committed config (BITB-280)
+	@echo "$(BLUE)Running the live opencode config gate (normal mode)...$(NC)"
+	@$(SCRIPT_PYTHON) scripts/test-opencode-config-live.py
+
+test-opencode-config-live-selftest: ## Prove the gate catches the 18:51 plugin-load bug class (BITB-280)
+	@echo "$(BLUE)Running the live opencode config gate (self-test mode)...$(NC)"
+	@$(SCRIPT_PYTHON) scripts/test-opencode-config-live.py --self-test
 
 # BITB-269/T-1254PLG: the pod's shared checkout must be fast-forwarded in
 # lockstep with the config — the config loads the task-reliability plugin via
