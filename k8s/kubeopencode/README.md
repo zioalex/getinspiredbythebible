@@ -256,6 +256,28 @@ with 26 green unit tests was dead on arrival in the live loader with
    runs the in-pod plugin pre-flight tests), then replace the pod and
    verify the plugin actually loaded (see the section above).
 
+### task-reliability watchdog knobs (BITB-169/269/270)
+
+The `task-reliability` plugin (loaded from the synced `opencode.json` via its
+`file://` entry) writes the dispatch registry at
+`/workspace/.opencode/task-registry.jsonl` (override: `TASK_RELIABILITY_REGISTRY`)
+and runs two watchdogs over tracked subagent sessions:
+
+| Env var | Default | Fires when | Registry line |
+| --- | --- | --- | --- |
+| `STREAM_IDLE_SECONDS` | 180 | an in-flight LLM stream produces no part delta/update for this long **and no tool call is running** (a long bash run is guarded, never flagged) — the "Class B" silent stall the error-driven fallback plugin cannot see | one `status: "stalled-stream"` per stall + best-effort abort |
+| `TASK_RELIABILITY_STUCK_SECONDS` | 1200 | no bus activity at all for this long — the catch-all for hung tools/bash and any silence the stream clock cannot attribute | one `status: "stuck"` per stall + best-effort abort |
+
+Both thresholds use their defaults in the pod (neither env var is plumbed
+into the manifests — add one to the Agent spec's env if tuning is ever
+needed). On opencode 1.18.31 the best-effort abort cannot kill a
+mid-generation message (`client.session.abort` returns a server error), so
+the registry line is the deliverable: read it, then recover/re-dispatch per
+the orchestrator's task-reliability protocol. Interplay: stream-idle is the
+fast path for frozen streams; the 1200 s stuck watchdog stays the catch-all
+— a child inside a legitimately long bash run trips neither the stream
+watchdog (tool-in-flight guard) nor, until 1200 s, the stuck one.
+
 ## What the controller owns (BITB-284)
 
 The `kubeopencode-controller` renders each Agent's Deployment and Service
