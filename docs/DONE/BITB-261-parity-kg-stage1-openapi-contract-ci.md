@@ -1,6 +1,6 @@
 # BITB-261: Parity KG Stage 1 — Committed OpenAPI Contract Artifact & Breaking-Change CI
 
-**Status:** 🚧 In Progress — PR #1253
+**Status:** ✅ Done 2026-11-08 (PR #1253, incl. adoptions from PR #1251) — follow-ups: BITB-273 (oasdiff container paths, PR #1255), BITB-274/275
 **Priority:** P2
 **Size:** M
 **Created:** 2026-10-30
