@@ -39,7 +39,7 @@ import yaml
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
-AGENTS_DOC = REPO_ROOT / "deployment" / "kubeopencode" / "agents.md"
+AGENTS_DOC = REPO_ROOT / "k8s" / "kubeopencode" / "agents.md"
 
 STRONG_PRIMARY = "openrouter/z-ai/glm-5.3"
 TIER2_FALLBACK = "openrouter/deepseek/deepseek-v3.2-exp"

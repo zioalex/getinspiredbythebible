@@ -4,7 +4,8 @@
 Per-agent settings (model, fallback_models, tools, permission, prompt) are
 sourced from the frontmatter of `.opencode/agents/*.md`, which is the single
 source of truth. The global settings below have no other home: they used to
-live inline in `deployment/kubeopencode/agent.yaml` under `spec.config`, which
+live inline in the (removed, BITB-285) deployment/kubeopencode/agent.yaml under
+`spec.config`, which
 is now replaced by `spec.configRef` pointing at a ConfigMap built from this
 file's output.
 """

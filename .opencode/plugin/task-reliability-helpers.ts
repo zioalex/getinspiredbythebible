@@ -103,7 +103,7 @@ export interface Hooks {
 /**
  * Default registry location: the PVC-backed workspace root, OUTSIDE the repo
  * clone (survives pod restarts and re-clones; /tmp is NOT persisted — see
- * deployment/kubeopencode/agent.yaml persistence note, BITB-128).
+ * k8s/kubeopencode/agent-default-wf2.yaml persistence note, BITB-128).
  * Override with TASK_RELIABILITY_REGISTRY (local dev / tests / laptops where
  * /workspace does not exist).
  */

@@ -153,7 +153,18 @@ android/              Native Android app (Kotlin / Jetpack Compose)
   app/src/main/       Main source set
   app/src/test/       JVM unit tests
 
-deployment/           Terraform configs for Azure
+k8s/                  Home-cluster KubeOpenCode deployment — THE canonical
+  kubeopencode/       home for ALL kubeopencode manifests + docs (BITB-285):
+                        Agent CRs (agent-default-wf2.yaml, agent-default-wf3.yaml,
+                        suspended agent-desktop.yaml), the agents.md model table,
+                        NetworkPolicies, least-privilege RBAC, mobile access,
+                        dev-image/, custom-opencode-image.md. deployment/kubeopencode/
+                        is an obsolete stub — never add content there.
+                        The opencode config-sync runbook + pre-merge live-config
+                        gate live in k8s/kubeopencode/README.md.
+
+deployment/           Terraform configs for Azure — ONLY Terraform (the old
+                        kubeopencode/ subfolder is an obsolete stub, BITB-285)
 scripts/              DB init, embedding generation, migrations, env validation
 data/                 Bible data files
 docs/                 Project documentation
@@ -297,7 +308,7 @@ pinned to the pod's version against the committed config — isolated
 HOME/XDG, never the live server) and `make test-opencode-config-live-selftest`
 (proves the gate catches the 18:51 bug class: a plugin green in unit tests
 but rejected by the live loader). CI runs both on every config-path change.
-See `deployment/kubeopencode/README.md` → *Pre-merge checklist for opencode
+See `k8s/kubeopencode/README.md` → *Pre-merge checklist for opencode
 config changes*.
 
 ## Code Style & Linting
