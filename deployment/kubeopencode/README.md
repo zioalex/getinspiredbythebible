@@ -191,162 +191,14 @@ with 26 green unit tests was dead on arrival in the live loader with
    runs the in-pod plugin pre-flight tests), then replace the pod and
    verify the plugin actually loaded (see the section above).
 
-## What the controller owns (BITB-284)
-
-The `kubeopencode-controller` renders each Agent's Deployment and Service
-**from the Agent spec alone** and overwrites the whole object spec on
-every reconcile (`existing.Spec = desired.Spec` —
-[`agent_controller.go` `reconcileDeployment`](https://github.com/kubeopencode/kubeopencode/blob/a54986bff8c25d974670953ca8ec4882e3964186/internal/controller/agent_controller.go#L269-L275),
-upstream v0.1.9; no diff, no merge). **Anything hand-patched onto the
-Deployment does not survive** — and the patch itself triggers the
-reconcile that reverts it (the controller `Owns()` the Deployment, so a
-`kubectl set image`/`kubectl patch` fires the watch → re-render →
-overwrite, typically within seconds). Consequence: the only durable
-control surface is the **Agent object** — express the change there or
-expect reversion.
-
-**Observed live (2026-11-09 outage):** a deployment-level `set image`
-was wiped by a reconcile; controller restarts (40→41 that morning) and
-Agent spec changes each re-rendered templates; the BITB-172 hand-wired
-image survived only until the first re-render — which is why `agent.yaml`
-exists at all (repo applies converge with live instead of fighting it).
-
-Reconcile triggers (upstream source, v0.1.9 commit `a54986b` — verified
-identical on current `main`, 2026-11-09): any Agent change; any event on
-**owned** objects (Deployment — including the Deployment controller's
-own status writes during pod churn — Service, the controller-created
-context ConfigMap, PVCs, share-token Secret); AgentTemplate changes;
-Task lifecycle events; controller restart (informers re-list → every
-agent re-rendered); and the controller-runtime default **~10h resync**
-(no `SyncPeriod` override). An identical render is a no-op update —
-reconciles only roll pods when the rendered template actually changed.
-
-One deliberate non-trigger: the **`configRef` ConfigMap is not watched**
-— `opencode-config` is read at reconcile time and baked into the pod
-template (serve command / context-init). That is why the sync flow above
-requires the pod replacement: the `kubectl delete pod` churns the
-Deployment status → reconcile → re-render with the *fresh* ConfigMap
-content → changed template → rolling update. A ConfigMap-only change on
-an otherwise quiet cluster does not converge until the ~10h resync.
-
-Operational guidance:
-
-- **Never hand-patch the Deployment for anything that must survive.**
-  Effectively nothing in its `.spec` (nor object-level labels) is safe
-  across reconciles. `spec.suspend` on the Agent is the one
-  deployment-shaping field the controller deliberately honors (scales
-  to 0).
-- The legitimate exception: an **emergency** patch while the controller
-  is *down* (crash-looping, as during the 2026-11-09 outage). Expect
-  reversion when it recovers; follow up with the Agent-spec change.
-- Spec-expressible today: `agentImage`, `executorImage`, `attachImage`,
-  `imagePullSecrets`, `port`/`extraPorts`, credentials, contexts,
-  skills, plugins, `configRef`, persistence, `serviceAccountName`,
-  `suspend`, and `podSpec.*` (resources, securityContext, lifecycle,
-  annotations, scheduling, extraEnv, extraVolumes/Mounts,
-  systemContainers env/volumeMount overrides).
-- **Probes are owned and not spec-expressible anywhere** — see the next
-  subsection.
-- Cluster-level `KubeOpenCodeConfig` adds no image/probe knobs for the
-  server container: `systemImage`/`systemImagePullPolicy` cover only the
-  internal init/sidecar containers (git-init, context-init, plugin-init,
-  git-sync), plus proxy/clusterDomain/observability.
-
-### Startup-probe budget — hardcoded upstream (BITB-282)
-
-The `opencode-server` startup probe is hardcoded in the controller
-([`server_builder.go` lines 593–605](https://github.com/kubeopencode/kubeopencode/blob/a54986bff8c25d974670953ca8ec4882e3964186/internal/controller/server_builder.go#L593-L605)):
-`GET /session/status`, `initialDelaySeconds: 2`, `periodSeconds: 2`,
-`timeoutSeconds: 5`, `failureThreshold: 30` — the upstream author's
-comment sizes that at "2 + 2\*30 = 62s max startup time". The 2026-11-09
-outage showed the real envelope is worse in both directions: fast
-refusals kill at ~62s, but when the port is bound and the endpoint
-hangs, each probe consumes the full 5s timeout, so 30 failures stretch
-toward ~150s — the incident's kills landed at **~100–115s** (after ~65s
-of `connection refused` + ~50s of `context deadline exceeded` while
-opencode init/plugin/npm resolution crawled on a degraded ~2.2 MB/s
-network). A cold boot that needs more than ~62–150s cannot boot on this
-controller version, and because the reconcile owns the Deployment, a
-deployment-level probe patch is reverted (see above) — there is **no
-workaround**. Worst-case cold boots need ~300s. The Agent spec (checked
-on v0.1.9 and on current upstream `main`, 2026-11-09: `AgentSpec`,
-`podSpec`, `podSpec.systemContainers`, `AgentTemplate`,
-`KubeOpenCodeConfig`) exposes no probe fields — an upstream issue asking
-for spec-expressible probe overrides is drafted in the
-[BITB-282 story](../../docs/BACKLOG_STORIES/BITB-282-startup-probe-budget-cold-boot-outage.md)
-(filing is an owner step). Until upstream ships it, the mitigations
-are: don't panic-roll images on probe-kill loops (the 2026-11-09 outage
-self-healed once the network dip cleared; the image was verified fine),
-keep pods warm (`persistence`, BITB-128), and use the rollback anchors
-below only for verified image-content breakage.
-
-## Known-good image digests (rollback anchors) (BITB-283)
-
-| Image | Digest | Verified |
-| --- | --- | --- |
-| `ghcr.io/kubeopencode/kubeopencode-agent-devbox` | `sha256:1be2d086185e06572622d2ab87aa6eb93e6031c7c18953c0551869a39a617669` | 2026-11-09: healthy through the outage == the digest pulled during the outage == the then-current upstream `:latest` (GHCR API check) |
-
-The 2026-11-09 outage was **not** an image-content problem — the exonerating
-evidence is exactly this triple equality (an early "upstream broke
-`:latest`" hypothesis was retracted; see the
-[BITB-282 story](../../docs/BACKLOG_STORIES/BITB-282-startup-probe-budget-cold-boot-outage.md)).
-This anchor exists so that if image content is *ever* the problem, the
-one-command rollback is on record:
-
-```bash
-kubectl -n kubeopencode-system set image deployment/<agent>-server \
-  opencode-server=ghcr.io/kubeopencode/kubeopencode-agent-devbox@sha256:1be2d086185e06572622d2ab87aa6eb93e6031c7c18953c0551869a39a617669
-```
-
-**Caveat (BITB-284):** that command patches the Deployment, which the
-controller owns — a reconcile re-renders the template from the Agent
-spec and **reverts the patch** (the patch itself triggers it). It buys
-time only while the controller is down or between reconciles. The
-durable form is the Agent-spec equivalent, which *survives* reconciles:
-
-```bash
-kubectl -n kubeopencode-system patch agent <agent> --type=merge \
-  -p '{"spec":{"executorImage":"ghcr.io/kubeopencode/kubeopencode-agent-devbox@sha256:1be2d086185e06572622d2ab87aa6eb93e6031c7c18953c0551869a39a617669"}}'
-```
-
-…then remove the `executorImage` override once upstream `:latest` is
-verified good again. (Note: `opencode-server` runs the devbox
-`executorImage`; the opencode *binary* comes from the `opencode-init`
-container's `agentImage` — pin that separately, per
-`k8s/kubeopencode/custom-opencode-image.md`. `default-wf2` and
-`default-wf3` pin `agentImage` in their manifests; `desktop` currently
-runs it **unpinned `:latest`** — see the `desktop` gap in
-[the Files section](#files) and the
-[BITB-283 story](../../docs/BACKLOG_STORIES/BITB-283-agent-manifest-coverage-gap-wf3-desktop.md).)
-
 ## Apply
 
 Apply the Agent **after** the namespace, secrets, and ConfigMap above exist:
 
 ```bash
-kubectl apply -f deployment/kubeopencode/agent.yaml        # default-wf2
-kubectl apply -f deployment/kubeopencode/agent-wf3.yaml   # default-wf3 (added BITB-283 from the verified live spec)
-kubectl -n kubeopencode-system get agent default-wf2 default-wf3
+kubectl apply -f deployment/kubeopencode/agent.yaml
+kubectl -n kubeopencode-system get agent default-wf2
 ```
-
-> **First `agent-wf3.yaml` apply — owner step (BITB-283):** the manifest
-> is a faithful 2026-11-09 export of the live object, so the first apply
-> must be a provable no-op:
-> `kubectl -n kubeopencode-system diff -f deployment/kubeopencode/agent-wf3.yaml`
-> (expect no diff) **before** applying.
-
-The `desktop` agent has **no manifest in this folder, and its only repo
-presence is an unverified example sketch** — `k8s/kubeopencode/agent-desktop.yaml`
-(the k8s README calls it an "Example" agent: strict-tier annotations,
-sessions-only persistence, 30m standby, **no configRef/config, no
-credentials, no `agentImage` pin**). Nothing confirms that sketch matches
-the live object (only fragments of the live spec are known), and applying
-it as-is would be destructive — a `kubectl apply` of a manifest missing
-fields that exist live removes them (the exact BITB-171 regression). Do
-**not** apply or extend it from memory: export the live spec, diff it
-against the sketch, pin `agentImage`, and promote a verified copy here —
-the exact owner steps are in the
-[BITB-283 story](../../docs/BACKLOG_STORIES/BITB-283-agent-manifest-coverage-gap-wf3-desktop.md).
 
 If the Agent stays unready, check that the ConfigMap it references is present:
 
@@ -354,12 +206,6 @@ If the Agent stays unready, check that the ConfigMap it references is present:
 kubectl -n kubeopencode-system get configmap opencode-config
 kubectl -n kubeopencode-system describe agent default-wf2
 ```
-
-Also remember the startup-probe budget while waiting on a cold boot: on
-this controller version a first boot that exceeds ~62s (fast refusals)
-to ~150s (hanging probes) is killed and retried — slow pulls on a
-degraded network make that loop visible before it recovers (see
-*What the controller owns* → *Startup-probe budget*, BITB-282).
 
 ## Persist GitHub Copilot access
 
@@ -571,27 +417,8 @@ kubectl -n kubeopencode-system delete pvc <workspace-pvc>
   OAuth token), `spec.persistence` (workspace + sessions PVCs), and the pinned
   custom `agentImage` + `ghcr-pull` pull secret (BITB-172 — matches what the
   live object runs; see `k8s/kubeopencode/custom-opencode-image.md`)
-- `agent-wf3.yaml` — the `Agent` CRD (`default-wf3`), same shape as
-  `agent.yaml` (pinned `agentImage`, `ghcr-pull`, `configRef`, credentials,
-  persistence); added in BITB-283 from the verified live spec
-  (2026-11-09 export) so the second workflow agent is visible from the
-  canonical deployment folder. Field-for-field identical to its
-  `k8s/kubeopencode/agent-default-wf3.yaml` twin (both faithful to the same
-  live object) — kept that way by `scripts/test_kubeopencode_manifests.py`
-  (the BITB-171 anti-drift pattern). First apply is an owner-verified
-  no-op diff.
 - `agents.md` — documented 12-agent model table (mirrors the `agent` section of
   the generated `opencode.json`)
-
-**Known gap (BITB-283):** the `desktop` Agent has no manifest here and its
-only repo presence is an **unverified example sketch**
-(`k8s/kubeopencode/agent-desktop.yaml` — no configRef, no credentials, no
-`agentImage` pin; live runs the **unpinned**
-`kubeopencode-agent-opencode:latest`, a binary-version contract risk).
-Applying the sketch blindly would strip fields from the live object
-(BITB-171 class). Export the live spec, diff it against the sketch, pin
-`agentImage`, and promote a verified copy here — owner steps in the
-[BITB-283 story](../../docs/BACKLOG_STORIES/BITB-283-agent-manifest-coverage-gap-wf3-desktop.md).
 
 See also `k8s/kubeopencode/dev-image/` for the derivative agent image that
 bakes in the in-pod dev toolchain (BITB-158).

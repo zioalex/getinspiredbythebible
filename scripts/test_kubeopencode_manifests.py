@@ -31,14 +31,16 @@ cluster. The gaps these close:
   failure that surfaced the drift). These tests pin the custom image + pull
   secret on every manifest, keep default-wf3 in parity with default-wf2, and
   keep the mobile credential opt-in (exact credential match, no additions).
-- T8: BITB-283 -- the canonical deployment folder held only default-wf2, so
-  incident recovery (2026-11-09 outage) could not answer "what does
-  default-wf3 run" from deployment/kubeopencode/. The new
-  `deployment/kubeopencode/agent-wf3.yaml` (transcribed from the verified
-  2026-11-09 live export) is a SECOND manifest for the same object as
-  `k8s/kubeopencode/agent-default-wf3.yaml` -- the exact BITB-171 shape --
-  so these tests pin image/pull-secret on it and require full-spec parity
-  with its k8s twin so the two copies cannot drift apart.
+- T8: BITB-283 -- the 2026-11-09 outage recovery check verified the k8s
+  wf3 manifest field-for-field against the live export. The owner then ruled
+  k8s/kubeopencode/ THE canonical manifest home (deployment/kubeopencode/ is
+  obsolete -- sunset filed as BITB-285), so the wf2/wf3 parity here is
+  upgraded from a field subset to WHOLE-SPEC equality: the subset loop misses
+  one-sided additions (a field gained by only one twin ships silently), and
+  wf3's documented contract is "the wf2 shape under a new name" with nothing
+  spec-level differing. A same-object pair in the obsolete deployment/ folder
+  was briefly added by the original BITB-283 pass and removed by the ruling;
+  its drift-detection intent lives on here, pointed at the canonical tree.
 """
 
 import pathlib
@@ -66,10 +68,6 @@ K8S_README = REPO_ROOT / "k8s" / "kubeopencode" / "README.md"
 K8S_WF3_AGENT_YAML = REPO_ROOT / "k8s" / "kubeopencode" / "agent-default-wf3.yaml"
 CUSTOM_AGENT_IMAGE = "ghcr.io/zioalex/kubeopencode-agent-opencode:v0.1.9-oc1.18.31"
 GHCR_PULL_NAME = "ghcr-pull"
-
-# BITB-283: the deployment-folder copy of default-wf3 (transcribed from the
-# verified 2026-11-09 live export; must stay identical to its k8s twin).
-DEPLOY_WF3_AGENT_YAML = KUBE_DIR / "agent-wf3.yaml"
 
 # Mirrors the CRD: `kubectl explain agent.spec.persistence --recursive`.
 PERSISTENCE_VOLUMES = {"workspace", "sessions"}
@@ -188,34 +186,21 @@ def test_agent_config_and_configref_are_mutually_exclusive(agent_spec):
 # --- T3: credentials are documented ---------------------------------------
 
 
-@pytest.mark.parametrize(
-    "agent_yaml",
-    [AGENT_YAML, DEPLOY_WF3_AGENT_YAML],
-    ids=["wf2", "wf3"],
-)
-def test_every_credential_secret_is_documented(agent_yaml, readme_text):
-    spec = yaml.safe_load(agent_yaml.read_text())["spec"]
-    for credential in spec.get("credentials", []):
+def test_every_credential_secret_is_documented(agent_spec, readme_text):
+    for credential in agent_spec.get("credentials", []):
         secret_name = credential["secretRef"]["name"]
         assert secret_name in readme_text, (
-            f"secret '{secret_name}' is wired in {agent_yaml.name} but not "
-            "documented in README.md -- an operator would not know to create "
-            "it, and the agent silently degrades to the fallback model"
+            f"secret '{secret_name}' is wired in agent.yaml but not documented "
+            "in README.md -- an operator would not know to create it, and the "
+            "agent silently degrades to the fallback model"
         )
 
 
-@pytest.mark.parametrize(
-    "agent_yaml",
-    [AGENT_YAML, DEPLOY_WF3_AGENT_YAML],
-    ids=["wf2", "wf3"],
-)
-def test_every_credential_env_var_is_documented(agent_yaml, readme_text):
-    spec = yaml.safe_load(agent_yaml.read_text())["spec"]
-    for credential in spec.get("credentials", []):
+def test_every_credential_env_var_is_documented(agent_spec, readme_text):
+    for credential in agent_spec.get("credentials", []):
         env_var = credential["env"]
         assert env_var in readme_text, (
-            f"env var '{env_var}' is injected by {agent_yaml.name} but "
-            "undocumented in README.md"
+            f"env var '{env_var}' is injected by agent.yaml but undocumented in README.md"
         )
 
 
@@ -537,8 +522,8 @@ def wf3_agent_spec():
 
 @pytest.mark.parametrize(
     "agent_yaml",
-    [AGENT_YAML, DEPLOY_WF3_AGENT_YAML, K8S_AGENT_YAML, K8S_WF3_AGENT_YAML],
-    ids=["deployment-wf2", "deployment-wf3", "k8s-wf2", "k8s-wf3"],
+    [AGENT_YAML, K8S_AGENT_YAML, K8S_WF3_AGENT_YAML],
+    ids=["deployment-wf2", "k8s-wf2", "k8s-wf3"],
 )
 def test_agent_image_pinned_with_pull_secret(agent_yaml):
     """Every Agent manifest pins the custom build (never :latest) and wires
@@ -591,54 +576,33 @@ def test_wf3_agent_matches_wf2_shape(k8s_agent_spec, wf3_agent_spec):
     )
 
 
-# --- T8: BITB-283 deployment wf3 copy ↔ k8s twin ----------------------------
+# --- T8: BITB-283 k8s wf2/wf3 whole-spec parity ------------------------------
 #
-# deployment/kubeopencode/agent-wf3.yaml (added BITB-283 from the verified
-# 2026-11-09 live export) and k8s/kubeopencode/agent-default-wf3.yaml declare
-# the SAME Agent object. That is the exact BITB-171 shape: two manifests for
-# one object drift apart silently, and applying the stale one strips fields
-# from the live Agent. These tests keep the pair converging.
+# k8s/kubeopencode/ is THE canonical manifest home (owner ruling 2026-11-09;
+# the obsolete deployment/kubeopencode/ folder is sunset by BITB-285). wf3's
+# documented contract (its own header + T7) is "the wf2 shape under a new
+# name" — nothing spec-level differs; only its operator-provisioned
+# PVCs/Service differ, which are not spec fields. The T7 subset loop above
+# gives per-field diagnostics but misses ONE-SIDED ADDITIONS (a field gained
+# by only one twin — e.g. someone adds `suspend` or `maxConcurrentTasks` to
+# wf3 alone — ships silently). Whole-spec equality closes that gap.
 
 
-def test_deployment_wf3_targets_same_object_as_k8s_twin():
-    """Same name/namespace -> both manifests converge the same live object."""
-    deployment_manifest = yaml.safe_load(DEPLOY_WF3_AGENT_YAML.read_text())
-    k8s_manifest = yaml.safe_load(K8S_WF3_AGENT_YAML.read_text())
+def test_k8s_wf3_spec_identical_to_k8s_wf2():
+    """Whole-spec parity between the canonical wf2/wf3 manifests.
 
-    for manifest in (deployment_manifest, k8s_manifest):
-        assert manifest["apiVersion"] == "kubeopencode.io/v1alpha1", (
-            "agent-wf3.yaml is not a kubeopencode.io/v1alpha1 manifest"
-        )
-        assert manifest["kind"] == "Agent", (
-            "agent-wf3.yaml is not an Agent manifest"
-        )
-    for field, expected in (
-        ("name", "default-wf3"),
-        ("namespace", "kubeopencode-system"),
-    ):
-        assert (
-            deployment_manifest["metadata"][field]
-            == k8s_manifest["metadata"][field]
-            == expected
-        ), (
-            f"metadata.{field} drift between deployment/agent-wf3.yaml and "
-            "k8s/agent-default-wf3.yaml -- they would target different objects"
-        )
-
-
-def test_deployment_wf3_spec_identical_to_k8s_twin():
-    """Full-spec parity, not a field subset: both manifests claim to describe
-    the SAME live object (default-wf3), so any difference means one of them
-    is stale -- exactly the silent drift BITB-171 fixed for wf2 with these
-    tests. Whole-spec equality is the honest check for a same-object pair;
-    update BOTH manifests together when the live Agent changes.
+    wf3 exists to exercise the custom agent image as a faithful clone of
+    wf2 (BITB-172); any spec difference — changed field, one-sided
+    addition, or removal — means wf3 stopped being that clone. When the
+    two Agents legitimately need different specs someday, change this test
+    DELIBERATELY (and the wf3 header) rather than letting it drift.
     """
-    deployment_spec = yaml.safe_load(DEPLOY_WF3_AGENT_YAML.read_text())["spec"]
-    k8s_spec = yaml.safe_load(K8S_WF3_AGENT_YAML.read_text())["spec"]
+    wf2_spec = yaml.safe_load(K8S_AGENT_YAML.read_text())["spec"]
+    wf3_spec = yaml.safe_load(K8S_WF3_AGENT_YAML.read_text())["spec"]
 
-    assert deployment_spec == k8s_spec, (
-        "spec drift between deployment/kubeopencode/agent-wf3.yaml and "
-        "k8s/kubeopencode/agent-default-wf3.yaml -- two manifests for the "
-        "same Agent object must stay identical (BITB-171/283); applying a "
-        "stale one strips fields from the live object"
+    assert wf3_spec == wf2_spec, (
+        "spec drift between k8s/kubeopencode/agent-default-wf2.yaml and "
+        "agent-default-wf3.yaml -- wf3's contract is the wf2 shape under a "
+        "new name (BITB-172); the T7 field-subset test stays green on "
+        "one-sided additions, so treat any failure here as real drift"
     )
