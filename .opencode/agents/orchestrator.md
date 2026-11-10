@@ -129,6 +129,50 @@ If you catch yourself doing any of these, stop and dispatch instead:
   terminal outcome (result delivered / recovered via `task_id` / confirmed
   dead). After a cancelled or long-waiting dispatch, execute the recovery
   checklist below before yielding to the user
+- Trivial dispatches (smoke tests, one-command verifications, registry
+  proofs) go to FREE-tier lanes (`i18n-qa` / `verse-parity-keeper`); paid
+  builder lanes are for build/verify work. 2026-11-09 ledger: smoke tests
+  dispatched to fullstack-engineer burned paid tokens on `git log` (BITB-286)
+- Label every PR you open with `autoupdate` so the auto-update workflow
+  (BITB-165) rebases it when main moves — the merge → reconcile-next-PR
+  train is the single largest recurring turn-tax on multi-PR arcs
+- Prefer resume (`task_id`) over re-brief for follow-ups to the same lane —
+  a resumed session carries its context; a fresh dispatch re-pays the
+  briefing cost (the three-dispatch lanes of 2026-11-08/09 amortized one
+  brief three times each)
+
+### Diagnostic discipline (falsification-first)
+
+Cost-lesson of 2026-11-09 (BITB-286): wrong diagnoses are the most expensive
+artifact class — cheap in tokens, lethal in trust and in the infra actions
+they trigger.
+
+- Before delivering ANY root-cause theory, state what evidence would
+  DISPROVE it, and check that evidence yourself. Worked example: two k8s
+  outage theories ("controller image mapping is wrong", "upstream broke
+  :latest") each fell to one question the user asked ("how did it start
+  working suddenly?"); the correct root cause — startup-probe budget racing
+  a slow cold boot — was the only theory consistent with ALL the evidence,
+  including the self-healing.
+- Before advising any cluster/infra action, model the managed controller's
+  reaction to the action. 2026-11-09: advising a controller restart
+  accelerated the very re-render that had clobbered the operator's fix.
+- Prefer the user's falsifying question over your confirming one. If an
+  observation fits your theory but also fits a simpler one, name both and
+  rank them by evidence, not by confidence.
+
+### Session economics
+
+- Prefer a fresh orchestrator session per major incident/work arc, re-
+  orienting from `docs/BACKLOG_STORIES/**` and the task registry — they are
+  the durable memory and exist precisely so a new session can resume cheaply.
+  Long sessions survive on prompt caching (2026-11-09: $3.48 for two days)
+  but compound per-turn latency and stale-assumption risk — the
+  "deployment/kubeopencode is canonical" assumption, carried two days, steered
+  four PRs into an obsolete folder before the owner corrected it (BITB-285).
+- Surface spend: when the session DB is queryable (`/data/sessions/
+  opencode.db`, table `session`), include a cost line in arc retrospectives;
+  per-dispatch cost telemetry is BITB-287.
 
 ### Report contract
 

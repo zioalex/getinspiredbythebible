@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
+- 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
 - 2026-11-09: BITB-281 opened — pt "morra para o pecado, seu idiota" regression follow-up from BITB-239 (#1261)
 - 2026-11-08: BITB-262 🚧 In Progress — capability×client parity registry seeded (35 capabilities × 8 contracts, re-verified against code: all WIP-plan GAPs shipped on Android, BITB-042 drift closed by #685, live red row is BITB-267 api) + graph/landscape renderer + CI freshness gates (#1258)
@@ -357,6 +359,28 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🔄 BITB-286: 2026-11-07→09 Session Cost Retrospective — $20.27/80 Sessions Ledger, $13 Durable Infra vs $4.5 Waste (Verifier Allowlist, Misdiagnosis, Reconciliation Tax, Free-Lane Routing); Fixes in This PR: Verifier Tool Allowlist, Falsification-First Rule, Free-Lane Routing, Session-Per-Incident, Resume-Over-Rebrief, Autoupdate Labels, Risk-Tiered Verification (+BITB-287 Tooling PR)
+
+**Status:** 🔄 In progress (protocol/config fixes in the same PR; tooling follow-ups in BITB-287)
+**Priority:** P1
+**Size:** S (this record) + dispatched follow-ups
+**Created:** 2026-11-09
+
+Incident 2026-11-07 21:30→09 ~17:00 UTC: the PR-queue triage → question-deadlock → fallback-chain → config-gate → k8s-outage → folder-sunset → stream-stall-watchdog arc consumed a full $20 weekly OpenRouter key.
+
+- 80 sessions, $20.27 total · 8.59M fresh input tokens · 593K output · 267M cache-read (the arc is only affordable because caching discounts ~97% of re-read history — long sessions are a cache-subsidized pattern).
+- Cost concentration (top-heavy):
+  - infra-engineer lane, 3 dispatches resumed into one session: $4.64
+  - fullstack lane, 3 dispatches + 2 recoveries, one session: $4.57
+  - orchestrator session (2 days): $3.48
+  - one deepseek verifier-class session: $2.38
+  - ~76 small sessions (smoke tests, scratch-instance probes, aborted spawns, noop children): ~$5.2 combined
+- Value assessment: ~$13 of the $20 bought ~12 merged PRs of durable infrastructure at ~$0.80/PR; the tooling already amortized (T-270A cancel recovery cost one registry grep + one resume vs the Nov-7 forensic marathon); resume-based lanes amortize one brief three times.
+- Waste inventory: 1) two verifier dispatches that could not verify (~$4 + double latency) — root cause: verifier's bash allowlist missing gh/node/venv patterns; 2) [T-1248LINT] odyssey (~$1.1 + 9h34m hang) — triggered by a brief naming the wrong branch; 3) k8s misdiagnoses — wrong theories cost trust/risk; 4) key-exhaustion evening — free-tier tier-1 now fixes; 5) BACKLOG.md reconciliation tax — 4 manual unions; 6) trivial dispatches on paid lanes.
+- Fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification; BITB-287 tooling PR covers the rest.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-286-session-cost-retrospective.md)
 
 ### 🔄 BITB-282: Startup-Probe Budget Too Tight for Cold Boots — 2026-11-09 Agent Outage (Slow Boot + Transient Network Dip = Kill Loop)
 
@@ -3632,6 +3656,40 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🔄 BITB-287: Process & Cost Tooling — BACKLOG union merge driver, registry cost telemetry, budget guardrail
+
+**Status:** 🔄 In progress (tooling implementation PR to follow — no dispatch has launched yet)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-09
+**Follow-up to:** BITB-286 (session cost retrospective)
+
+The 2026-11-07→09 arc exposed three process gaps that consumed orchestrator turns without
+shipping user-visible features:
+
+1. **BACKLOG.md union driver** — the changelog is append-only (one entry per line, newest
+   first). Same-day same-position additions from parallel PRs conflict mechanically. A custom
+   merge driver (targeted at the changelog section, hunk-wise union; fallback to normal merge
+   elsewhere) should auto-resolve these; a blanket `merge=union` on the whole file is risky (could
+   duplicate non-changelog edits). A custom driver script is the robust path: hunk-wise union for
+   the changelog section, normal merge elsewhere; proven on the real conflict patterns from
+   2026-11-09.
+
+2. **Registry cost telemetry** — the task-reliability plugin already tracks child sessions
+   (created/status lines). Extend it to record per-dispatch token/cost telemetry by reading the
+   session events from the opencode bus (which carry `cost`, `tokens_input`, `tokens_output`,
+   `tokens_cache_read`, `tokens_cache_write`, `tokens_reasoning`). Each child's `created`/`status`
+   registry line should carry cost totals; the orchestrator's arc retrospectives can then query
+   per-dispatch cost from the registry instead of querying the DB.
+
+3. **Budget guardrail** — a `make check-llm-budget` target that queries OpenRouter's
+   `/api/v1/credits` or `/api/v1/key` endpoint with `OPENROUTER_API_KEY` and warns if remaining
+   credits drop below a threshold (default: $5). Outputs JSON for CI + human-readable line.
+   Pre-exhaustion alert prevents the 2026-11-08 evening where a $20 limit silently killed every
+   lane.
+
+**Acceptance criteria:** [full story](BACKLOG_STORIES/BITB-287-process-cost-tooling.md)
+
 ### 🚧 BITB-278: Enable Follow-Up Chips on Android + Match Web Chip Colors
 
 **Status:** 🚧 In Progress
@@ -3684,6 +3742,7 @@ reasoning. Call-graph resolution stays out of scope (reliable edge classes only)
 ### 🎯 BITB-274: Wire All scripts/test_*.py Into CI — One Job, Not One-off Wiring
 
 **Status:** 🎯 Todo
+
 ### 🔄 BITB-283: desktop Agent Manifest Unverified and Unpinned; wf3 Live-Spec Verification; KubeOpenCode Manifest Home Ruled `k8s/` (Owner Correction)
 
 **Status:** 🔄 In progress — wf2/wf3 converged (owner-verified); desktop promoted with its pin (BITB-285 PR); remaining: the desktop wake-or-delete decision
