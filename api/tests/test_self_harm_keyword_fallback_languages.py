@@ -264,6 +264,10 @@ DIRECTED = [
     "Ti ammazzo",
     "Ich töte dich",
     "I want to kill myself and I will kill you",
+    # BITB-239: recall restored after the BITB-193 tightening
+    "adesso muori!",
+    "Crève charogne",
+    "morra seu idiota",
 ]
 
 
