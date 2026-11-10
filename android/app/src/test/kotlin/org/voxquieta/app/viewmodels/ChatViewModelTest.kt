@@ -172,7 +172,7 @@ class ChatViewModelTest {
             ttsPreferences,
             analyticsHelper,
         )
-        // BITB-080 default-off rollout gate: the existing BITB-149 behavior tests
+        // BITB-080 rollout gate: the existing BITB-149 behavior tests
         // below represent the FLAG-ON state, so flip the gate on for this class.
         // The flag-off contract has its own dedicated tests just below them.
         ChatViewModel.followUpsEnabledForTest = true
@@ -3016,14 +3016,15 @@ class ChatViewModelTest {
         )
     }
 
-    // ── BITB-080: default-off rollout gate for the follow-up chips ───────────
+    // ── BITB-080: rollout gate for the follow-up chips ────────────────────────
 
     @Test
     fun `followUps in the stream are ignored while the rollout gate is off`() = runTest {
-        // The gate must default OFF (BuildConfig.CHAT_FOLLOW_UPS_ENABLED is false
-        // unless built with -PchatFollowUpsEnabled=true), and @After resets the
-        // test override — so the compile-time default applies here.
-        ChatViewModel.followUpsEnabledForTest = null
+        // The gate defaults ON since the BITB-278 rollout flip
+        // (BuildConfig.CHAT_FOLLOW_UPS_ENABLED is true unless built with
+        // -PchatFollowUpsEnabled=false), so force the gate OFF explicitly to
+        // pin the flag-off contract regardless of the compile-time default.
+        ChatViewModel.followUpsEnabledForTest = false
 
         every { repository.chatStream(any()) } returns flowOf(
             StreamChunk(type = "completion", followUps = listOf("a", "b")),
@@ -3034,7 +3035,7 @@ class ChatViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // No crash, no empty row, no state exposure: the completion event's
-        // follow_ups field is ignored entirely while Android stays dark.
+        // follow_ups field is ignored entirely while the gate is off.
         assertTrue(viewModel.uiState.value.followUps.isEmpty())
     }
 

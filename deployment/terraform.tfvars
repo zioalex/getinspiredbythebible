@@ -99,9 +99,10 @@ max_message_length     = 500
 #   - web:  NEXT_PUBLIC_FOLLOW_UPS_ENABLED is BAKED into the frontend image at
 #           build time — azure-deploy.yml reads web_follow_ups_enabled from
 #           this file and passes it as a docker build-arg (frontend/Dockerfile).
-#   - Android: stays dark — its gate is compile-time (PR #1217), default off.
-# Code defaults stay false (variables.tf / api/config.py / featureFlags.ts);
-# only this production tfvars turns them on (BITB-187 FR5).
+#   - Android: gates compile-time (PR #1217) — default ON since BITB-278
+#     (per-build kill switch: -PchatFollowUpsEnabled=false).
+# Backend/web code defaults stay false (variables.tf / api/config.py /
+# featureFlags.ts); only this production tfvars turns them on (BITB-187 FR5).
 # Rollback: flip either flag to false and redeploy; the web flag additionally
 # needs a frontend image rebuild (it is baked, not runtime).
 

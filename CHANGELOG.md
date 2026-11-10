@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.60.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.59.0...v1.60.0) (2026-11-09)
+
+
+### Features
+
+* **android:** enable follow-up chips and match web chip colors (BITB-278) ([#1257](https://github.com/zioalex/getinspiredbythebible/issues/1257)) ([31679ab](https://github.com/zioalex/getinspiredbythebible/commit/31679ab666022aefc05f09aa32fb64d34a0f936e))
+* **api:** log privacy-safe RAG retrieval misses (BITB-256) ([#1248](https://github.com/zioalex/getinspiredbythebible/issues/1248)) ([2a43100](https://github.com/zioalex/getinspiredbythebible/commit/2a431004cf9303b487659bcc5838a19efafaeee0))
+
+
+### Bug Fixes
+
+* **api:** exempt help-seeking and theological phrases from directed-harm block (BITB-238) ([#1249](https://github.com/zioalex/getinspiredbythebible/issues/1249)) ([19ca462](https://github.com/zioalex/getinspiredbythebible/commit/19ca462be30e2efc2dabe67a1baa84649d53a8ce))
+* **api:** parse a citation directly after a closing bracket or quote (BITB-189) ([#1250](https://github.com/zioalex/getinspiredbythebible/issues/1250)) ([8ca1389](https://github.com/zioalex/getinspiredbythebible/commit/8ca138947fbb16fbe5b5f9af69c44470e58451fc))
+* **api:** show self-harm crisis card when Llama Guard flags S11 with other categories (BITB-258) ([#1239](https://github.com/zioalex/getinspiredbythebible/issues/1239)) ([8cef59d](https://github.com/zioalex/getinspiredbythebible/commit/8cef59d659fa94d2ad0102568fa34624e2f733a0))
+* **api:** stop keyword fallback blocking Bible narrative as violence (BITB-257) ([#1241](https://github.com/zioalex/getinspiredbythebible/issues/1241)) ([c0c3808](https://github.com/zioalex/getinspiredbythebible/commit/c0c38084701601212aed8a59b27586b641f54569))
+* **ci:** pass workspace-relative spec paths to oasdiff action (BITB-273) ([#1255](https://github.com/zioalex/getinspiredbythebible/issues/1255)) ([21a9e11](https://github.com/zioalex/getinspiredbythebible/commit/21a9e11a6ffb14171bc87ef42d4cafe95b86689a))
+* **kubeopencode:** 2026-11-09 outage follow-ups — probe budget, controller ownership, k8s-canonical manifest hygiene (BITB-282/283/284/285) ([#1272](https://github.com/zioalex/getinspiredbythebible/issues/1272)) ([5943027](https://github.com/zioalex/getinspiredbythebible/commit/5943027db457e37ecf25f18149847075eb63b5e8))
+* **kubeopencode:** sunset deployment/kubeopencode, promote the desktop Agent manifest (BITB-283/285) ([#1273](https://github.com/zioalex/getinspiredbythebible/issues/1273)) ([221919e](https://github.com/zioalex/getinspiredbythebible/commit/221919ed8bb4dc32681863a0071c1216334c5cd6))
+* **opencode:** add stream-stall watchdog to task-reliability plugin (BITB-270) ([#1274](https://github.com/zioalex/getinspiredbythebible/issues/1274)) ([1ab59c8](https://github.com/zioalex/getinspiredbythebible/commit/1ab59c810d10f171a0005489d487419e02c458e0))
+* **opencode:** load task-reliability plugin and record stuck subagents (BITB-269) ([#1254](https://github.com/zioalex/getinspiredbythebible/issues/1254)) ([e9c58d4](https://github.com/zioalex/getinspiredbythebible/commit/e9c58d489964bc54e3c9830aa5eb12b1f8a149ca))
+* **opencode:** move fallback chains to working free-tier models (BITB-279) ([#1259](https://github.com/zioalex/getinspiredbythebible/issues/1259)) ([2340a22](https://github.com/zioalex/getinspiredbythebible/commit/2340a227d32ab6115409ff9ef0a9a8ef69950c7e))
+
+
+### Documentation
+
+* add cross-client parity knowledge-graph decision record and stage stories (BITB-260..263) ([#1237](https://github.com/zioalex/getinspiredbythebible/issues/1237)) ([6016b8d](https://github.com/zioalex/getinspiredbythebible/commit/6016b8d241f777ef5f199282055532170b92436f))
+* mark BITB-260 decision record done, move story to docs/DONE ([#1237](https://github.com/zioalex/getinspiredbythebible/issues/1237)) ([#1252](https://github.com/zioalex/getinspiredbythebible/issues/1252)) ([7e1d0c1](https://github.com/zioalex/getinspiredbythebible/commit/7e1d0c1c8f7975fba9d265657c282767c426861a))
+* mark BITB-261 done, file follow-up stories BITB-274..277, codify pre-dispatch rule ([#1256](https://github.com/zioalex/getinspiredbythebible/issues/1256)) ([0360f8f](https://github.com/zioalex/getinspiredbythebible/commit/0360f8f58088dae419cb4b3428019bb235d58716))
+
 ## [1.59.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.58.0...v1.59.0) (2026-10-30)
 
 

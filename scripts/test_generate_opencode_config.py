@@ -16,6 +16,15 @@ failed over. Model IDs changed here MUST be verified against the live catalog
 
 BITB-236 updates the matrix to paid primaries and retires `gpt-oss-120b`. The
 tests now reflect the new lane‑aware fallback chains.
+
+BITB-279 (2026-11-08 21:30 key-exhaustion incident) retires the cross-provider
+tier-1 rule: the `opencode/*` Zen-gateway hops had no credentials in this pod
+(dead on arrival), and OpenRouter is now the only provider with credentials AND
+the only free slate (12 `nvidia/nemotron-*:free` variants), so a cross-provider
+hop is impossible. The invariant that actually survives the observed failure
+is a FREE tier-1 — free models draw no credit, so the chain keeps serving
+while the paid key is exhausted. Paid tier-2 (glm-5.3 / deepseek-v3.2-exp)
+stays as the defense against free-tier rate caps and upstream 5xx/429.
 """
 
 import json
@@ -30,19 +39,33 @@ import yaml
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 GENERATOR = REPO_ROOT / "scripts" / "generate-opencode-config.py"
 AGENTS_DIR = REPO_ROOT / ".opencode" / "agents"
-AGENTS_DOC = REPO_ROOT / "deployment" / "kubeopencode" / "agents.md"
+AGENTS_DOC = REPO_ROOT / "k8s" / "kubeopencode" / "agents.md"
 
 STRONG_PRIMARY = "openrouter/z-ai/glm-5.3"
 TIER2_FALLBACK = "openrouter/deepseek/deepseek-v3.2-exp"
-# Tier-1 hops are cross-provider: an OpenRouter primary fails over to Zen,
-# a Zen primary fails over to OpenRouter. Both hops are FREE; tier-2 is PAID.
-OR_FREE_HOP = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
-ZEN_FREE_HOP = "opencode/nemotron-3-ultra-free"
-# The retired IDs must never come back: both were non-existent on their
-# providers (BITB-173), which made the whole fallback chain inert.
-STALE_MODEL_IDS = ("opencode/nemotron-3-super-free", "openrouter/openai/gpt-oss-120b:free", "openrouter/openai/gpt-oss-120b")
+# BITB-279: tier-1 hops must be free-tier `openrouter/:free` models — they
+# draw no credit, so the chain survives paid-key exhaustion (the
+# 2026-11-08 incident). Cross-provider hops are impossible: OpenRouter is
+# the only provider with credentials and the only free slate.
+OR_STRONG_FREE = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
+OR_LIGHT_FREE = "openrouter/nvidia/nemotron-3.5-lightning:free"
+# The retired IDs must never come back: the BITB-173 pair was non-existent
+# on its providers; the BITB-279 pair exists but is unservable in this pod
+# (no Zen-gateway credentials — dead on arrival, the exact incident that
+# made every fallback chain inert during key exhaustion).
+STALE_MODEL_IDS = (
+    "opencode/nemotron-3-super-free",
+    "openrouter/openai/gpt-oss-120b:free",
+    "openrouter/openai/gpt-oss-120b",
+    "opencode/nemotron-3-ultra-free",
+    "opencode/mimo-v2.6-flash-free",
+)
 BUILTINS = ("build", "plan", "general", "explore", "compaction", "title", "summary")
 PLUGIN_NAME = "opencode-runtime-fallback@0.2.4"
+# BITB-269: absolute in-pod path to the task-reliability plugin source
+# (only the generated opencode.json is synced into the ConfigMap — see the
+# PLUGIN comment in the generator for the full load-path rationale).
+TASK_RELIABILITY_PLUGIN = "file:///workspace/repo/.opencode/plugin/task-reliability.ts"
 
 
 @pytest.fixture(scope="module")
@@ -77,28 +100,37 @@ def test_all_md_agents_present(config, md_agents):
 
 
 def expected_chain(primary: str) -> list:
-    """Lane-aware fallback chain.
+    """Lane-aware fallback chain (BITB-279: free tier-1, all OpenRouter).
 
-    - Workhorse/Builders (OpenRouter primary GLM-5.3): [Zen free, DeepSeek V3.2 Exp]
-    - Skeptics (OpenRouter primary DeepSeek V3.2 Exp): [Zen free, GLM-5.3]
-    - Mechanical (free primary MIMO): [OpenRouter free, GLM-5.3]
+    - Workhorse/Builders (GLM-5.3 primary): [ultra free, DeepSeek V3.2 Exp]
+    - Skeptics (DeepSeek V3.2 Exp primary): [ultra free, GLM-5.3]
+    - Mechanical (free ultra primary): [lightning free, GLM-5.3]
     """
     if primary == "openrouter/z-ai/glm-5.3":
-        return [ZEN_FREE_HOP, "openrouter/deepseek/deepseek-v3.2-exp"]
+        return [OR_STRONG_FREE, "openrouter/deepseek/deepseek-v3.2-exp"]
     if primary == "openrouter/deepseek/deepseek-v3.2-exp":
-        return [ZEN_FREE_HOP, "openrouter/z-ai/glm-5.3"]
-    # Free primary (MIMO)
-    return ["openrouter/nvidia/nemotron-3-ultra-550b-a55b:free", "openrouter/z-ai/glm-5.3"]
+        return [OR_STRONG_FREE, "openrouter/z-ai/glm-5.3"]
+    # Free primary (mechanical lanes): tier-1 de-duplicated to lightning.
+    return [OR_LIGHT_FREE, "openrouter/z-ai/glm-5.3"]
 
 
 def test_every_md_agent_has_fallback_models(config, md_agents):
-    """The core regression: fallback_models was absent for every agent."""
+    """The core regression: fallback_models was absent for every agent.
+
+    BITB-279 shape: fallbacks must exist, tier-1 must be the lane's free
+    `openrouter/:free` hop, and no fallback may duplicate the primary
+    (a duplicate hop burns a retry on the same dead model instead of
+    failing over — the mechanical lanes' old chain had exactly that bug).
+    """
     for name in md_agents:
         fallbacks = config["agent"][name].get("fallback_models")
         assert fallbacks, f"{name} has no fallback_models"
         primary = config["agent"][name]["model"]
         assert fallbacks == expected_chain(primary), (
             f"{name}: expected {expected_chain(primary)}, got {fallbacks}"
+        )
+        assert primary not in fallbacks, (
+            f"{name}: fallback list duplicates the primary {primary}"
         )
 
 
@@ -125,8 +157,8 @@ def test_fallback_chain_is_free_first_paid_last(config, md_agents):
 def test_fallback_chain_exact_and_ordered(config, md_agents):
     """Every .md agent must declare exactly [tier1, tier2] — no partial edits.
 
-    Expected chain is per primary provider: OpenRouter primaries fail over to
-    Zen first (cross-provider); Zen primaries fail over to OpenRouter first.
+    Expected chain is lane-aware (see expected_chain): tier-1 is always the
+    lane's free `openrouter/:free` hop, tier-2 the lane's paid safety net.
     """
     for name in md_agents:
         primary = config["agent"][name]["model"]
@@ -135,37 +167,41 @@ def test_fallback_chain_exact_and_ordered(config, md_agents):
         )
 
 
-def test_primary_is_the_strongest_free_model(config):
+def test_primary_is_the_strongest_paid_model(config):
     """The global primary (builtins: build/plan/general/explore/etc.) is the
     strongest **paid** model on the graph — `openrouter/z-ai/glm-5.3`.
-    Cheap ops (`small_model`) stay on Zen free, off the OpenRouter free-tier
-    rate limits.
+    Cheap ops (`small_model`) stay on a free `openrouter/:free` model
+    (lightning), off the paid key and off the strong workhorse's rate
+    limits (BITB-279).
     """
     assert config["model"] == STRONG_PRIMARY
-    # Cheap ops tier stays on Zen free, off the OpenRouter free-tier limits.
-    assert config["small_model"] == ZEN_FREE_HOP
+    # Cheap ops tier stays free-tier; the Zen gateway had no credentials.
+    assert config["small_model"] == OR_LIGHT_FREE
 
 
-def test_fallback_chain_is_cross_provider(config, md_agents):
-    """Tier-1 must be on a different provider than the primary (BITB-173).
+def test_fallback_chain_tier1_is_free(config, md_agents):
+    """BITB-279: tier-1 must be a free-tier `openrouter/:free` model.
 
-    The observed failure was a Zen-side `503 Upstream error from Nvidia`; a
-    same-provider fallback would have died in the same incident. With the
-    strong 550B primary on OpenRouter, the same rule now also protects
-    OpenRouter-primary agents: their tier-1 hop must be Zen.
+    Policy change (2026-11-08 21:30 key-exhaustion incident): cross-provider
+    tier-1 is impossible — OpenRouter is the only provider this pod has
+    credentials for and the only free slate (12 `nvidia/nemotron-*:free`
+    variants). The invariant that actually rescues the observed failure is
+    FREE tier-1: free models draw no credit, so the chain keeps serving
+    while the paid key is exhausted. (The old cross-provider rule died with
+    the Zen-gateway credentials — every `opencode/*` hop was dead on
+    arrival, which is why the 21:30 incident took every lane down.)
     """
     for name in md_agents:
-        primary = config["agent"][name]["model"]
-        primary_provider = primary.partition("/")[0]
-        hop_provider = config["agent"][name]["fallback_models"][0].partition("/")[0]
-        assert primary_provider != hop_provider, (
-            f"{name}: tier-1 fallback is same-provider as primary "
-            f"({primary_provider}) — a provider outage kills the whole chain"
+        tier1 = config["agent"][name]["fallback_models"][0]
+        assert tier1.startswith("openrouter/") and tier1.endswith(":free"), (
+            f"{name}: tier-1 {tier1} is not a free-tier openrouter model — "
+            "the chain cannot survive key exhaustion"
         )
-    # Builtins inherit the global (OpenRouter) primary; their tier-1 hop is Zen.
+    # Builtins inherit the global chain; their tier-1 hop is the strong free
+    # workhorse too.
     for name in BUILTINS:
         hop = config["agent"][name]["fallback_models"][0]
-        assert hop == ZEN_FREE_HOP, f"builtin {name}: tier-1 hop is {hop}, not Zen"
+        assert hop == OR_STRONG_FREE, f"builtin {name}: tier-1 hop is {hop}"
 
 
 def test_no_stale_model_ids_in_config(config):
@@ -176,12 +212,12 @@ def test_no_stale_model_ids_in_config(config):
 
 
 def test_builtin_agents_have_fallback_models(config):
-    """Builtins inherit the OpenRouter primary, so their tier-1 hop is Zen."""
+    """Builtins inherit the global chain: [strong free, paid DeepSeek] (BITB-279)."""
     for name in BUILTINS:
         assert name in config["agent"], f"builtin {name} missing"
         fallbacks = config["agent"][name].get("fallback_models")
-        assert fallbacks == [ZEN_FREE_HOP, "openrouter/deepseek/deepseek-v3.2-exp"], (
-            f"builtin {name}: expected [Zen free, paid], got {fallbacks}"
+        assert fallbacks == [OR_STRONG_FREE, "openrouter/deepseek/deepseek-v3.2-exp"], (
+            f"builtin {name}: expected [strong free, paid], got {fallbacks}"
         )
 
 
@@ -214,6 +250,59 @@ def test_top_level_model_and_plugin_present(config):
     assert config["small_model"]
     assert config["plugin"], "runtime-fallback plugin missing: fallbacks inert"
     assert config["plugin"][0][0] == PLUGIN_NAME
+
+
+def test_task_reliability_plugin_entry_present(config):
+    """BITB-269: the pod loads plugins ONLY through the generated config.
+
+    `make sync-opencode-configmap` syncs just opencode.json into the ConfigMap;
+    auto-discovery scans the effective project root (/workspace in the pod —
+    empty), while the plugin source lives in the repo checkout at
+    /workspace/repo/.opencode/plugin/. Without this absolute file:// entry the
+    pod never loads the plugin and the durable task registry is never written
+    (proven by the 2026-11-07 incident forensics).
+    """
+    plugins = [e[0] if isinstance(e, list) else e for e in config["plugin"]]
+    assert TASK_RELIABILITY_PLUGIN in plugins, (
+        "task-reliability plugin missing from generated config: "
+        "no durable child registry in the pod"
+    )
+
+
+def test_subagent_question_denied(config):
+    """BITB-269: every mode: subagent agent must deny the question tool.
+
+    A subagent has no interactive user: a question can never be answered and
+    (opencode ≤1.18) parks the session forever while the parent's dispatch
+    blocks with it. The per-agent `question: deny` permission from the .md
+    frontmatter must round-trip into the generated agent objects.
+    """
+    subagents = [
+        name
+        for name, spec in config["agent"].items()
+        if spec.get("mode") == "subagent"
+    ]
+    assert len(subagents) == 11, f"expected 11 subagent agents, got {len(subagents)}"
+    for name in subagents:
+        permission = config["agent"][name].get("permission")
+        assert isinstance(permission, dict), f"{name} has no permission block"
+        assert permission.get("question") == "deny", (
+            f"{name} does not deny the question tool: {permission.get('question')!r}"
+        )
+
+
+def test_permission_frontmatter_round_trips(config):
+    """Every permission key declared in an .md frontmatter survives generation."""
+    for path in sorted(AGENTS_DIR.glob("*.md")):
+        fm = yaml.safe_load(path.read_text().split("---", 2)[1])
+        expected = fm.get("permission")
+        if not expected:
+            continue
+        generated = config["agent"][path.stem].get("permission")
+        assert generated == expected, (
+            f"{path.name}: permission frontmatter did not round-trip: "
+            f"expected {expected}, generated {generated}"
+        )
 
 
 def test_plugin_retry_options(config):
