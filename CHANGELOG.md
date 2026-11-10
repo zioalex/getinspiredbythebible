@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.61.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.60.0...v1.61.0) (2026-11-10)
+
+
+### Features
+
+* **parity:** capability×client parity registry, renderer, and CI checks (BITB-262) ([#1258](https://github.com/zioalex/getinspiredbythebible/issues/1258)) ([3a2ca43](https://github.com/zioalex/getinspiredbythebible/commit/3a2ca43980ba524b7099f2e622144efa3abd0332))
+
+
+### Bug Fixes
+
+* **api:** fail over to OpenAI Moderation before keyword fallback in ml_only (BITB-272) ([#1276](https://github.com/zioalex/getinspiredbythebible/issues/1276)) ([6d43faa](https://github.com/zioalex/getinspiredbythebible/commit/6d43faad276cf5460ce75e1a56bbc272fcdfaa5d))
+* **api:** restore it/fr/pt directed-harm recall without BITB-193 false positives (BITB-239) ([#1261](https://github.com/zioalex/getinspiredbythebible/issues/1261)) ([bf7f1d1](https://github.com/zioalex/getinspiredbythebible/commit/bf7f1d1e3e4cd815604347fe2d0b59c81da07510))
+* **opencode:** cost-discipline protocol fixes + BITB-286/287 stories ([#1275](https://github.com/zioalex/getinspiredbythebible/issues/1275)) ([7508bb0](https://github.com/zioalex/getinspiredbythebible/commit/7508bb0419d2d6a6c228f3a0fce144e93dd5b453))
+
 ## [1.60.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.59.0...v1.60.0) (2026-11-09)
 
 
