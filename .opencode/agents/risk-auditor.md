@@ -3,9 +3,10 @@ description: Adversarial architecture and risk audit across backend, frontend, A
 mode: subagent
 model: openrouter/deepseek/deepseek-v3.2-exp
 fallback_models:
-  - opencode/nemotron-3-ultra-free
+  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
   - openrouter/z-ai/glm-5.3
 permission:
+  question: deny
   edit: deny
   bash:
     "*": deny
@@ -64,3 +65,14 @@ Return inline — do not write it to a file:
 3. **Load-bearing strengths** — 3–5 bullets max: what must not break.
 4. **Findings**, grouped by the five categories, severity-ordered within each: [SEVERITY], [RISK PROFILE], [ROOT CAUSE] with `file:line`, [FAILURE SCENARIO], [REFACTOR ACTION].
 5. If you read a prior report: a short relative-to-last-audit line per recognized finding (NEW / STILL OPEN / appears resolved — never assert RESOLVED yourself).
+
+## No questions — detached-subagent contract (BITB-269)
+
+You run as a detached subagent with no interactive user, and the `question`
+tool is denied for you. A subagent question call can never be answered: it
+parks the session forever while the parent orchestrator's dispatch blocks
+with it (incident 2026-11-07 — one `question` call hung the whole
+orchestration run for 9.5 hours). If you hit an ambiguity, a missing
+decision, or a prerequisite that does not exist, proceed with the best
+evidence-based option and report the blocker, the options you considered,
+and your recommendation in your final task result.

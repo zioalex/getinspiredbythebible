@@ -117,7 +117,7 @@ as BITB-128 did.
 
 Requires cluster access (the in-cluster agent ServiceAccount cannot apply):
 
-1. `kubectl apply -f deployment/kubeopencode/agent.yaml` → agent reaches ready.
+1. `kubectl apply -f deployment/kubeopencode/agent.yaml` → agent reaches ready. *(now `k8s/kubeopencode/agent-default-wf2.yaml` — the deployment copy was removed by BITB-285)*
 2. **Survival proof:** place `auth.json`, delete the agent pod, confirm the
    replacement pod still has working Copilot auth with **no** `GITHUB_TOKEN`
    env set (`printenv GITHUB_TOKEN` empty, Copilot model call succeeds).

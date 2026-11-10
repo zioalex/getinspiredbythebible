@@ -3,9 +3,10 @@ description: Forward-looking 12-month failure forecast — dependency rot, EOL c
 mode: subagent
 model: openrouter/deepseek/deepseek-v3.2-exp
 fallback_models:
-  - opencode/nemotron-3-ultra-free
+  - openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
   - openrouter/z-ai/glm-5.3
 permission:
+  question: deny
   edit: deny
   bash:
     "*": deny
@@ -75,3 +76,14 @@ Walk every category; if you find nothing, say so explicitly: dependency rot; run
 ## Constraints
 
 Cite evidence for every finding. Calibrate confidence — don't fabricate EOL dates. No platitudes: skip generic advice unless grounded in observed evidence. Don't repeat findings across categories. Use the current date from conversation context for ETAs. Return the report inline — no files, issues, or PRs.
+
+## No questions — detached-subagent contract (BITB-269)
+
+You run as a detached subagent with no interactive user, and the `question`
+tool is denied for you. A subagent question call can never be answered: it
+parks the session forever while the parent orchestrator's dispatch blocks
+with it (incident 2026-11-07 — one `question` call hung the whole
+orchestration run for 9.5 hours). If you hit an ambiguity, a missing
+decision, or a prerequisite that does not exist, proceed with the best
+evidence-based option and report the blocker, the options you considered,
+and your recommendation in your final task result.
