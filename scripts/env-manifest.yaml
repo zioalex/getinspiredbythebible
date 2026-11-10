@@ -56,7 +56,7 @@ variables:
   OPENAI_API_KEY:
     required_in: both
     condition: LLM_PROVIDER=openai
-    description: OpenAI API key (also used by OpenAI Moderation in content safety keyword_only/hybrid modes)
+    description: OpenAI API key (also used by OpenAI Moderation in content safety keyword_only/hybrid modes, and as the ml_only failover when Llama Guard is down, BITB-272)
     sensitive: true
 
   # OpenRouter-specific
@@ -164,6 +164,12 @@ variables:
   CONTENT_FILTER_ENABLED:
     required_in: remote
     description: Enable content filtering
+    default: "true"
+
+  CONTENT_SAFETY_ML_FAILOVER_ENABLED:
+    required_in: none
+    description:
+      In ml_only mode, fail over to OpenAI Moderation (needs OPENAI_API_KEY) when Llama Guard fails, before the keyword fallback (BITB-272)
     default: "true"
 
   CONTENT_SAFETY_SECOND_OPINION_ENABLED:

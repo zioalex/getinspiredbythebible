@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-09
+**Last Updated:** 2026-11-10
 
 ## Changelog
 
@@ -22,6 +22,8 @@ Prioritized list of user stories and features for Vox Quieta.
 
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
+- 2026-11-08: BITB-262 🚧 In Progress — capability×client parity registry seeded (35 capabilities × 8 contracts, re-verified against code: all WIP-plan GAPs shipped on Android, BITB-042 drift closed by #685, live red row is BITB-267 api) + graph/landscape renderer + CI freshness gates (#1258)
+- 2026-11-10: BITB-272 slice 1 done (🚧 In Progress) — ml_only fails over to OpenAI Moderation before the keyword fallback, failure_class metrics, startup config warning, Llama Guard key fix; follow-ups BITB-288..292 opened
 - 2026-11-08: BITB-278 opened — Android follow-up chips round: flip the default-off `CHAT_FOLLOW_UPS_ENABLED` BuildConfig gate on and restyle the stock SuggestionChip to match the web chip colors (light: white / #E6D0B8 border / #374151 label); user-reported "colors a bit off" when side-loading a flag-on build (BITB-080/149/254 follow-up)
 - 2026-11-08: BITB-261 ✅ Done — stage 1 of the parity KG merged: OpenAPI artifact + stale-artifact CI gate + oasdiff-action (#1253); env-stripping determinism + audit regen adopted from #1251; follow-ups BITB-274/275/276/277 filed
 - 2026-11-09: BITB-285 in progress — implemented: runbooks migrated into k8s/kubeopencode/README.md (sync/lockstep, pre-merge checklist, copilot, fallback, persistence; agents.md moved as sibling), deployment folder stubbed with anchor redirects (agent.yaml removed after zero-drift twin-check), ~30 live refs repointed (live-gate AGENT_YAML + both modes re-run green in-pod), AGENTS.md Repository Layout gains k8s/ (root-cause fix), stub-only-folder guard test; desktop manifest promoted from the owner-exported verified live spec with the agentImage pin as desired state (wake-or-delete = owner decision) (#1273)
@@ -454,9 +456,9 @@ strict whole-message allowlist** — the narrative exemption applies only when t
 
 ---
 
-### 🎯 BITB-272: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
+### 🚧 BITB-272: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress — slice 1 done (2026-11-10): `ml_only` fails over to OpenAI Moderation before the keyword fallback; `failure_class` metrics; startup warning; Llama Guard now uses `OPENROUTER_API_KEY`. Remaining slices: BITB-288 (prod key + golden set), BITB-289 (timeouts/retry/breaker), BITB-290 (SLO alert), BITB-291 (synthetic probe), BITB-292 (Azure second failover)
 **Priority:** P1
 **Size:** L
 **Created:** 2026-11-04
@@ -468,12 +470,107 @@ failover, tune timeouts/retry/breaker from data, and alert on a fallback-share S
 
 **Acceptance Criteria (summary):**
 
-- [ ] Simulated OpenRouter outage in `ml_only` is handled by a second-provider ML classifier
-- [ ] Keyword fallback runs only when every configured ML classifier failed
-- [ ] Fallback-share metric + dashboard + SLO burn alert (target < 0.5 % / 7 days, TBC)
-- [ ] Failover classifier passes the 11-language safety golden set
+- [x] Simulated OpenRouter outage in `ml_only` is handled by a second-provider ML classifier (slice 1)
+- [x] Keyword fallback runs only when every configured ML classifier failed (slice 1)
+- [ ] Fallback-share metric + dashboard + SLO burn alert (target < 0.5 % / 7 days, TBC) — BITB-290
+- [ ] Failover classifier passes the 11-language safety golden set — BITB-288
 
 **Full Story:** [`BITB-272-ml-safety-reliability-rare-keyword-fallback.md`](BACKLOG_STORIES/BITB-272-ml-safety-reliability-rare-keyword-fallback.md)
+
+---
+
+### 🎯 BITB-288: Wire OPENAI_API_KEY Into Production and Validate the OpenAI Moderation Failover on the 11-Language Golden Set
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-11-10
+
+BITB-272 slice 1 ships the ML failover, but it is a no-op in production until `OPENAI_API_KEY` is present in the Container App (the startup warning `no OPENAI_API_KEY` fires today). The failover classifier must also pass the multilingual golden set before it is trusted.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Add `OPENAI_API_KEY` (Key Vault / secret reference) to the backend Container App in `deployment/main.tf` and pass it through `.github/workflows/azure-deploy.yml`; `scripts/validate-env.py` stays green
+- [ ] Run a live golden set (crisis + threat + Bible narrative, en/it/de/es/fr/pt/ar/ru/zh/hi/ko) against `omni-moderation-latest` and record per-language results in this story
+- [ ] Owner step: add the secret value, confirm OpenAI data-retention is acceptable, then deploy; the startup warning no longer appears
+
+**Full Story:** [`BITB-288-wire-openai-key-prod-failover-golden-set.md`](BACKLOG_STORIES/BITB-288-wire-openai-key-prod-failover-golden-set.md)
+
+---
+
+### 🎯 BITB-289: Re-benchmark Llama Guard Timeouts, Add Jittered Retry, Tune Breaker Half-Open
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-10
+
+BITB-272 req. 3 and 4: primary 3 s / secondary 5 s timeouts come from a 2026-07 benchmark (secondary outlier 16.6 s), and a brief blip can keep traffic off the ML path for the whole breaker open window.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Fresh 100+ sample production benchmark of primary, secondary and OpenAI Moderation latency recorded in this story
+- [ ] Timeouts and one bounded retry with jitter set from measured p99, inside a hard overall cap for the safety check
+- [ ] Breaker thresholds and half-open probing reviewed so a short blip does not hold the keyword/failover path for the full open window; tests cover half-open recovery
+
+**Full Story:** [`BITB-289-ml-safety-timeouts-retry-breaker-tuning.md`](BACKLOG_STORIES/BITB-289-ml-safety-timeouts-retry-breaker-tuning.md)
+
+---
+
+### 🎯 BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-10
+
+BITB-272 req. 5: `content_safety_fallback_rate` fired 99 times in 30 days (BITB-223). Since slice 1, `content_safety.fallback_total` counts only keyword-fallback decisions, so a share-of-checked-messages SLO (< 0.5 % over 7 days, owner to confirm) is now measurable.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Dashboard tile: keyword-fallback share of checked messages by `stage`, `reason`, `failure_class`, `failover`
+- [ ] Multi-window burn-rate alert in Terraform replaces the any-fallback alert; coordinate with BITB-223 so alerts are not duplicated
+- [ ] Companion tile for `content_safety.failover_total` (failover absorbed vs failed)
+
+**Full Story:** [`BITB-290-content-safety-fallback-share-slo-alert.md`](BACKLOG_STORIES/BITB-290-content-safety-fallback-share-slo-alert.md)
+
+---
+
+### 🎯 BITB-291: Synthetic Probe of the ML Content-Safety Path in prod-monitor
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-10
+
+BITB-272 req. 6: an outage of Llama Guard or the failover is currently found only when users hit the keyword fallback.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `prod-monitor.yml` (or the BITB-224 availability tests) sends a benign Bible-narrative question and a known-unsafe probe and asserts the ML path (not the keyword fallback) decided, e.g. via a response header or metric
+- [ ] Probe failure alerts the owner; the probe message is clearly synthetic and not stored as user data
+- [ ] Documented in `docs/` with the zero-to-running steps
+
+**Full Story:** [`BITB-291-synthetic-ml-safety-probe.md`](BACKLOG_STORIES/BITB-291-synthetic-ml-safety-probe.md)
+
+---
+
+### 🎯 BITB-292: Azure Content Safety as an Ordered Second ML Failover
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-10
+
+BITB-272 slice 1 fails over only to OpenAI Moderation. If both OpenRouter and OpenAI are down the keyword fallback runs. Azure Content Safety (already implemented as a provider for hybrid mode) can be a third ML classifier.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Configurable ordered failover list for `ml_only` (e.g. `openai_moderation,azure`), default unchanged
+- [ ] Azure is tried only after OpenAI Moderation fails; keyword fallback only when every configured classifier failed; unit + integration tests across the 11 languages
+- [ ] Metrics reuse `content_safety.failover_total` with a `to_stage` label per hop
+
+**Full Story:** [`BITB-292-azure-content-safety-second-failover.md`](BACKLOG_STORIES/BITB-292-azure-content-safety-second-failover.md)
 
 ---
 
@@ -3836,9 +3933,9 @@ report on PRs (warn-level first; policy documented with its flip condition).
 
 **Full Story:** [`BITB-261-parity-kg-stage1-openapi-contract-ci.md`](DONE/BITB-261-parity-kg-stage1-openapi-contract-ci.md)
 
-### 🎯 BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
+### 🚧 BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
 
-**Status:** 🎯 Todo — gated on BITB-261
+**Status:** 🚧 In Progress (PR #1258) — BITB-261 landed (PR #1253), so the gate is open
 **Priority:** P2
 **Size:** L
 **Created:** 2026-10-30

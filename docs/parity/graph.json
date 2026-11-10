@@ -1,0 +1,1939 @@
+{
+  "clients": [
+    "android",
+    "api",
+    "ios",
+    "web"
+  ],
+  "drifted": [
+    {
+      "capability": "verse-reference-detection",
+      "client": "api",
+      "evidence": [
+        "api/utils/verse_parser.py:351",
+        "docs/BACKLOG_STORIES/BITB-267-backend-boundary-bold-dash-inverted-question.md"
+      ],
+      "note": "The whitelist lookbehind misses citations after `**`, `—` or `¿` that web/Android catch; missed backend references mean no lookup, passage context or grounding (BITB-267, Todo).",
+      "story": "BITB-267"
+    }
+  ],
+  "edges": [
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/AboutIntroBottomSheet.kt"
+      ],
+      "from": "capability:about-intro",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:about-intro",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:about-intro",
+      "kind": "parity",
+      "note": "BITB-087 Tier 2 (AboutIntroBottomSheet, itself BITB-082 on Android) — deferred.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/AboutIntroModal.tsx",
+        "frontend/src/app/[locale]/about/page.tsx"
+      ],
+      "from": "capability:about-intro",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:app-install-cta",
+      "kind": "parity",
+      "note": "Android is store-distributed; the CTA targets it, not ships in it.",
+      "status": "n/a",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:app-install-cta",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:app-install-cta",
+      "kind": "parity",
+      "note": "The page's iOS branch is the BITB-084 web-installable path until BITB-087 lands.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/app/[locale]/app/page.tsx",
+        "frontend/src/components/AppInstallCta.tsx"
+      ],
+      "from": "capability:app-install-cta",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:ask-by-voice",
+      "kind": "parity",
+      "note": "Planned for Android (BITB-120, Todo); no RecognizerIntent/RECORD_AUDIO in the app.",
+      "status": "absent",
+      "story": "BITB-120",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:ask-by-voice",
+      "kind": "parity",
+      "note": "No endpoint change planned; recognition is client-side.",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:ask-by-voice",
+      "kind": "parity",
+      "note": "BITB-120 reserves SFSpeechRecognizer + usage strings for the iOS port.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "from": "capability:ask-by-voice",
+      "kind": "parity",
+      "note": "Planned for web (BITB-120, Todo); the web's current voice UI is read-aloud OUTPUT.",
+      "status": "absent",
+      "story": "BITB-120",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt:736",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ChatScreen.kt:677-679"
+      ],
+      "from": "capability:backend-warmup-ux",
+      "kind": "parity",
+      "note": "Same UX, different mechanism: instead of polling /health/ready, a 3s in-stream warm-up hint flips isBackendWarming during the first request (GAP-006 shipped in variant form).",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/routes/health.py"
+      ],
+      "from": "capability:backend-warmup-ux",
+      "kind": "parity",
+      "note": "GET /health/ready is the readiness endpoint the web polls.",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:backend-warmup-ux",
+      "kind": "parity",
+      "note": "No BITB-087 tier row; pick one mechanism during the port.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/api.ts:150",
+        "frontend/src/lib/api.ts:513-531",
+        "frontend/src/components/SplashScreen.tsx"
+      ],
+      "from": "capability:backend-warmup-ux",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:54",
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChapterDto.kt"
+      ],
+      "from": "capability:chapter-reading",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/routes/scripture.py"
+      ],
+      "from": "capability:chapter-reading",
+      "kind": "parity",
+      "note": "Chapter endpoint + verse text resolution.",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:chapter-reading",
+      "kind": "parity",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/ChapterModal.tsx"
+      ],
+      "from": "capability:chapter-reading",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChatRequestDto.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/data/streaming/EventSourceParser.kt:54-79"
+      ],
+      "from": "capability:chat-streaming",
+      "kind": "parity",
+      "note": "GAP-001/GAP-002 from the 2026-03-12 WIP plan both shipped; the plan's snapshot is stale.",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:chat-streaming",
+      "kind": "parity",
+      "note": "Emits the stream (see chat-stream-sse contract).",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:chat-streaming",
+      "kind": "parity",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/api.ts:558-560",
+        "frontend/src/lib/api.ts:699",
+        "frontend/src/lib/api.ts:783"
+      ],
+      "from": "capability:chat-streaming",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:chat-streaming",
+      "kind": "governed_by",
+      "to": "contract:chat-stream-sse"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:99",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChurchFinderBottomSheet.kt"
+      ],
+      "from": "capability:church-finder",
+      "kind": "parity",
+      "note": "GAP-008 shipped (banner + inline card + bottom sheet).",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/routes/church.py"
+      ],
+      "from": "capability:church-finder",
+      "kind": "parity",
+      "note": "Church search endpoint + curated data.",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:church-finder",
+      "kind": "parity",
+      "note": "BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/ChurchFinderBanner.tsx",
+        "frontend/src/components/ChurchFinderModal.tsx"
+      ],
+      "from": "capability:church-finder",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:106",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ContactFormBottomSheet.kt"
+      ],
+      "from": "capability:contact-form",
+      "kind": "parity",
+      "note": "GAP-009 shipped.",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/routes/feedback.py"
+      ],
+      "from": "capability:contact-form",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:contact-form",
+      "kind": "parity",
+      "note": "BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/ContactForm.tsx"
+      ],
+      "from": "capability:contact-form",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/local",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ConversationsScreen.kt"
+      ],
+      "from": "capability:conversation-history",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:conversation-history",
+      "kind": "parity",
+      "note": "History is client-local by design; nothing is stored server-side.",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:conversation-history",
+      "kind": "parity",
+      "note": "Tier 1; SwiftData mirrors data/local (Room).",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/conversationStore.ts",
+        "frontend/src/components/ConversationSidebar.tsx"
+      ],
+      "from": "capability:conversation-history",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/CrisisResourcesCard.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChatRequestDto.kt"
+      ],
+      "from": "capability:crisis-resources-card",
+      "kind": "parity",
+      "status": "synced",
+      "story": "BITB-255",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/chat/service.py",
+        "api/utils/crisis_resources.py"
+      ],
+      "from": "capability:crisis-resources-card",
+      "kind": "parity",
+      "status": "synced",
+      "story": "BITB-255",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:crisis-resources-card",
+      "kind": "parity",
+      "note": "BITB-255 postdates BITB-087's tier tables; no recorded iOS obligation yet — decide when the port is scheduled (safety-relevant, flag for the Tier-1 cut).",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/CrisisResourcesCard.tsx"
+      ],
+      "from": "capability:crisis-resources-card",
+      "kind": "parity",
+      "status": "synced",
+      "story": "BITB-255",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:crisis-resources-card",
+      "kind": "governed_by",
+      "to": "contract:chat-stream-sse"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/DiagnosticReportBottomSheet.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/utils/LogCollector.kt"
+      ],
+      "from": "capability:diagnostic-report",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:diagnostic-report",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:diagnostic-report",
+      "kind": "parity",
+      "note": "BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "from": "capability:diagnostic-report",
+      "kind": "parity",
+      "note": "No web diagnostic export exists (browser devtools are the web's equivalent).",
+      "status": "absent",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/FeedbackControls.kt:69",
+        "android/app/src/main/res/values/strings.xml:237"
+      ],
+      "from": "capability:feedback-rethink",
+      "kind": "parity",
+      "note": "Rethink window + maintainer notice + reason chips landed 2026-06-06..2026-07-03; all 11 Android locales carry feedback_maintainer_notice and the reason keys.",
+      "pr": [
+        685,
+        692,
+        696,
+        783
+      ],
+      "status": "synced",
+      "story": "BITB-042",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:feedback-rethink",
+      "kind": "parity",
+      "note": "Pure client-side interaction; the endpoint contract is unchanged (BITB-042 AC).",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:feedback-rethink",
+      "kind": "parity",
+      "note": "Inherits the rethink + notice with the Tier 1 feedback row (Android FeedbackControls.kt is the reference); BITB-042's iOS parity remains open until the port.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/FeedbackControls.tsx:11",
+        "frontend/messages/en.json:189"
+      ],
+      "from": "capability:feedback-rethink",
+      "kind": "parity",
+      "note": "maintainerNotice + FEEDBACK_RETHINK_MS shipped web-first (feature live on main).",
+      "status": "synced",
+      "story": "BITB-042",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/FollowUpChips.kt"
+      ],
+      "from": "capability:follow-up-suggestions",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/chat/service.py"
+      ],
+      "from": "capability:follow-up-suggestions",
+      "kind": "parity",
+      "note": "follow_ups travel in the completion event (BITB-149).",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:follow-up-suggestions",
+      "kind": "parity",
+      "note": "BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/FollowUpSuggestions.tsx"
+      ],
+      "from": "capability:follow-up-suggestions",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ChangelogScreen.kt"
+      ],
+      "from": "capability:in-app-changelog",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:in-app-changelog",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:in-app-changelog",
+      "kind": "parity",
+      "note": "BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/app/[locale]/changelog"
+      ],
+      "from": "capability:in-app-changelog",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:360-404",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/VerseDetailBottomSheet.kt"
+      ],
+      "from": "capability:inline-verse-links",
+      "kind": "parity",
+      "note": "GAP-010 shipped — injectVerseLinks rewrites references as verse:// markdown links.",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:inline-verse-links",
+      "kind": "parity",
+      "note": "Client-side linkification over the streamed text.",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:inline-verse-links",
+      "kind": "parity",
+      "note": "Tier 1 \"Tappable verse citations → verse detail\" — via citations spans, not a regex.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/linkifyVerses.ts",
+        "frontend/src/components/ChatMessage.tsx"
+      ],
+      "from": "capability:inline-verse-links",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:inline-verse-links",
+      "kind": "governed_by",
+      "to": "contract:citations-spans"
+    },
+    {
+      "from": "capability:inline-verse-links",
+      "kind": "governed_by",
+      "to": "contract:verse-grammar"
+    },
+    {
+      "from": "capability:ios-no-donate-entry",
+      "kind": "parity",
+      "note": "Android HAS a donate entry (DonateUrl.kt, BITB-074/168) — obligation is iOS-only.",
+      "status": "n/a",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:ios-no-donate-entry",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:ios-no-donate-entry",
+      "kind": "parity",
+      "note": "No donate/Ko-fi entry point ships (BITB-085 decision; BITB-087 AC).",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "from": "capability:ios-no-donate-entry",
+      "kind": "parity",
+      "note": "Web HAS a Support Us entry (BITB-074) — the negative obligation is iOS-only.",
+      "status": "n/a",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:ios-no-verse-regex",
+      "kind": "parity",
+      "note": "Android keeps ChatMessageItem.kt's regex (fixture-generated).",
+      "status": "n/a",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:ios-no-verse-regex",
+      "kind": "parity",
+      "note": "The backend keeps its canonical parser; the obligation is iOS-specific.",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:ios-no-verse-regex",
+      "kind": "parity",
+      "note": "BITB-087 AC — CI grep enforcing no regex literal matching chapter:verse patterns.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "from": "capability:ios-no-verse-regex",
+      "kind": "parity",
+      "note": "Web keeps versePatterns.ts (fixture-generated).",
+      "status": "n/a",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:ios-no-verse-regex",
+      "kind": "governed_by",
+      "to": "contract:citations-spans"
+    },
+    {
+      "from": "capability:ios-no-verse-regex",
+      "kind": "governed_by",
+      "to": "contract:verse-grammar"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/LanguageSwitchBanner.kt"
+      ],
+      "from": "capability:language-mismatch-banner",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/chat/service.py"
+      ],
+      "from": "capability:language-mismatch-banner",
+      "kind": "parity",
+      "note": "language_suggestion emitted in the metadata event.",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:language-mismatch-banner",
+      "kind": "parity",
+      "note": "BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/LanguageSwitchSuggestion.tsx"
+      ],
+      "from": "capability:language-mismatch-banner",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:language-mismatch-banner",
+      "kind": "governed_by",
+      "to": "contract:chat-stream-sse"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:88"
+      ],
+      "from": "capability:markdown-rendering",
+      "kind": "parity",
+      "note": "compose-markdowntext MarkdownText replaced the old plain Text() (GAP-004 shipped).",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:markdown-rendering",
+      "kind": "parity",
+      "note": "Emits markdown text; rendering is client-side.",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:markdown-rendering",
+      "kind": "parity",
+      "note": "No explicit BITB-087 tier row; follows from the Tier 1 streaming-chat slice.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/ChatMessage.tsx"
+      ],
+      "from": "capability:markdown-rendering",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:92-93",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/FeedbackControls.kt"
+      ],
+      "from": "capability:message-feedback",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/routes/feedback.py"
+      ],
+      "from": "capability:message-feedback",
+      "kind": "parity",
+      "note": "Endpoint + storage + maintainer email on negative ratings.",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:message-feedback",
+      "kind": "parity",
+      "note": "Tier 1 \"Thumbs up/down feedback\".",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/FeedbackControls.tsx",
+        "frontend/src/lib/api.ts"
+      ],
+      "from": "capability:message-feedback",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/utils/NetworkMonitor.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/data/local"
+      ],
+      "from": "capability:offline-handling",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:offline-handling",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:offline-handling",
+      "kind": "parity",
+      "note": "Tier 1 \"Offline/no-network handling\".",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/registerServiceWorker.ts",
+        "frontend/src/components/ServiceWorkerRegistrar.tsx"
+      ],
+      "from": "capability:offline-handling",
+      "kind": "parity",
+      "note": "Versioned offline-shell service worker (BITB-102); chat still needs the network.",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:pwa-installability",
+      "kind": "parity",
+      "note": "Native app; PWA concerns do not apply.",
+      "status": "n/a",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:pwa-installability",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:pwa-installability",
+      "kind": "parity",
+      "note": "Native app planned (BITB-087); PWA concerns do not apply.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/public/sw.js",
+        "frontend/src/lib/registerServiceWorker.ts"
+      ],
+      "from": "capability:pwa-installability",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/tts/SpeechEngine.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/tts/SpeakableText.kt"
+      ],
+      "from": "capability:read-aloud",
+      "kind": "parity",
+      "note": "Shipped; the TTS-never-starts/stays-on-pause defect is open (BITB-252).",
+      "status": "partial",
+      "story": "BITB-252",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:read-aloud",
+      "kind": "parity",
+      "note": "No audio endpoint — on-device synthesis by design (BITB-119).",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:read-aloud",
+      "kind": "parity",
+      "note": "BITB-119: iOS inherits AVSpeechSynthesizer + the same normalization fixture.",
+      "status": "obligated",
+      "story": "BITB-119",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/ListenButton.tsx",
+        "frontend/src/components/ChatMessage.listen.test.tsx"
+      ],
+      "from": "capability:read-aloud",
+      "kind": "parity",
+      "note": "Shipped (PR #1132 review round) with the telemetry funnel (BITB-247); fallback-voice choice remains open (BITB-251).",
+      "status": "partial",
+      "story": "BITB-251",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:read-aloud",
+      "kind": "governed_by",
+      "to": "contract:telemetry-os-enum"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ChatScreen.kt:583-600"
+      ],
+      "from": "capability:scroll-to-bottom",
+      "kind": "parity",
+      "note": "GAP-007 shipped (FAB + animateScrollToItem).",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:scroll-to-bottom",
+      "kind": "parity",
+      "note": "Client-side scrolling behavior.",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:scroll-to-bottom",
+      "kind": "parity",
+      "note": "No tier row; standard ScrollView behavior during the port.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/app/[locale]/ChatIsland.tsx"
+      ],
+      "from": "capability:scroll-to-bottom",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/preferences/SessionPreferences.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/SessionLimitActions.kt"
+      ],
+      "from": "capability:session-message-limit",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/chat/service.py"
+      ],
+      "from": "capability:session-message-limit",
+      "kind": "parity",
+      "note": "Server-driven limit; the invitation text travels in the stream contract.",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:session-message-limit",
+      "kind": "parity",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/app/[locale]/ChatIsland.tsx"
+      ],
+      "from": "capability:session-message-limit",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/SettingsScreen.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/utils/LegalUrls.kt"
+      ],
+      "from": "capability:settings-legal-links",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:settings-legal-links",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:settings-legal-links",
+      "kind": "parity",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/Footer.tsx",
+        "frontend/src/app/[locale]/about/page.tsx"
+      ],
+      "from": "capability:settings-legal-links",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:settings-legal-links",
+      "kind": "governed_by",
+      "to": "contract:legal-urls"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:726-748"
+      ],
+      "from": "capability:share-message",
+      "kind": "parity",
+      "note": "GAP-005 shipped (ShareCompat on the Listen/Copy/Share rail, BITB-205).",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:share-message",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:share-message",
+      "kind": "parity",
+      "note": "No tier row; UIActivityViewController is trivial during the port.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/ShareMenu.tsx"
+      ],
+      "from": "capability:share-message",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/SplashScreen.kt"
+      ],
+      "from": "capability:splash",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:splash",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:splash",
+      "kind": "parity",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/SplashScreen.tsx"
+      ],
+      "from": "capability:splash",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/preferences/ThemePreferences.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/theme/Theme.kt"
+      ],
+      "from": "capability:theme-toggle",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:theme-toggle",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:theme-toggle",
+      "kind": "parity",
+      "note": "Tier 1 \"Light/dark theme\" — the web gap is not an iOS blocker (Android is the ref).",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "from": "capability:theme-toggle",
+      "kind": "parity",
+      "note": "The web ships a single light theme — no dark mode and no in-app toggle.",
+      "status": "absent",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/TranslationPickerBottomSheet.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/data/preferences/TranslationPreferences.kt"
+      ],
+      "from": "capability:translation-picker",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/routes/scripture.py"
+      ],
+      "from": "capability:translation-picker",
+      "kind": "parity",
+      "note": "Translation catalog + version-faithful text.",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:translation-picker",
+      "kind": "parity",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/TranslationSwitcher.tsx"
+      ],
+      "from": "capability:translation-picker",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/interceptors/TurnstileInterceptor.kt:44",
+        "android/app/src/main/kotlin/org/voxquieta/app/security/TurnstileManager.kt"
+      ],
+      "from": "capability:turnstile-attestation",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/middleware"
+      ],
+      "from": "capability:turnstile-attestation",
+      "kind": "parity",
+      "note": "Verifies tokens and answers 403 TURNSTILE_REQUIRED/TURNSTILE_FAILED.",
+      "status": "synced",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:turnstile-attestation",
+      "kind": "parity",
+      "note": "BITB-087's highest-risk component — build it first; WKWebView proof is a gate.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/api.ts:165-223"
+      ],
+      "from": "capability:turnstile-attestation",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/LanguagePickerBottomSheet.kt",
+        "android/app/src/main/res/values-ru/strings.xml"
+      ],
+      "from": "capability:ui-language-picker",
+      "kind": "parity",
+      "note": "GAP-012 shipped — ru, zh, hi, ko locale dirs all exist (all 11 locales complete; key completeness gated by translation-validation).",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:ui-language-picker",
+      "kind": "parity",
+      "note": "Locales are a client UI concern; the backend speaks the requested language.",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:ui-language-picker",
+      "kind": "parity",
+      "note": "Tier 1; own in-app picker + LocaleApplier-style persistence.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/i18n/routing.ts",
+        "frontend/messages"
+      ],
+      "from": "capability:ui-language-picker",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:ui-language-picker",
+      "kind": "governed_by",
+      "to": "contract:strings-catalog"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:516",
+        "android/app/src/test/kotlin/org/voxquieta/app/components/VerseCorpusParityTest.kt"
+      ],
+      "from": "capability:verse-reference-detection",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/utils/verse_parser.py:351",
+        "docs/BACKLOG_STORIES/BITB-267-backend-boundary-bold-dash-inverted-question.md"
+      ],
+      "from": "capability:verse-reference-detection",
+      "kind": "parity",
+      "note": "The whitelist lookbehind misses citations after `**`, `—` or `¿` that web/Android catch; missed backend references mean no lookup, passage context or grounding (BITB-267, Todo).",
+      "status": "drifted",
+      "story": "BITB-267",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:verse-reference-detection",
+      "kind": "parity",
+      "note": "Negative obligation — see ios-no-verse-regex; iOS detects nothing locally and consumes citations-spans instead.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/versePatterns.ts",
+        "frontend/src/lib/verseCorpus.crossplatform.test.ts"
+      ],
+      "from": "capability:verse-reference-detection",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:verse-reference-detection",
+      "kind": "governed_by",
+      "to": "contract:citations-spans"
+    },
+    {
+      "from": "capability:verse-reference-detection",
+      "kind": "governed_by",
+      "to": "contract:verse-grammar"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/VersesPanel.kt:63",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/VersesPanel.kt:189-198"
+      ],
+      "from": "capability:verses-panel",
+      "kind": "parity",
+      "note": "GAP-011 shipped; the panel reuses ChatMessageItem's regex (BITB-164).",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:verses-panel",
+      "kind": "parity",
+      "note": "scripture_context/verses_cited are provided by the stream contract.",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:verses-panel",
+      "kind": "parity",
+      "note": "Tier 1 \"Verse panel (semantic + cited)\".",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/app/[locale]/ChatIsland.tsx:146",
+        "frontend/src/app/[locale]/ChatIsland.tsx:445-469"
+      ],
+      "from": "capability:verses-panel",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/WhatsNewBottomSheet.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/FeatureSpotlight.kt"
+      ],
+      "from": "capability:whats-new-sheet",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:android"
+    },
+    {
+      "from": "capability:whats-new-sheet",
+      "kind": "parity",
+      "status": "n/a",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:whats-new-sheet",
+      "kind": "parity",
+      "note": "BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.",
+      "status": "n/a",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/components/WhatsNewModal.tsx"
+      ],
+      "from": "capability:whats-new-sheet",
+      "kind": "parity",
+      "status": "synced",
+      "to": "client:web"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/streaming/EventSourceParser.kt:29-97",
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChatResponseDto.kt"
+      ],
+      "from": "client:android",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:chat-stream-sse"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/streaming/EventSourceParser.kt:87-97",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:360-404"
+      ],
+      "from": "client:android",
+      "kind": "consumes",
+      "note": "Consumes the server-extracted references (verses_cited / resolved_verses) but NOT the `citations` span offsets; inline linkification stays client-regex (injectVerseLinks). The span contract itself is unconsumed on Android today.",
+      "status": "partial",
+      "to": "contract:citations-spans"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/utils/LegalUrls.kt:27-32"
+      ],
+      "from": "client:android",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:legal-urls"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/AndroidManifest.xml:5-6"
+      ],
+      "from": "client:android",
+      "kind": "consumes",
+      "note": "INTERNET + ACCESS_NETWORK_STATE only.",
+      "status": "synced",
+      "to": "contract:permissions"
+    },
+    {
+      "from": "client:android",
+      "kind": "consumes",
+      "note": "Not landed (BITB-242).",
+      "status": "absent",
+      "to": "contract:platform-flags"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/res/values/strings.xml",
+        "android/app/src/main/res/values-ru/strings.xml"
+      ],
+      "from": "client:android",
+      "kind": "consumes",
+      "note": "Default (English) + 10 locale dirs; key completeness gated by translation-validation.",
+      "status": "synced",
+      "to": "contract:strings-catalog"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ClientEventRequestDto.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:86"
+      ],
+      "from": "client:android",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:telemetry-os-enum"
+    },
+    {
+      "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/utils/VerseGrammar.kt",
+        "android/app/src/test/kotlin/org/voxquieta/app/utils/VerseGrammarTest.kt"
+      ],
+      "from": "client:android",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:verse-grammar"
+    },
+    {
+      "evidence": [
+        "api/chat/service.py:2141",
+        "api/chat/service.py"
+      ],
+      "from": "client:api",
+      "kind": "consumes",
+      "note": "Emits the stream; the contract's source (not a consumer in the UI sense).",
+      "status": "synced",
+      "to": "contract:chat-stream-sse"
+    },
+    {
+      "evidence": [
+        "api/chat/service.py:2141"
+      ],
+      "from": "client:api",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:citations-spans"
+    },
+    {
+      "from": "client:api",
+      "kind": "consumes",
+      "note": "Not landed (BITB-242).",
+      "status": "absent",
+      "to": "contract:platform-flags"
+    },
+    {
+      "evidence": [
+        "api/utils/verse_parser.py:351",
+        "api/tests/test_verse_grammar_parity.py"
+      ],
+      "from": "client:api",
+      "kind": "consumes",
+      "note": "Reconciled by parity tests, but the whitelist lookbehind still misses a citation after `**`, `—` or `¿` that web/Android catch (BITB-267, Todo) — a live backend drift.",
+      "status": "drifted",
+      "story": "BITB-267",
+      "to": "contract:verse-grammar"
+    },
+    {
+      "from": "client:ios",
+      "kind": "consumes",
+      "note": "Tier 1 \"Streaming chat over SSE\"; match EventSourceParser.kt's lenient parsing exactly.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "contract:chat-stream-sse"
+    },
+    {
+      "from": "client:ios",
+      "kind": "consumes",
+      "note": "iOS's ONLY citation mechanism — locate spans by text+occurrence substring search.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "contract:citations-spans"
+    },
+    {
+      "from": "client:ios",
+      "kind": "consumes",
+      "note": "Tier 1 \"Settings with Privacy / Terms / About links\" — mirror LegalUrls.kt.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "contract:legal-urls"
+    },
+    {
+      "from": "client:ios",
+      "kind": "consumes",
+      "note": "No new permission prompts (BITB-087 AC); network only, same posture as Android.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "contract:permissions"
+    },
+    {
+      "from": "client:ios",
+      "kind": "consumes",
+      "note": "Postdates BITB-087's tier tables; scope when the port is scheduled.",
+      "status": "n/a",
+      "to": "contract:platform-flags"
+    },
+    {
+      "from": "client:ios",
+      "kind": "consumes",
+      "note": "255 strings × 11 locales via a conversion script from strings.xml/messages/*.json; mirror translation-validation so a missing key fails CI (BITB-087 Localization).",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "contract:strings-catalog"
+    },
+    {
+      "from": "client:ios",
+      "kind": "consumes",
+      "note": "BITB-087 v1 ships NoOp analytics only (AnalyticsProtocol + NoOp default); the funnel contract applies if/when real analytics are switched on. Revisit that row then.",
+      "status": "n/a",
+      "to": "contract:telemetry-os-enum"
+    },
+    {
+      "from": "client:ios",
+      "kind": "consumes",
+      "note": "iOS ships no verse grammar (see ios-no-verse-regex); it consumes citations-spans instead. The shared corpus remains the cross-client fixture set for its rendering tests.",
+      "status": "n/a",
+      "to": "contract:verse-grammar"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/api.ts:699",
+        "frontend/src/lib/api.ts:783"
+      ],
+      "from": "client:web",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:chat-stream-sse"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/citationSpans.ts",
+        "frontend/src/lib/citationSpans.test.ts"
+      ],
+      "from": "client:web",
+      "kind": "consumes",
+      "pr": [
+        1055
+      ],
+      "status": "synced",
+      "story": "BITB-109",
+      "to": "contract:citations-spans"
+    },
+    {
+      "evidence": [
+        "frontend/src/app/[locale]/privacy/page.tsx",
+        "frontend/src/app/[locale]/terms/page.tsx",
+        "frontend/src/app/[locale]/about/page.tsx"
+      ],
+      "from": "client:web",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:legal-urls"
+    },
+    {
+      "from": "client:web",
+      "kind": "consumes",
+      "note": "No permission surface; the read-aloud uses the browser's speech synthesis.",
+      "status": "n/a",
+      "to": "contract:permissions"
+    },
+    {
+      "from": "client:web",
+      "kind": "consumes",
+      "note": "Not landed (BITB-242).",
+      "status": "absent",
+      "to": "contract:platform-flags"
+    },
+    {
+      "evidence": [
+        "frontend/messages/en.json",
+        "frontend/src/test/translations.test.ts"
+      ],
+      "from": "client:web",
+      "kind": "consumes",
+      "note": "11 locale files under frontend/messages/ (en, it, de, es, fr, pt, ar, ru, zh, hi, ko).",
+      "status": "synced",
+      "to": "contract:strings-catalog"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/clientEvents.ts",
+        "frontend/src/components/ListenButton.tsx"
+      ],
+      "from": "client:web",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:telemetry-os-enum"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/verseGrammar.generated.ts",
+        "frontend/src/lib/verseCorpus.crossplatform.test.ts"
+      ],
+      "from": "client:web",
+      "kind": "consumes",
+      "status": "synced",
+      "to": "contract:verse-grammar"
+    }
+  ],
+  "nodes": [
+    {
+      "description": "An intro presentation of the project and its personal voice (BITB-077/082/083).",
+      "id": "capability:about-intro",
+      "ios_tier": 2,
+      "kind": "capability",
+      "label": "About / intro sheet"
+    },
+    {
+      "description": "The /app landing page routes visitors to the Play Store or (on iOS) the add-to-home-screen PWA path.",
+      "id": "capability:app-install-cta",
+      "kind": "capability",
+      "label": "App install landing page"
+    },
+    {
+      "description": "Speak the question instead of typing it (BITB-120, Todo — not shipped anywhere).",
+      "id": "capability:ask-by-voice",
+      "kind": "capability",
+      "label": "Ask by voice (speech input)"
+    },
+    {
+      "description": "The user is told the server is waking up instead of seeing a silent failure.",
+      "id": "capability:backend-warmup-ux",
+      "kind": "capability",
+      "label": "Backend cold-start / warm-up UX"
+    },
+    {
+      "description": "Read a whole chapter behind a verse (GET /api/v1/scripture/chapter/{book}/{chapter}).",
+      "id": "capability:chapter-reading",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Chapter reading view"
+    },
+    {
+      "description": "Ask a question and watch a streamed answer render; the request carries include_search + session_id; the metadata event arrives before content; the completion event carries citations, corrections, follow-ups and crisis resources.",
+      "id": "capability:chat-streaming",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Streaming chat over SSE (request fields + metadata/content/completion events)"
+    },
+    {
+      "description": "After a few exchanges, an opt-in church finder searches nearby communities via POST /api/v1/church/search.",
+      "id": "capability:church-finder",
+      "ios_tier": 2,
+      "kind": "capability",
+      "label": "Church finder"
+    },
+    {
+      "description": "Reach the team from the app via POST /api/v1/feedback/contact.",
+      "id": "capability:contact-form",
+      "ios_tier": 2,
+      "kind": "capability",
+      "label": "Contact form"
+    },
+    {
+      "description": "Past conversations persist across launches and are readable with the network off (web: IndexedDB; Android: Room; both with export/import).",
+      "id": "capability:conversation-history",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Conversation history, offline-readable"
+    },
+    {
+      "description": "A structured card with locale- and country-appropriate hotline contacts on a crisis turn (BITB-255), driven by region + region_override request fields and the crisis_resources event.",
+      "id": "capability:crisis-resources-card",
+      "kind": "capability",
+      "label": "Crisis resources card on self-harm turns"
+    },
+    {
+      "description": "A user-triggered diagnostic report (collected logs) for support/debugging.",
+      "id": "capability:diagnostic-report",
+      "ios_tier": 2,
+      "kind": "capability",
+      "label": "Diagnostic report export"
+    },
+    {
+      "description": "Tapping a thumb starts a ~10s pending window with Undo and a quiet progress bar; one send per rating; thumbs-down shows a short notice that the message reaches the app's maintainer.",
+      "id": "capability:feedback-rethink",
+      "kind": "capability",
+      "label": "Feedback rethink window + maintainer-sharing notice (BITB-042)"
+    },
+    {
+      "description": "Follow-up questions offered under an assistant answer (server-suggested via follow_ups, BITB-149/080), tappable to ask next.",
+      "id": "capability:follow-up-suggestions",
+      "ios_tier": 2,
+      "kind": "capability",
+      "label": "Suggested follow-up question chips"
+    },
+    {
+      "description": "Release notes readable in the app.",
+      "id": "capability:in-app-changelog",
+      "ios_tier": 2,
+      "kind": "capability",
+      "label": "In-app changelog"
+    },
+    {
+      "description": "A verse reference in the answer text is highlighted and tappable and opens the verse detail / chapter view (no need to scroll to the verse chips).",
+      "id": "capability:inline-verse-links",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Tappable verse references inside the message body"
+    },
+    {
+      "description": "BITB-085's recorded decision, restated as a BITB-087 AC: no Ko-fi/donate entry ships in iOS v1 (App Review risk + the maintainer's call); BITB-074 must not add one to the port.",
+      "id": "capability:ios-no-donate-entry",
+      "kind": "negative-obligation",
+      "label": "iOS ships NO donate entry point"
+    },
+    {
+      "description": "The iOS codebase must contain no chapter:verse regex — citations come from the citations-spans contract via text+occurrence substring search. Enforced by a CI grep, not reviewer diligence; a hand-written NSRegularExpression grammar is a rejected design (it would be the fourth dialect of audit finding A1).",
+      "id": "capability:ios-no-verse-regex",
+      "kind": "negative-obligation",
+      "label": "iOS ships NO verse-reference regex"
+    },
+    {
+      "description": "When the user typed in a language different from the selected UI language, a banner offers to switch (language_suggestion in the metadata event).",
+      "id": "capability:language-mismatch-banner",
+      "ios_tier": 2,
+      "kind": "capability",
+      "label": "Language-mismatch switch banner"
+    },
+    {
+      "description": "Bold, lists, blockquotes and inline code render as formatted text, not raw symbols.",
+      "id": "capability:markdown-rendering",
+      "kind": "capability",
+      "label": "Markdown rendering of assistant answers"
+    },
+    {
+      "description": "Rate an assistant answer via POST /api/v1/feedback; optional inline comment.",
+      "id": "capability:message-feedback",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Thumbs up/down feedback with optional comment"
+    },
+    {
+      "description": "The app surfaces the no-network state and keeps readable content available (web: offline shell service worker; Android: NetworkMonitor + offline-readable Room history).",
+      "id": "capability:offline-handling",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Offline / no-network handling"
+    },
+    {
+      "description": "The web is an installable offline-shell PWA (BITB-102).",
+      "id": "capability:pwa-installability",
+      "kind": "capability",
+      "label": "PWA installability (service worker + shell)"
+    },
+    {
+      "description": "Platform on-device speech synthesis reads the streamed answer aloud, with localized verse speech normalization and a user \"Show Listen button\" preference.",
+      "id": "capability:read-aloud",
+      "kind": "capability",
+      "label": "Read the answer aloud (Listen button)"
+    },
+    {
+      "description": "A floating control appears when the user scrolls up, jumping back to the latest.",
+      "id": "capability:scroll-to-bottom",
+      "kind": "capability",
+      "label": "Scroll-to-bottom affordance during streaming"
+    },
+    {
+      "description": "A per-session message cap that ends with the same friendly take-a-break invitation across clients and offers a new session (BITB-023).",
+      "id": "capability:session-message-limit",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Session message limit with friendly \"take a break\""
+    },
+    {
+      "description": "A settings surface linking the legal pages and about content.",
+      "id": "capability:settings-legal-links",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Settings with Privacy / Terms / About links"
+    },
+    {
+      "description": "Share the answer text via the platform share sheet, or copy it to the clipboard.",
+      "id": "capability:share-message",
+      "kind": "capability",
+      "label": "Share an assistant answer (system share / copy)"
+    },
+    {
+      "description": "A branded launch moment before the chat is interactive.",
+      "id": "capability:splash",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Splash / first-paint experience"
+    },
+    {
+      "description": "User-controlled light/dark theme that persists.",
+      "id": "capability:theme-toggle",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Light/dark theme toggle"
+    },
+    {
+      "description": "Choose the Bible translation answers quote from (KJV, WEB, ...).",
+      "id": "capability:translation-picker",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Bible translation picker"
+    },
+    {
+      "description": "Human-attestation tokens attach to POSTs (X-Turnstile-Token), are consumed single-use, and a 403 triggers exactly one reset + retry.",
+      "id": "capability:turnstile-attestation",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Turnstile token attachment + single-use + 403 retry-once"
+    },
+    {
+      "description": "In-app language switching across en, it, de, es, fr, pt, ar, ru, zh, hi, ko.",
+      "id": "capability:ui-language-picker",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "UI language picker across 11 locales"
+    },
+    {
+      "description": "Detecting verse references in streamed/user text exists in three parsers (backend, web, Android) that must stay in sync by boundary behavior, not just book lists (AGENTS.md).",
+      "id": "capability:verse-reference-detection",
+      "kind": "capability",
+      "label": "Verse-reference detection in free text (the three parsers)"
+    },
+    {
+      "description": "A consolidated verse panel over the conversation's scripture context, toggling between verses cited in the responses and all related verses.",
+      "id": "capability:verses-panel",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Verses panel with Referenced / All-Related filter"
+    },
+    {
+      "description": "A dismissible what's-new presentation on update.",
+      "id": "capability:whats-new-sheet",
+      "ios_tier": 2,
+      "kind": "capability",
+      "label": "\"What's New\" spotlight sheet"
+    },
+    {
+      "id": "client:android",
+      "kind": "client",
+      "label": "android",
+      "repo_path": "android/"
+    },
+    {
+      "id": "client:api",
+      "kind": "client",
+      "label": "api",
+      "repo_path": "api/"
+    },
+    {
+      "id": "client:ios",
+      "kind": "client",
+      "label": "ios",
+      "repo_path": "ios/",
+      "status": "planned",
+      "story": "BITB-087"
+    },
+    {
+      "id": "client:web",
+      "kind": "client",
+      "label": "web",
+      "repo_path": "frontend/"
+    },
+    {
+      "description": "SSE streaming chat protocol: metadata event before content, content chunks, completion event (message_id, model, detected_translation, scripture_context, verses_cited, resolved_verses, corrected_message, corrections, follow_ups, language_suggestion, crisis_resources).",
+      "id": "contract:chat-stream-sse",
+      "kind": "contract",
+      "label": "chat-stream-sse",
+      "source_of_truth": [
+        "api/chat/service.py",
+        "docs/parity/openapi.json",
+        "BITB-086"
+      ],
+      "status": "active"
+    },
+    {
+      "description": "Server-emitted citation spans (BITB-086): the completion event carries `citations` — where each verses_cited reference sits in the final answer text — so a client needs no verse regex of its own. Proven in the web client by BITB-109 (PR #1055).",
+      "id": "contract:citations-spans",
+      "kind": "contract",
+      "label": "citations-spans",
+      "source_of_truth": [
+        "api/utils/verse_parser.py",
+        "api/chat/service.py:2135-2141",
+        "docs/DONE/BITB-086-server-emitted-citation-spans.md"
+      ],
+      "status": "active"
+    },
+    {
+      "description": "Per-locale privacy/terms URLs. The web owns the pages; Android links into them with the user's UI locale (LegalUrls.kt); iOS v1 must do the same from Settings.",
+      "id": "contract:legal-urls",
+      "kind": "contract",
+      "label": "legal-urls",
+      "source_of_truth": [
+        "frontend/src/app/[locale]/privacy/page.tsx",
+        "frontend/src/app/[locale]/terms/page.tsx",
+        "android/app/src/main/kotlin/org/voxquieta/app/utils/LegalUrls.kt"
+      ],
+      "status": "active"
+    },
+    {
+      "description": "The clients request no OS permissions beyond the network: Android declares only INTERNET + ACCESS_NETWORK_STATE; iOS v1 must add no permission prompt (BITB-087 AC); web has no permission prompts (browser sandbox, mic-free).",
+      "id": "contract:permissions",
+      "kind": "contract",
+      "label": "permissions",
+      "source_of_truth": [
+        "android/app/src/main/AndroidManifest.xml:5-6",
+        "docs/BACKLOG_STORIES/BITB-087-ios-app-v1-chat-parity.md"
+      ],
+      "status": "active"
+    },
+    {
+      "description": "Server-driven per-platform (web/android) feature flag registry on GET /config with explicit per-flag fail policies. Row reserved — status the cells when BITB-242 lands.",
+      "id": "contract:platform-flags",
+      "kind": "contract",
+      "label": "platform-flags",
+      "source_of_truth": [
+        "docs/BACKLOG_STORIES/BITB-242-platform-selective-feature-flags.md"
+      ],
+      "status": "absent"
+    },
+    {
+      "description": "UI string catalog completeness across all 11 locales. Android completeness is enforced by the `translation-validation` CI job (.github/workflows/android-ci.yml); tools/parity-graph re-runs the identical check against the identical files (mechanically pinned — it reads the workflow's own extraction regex on every run), so the two can never silently disagree.",
+      "id": "contract:strings-catalog",
+      "kind": "contract",
+      "label": "strings-catalog",
+      "source_of_truth": [
+        "android/app/src/main/res/values/strings.xml",
+        ".github/workflows/android-ci.yml",
+        "frontend/src/test/translations.test.ts"
+      ],
+      "status": "active"
+    },
+    {
+      "description": "Read-aloud telemetry funnel (BITB-247, PR #1226): clients POST {event, locale, platform, browser, os} with coarse fixed enums to /api/v1/client-events; never message text or IDs.",
+      "id": "contract:telemetry-os-enum",
+      "kind": "contract",
+      "label": "telemetry-os-enum",
+      "source_of_truth": [
+        "api/main.py:567",
+        "docs/DONE/BITB-247-tts-start-failed-telemetry.md"
+      ],
+      "status": "active"
+    },
+    {
+      "description": "Shared verse-reference grammar (separators, range chars, fullwidth digits) generated from one fixture into web and Android, and reconciled by parity tests with the backend parser.",
+      "id": "contract:verse-grammar",
+      "kind": "contract",
+      "label": "verse-grammar",
+      "source_of_truth": [
+        "tests/fixtures/verse_grammar.json",
+        "scripts/generate_localized_book_map.py"
+      ],
+      "status": "active"
+    }
+  ],
+  "registry_updated": "2026-11-08",
+  "schema_version": 1,
+  "source": "docs/parity/registry.yaml",
+  "status_counts": {
+    "absent": 4,
+    "drifted": 1,
+    "n/a": 45,
+    "obligated": 19,
+    "partial": 2,
+    "synced": 69
+  },
+  "strings_catalog": {
+    "android_locales": [
+      "ar",
+      "de",
+      "es",
+      "fr",
+      "hi",
+      "it",
+      "ko",
+      "pt",
+      "ru",
+      "zh"
+    ],
+    "default_key_count": 291,
+    "missing_by_locale": {},
+    "web_locales": [
+      "ar",
+      "de",
+      "en",
+      "es",
+      "fr",
+      "hi",
+      "it",
+      "ko",
+      "pt",
+      "ru",
+      "zh"
+    ]
+  }
+}

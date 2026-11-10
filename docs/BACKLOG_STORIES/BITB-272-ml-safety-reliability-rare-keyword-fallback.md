@@ -1,6 +1,6 @@
 # BITB-272: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (slice 1 done 2026-11-10)
 **Priority:** P1
 **Size:** L
 **Created:** 2026-11-04
@@ -68,9 +68,9 @@ I also want real threats to stay caught even when one provider is having problem
 
 ## Acceptance criteria
 
-- [ ] In `ml_only`, a simulated OpenRouter outage (Llama Guard primary + secondary failing) is
+- [x] In `ml_only`, a simulated OpenRouter outage (Llama Guard primary + secondary failing) is
       handled by a second-provider ML classifier, not the keyword fallback (unit + integration test)
-- [ ] The keyword fallback runs only when *every* configured ML classifier has failed; tested
+- [x] The keyword fallback runs only when *every* configured ML classifier has failed; tested
 - [ ] Fallback-share metric, dashboard tile and SLO burn alert exist; Terraform updated
 - [ ] Timeouts/retry/breaker values set from a fresh benchmark, recorded in the story
 - [ ] Failover classifier passes the multilingual safety golden set across all 11 languages
@@ -96,3 +96,31 @@ I also want real threats to stay caught even when one provider is having problem
 BITB-257 (fail-safe keyword fallback), BITB-223 (alert rationalization; fallback alert noise),
 BITB-224 (availability tests), BITB-199 (second-opinion classifier model), BITB-155
 (OpenRouter models).
+
+## Slice 1 (2026-11-10) -- done
+
+Decision on the open question: slice 1 fails over to **OpenAI Moderation only** (free, different
+provider, already implemented); Azure Content Safety becomes an ordered second hop in BITB-292.
+
+- `ml_only`: Llama Guard primary -> secondary -> OpenAI Moderation (`CONTENT_SAFETY_ML_FAILOVER_ENABLED`,
+  default on, no-op without `OPENAI_API_KEY`) -> keyword fallback only if every ML classifier failed.
+- `classify_failure_class()` adds a `failure_class` label (timeout | rate_limited | server_error | auth |
+  malformed | breaker_open | network | other) to `llama_guard.fallback_total` and
+  `content_safety.fallback_total`; new `content_safety.failover_total`. `content_safety.fallback_total`
+  now counts only decisions the keyword fallback actually made.
+- Bug fixed: Llama Guard was built with `openai_api_key or openrouter_api_key` against openrouter.ai.
+- One startup warning when `ml_only` has the failover disabled or no `OPENAI_API_KEY`.
+- Tests: unit (every failure class, unconfigured, disabled, no key, both failed, healthy, ValueError
+  propagates), 11-language parametrized, and chat()/chat_stream() integration
+  (`api/tests/test_chat_safety_failover.py`).
+
+## Follow-ups
+
+- BITB-288: wire `OPENAI_API_KEY` into production + live 11-language golden set (owner secret step)
+- BITB-289: re-benchmark timeouts, jittered retry, breaker half-open tuning
+- BITB-290: fallback-share SLO tile + burn-rate alert (coordinate BITB-223)
+- BITB-291: synthetic ML-path probe in prod-monitor / BITB-224
+- BITB-292: Azure Content Safety as an ordered second failover
+
+Still open on this story: criteria 3-6 above (owned by those follow-ups); the 14-day production
+measurement is an owner step.

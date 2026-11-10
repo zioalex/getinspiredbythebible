@@ -376,7 +376,18 @@ content_safety_fallback_counter = meter.create_counter(
         "local keyword-only filter instead of allowing the message through unchecked"
     ),
     unit="1",
-)  # attributes: stage (llama_guard|openai_moderation|azure), reason
+)  # attributes: stage (llama_guard|openai_moderation|azure), reason; keyword fallback only
+# (BITB-272): llama_guard stage also carries failure_class and failover
+# (openai_moderation_failed|unconfigured|disabled). Incremented ONLY when the keyword fallback runs.
+
+content_safety_failover_counter = meter.create_counter(
+    name="content_safety.failover_total",
+    description=(
+        "Count of ml_only requests where Llama Guard failed/was unconfigured and the "
+        "OpenAI Moderation failover was attempted (BITB-272)"
+    ),
+    unit="1",
+)  # attributes: from_stage, to_stage, outcome (decided|failed), reason, failure_class
 
 rate_limiter_db_error_counter = meter.create_counter(
     name="rate_limiter.db_error_total",
