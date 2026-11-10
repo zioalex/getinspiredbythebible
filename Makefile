@@ -9,7 +9,7 @@
 	follow-up-eval follow-up-checklist golden-test golden-live \
 	gen-opencode-config verify-opencode-config sync-opencode-configmap sync-opencode-workspace test-opencode-plugin \
 	test-opencode-config-live test-opencode-config-live-selftest \
-	parity-export parity-check \
+	parity-export parity-check parity-registry-check \
 	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
 	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
 	validate-env validate-env-strict export-blocked-samples \
@@ -369,6 +369,19 @@ parity-export: ## Export the FastAPI app's OpenAPI contract to docs/parity/opena
 parity-check: ## Verify the committed OpenAPI artifact matches the app (stale = fail)
 	@$(SCRIPT_PYTHON) scripts/export_openapi.py --check
 	@echo "$(GREEN)✓ OpenAPI artifact is up to date$(NC)"
+
+# ==================== Parity Registry (BITB-262) ====================
+# Single source of truth: docs/parity/registry.yaml (validated against
+# tools/parity-graph/registry.schema.json; evidence paths existence-checked;
+# strings cross-check pinned to android-ci's translation-validation job).
+# Derived artifacts: docs/parity/graph.json + docs/parity/landscape.md (committed)
+# → parity-ci.yml registry job. Regenerate with:
+#   python tools/parity-graph/analyze.py && python tools/parity-graph/render.py
+
+parity-registry-check: ## Validate registry.yaml + freshness-check graph.json & landscape.md
+	@$(SCRIPT_PYTHON) tools/parity-graph/analyze.py --check
+	@$(SCRIPT_PYTHON) tools/parity-graph/render.py --check
+	@echo "$(GREEN)✓ Parity registry, graph.json and landscape.md are valid and fresh$(NC)"
 
 # ==================== OpenCode Agent Config (BITB-123) ====================
 # Single source of truth: .opencode/agents/*.md

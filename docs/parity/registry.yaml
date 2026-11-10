@@ -1,0 +1,1190 @@
+# Cross-client parity registry — BITB-262 (BITB-260 stage 2)
+#
+# The store of record for "which client has which capability, and how do the
+# implementations relate?". Every row is RE-VERIFIED against the code before it
+# enters (a plausible-but-wrong row is worse than a missing one — BITB-260's
+# explicit non-goal) and every evidence entry that looks like a repo path is
+# existence-checked by tools/parity-graph/analyze.py on every run.
+#
+# Schema: tools/parity-graph/registry.schema.json (jsonschema, validated in CI)
+# Validate + regenerate the derived artifacts:
+#   python tools/parity-graph/analyze.py          # → docs/parity/graph.json
+#   python tools/parity-graph/render.py           # → docs/parity/landscape.md
+#   make parity-registry-check                    # freshness gate (also in CI)
+#
+# Status vocabulary (per capability × client):
+#   synced    — implemented and at parity with the row's reference behavior (evidence required)
+#   drifted   — implementations diverged; the gap is tracked by a story (evidence required)
+#   partial   — exists but incomplete; open follow-ups remain (evidence required)
+#   absent    — not implemented on this client while peers have it (or not landed anywhere yet)
+#   obligated — a planned client's spec requires it (story required)
+#   n/a       — does not apply to this client (decision or by construction; note says why)
+
+schema_version: 1
+updated: "2026-11-08"
+
+clients:
+  api:
+    kind: backend
+    repo_path: api/
+    description: FastAPI backend — the contract source every client programs against, not a UI.
+  web:
+    kind: client
+    repo_path: frontend/
+    description: Next.js web client (voxquieta.org), 11 UI locales.
+  android:
+    kind: client
+    repo_path: android/
+    description: Kotlin / Jetpack Compose client, 11 UI locales, Play-distributed.
+  ios:
+    kind: client
+    repo_path: ios/
+    status: planned
+    story: BITB-087
+    description: Planned SwiftUI client (BITB-087, unscheduled); no ios/ directory exists yet.
+
+contracts:
+  - id: chat-stream-sse
+    description: >-
+      SSE streaming chat protocol: metadata event before content, content chunks, completion event (message_id, model,
+      detected_translation, scripture_context, verses_cited, resolved_verses, corrected_message, corrections,
+      follow_ups, language_suggestion, crisis_resources).
+    source_of_truth:
+      - api/chat/service.py
+      - docs/parity/openapi.json
+      - BITB-086
+    consumers:
+      api:
+        status: synced
+        evidence:
+          - api/chat/service.py:2141
+          - api/chat/service.py
+        note: Emits the stream; the contract's source (not a consumer in the UI sense).
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/api.ts:699
+          - frontend/src/lib/api.ts:783
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/streaming/EventSourceParser.kt:29-97
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChatResponseDto.kt
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1 "Streaming chat over SSE"; match EventSourceParser.kt's lenient parsing exactly.
+
+  - id: citations-spans
+    description: >-
+      Server-emitted citation spans (BITB-086): the completion event carries `citations` — where each verses_cited
+      reference sits in the final answer text — so a client needs no verse regex of its own. Proven in the web client by
+      BITB-109 (PR #1055).
+    source_of_truth:
+      - api/utils/verse_parser.py
+      - api/chat/service.py:2135-2141
+      - docs/DONE/BITB-086-server-emitted-citation-spans.md
+    consumers:
+      api:
+        status: synced
+        evidence:
+          - api/chat/service.py:2141
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/citationSpans.ts
+          - frontend/src/lib/citationSpans.test.ts
+        story: BITB-109
+        pr: 1055
+      android:
+        status: partial
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/streaming/EventSourceParser.kt:87-97
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:360-404
+        note: >-
+          Consumes the server-extracted references (verses_cited / resolved_verses) but NOT the `citations` span
+          offsets; inline linkification stays client-regex (injectVerseLinks). The span contract itself is unconsumed on
+          Android today.
+      ios:
+        status: obligated
+        story: BITB-087
+        note: iOS's ONLY citation mechanism — locate spans by text+occurrence substring search.
+
+  - id: verse-grammar
+    description: >-
+      Shared verse-reference grammar (separators, range chars, fullwidth digits) generated from one fixture into web and
+      Android, and reconciled by parity tests with the backend parser.
+    source_of_truth:
+      - tests/fixtures/verse_grammar.json
+      - scripts/generate_localized_book_map.py
+    consumers:
+      api:
+        status: drifted
+        evidence:
+          - api/utils/verse_parser.py:351
+          - api/tests/test_verse_grammar_parity.py
+        story: BITB-267
+        note: >-
+          Reconciled by parity tests, but the whitelist lookbehind still misses a citation after `**`, `—` or `¿` that
+          web/Android catch (BITB-267, Todo) — a live backend drift.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/verseGrammar.generated.ts
+          - frontend/src/lib/verseCorpus.crossplatform.test.ts
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/utils/VerseGrammar.kt
+          - android/app/src/test/kotlin/org/voxquieta/app/utils/VerseGrammarTest.kt
+      ios:
+        status: n/a
+        note: >-
+          iOS ships no verse grammar (see ios-no-verse-regex); it consumes citations-spans instead. The shared corpus
+          remains the cross-client fixture set for its rendering tests.
+
+  - id: strings-catalog
+    description: >-
+      UI string catalog completeness across all 11 locales. Android completeness is enforced by the
+      `translation-validation` CI job (.github/workflows/android-ci.yml); tools/parity-graph re-runs the identical check
+      against the identical files (mechanically pinned — it reads the workflow's own extraction regex on every run), so
+      the two can never silently disagree.
+    source_of_truth:
+      - android/app/src/main/res/values/strings.xml
+      - .github/workflows/android-ci.yml
+      - frontend/src/test/translations.test.ts
+    locales: [ar, de, en, es, fr, hi, it, ko, pt, ru, zh]
+    consumers:
+      web:
+        status: synced
+        evidence:
+          - frontend/messages/en.json
+          - frontend/src/test/translations.test.ts
+        note: 11 locale files under frontend/messages/ (en, it, de, es, fr, pt, ar, ru, zh, hi, ko).
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/res/values/strings.xml
+          - android/app/src/main/res/values-ru/strings.xml
+        note: Default (English) + 10 locale dirs; key completeness gated by translation-validation.
+      ios:
+        status: obligated
+        story: BITB-087
+        note: >-
+          255 strings × 11 locales via a conversion script from strings.xml/messages/*.json; mirror
+          translation-validation so a missing key fails CI (BITB-087 Localization).
+
+  - id: telemetry-os-enum
+    description: >-
+      Read-aloud telemetry funnel (BITB-247, PR #1226): clients POST {event, locale, platform, browser, os} with coarse
+      fixed enums to /api/v1/client-events; never message text or IDs.
+    source_of_truth:
+      - api/main.py:567
+      - docs/DONE/BITB-247-tts-start-failed-telemetry.md
+    consumers:
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/clientEvents.ts
+          - frontend/src/components/ListenButton.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ClientEventRequestDto.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:86
+      ios:
+        status: n/a
+        note: >-
+          BITB-087 v1 ships NoOp analytics only (AnalyticsProtocol + NoOp default); the funnel contract applies if/when
+          real analytics are switched on. Revisit that row then.
+
+  - id: platform-flags
+    description: >-
+      Server-driven per-platform (web/android) feature flag registry on GET /config with explicit per-flag fail
+      policies. Row reserved — status the cells when BITB-242 lands.
+    status: absent
+    story: BITB-242
+    note: "Planned (BITB-242, Todo; pilot PR #1220). No flag registry exists on any client yet."
+    source_of_truth:
+      - docs/BACKLOG_STORIES/BITB-242-platform-selective-feature-flags.md
+    consumers:
+      api:
+        status: absent
+        note: Not landed (BITB-242).
+      web:
+        status: absent
+        note: Not landed (BITB-242).
+      android:
+        status: absent
+        note: Not landed (BITB-242).
+      ios:
+        status: n/a
+        note: Postdates BITB-087's tier tables; scope when the port is scheduled.
+
+  - id: permissions
+    description: >-
+      The clients request no OS permissions beyond the network: Android declares only INTERNET + ACCESS_NETWORK_STATE;
+      iOS v1 must add no permission prompt (BITB-087 AC); web has no permission prompts (browser sandbox, mic-free).
+    source_of_truth:
+      - android/app/src/main/AndroidManifest.xml:5-6
+      - docs/BACKLOG_STORIES/BITB-087-ios-app-v1-chat-parity.md
+    consumers:
+      web:
+        status: n/a
+        note: No permission surface; the read-aloud uses the browser's speech synthesis.
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/AndroidManifest.xml:5-6
+        note: INTERNET + ACCESS_NETWORK_STATE only.
+      ios:
+        status: obligated
+        story: BITB-087
+        note: "No new permission prompts (BITB-087 AC); network only, same posture as Android."
+
+  - id: legal-urls
+    description: >-
+      Per-locale privacy/terms URLs. The web owns the pages; Android links into them with the user's UI locale
+      (LegalUrls.kt); iOS v1 must do the same from Settings.
+    source_of_truth:
+      - frontend/src/app/[locale]/privacy/page.tsx
+      - frontend/src/app/[locale]/terms/page.tsx
+      - android/app/src/main/kotlin/org/voxquieta/app/utils/LegalUrls.kt
+    consumers:
+      web:
+        status: synced
+        evidence:
+          - frontend/src/app/[locale]/privacy/page.tsx
+          - frontend/src/app/[locale]/terms/page.tsx
+          - frontend/src/app/[locale]/about/page.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/utils/LegalUrls.kt:27-32
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1 "Settings with Privacy / Terms / About links" — mirror LegalUrls.kt.
+
+capabilities:
+  # ---- Chat core (WIP-plan GAP-001/002, re-verified 2026-11-08: shipped) ----
+  - id: chat-streaming
+    title: Streaming chat over SSE (request fields + metadata/content/completion events)
+    description: >-
+      Ask a question and watch a streamed answer render; the request carries include_search + session_id; the metadata
+      event arrives before content; the completion event carries citations, corrections, follow-ups and crisis
+      resources.
+    kind: capability
+    tier: 1
+    origin:
+      source: wip-plan
+      gaps: [GAP-001, GAP-002]
+      note: Covers GAP-001 (include_search + session_id) and GAP-002 (streaming metadata events).
+    contracts: [chat-stream-sse]
+    parity:
+      api:
+        status: n/a
+        note: Emits the stream (see chat-stream-sse contract).
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/api.ts:558-560
+          - frontend/src/lib/api.ts:699
+          - frontend/src/lib/api.ts:783
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChatRequestDto.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/data/streaming/EventSourceParser.kt:54-79
+        note: >-
+          GAP-001/GAP-002 from the 2026-03-12 WIP plan both shipped; the plan's snapshot is stale.
+      ios:
+        status: obligated
+        story: BITB-087
+
+  - id: message-feedback
+    title: Thumbs up/down feedback with optional comment
+    description: Rate an assistant answer via POST /api/v1/feedback; optional inline comment.
+    kind: capability
+    tier: 1
+    origin:
+      source: wip-plan
+      gaps: [GAP-003]
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/routes/feedback.py
+        note: Endpoint + storage + maintainer email on negative ratings.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/FeedbackControls.tsx
+          - frontend/src/lib/api.ts
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:92-93
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/FeedbackControls.kt
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1 "Thumbs up/down feedback".
+
+  - id: feedback-rethink
+    title: "Feedback rethink window + maintainer-sharing notice (BITB-042)"
+    description: >-
+      Tapping a thumb starts a ~10s pending window with Undo and a quiet progress bar; one send per rating; thumbs-down
+      shows a short notice that the message reaches the app's maintainer.
+    kind: capability
+    origin:
+      source: story
+      story: BITB-042
+      note: >-
+        The historical web-first drift (the story's motivating red row) CLOSED on Android in PR #685 (2026-06-06) and
+        was completed by PR #783; per BITB-262's truth rule the row records the re-verified present, not the stale plan
+        premise.
+    parity:
+      api:
+        status: n/a
+        note: Pure client-side interaction; the endpoint contract is unchanged (BITB-042 AC).
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/FeedbackControls.tsx:11
+          - frontend/messages/en.json:189
+        story: BITB-042
+        note: maintainerNotice + FEEDBACK_RETHINK_MS shipped web-first (feature live on main).
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/FeedbackControls.kt:69
+          - android/app/src/main/res/values/strings.xml:237
+        story: BITB-042
+        pr: [685, 692, 696, 783]
+        note: >-
+          Rethink window + maintainer notice + reason chips landed 2026-06-06..2026-07-03; all 11 Android locales carry
+          feedback_maintainer_notice and the reason keys.
+      ios:
+        status: obligated
+        story: BITB-087
+        note: >-
+          Inherits the rethink + notice with the Tier 1 feedback row (Android FeedbackControls.kt is the reference);
+          BITB-042's iOS parity remains open until the port.
+
+  - id: markdown-rendering
+    title: Markdown rendering of assistant answers
+    description: Bold, lists, blockquotes and inline code render as formatted text, not raw symbols.
+    kind: capability
+    origin:
+      source: wip-plan
+      gaps: [GAP-004]
+    parity:
+      api:
+        status: n/a
+        note: Emits markdown text; rendering is client-side.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/ChatMessage.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:88
+        note: compose-markdowntext MarkdownText replaced the old plain Text() (GAP-004 shipped).
+      ios:
+        status: n/a
+        note: No explicit BITB-087 tier row; follows from the Tier 1 streaming-chat slice.
+
+  - id: inline-verse-links
+    title: Tappable verse references inside the message body
+    description: >-
+      A verse reference in the answer text is highlighted and tappable and opens the verse detail / chapter view (no
+      need to scroll to the verse chips).
+    kind: capability
+    tier: 1
+    origin:
+      source: wip-plan
+      gaps: [GAP-010]
+    contracts: [citations-spans, verse-grammar]
+    parity:
+      api:
+        status: n/a
+        note: Client-side linkification over the streamed text.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/linkifyVerses.ts
+          - frontend/src/components/ChatMessage.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:360-404
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/VerseDetailBottomSheet.kt
+        note: GAP-010 shipped — injectVerseLinks rewrites references as verse:// markdown links.
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1 "Tappable verse citations → verse detail" — via citations spans, not a regex.
+
+  - id: verse-reference-detection
+    title: Verse-reference detection in free text (the three parsers)
+    description: >-
+      Detecting verse references in streamed/user text exists in three parsers (backend, web, Android) that must stay in
+      sync by boundary behavior, not just book lists (AGENTS.md).
+    kind: capability
+    contracts: [verse-grammar, citations-spans]
+    parity:
+      api:
+        status: drifted
+        evidence:
+          - api/utils/verse_parser.py:351
+          - docs/BACKLOG_STORIES/BITB-267-backend-boundary-bold-dash-inverted-question.md
+        story: BITB-267
+        note: >-
+          The whitelist lookbehind misses citations after `**`, `—` or `¿` that web/Android catch; missed backend
+          references mean no lookup, passage context or grounding (BITB-267, Todo).
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/versePatterns.ts
+          - frontend/src/lib/verseCorpus.crossplatform.test.ts
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:516
+          - android/app/src/test/kotlin/org/voxquieta/app/components/VerseCorpusParityTest.kt
+      ios:
+        status: obligated
+        story: BITB-087
+        note: >-
+          Negative obligation — see ios-no-verse-regex; iOS detects nothing locally and consumes citations-spans
+          instead.
+
+  - id: verses-panel
+    title: "Verses panel with Referenced / All-Related filter"
+    description: >-
+      A consolidated verse panel over the conversation's scripture context, toggling between verses cited in the
+      responses and all related verses.
+    kind: capability
+    tier: 1
+    origin:
+      source: wip-plan
+      gaps: [GAP-011]
+    parity:
+      api:
+        status: n/a
+        note: scripture_context/verses_cited are provided by the stream contract.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/app/[locale]/ChatIsland.tsx:146
+          - frontend/src/app/[locale]/ChatIsland.tsx:445-469
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/VersesPanel.kt:63
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/VersesPanel.kt:189-198
+        note: GAP-011 shipped; the panel reuses ChatMessageItem's regex (BITB-164).
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1 "Verse panel (semantic + cited)".
+
+  - id: chapter-reading
+    title: Chapter reading view
+    description: Read a whole chapter behind a verse (GET /api/v1/scripture/chapter/{book}/{chapter}).
+    kind: capability
+    tier: 1
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/routes/scripture.py
+        note: Chapter endpoint + verse text resolution.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/ChapterModal.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:54
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChapterDto.kt
+      ios:
+        status: obligated
+        story: BITB-087
+
+  - id: conversation-history
+    title: Conversation history, offline-readable
+    description: >-
+      Past conversations persist across launches and are readable with the network off (web: IndexedDB; Android: Room;
+      both with export/import).
+    kind: capability
+    tier: 1
+    parity:
+      api:
+        status: n/a
+        note: History is client-local by design; nothing is stored server-side.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/conversationStore.ts
+          - frontend/src/components/ConversationSidebar.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/local
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ConversationsScreen.kt
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1; SwiftData mirrors data/local (Room).
+
+  - id: session-message-limit
+    title: Session message limit with friendly "take a break"
+    description: >-
+      A per-session message cap that ends with the same friendly take-a-break invitation across clients and offers a new
+      session (BITB-023).
+    kind: capability
+    tier: 1
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/chat/service.py
+        note: Server-driven limit; the invitation text travels in the stream contract.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/app/[locale]/ChatIsland.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/preferences/SessionPreferences.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/SessionLimitActions.kt
+      ios:
+        status: obligated
+        story: BITB-087
+
+  - id: turnstile-attestation
+    title: Turnstile token attachment + single-use + 403 retry-once
+    description: >-
+      Human-attestation tokens attach to POSTs (X-Turnstile-Token), are consumed single-use, and a 403 triggers exactly
+      one reset + retry.
+    kind: capability
+    tier: 1
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/middleware
+        note: Verifies tokens and answers 403 TURNSTILE_REQUIRED/TURNSTILE_FAILED.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/api.ts:165-223
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/interceptors/TurnstileInterceptor.kt:44
+          - android/app/src/main/kotlin/org/voxquieta/app/security/TurnstileManager.kt
+      ios:
+        status: obligated
+        story: BITB-087
+        note: BITB-087's highest-risk component — build it first; WKWebView proof is a gate.
+
+  - id: backend-warmup-ux
+    title: Backend cold-start / warm-up UX
+    description: The user is told the server is waking up instead of seeing a silent failure.
+    kind: capability
+    origin:
+      source: wip-plan
+      gaps: [GAP-006]
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/routes/health.py
+        note: GET /health/ready is the readiness endpoint the web polls.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/api.ts:150
+          - frontend/src/lib/api.ts:513-531
+          - frontend/src/components/SplashScreen.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt:736
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ChatScreen.kt:677-679
+        note: >-
+          Same UX, different mechanism: instead of polling /health/ready, a 3s in-stream warm-up hint flips
+          isBackendWarming during the first request (GAP-006 shipped in variant form).
+      ios:
+        status: n/a
+        note: No BITB-087 tier row; pick one mechanism during the port.
+
+  - id: scroll-to-bottom
+    title: Scroll-to-bottom affordance during streaming
+    description: A floating control appears when the user scrolls up, jumping back to the latest.
+    kind: capability
+    origin:
+      source: wip-plan
+      gaps: [GAP-007]
+    parity:
+      api:
+        status: n/a
+        note: Client-side scrolling behavior.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/app/[locale]/ChatIsland.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ChatScreen.kt:583-600
+        note: GAP-007 shipped (FAB + animateScrollToItem).
+      ios:
+        status: n/a
+        note: No tier row; standard ScrollView behavior during the port.
+
+  - id: share-message
+    title: Share an assistant answer (system share / copy)
+    description: Share the answer text via the platform share sheet, or copy it to the clipboard.
+    kind: capability
+    origin:
+      source: wip-plan
+      gaps: [GAP-005]
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/ShareMenu.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChatMessageItem.kt:726-748
+        note: GAP-005 shipped (ShareCompat on the Listen/Copy/Share rail, BITB-205).
+      ios:
+        status: n/a
+        note: No tier row; UIActivityViewController is trivial during the port.
+
+  - id: read-aloud
+    title: Read the answer aloud (Listen button)
+    description: >-
+      Platform on-device speech synthesis reads the streamed answer aloud, with localized verse speech normalization and
+      a user "Show Listen button" preference.
+    kind: capability
+    origin:
+      source: story
+      story: BITB-119
+    contracts: [telemetry-os-enum]
+    parity:
+      api:
+        status: n/a
+        note: No audio endpoint — on-device synthesis by design (BITB-119).
+      web:
+        status: partial
+        evidence:
+          - frontend/src/components/ListenButton.tsx
+          - frontend/src/components/ChatMessage.listen.test.tsx
+        story: BITB-251
+        note: >-
+          Shipped (PR #1132 review round) with the telemetry funnel (BITB-247); fallback-voice choice remains open
+          (BITB-251).
+      android:
+        status: partial
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/tts/SpeechEngine.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/tts/SpeakableText.kt
+        story: BITB-252
+        note: Shipped; the TTS-never-starts/stays-on-pause defect is open (BITB-252).
+      ios:
+        status: obligated
+        story: BITB-119
+        note: "BITB-119: iOS inherits AVSpeechSynthesizer + the same normalization fixture."
+
+  - id: ui-language-picker
+    title: UI language picker across 11 locales
+    description: In-app language switching across en, it, de, es, fr, pt, ar, ru, zh, hi, ko.
+    kind: capability
+    tier: 1
+    origin:
+      source: wip-plan
+      gaps: [GAP-012]
+    contracts: [strings-catalog]
+    parity:
+      api:
+        status: n/a
+        note: Locales are a client UI concern; the backend speaks the requested language.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/i18n/routing.ts
+          - frontend/messages
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/LanguagePickerBottomSheet.kt
+          - android/app/src/main/res/values-ru/strings.xml
+        note: >-
+          GAP-012 shipped — ru, zh, hi, ko locale dirs all exist (all 11 locales complete; key completeness gated by
+          translation-validation).
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1; own in-app picker + LocaleApplier-style persistence.
+
+  - id: translation-picker
+    title: Bible translation picker
+    description: Choose the Bible translation answers quote from (KJV, WEB, ...).
+    kind: capability
+    tier: 1
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/routes/scripture.py
+        note: Translation catalog + version-faithful text.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/TranslationSwitcher.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/TranslationPickerBottomSheet.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/data/preferences/TranslationPreferences.kt
+      ios:
+        status: obligated
+        story: BITB-087
+
+  - id: theme-toggle
+    title: Light/dark theme toggle
+    description: User-controlled light/dark theme that persists.
+    kind: capability
+    tier: 1
+    parity:
+      api:
+        status: n/a
+      web:
+        status: absent
+        note: The web ships a single light theme — no dark mode and no in-app toggle.
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/preferences/ThemePreferences.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/theme/Theme.kt
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1 "Light/dark theme" — the web gap is not an iOS blocker (Android is the ref).
+
+  - id: settings-legal-links
+    title: Settings with Privacy / Terms / About links
+    description: A settings surface linking the legal pages and about content.
+    kind: capability
+    tier: 1
+    contracts: [legal-urls]
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/Footer.tsx
+          - frontend/src/app/[locale]/about/page.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/SettingsScreen.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/utils/LegalUrls.kt
+      ios:
+        status: obligated
+        story: BITB-087
+
+  - id: offline-handling
+    title: Offline / no-network handling
+    description: >-
+      The app surfaces the no-network state and keeps readable content available (web: offline shell service worker;
+      Android: NetworkMonitor + offline-readable Room history).
+    kind: capability
+    tier: 1
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/registerServiceWorker.ts
+          - frontend/src/components/ServiceWorkerRegistrar.tsx
+        note: Versioned offline-shell service worker (BITB-102); chat still needs the network.
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/utils/NetworkMonitor.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/data/local
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1 "Offline/no-network handling".
+
+  - id: splash
+    title: Splash / first-paint experience
+    description: A branded launch moment before the chat is interactive.
+    kind: capability
+    tier: 1
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/SplashScreen.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/SplashScreen.kt
+      ios:
+        status: obligated
+        story: BITB-087
+
+  - id: crisis-resources-card
+    title: Crisis resources card on self-harm turns
+    description: >-
+      A structured card with locale- and country-appropriate hotline contacts on a crisis turn (BITB-255), driven by
+      region + region_override request fields and the crisis_resources event.
+    kind: capability
+    contracts: [chat-stream-sse]
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/chat/service.py
+          - api/utils/crisis_resources.py
+        story: BITB-255
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/CrisisResourcesCard.tsx
+        story: BITB-255
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/CrisisResourcesCard.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChatRequestDto.kt
+        story: BITB-255
+      ios:
+        status: n/a
+        note: >-
+          BITB-255 postdates BITB-087's tier tables; no recorded iOS obligation yet — decide when the port is scheduled
+          (safety-relevant, flag for the Tier-1 cut).
+
+  - id: follow-up-suggestions
+    title: Suggested follow-up question chips
+    description: >-
+      Follow-up questions offered under an assistant answer (server-suggested via follow_ups, BITB-149/080), tappable to
+      ask next.
+    kind: capability
+    tier: 2
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/chat/service.py
+        note: follow_ups travel in the completion event (BITB-149).
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/FollowUpSuggestions.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/FollowUpChips.kt
+      ios:
+        status: n/a
+        note: BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.
+
+  - id: church-finder
+    title: Church finder
+    description: >-
+      After a few exchanges, an opt-in church finder searches nearby communities via POST /api/v1/church/search.
+    kind: capability
+    tier: 2
+    origin:
+      source: wip-plan
+      gaps: [GAP-008]
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/routes/church.py
+        note: Church search endpoint + curated data.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/ChurchFinderBanner.tsx
+          - frontend/src/components/ChurchFinderModal.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:99
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ChurchFinderBottomSheet.kt
+        note: GAP-008 shipped (banner + inline card + bottom sheet).
+      ios:
+        status: n/a
+        note: BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.
+
+  - id: contact-form
+    title: Contact form
+    description: Reach the team from the app via POST /api/v1/feedback/contact.
+    kind: capability
+    tier: 2
+    origin:
+      source: wip-plan
+      gaps: [GAP-009]
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/routes/feedback.py
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/ContactForm.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt:106
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/ContactFormBottomSheet.kt
+        note: GAP-009 shipped.
+      ios:
+        status: n/a
+        note: BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.
+
+  - id: in-app-changelog
+    title: In-app changelog
+    description: Release notes readable in the app.
+    kind: capability
+    tier: 2
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/src/app/[locale]/changelog
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/screens/ChangelogScreen.kt
+      ios:
+        status: n/a
+        note: BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.
+
+  - id: whats-new-sheet
+    title: '"What''s New" spotlight sheet'
+    description: A dismissible what's-new presentation on update.
+    kind: capability
+    tier: 2
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/WhatsNewModal.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/WhatsNewBottomSheet.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/FeatureSpotlight.kt
+      ios:
+        status: n/a
+        note: BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.
+
+  - id: about-intro
+    title: About / intro sheet
+    description: An intro presentation of the project and its personal voice (BITB-077/082/083).
+    kind: capability
+    tier: 2
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/AboutIntroModal.tsx
+          - frontend/src/app/[locale]/about/page.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/AboutIntroBottomSheet.kt
+      ios:
+        status: n/a
+        note: BITB-087 Tier 2 (AboutIntroBottomSheet, itself BITB-082 on Android) — deferred.
+
+  - id: language-mismatch-banner
+    title: Language-mismatch switch banner
+    description: >-
+      When the user typed in a language different from the selected UI language, a banner offers to switch
+      (language_suggestion in the metadata event).
+    kind: capability
+    tier: 2
+    contracts: [chat-stream-sse]
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/chat/service.py
+        note: language_suggestion emitted in the metadata event.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/components/LanguageSwitchSuggestion.tsx
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/LanguageSwitchBanner.kt
+      ios:
+        status: n/a
+        note: BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.
+
+  - id: diagnostic-report
+    title: Diagnostic report export
+    description: A user-triggered diagnostic report (collected logs) for support/debugging.
+    kind: capability
+    tier: 2
+    parity:
+      api:
+        status: n/a
+      web:
+        status: absent
+        note: No web diagnostic export exists (browser devtools are the web's equivalent).
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/components/DiagnosticReportBottomSheet.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/utils/LogCollector.kt
+      ios:
+        status: n/a
+        note: BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.
+
+  - id: app-install-cta
+    title: App install landing page
+    description: >-
+      The /app landing page routes visitors to the Play Store or (on iOS) the add-to-home-screen PWA path.
+    kind: capability
+    origin:
+      source: web-inventory
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/src/app/[locale]/app/page.tsx
+          - frontend/src/components/AppInstallCta.tsx
+      android:
+        status: n/a
+        note: Android is store-distributed; the CTA targets it, not ships in it.
+      ios:
+        status: n/a
+        note: The page's iOS branch is the BITB-084 web-installable path until BITB-087 lands.
+
+  - id: pwa-installability
+    title: PWA installability (service worker + shell)
+    description: The web is an installable offline-shell PWA (BITB-102).
+    kind: capability
+    origin:
+      source: web-inventory
+    parity:
+      api:
+        status: n/a
+      web:
+        status: synced
+        evidence:
+          - frontend/public/sw.js
+          - frontend/src/lib/registerServiceWorker.ts
+      android:
+        status: n/a
+        note: Native app; PWA concerns do not apply.
+      ios:
+        status: n/a
+        note: Native app planned (BITB-087); PWA concerns do not apply.
+
+  - id: ask-by-voice
+    title: Ask by voice (speech input)
+    description: Speak the question instead of typing it (BITB-120, Todo — not shipped anywhere).
+    kind: capability
+    origin:
+      source: story
+      story: BITB-120
+    parity:
+      api:
+        status: n/a
+        note: No endpoint change planned; recognition is client-side.
+      web:
+        status: absent
+        story: BITB-120
+        note: Planned for web (BITB-120, Todo); the web's current voice UI is read-aloud OUTPUT.
+      android:
+        status: absent
+        story: BITB-120
+        note: Planned for Android (BITB-120, Todo); no RecognizerIntent/RECORD_AUDIO in the app.
+      ios:
+        status: n/a
+        note: BITB-120 reserves SFSpeechRecognizer + usage strings for the iOS port.
+
+  # ---- Negative obligations (absences that must be MAINTAINED) ----
+  - id: ios-no-verse-regex
+    title: iOS ships NO verse-reference regex
+    description: >-
+      The iOS codebase must contain no chapter:verse regex — citations come from the citations-spans contract via
+      text+occurrence substring search. Enforced by a CI grep, not reviewer diligence; a hand-written
+      NSRegularExpression grammar is a rejected design (it would be the fourth dialect of audit finding A1).
+    kind: negative-obligation
+    origin:
+      source: bitb-087
+      story: BITB-087
+    contracts: [citations-spans, verse-grammar]
+    parity:
+      api:
+        status: n/a
+        note: The backend keeps its canonical parser; the obligation is iOS-specific.
+      web:
+        status: n/a
+        note: Web keeps versePatterns.ts (fixture-generated).
+      android:
+        status: n/a
+        note: Android keeps ChatMessageItem.kt's regex (fixture-generated).
+      ios:
+        status: obligated
+        story: BITB-087
+        note: BITB-087 AC — CI grep enforcing no regex literal matching chapter:verse patterns.
+
+  - id: ios-no-donate-entry
+    title: iOS ships NO donate entry point
+    description: >-
+      BITB-085's recorded decision, restated as a BITB-087 AC: no Ko-fi/donate entry ships in iOS v1 (App Review risk +
+      the maintainer's call); BITB-074 must not add one to the port.
+    kind: negative-obligation
+    origin:
+      source: bitb-087
+      story: BITB-087
+    parity:
+      api:
+        status: n/a
+      web:
+        status: n/a
+        note: Web HAS a Support Us entry (BITB-074) — the negative obligation is iOS-only.
+      android:
+        status: n/a
+        note: Android HAS a donate entry (DonateUrl.kt, BITB-074/168) — obligation is iOS-only.
+      ios:
+        status: obligated
+        story: BITB-087
+        note: "No donate/Ko-fi entry point ships (BITB-085 decision; BITB-087 AC)."

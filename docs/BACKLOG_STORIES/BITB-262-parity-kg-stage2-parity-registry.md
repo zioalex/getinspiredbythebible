@@ -1,6 +1,6 @@
 # BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
 
-**Status:** 🎯 Todo — gated on BITB-261 landing
+**Status:** 🚧 In Progress (PR #1258)
 **Priority:** P2
 **Size:** L
 **Created:** 2026-10-30
@@ -68,6 +68,10 @@ one (BITB-260's non-goal); this independent review is the stage's hard gate.
 - [ ] `registry.yaml` validates; coverage ≥ BITB-087's Tier 1+2 tables + every WIP-plan GAP
       (statused, with evidence, after re-verification against current code)
 - [ ] BITB-042 appears as a `drifted` Android row with its story link — surfaced, not buried
+      — **see re-verification note 1 below: the drift closed 2026-06-06 (PR #685, completed
+      #783), before this story was filed; the row is recorded truthfully as `synced` with
+      the BITB-042 story link and fixing PRs, per this story's own "rows must be TRUE" rule.
+      The live red row today is BITB-267 (`verse-reference-detection` · api).**
 - [ ] `docs/parity/graph.json` and `docs/parity/landscape.md` are emitted, committed, and
       regenerated/freshness-checked by CI
 - [ ] The strings cross-check shares `translation-validation`'s source of truth (no forked
@@ -76,6 +80,29 @@ one (BITB-260's non-goal); this independent review is the stage's hard gate.
       findings are resolved
 - [ ] CI green; the diff touches only `tools/parity-graph/`, `docs/parity/`, `docs/WIP/`
       (the pointer), the CI files, and `Makefile` (+ its audit json)
+
+## Re-verification notes (2026-11-08, PR #1258)
+
+Recorded per the seed rule ("every row re-verified against current code before entering —
+the plan is a 2026-03-12 snapshot and stale by definition"):
+
+1. **BITB-042's Android drift no longer exists.** `android/.../FeedbackControls.kt:69`
+   (`FEEDBACK_RETHINK_MS`) implements the rethink window, maintainer notice, reason chips and
+   single-send, landed 2026-06-06 in PR #685 (fix-ups #692, #696; completed #783, 2026-07-03);
+   `feedback_maintainer_notice` exists in all 11 Android locales. The registry therefore
+   records `feedback-rethink` android: **synced** with the story link and PRs as evidence —
+   the truthful status. The AC's premise ("appears as a drifted Android row") was written
+   2026-10-30 against a drift that had closed four months earlier.
+2. **Every WIP-plan GAP-001..012 has shipped on Android** (verified individually against the
+   code — ChatRequestDto, EventSourceParser, FeedbackControls, MarkdownText, ShareCompat,
+   isBackendWarming, scroll FAB, church finder, contact form, injectVerseLinks, VersesPanel,
+   values-{ru,zh,hi,ko}). All 12 rows are synced with their fixing evidence; the WIP doc now
+   carries the superseded pointer.
+3. **The live drift at seeding time is BITB-267** (backend verse-parser boundary gap:
+   `**`, `—`, `¿` starts) — recorded as `verse-reference-detection` api: **drifted** and
+   surfaced in the landscape drift watch and the CI job summary.
+4. The remaining ACs (independent ≥10-row verification, CI green) are for the Verify stage;
+   the checkboxes stay unticked until then.
 
 ## Out of Scope
 

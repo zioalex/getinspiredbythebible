@@ -1,10 +1,15 @@
-# Parity — Cross-Client Contract Artifacts (BITB-260 Stage 1)
+# Parity — Cross-Client Contract & Registry Artifacts (BITB-260)
 
-Home of the committed **OpenAPI contract artifact** (`docs/parity/openapi.json`): a
-machine-diffable freeze of the FastAPI backend's request/response shapes — the
-contract every client (web, Android, iOS-to-come) programs against. Stage 1 of
-the cross-client parity knowledge graph (BITB-260); stage 2 is the capability ×
-client parity registry (BITB-262).
+Home of the cross-client parity knowledge graph's committed artifacts:
+
+- **Stage 1 (BITB-261)** — [`openapi.json`](openapi.json): the committed
+  **OpenAPI contract artifact**, a machine-diffable freeze of the FastAPI
+  backend's request/response shapes — the contract every client (web, Android,
+  iOS-to-come) programs against.
+- **Stage 2 (BITB-262)** — [`registry.yaml`](registry.yaml): the
+  **capability × client parity registry** (api/web/android/ios) with
+  [`graph.json`](graph.json) and [`landscape.md`](landscape.md) as its derived,
+  CI-freshness-checked views. See the stage-2 section below.
 
 ## What the artifact is
 
@@ -120,3 +125,61 @@ include the regenerated artifact:
 4. The oasdiff job comments any breaking changes for your reviewers.
 
 Never hand-edit `docs/parity/openapi.json` — regenerate it.
+
+## Stage 2 — the parity registry (BITB-262)
+
+[`registry.yaml`](registry.yaml) is the store of record: every user-facing
+capability × client (`api`, `web`, `android`, `ios` planned per BITB-087) with a
+parity status (`synced | drifted | partial | absent | obligated | n/a`), concrete
+evidence refs (file paths, PRs, stories), the cross-client **contracts**
+(chat-stream-sse, citations-spans, verse-grammar, strings-catalog,
+telemetry-os-enum, platform-flags, permissions, legal-urls), and **negative
+obligations as first-class rows** (`ios-no-verse-regex`, `ios-no-donate-entry`).
+
+Derived, committed views — never hand-edit, regenerate:
+
+| Artifact | What |
+|---|---|
+| [`graph.json`](graph.json) | The machine graph (nodes/edges/rollups) BITB-263's on-demand Neo4j lens imports |
+| [`landscape.md`](landscape.md) | The Mermaid container diagram + capability×client status matrix + drift watch |
+
+### Zero to running
+
+Prerequisites: Python 3.11+ with `jsonschema` and `PyYAML`
+(`pip install jsonschema PyYAML` — CI pins `jsonschema==4.26.0 PyYAML==6.0.3`).
+No database, no keys, no network.
+
+```bash
+python tools/parity-graph/analyze.py     # validate registry → graph.json
+python tools/parity-graph/render.py     # → landscape.md
+make parity-registry-check               # both freshness gates (what CI runs)
+python tools/parity-graph/render.py --summary   # the drift watch (informational)
+python -m pytest tools/parity-graph/ -q         # the tool's tests (offline)
+```
+
+### What the validation guarantees
+
+- **Schema** — [the registry validates](../../tools/parity-graph/registry.schema.json)
+  (jsonschema): status vocabulary, evidence required for synced/drifted/partial,
+  story required for obligated.
+- **Rows are TRUE, not plausible** — every evidence entry that looks like a repo
+  path is existence-checked on every run.
+- **Strings cross-check shares the Android CI's source of truth** — it re-runs
+  the `translation-validation` job's own check with that job's own extraction
+  regex, read out of `.github/workflows/android-ci.yml` at runtime; if the job
+  changes, the cross-check fails until it matches. No forked validator that can
+  disagree.
+- **Drifted rows are the payload, not the failure** — the registry job renders
+  them in its GitHub step summary and in `landscape.md`; only an invalid
+  registry or a stale `graph.json`/`landscape.md` fails CI.
+
+### Row upkeep workflow
+
+1. Read the code — open every file you are about to cite (the 2026-03 WIP
+   parity plan is a source of leads, never of truth; re-verify).
+2. Edit `registry.yaml`; regenerate and commit `graph.json` + `landscape.md`
+   on the same PR.
+3. CI (`.github/workflows/parity-ci.yml` → the `registry` job) re-validates.
+
+See [`tools/parity-graph/README.md`](../../tools/parity-graph/README.md) for the
+full tool documentation.

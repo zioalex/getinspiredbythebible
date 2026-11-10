@@ -5,7 +5,9 @@ Implements a multi-stage content safety pipeline:
 1. Fast keyword filter (multi-language, <5ms) — blocks obvious directed harm and hate speech,
    checked in every language regardless of the detected/selected language (BITB-193)
 2. OpenAI Moderation API (~100-150ms, FREE) — context-aware, used in keyword_only and hybrid modes
-   OR Llama Guard 3 via OpenRouter (~200-300ms) — used in ml_only mode
+   OR Llama Guard 3 via OpenRouter (~200-300ms) — used in ml_only mode. In ml_only, when Llama
+   Guard (primary + secondary) fails or is unconfigured, OpenAI Moderation is the failover
+   (BITB-272); the context-blind keyword fallback only runs when every ML classifier failed.
 3. Azure Content Safety API (optional, ~200ms) — additional layer for hybrid mode only
 
 CRITICAL DESIGN PRINCIPLE:
@@ -26,6 +28,7 @@ Harmful intent examples (BLOCK):
 """
 
 import hashlib
+import json
 import time
 from dataclasses import dataclass, field
 
@@ -36,6 +39,7 @@ from providers.llama_guard import LlamaGuardResponseError
 from utils.circuit_breaker import CircuitOpenError
 from utils.logging_config import get_logger
 from utils.metrics import (
+    content_safety_failover_counter,
     content_safety_fallback_counter,
     content_safety_second_opinion_counter,
     llama_guard_fallback_counter,
@@ -67,6 +71,57 @@ def _classify_llama_guard_failure(e: Exception) -> str:
         # Covers RemoteDisconnected → httpx.RemoteProtocolError, etc.
         return type(e).__name__.lower()
     return "other"
+
+
+def _status_failure_class(status: object) -> str:
+    """Map an HTTP status code to a coarse failure class (BITB-272)."""
+    if status == 429:
+        return "rate_limited"
+    if status in (401, 402, 403):
+        return "auth"
+    if status == 408:
+        return "timeout"
+    if isinstance(status, int) and status >= 500:
+        return "server_error"
+    return "other"
+
+
+def classify_failure_class(e: BaseException) -> str:
+    """Coarse failure class for metrics (BITB-272): a low-cardinality complement to the detailed
+    ``reason`` label. One of timeout | rate_limited | server_error | auth | malformed |
+    breaker_open | network | other."""
+    if isinstance(e, CircuitOpenError):
+        return "breaker_open"
+    if isinstance(e, LlamaGuardResponseError):
+        return "malformed"
+    if isinstance(e, httpx.TimeoutException):
+        return "timeout"
+    if isinstance(e, httpx.HTTPStatusError):
+        return _status_failure_class(getattr(e.response, "status_code", None))
+    if isinstance(e, httpx.HTTPError):
+        return "network"
+    # Unparseable / unexpectedly-shaped moderation response body
+    if isinstance(e, (json.JSONDecodeError, KeyError, IndexError, TypeError)):
+        return "malformed"
+    return "other"
+
+
+def log_failover_config_warning() -> None:
+    """Log one startup warning when ml_only has no ML failover (BITB-272), so a config gap is
+    visible at boot rather than discovered per request."""
+    if settings.content_safety_mode != "ml_only":
+        return
+    if not settings.content_safety_ml_failover_enabled:
+        logger.warning(
+            "Content safety ml_only: ML failover is DISABLED "
+            "(CONTENT_SAFETY_ML_FAILOVER_ENABLED=false); a Llama Guard outage goes straight "
+            "to the keyword fallback"
+        )
+    elif not settings.openai_api_key:
+        logger.warning(
+            "Content safety ml_only: no OPENAI_API_KEY, so there is no ML failover; a Llama "
+            "Guard outage goes straight to the keyword fallback"
+        )
 
 
 @dataclass
@@ -111,6 +166,8 @@ class ContentSafetyService:
     2. Stage 2 — depends on mode:
        keyword_only: OpenAI Moderation API (free, ~100-150ms) — context-aware, no false positives.
        ml_only:      Llama Guard 3 via OpenRouter (~200-300ms) — context-aware, free tier.
+                     On failure/unconfigured: OpenAI Moderation (failover, BITB-272), then
+                     the keyword fallback only if every ML classifier failed.
        hybrid:       OpenAI Moderation API (same as keyword_only Stage 2).
        Falls back to full keyword filter on API failure.
 
@@ -154,7 +211,9 @@ class ContentSafetyService:
         """Lazy-initialize Llama Guard provider."""
         if not self._llama_guard_initialized:
             self._llama_guard_initialized = True
-            api_key = settings.openai_api_key or settings.openrouter_api_key
+            # Llama Guard talks to openrouter.ai, so it needs the OpenRouter key. (It used to
+            # prefer openai_api_key, which OpenRouter rejects -> every call 401'd; BITB-272.)
+            api_key = settings.openrouter_api_key
             if api_key:
                 try:
                     from providers.llama_guard import LlamaGuardProvider
@@ -170,8 +229,7 @@ class ContentSafetyService:
                     self._llama_guard_provider = None
             else:
                 logger.warning(
-                    "Llama Guard not available: no API key configured "
-                    "(need OPENAI_API_KEY or OPENROUTER_API_KEY)"
+                    "Llama Guard not available: no API key configured " "(need OPENROUTER_API_KEY)"
                 )
         return self._llama_guard_provider
 
@@ -442,13 +500,8 @@ class ContentSafetyService:
         """
         llama_guard_provider = self._get_llama_guard_provider()
         if not llama_guard_provider:
-            content_safety_fallback_counter.add(
-                1, {"stage": "llama_guard", "reason": "provider_unavailable"}
-            )
-            logger.warning(
-                "Llama Guard not configured (no API key); falling back to keyword filter"
-            )
-            return await self._keyword_fallback(text, language, start)
+            logger.warning("Llama Guard not configured (no API key); trying ML failover")
+            return await self._ml_failover(text, language, start, "provider_unavailable", "other")
 
         try:
             llama_guard_result = await llama_guard_provider.analyze_text(text, language)
@@ -512,14 +565,94 @@ class ContentSafetyService:
             # Narrow: only fall back on known transient/network/breaker/response failures.
             # Anything else (programmer error, ValueError, etc.) propagates.
             reason = _classify_llama_guard_failure(e)
-            llama_guard_fallback_counter.add(1, {"reason": reason})
-            content_safety_fallback_counter.add(1, {"stage": "llama_guard", "reason": reason})
+            failure_class = classify_failure_class(e)
+            llama_guard_fallback_counter.add(1, {"reason": reason, "failure_class": failure_class})
+            logger.warning("Llama Guard unavailable (%s/%s): %s", reason, failure_class, e)
+            return await self._ml_failover(text, language, start, reason, failure_class)
+
+    async def _ml_failover(
+        self, text: str, language: str, start: float, reason: str, failure_class: str
+    ) -> ContentSafetyCheckResult:
+        """Llama Guard failed/unconfigured: try OpenAI Moderation before the keyword fallback.
+
+        ml_only only (this is called from the Llama Guard stage, which keyword_only/hybrid never
+        reach). ``content_safety.fallback_total`` is incremented ONLY when the keyword fallback
+        actually runs, so the fallback-rate alert measures degraded decisions, not blips that
+        the failover absorbed.
+        """
+        if not settings.content_safety_ml_failover_enabled:
+            failover = "disabled"
+        elif not settings.openai_api_key:
+            failover = "unconfigured"
+        else:
+            result, error = await self._try_openai_moderation(text, language, start)
+            labels = {
+                "from_stage": "llama_guard",
+                "to_stage": "openai_moderation",
+                "reason": reason,
+                "failure_class": failure_class,
+            }
+            if result is not None:
+                content_safety_failover_counter.add(1, {**labels, "outcome": "decided"})
+                result.reason = f"{result.reason} (failover)"
+                return result
+            content_safety_failover_counter.add(1, {**labels, "outcome": "failed"})
             logger.warning(
-                "Llama Guard unavailable (%s), falling back to keyword filter: %s",
-                reason,
-                e,
+                "OpenAI Moderation failover failed (%s); falling back to keyword filter",
+                type(error).__name__ if error else "provider_unavailable",
             )
-            return await self._keyword_fallback(text, language, start)
+            failover = "openai_moderation_failed"
+        content_safety_fallback_counter.add(
+            1,
+            {
+                "stage": "llama_guard",
+                "reason": reason,
+                "failure_class": failure_class,
+                "failover": failover,
+            },
+        )
+        return await self._keyword_fallback(text, language, start)
+
+    async def _try_openai_moderation(
+        self, text: str, language: str, start: float
+    ) -> tuple[ContentSafetyCheckResult | None, Exception | None]:
+        """Run OpenAI Moderation; return ``(result, None)`` or ``(None, error)``.
+
+        ``(None, None)`` means the provider is unconfigured. Never falls back itself, so both the
+        keyword_only/hybrid stage and the ml_only failover can decide what a failure means.
+        """
+        provider = self._get_openai_moderation_provider()
+        if not provider:
+            return None, None
+        try:
+            result = await provider.analyze_text(text, language)
+        except Exception as e:
+            return None, e
+        total_ms = (time.monotonic() - start) * 1000
+
+        text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+        logger.info(
+            "OpenAI Moderation check complete",
+            extra={
+                "text_hash": text_hash,
+                "language": language,
+                "allowed": result.allowed,
+                "reason": result.reason,
+                "is_help_seeking": result.is_help_seeking,
+                "duration_ms": f"{total_ms:.1f}",
+            },
+        )
+        return (
+            ContentSafetyCheckResult(
+                allowed=result.allowed,
+                reason=result.reason,
+                categories=result.categories,
+                is_help_seeking=result.is_help_seeking,
+                compassionate_response_needed=result.compassionate_response_needed,
+                check_duration_ms=total_ms,
+            ),
+            None,
+        )
 
     async def _check_stage2_openai_moderation(
         self, text: str, language: str, start: float
@@ -530,68 +663,39 @@ class ContentSafetyService:
         Returns ContentSafetyCheckResult if decision made, None to continue to Stage 3 (hybrid).
         Falls back to full keyword filter on any transport or API error.
         """
-        provider = self._get_openai_moderation_provider()
-        if not provider:
-            content_safety_fallback_counter.add(
-                1, {"stage": "openai_moderation", "reason": "provider_unavailable"}
-            )
+        result, error = await self._try_openai_moderation(text, language, start)
+        if result is None:
+            if error is None:
+                content_safety_fallback_counter.add(
+                    1, {"stage": "openai_moderation", "reason": "provider_unavailable"}
+                )
+            else:
+                reason = type(error).__name__.lower()
+                content_safety_fallback_counter.add(
+                    1, {"stage": "openai_moderation", "reason": reason}
+                )
+                logger.warning("OpenAI Moderation API unavailable, falling back: %s", error)
             return await self._keyword_fallback(text, language, start)
 
-        try:
-            result = await provider.analyze_text(text, language)
-            total_ms = (time.monotonic() - start) * 1000
+        # keyword_only mode: return result directly (no Stage 3)
+        if settings.content_safety_mode == "keyword_only":
+            return result
 
-            text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
-            logger.info(
-                "OpenAI Moderation check complete",
-                extra={
-                    "text_hash": text_hash,
-                    "language": language,
-                    "allowed": result.allowed,
-                    "reason": result.reason,
-                    "is_help_seeking": result.is_help_seeking,
-                    "duration_ms": f"{total_ms:.1f}",
-                },
+        # hybrid mode: if blocked, return immediately
+        if not result.allowed:
+            return ContentSafetyCheckResult(
+                allowed=False,
+                reason=result.reason,
+                categories=result.categories,
+                check_duration_ms=result.check_duration_ms,
             )
 
-            # keyword_only mode: return result directly (no Stage 3)
-            if settings.content_safety_mode == "keyword_only":
-                return ContentSafetyCheckResult(
-                    allowed=result.allowed,
-                    reason=result.reason,
-                    categories=result.categories,
-                    is_help_seeking=result.is_help_seeking,
-                    compassionate_response_needed=result.compassionate_response_needed,
-                    check_duration_ms=total_ms,
-                )
+        # help-seeking: return immediately; else pass to Azure
+        if result.is_help_seeking:
+            return result
 
-            # hybrid mode: if blocked or help-seeking, return immediately; else pass to Azure
-            if not result.allowed:
-                return ContentSafetyCheckResult(
-                    allowed=False,
-                    reason=result.reason,
-                    categories=result.categories,
-                    check_duration_ms=total_ms,
-                )
-
-            if result.is_help_seeking:
-                return ContentSafetyCheckResult(
-                    allowed=True,
-                    reason=result.reason,
-                    categories=result.categories,
-                    is_help_seeking=True,
-                    compassionate_response_needed=True,
-                    check_duration_ms=total_ms,
-                )
-
-            # Clean result in hybrid mode — continue to Azure Stage 3
-            return None
-
-        except Exception as e:
-            reason = type(e).__name__.lower()
-            content_safety_fallback_counter.add(1, {"stage": "openai_moderation", "reason": reason})
-            logger.warning("OpenAI Moderation API unavailable, falling back: %s", e)
-            return await self._keyword_fallback(text, language, start)
+        # Clean result in hybrid mode — continue to Azure Stage 3
+        return None
 
     async def check(
         self, text: str, language: str = "en"
