@@ -235,6 +235,10 @@ async def lifespan(app: FastAPI):
         },
     )
 
+    from utils.content_safety import log_failover_config_warning
+
+    log_failover_config_warning()
+
     # Fail fast if the database is unreachable: a replica that boots without a
     # DB passes liveness, receives traffic, and 500s every request. Crash-looping
     # instead lets Container Apps hold the deployment and roll back the revision.

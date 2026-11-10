@@ -47,6 +47,53 @@ az containerapp update \
 
 ---
 
+## Production Pipeline: `ml_only` With ML Failover (BITB-272)
+
+Production runs `CONTENT_SAFETY_MODE=ml_only`. Order of decision:
+
+```text
+1. Keyword filter (directed harm + hate, any language)             -> block, else continue
+2. Llama Guard primary  (OpenRouter, 3 s timeout)                  -> decision
+   Llama Guard secondary (openai/gpt-oss-safeguard-20b, OpenRouter) -> decision
+3. OpenAI Moderation (omni-moderation-latest, FAILOVER)            -> decision
+4. Keyword fallback (context-blind, errs toward blocking)          -> only if EVERY ML classifier failed
+```
+
+Step 3 runs when Llama Guard fails (timeout, 429, 5xx, auth, malformed response, open circuit
+breaker) or is unconfigured. Both Llama Guard models share OpenRouter, so an OpenRouter outage
+used to drop straight to step 4 and block some Bible-narrative questions ("Why did Cain kill
+Abel?"). OpenAI Moderation is a different provider, context-aware, and **free** (no per-call
+cost, no rate-limit charges).
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `CONTENT_SAFETY_ML_FAILOVER_ENABLED` | `true` | `ml_only` only. Set `false` to restore keyword-fallback-only behaviour |
+| `OPENAI_API_KEY` | unset | Required for the failover; without it the failover is a no-op and the API logs one startup warning |
+| `OPENAI_MODERATION_TIMEOUT` | `3` | Seconds; reused for the failover call |
+| `OPENROUTER_API_KEY` | unset | Used by Llama Guard (it is never given `OPENAI_API_KEY`) |
+
+**Privacy:** the failover sends the user message text (first 2000 characters) to OpenAI's
+Moderation endpoint only while Llama Guard is failing. OpenAI retains API inputs for up to 30
+days for abuse monitoring unless the account has zero data retention; messages are not logged
+in clear text by this service. Confirm this meets your data-retention bar before enabling.
+
+**Metrics:**
+
+- `content_safety.failover_total` labels `from_stage`, `to_stage`, `outcome` (`decided` |
+  `failed`), `reason`, `failure_class`.
+- `content_safety.fallback_total` is incremented **only when the keyword fallback actually
+  runs**; labels `stage`, `reason`, `failure_class`, `failover` (`openai_moderation_failed` |
+  `unconfigured` | `disabled`). The `content_safety_fallback_rate` alert sums this counter, so
+  failures absorbed by the failover no longer trigger it.
+- `llama_guard.fallback_total` keeps counting every Llama Guard failure, now with `failure_class`.
+- `failure_class` values: `timeout`, `rate_limited`, `server_error`, `auth`, `malformed`,
+  `breaker_open`, `network`, `other`.
+
+Wiring `OPENAI_API_KEY` into production and a live 11-language golden-set run are tracked as
+follow-up stories (see BITB-272).
+
+---
+
 ## Gradual Rollout Plan
 
 ### Phase 1: Keyword-Only Mode (Recommended First)

@@ -339,6 +339,10 @@ class Settings(BaseSettings):
     # Requires OPENAI_API_KEY. OpenRouter does not proxy /v1/moderations.
     openai_moderation_threshold: float = 0.5  # Block if score >= threshold
     openai_moderation_timeout: int = 3  # Seconds before fail-open fallback
+    # BITB-272: in ml_only, fail over to OpenAI Moderation (free, different provider) when
+    # Llama Guard (primary + secondary, both via OpenRouter) fails or is unconfigured, BEFORE
+    # the context-blind keyword fallback. No-op without OPENAI_API_KEY. ml_only only.
+    content_safety_ml_failover_enabled: bool = True
 
     # Blocked-message sample capture (for filter tuning).
     # Stores a privacy-minimal record of messages the safety system blocked:

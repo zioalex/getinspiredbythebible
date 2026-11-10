@@ -508,3 +508,58 @@ async def test_content_safety_narrow_exception_handling():
 
     with pytest.raises(ValueError):
         await service._check_stage2_llama_guard("hi", "en", 0.0)
+
+
+# ---------------------------------------------------------------------------
+# BITB-272: failure_class mapping for ML content-safety providers
+# ---------------------------------------------------------------------------
+
+
+def _status_error(status: int):
+    import httpx
+
+    request = httpx.Request("POST", "https://example.test/v1")
+    return httpx.HTTPStatusError(
+        f"HTTP {status}", request=request, response=httpx.Response(status, request=request)
+    )
+
+
+def _failure_class_cases():
+    import json
+
+    import httpx
+
+    from providers.llama_guard import LlamaGuardResponseError
+    from utils.circuit_breaker import CircuitOpenError
+
+    return [
+        (httpx.ReadTimeout("t"), "timeout"),
+        (httpx.ConnectTimeout("t"), "timeout"),
+        (_status_error(408), "timeout"),
+        (_status_error(429), "rate_limited"),
+        (_status_error(500), "server_error"),
+        (_status_error(503), "server_error"),
+        (_status_error(401), "auth"),
+        (_status_error(402), "auth"),
+        (_status_error(403), "auth"),
+        (_status_error(404), "other"),
+        (LlamaGuardResponseError("x", reason="empty_response"), "malformed"),
+        (json.JSONDecodeError("bad", "doc", 0), "malformed"),
+        (KeyError("results"), "malformed"),
+        (IndexError("list index out of range"), "malformed"),
+        (CircuitOpenError("open"), "breaker_open"),
+        (httpx.ConnectError("down"), "network"),
+        (httpx.RemoteProtocolError("eof"), "network"),
+        (RuntimeError("boom"), "other"),
+    ]
+
+
+@pytest.mark.parametrize("error,expected", _failure_class_cases())
+def test_classify_failure_class(error, expected):
+    from utils.content_safety import classify_failure_class
+
+    assert classify_failure_class(error) == expected
+
+
+def test_failover_flag_defaults_on():
+    assert Settings.model_fields["content_safety_ml_failover_enabled"].default is True
