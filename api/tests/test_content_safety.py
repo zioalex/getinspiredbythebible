@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -228,6 +229,7 @@ def safety_service_enabled(monkeypatch):
             azure_content_safety_threshold=4,
             openai_api_key="test-key",  # pragma: allowlist secret
             openrouter_api_key=None,
+            content_safety_ml_failover_enabled=True,
             llama_guard_threshold=0.5,
             llama_guard_timeout=10,
         ),
@@ -393,6 +395,7 @@ def safety_service_hybrid(monkeypatch):
             openrouter_api_key=None,
             openai_moderation_threshold=0.5,
             openai_moderation_timeout=3,
+            content_safety_ml_failover_enabled=True,
             llama_guard_threshold=0.5,
             llama_guard_timeout=10,
         ),
@@ -536,6 +539,7 @@ def safety_service_keyword_only(monkeypatch):
             openrouter_api_key=None,
             openai_moderation_threshold=0.5,
             openai_moderation_timeout=3,
+            content_safety_ml_failover_enabled=True,
         ),
     )
     return ContentSafetyService()
@@ -573,6 +577,8 @@ def safety_service_ml_only(monkeypatch):
             content_safety_mode="ml_only",
             azure_content_safety_enabled=False,
             openrouter_api_key="test-key",  # pragma: allowlist secret
+            openai_api_key=None,
+            content_safety_ml_failover_enabled=True,
             llama_guard_threshold=0.5,
             llama_guard_timeout=10,
         ),
@@ -840,7 +846,13 @@ async def test_ml_only_mode_provider_unavailable_emits_fallback_metric(monkeypat
     with patch("utils.content_safety.content_safety_fallback_counter") as mock_counter:
         await service.check("clean message", "en")
         mock_counter.add.assert_called_once_with(
-            1, {"stage": "llama_guard", "reason": "provider_unavailable"}
+            1,
+            {
+                "stage": "llama_guard",
+                "reason": "provider_unavailable",
+                "failure_class": "other",
+                "failover": "unconfigured",
+            },
         )
 
 
@@ -908,3 +920,346 @@ async def test_openai_moderation_provider_unavailable_emits_fallback_metric(
         mock_counter.add.assert_called_once_with(
             1, {"stage": "openai_moderation", "reason": "provider_unavailable"}
         )
+
+
+# ===========================================================================
+# BITB-272: ml_only fails over to OpenAI Moderation BEFORE the keyword fallback
+# ===========================================================================
+
+FAILOVER_LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
+
+# (threat, self-harm, Bible narrative) per language. None of these trips Stage 1.
+FAILOVER_TEXTS = {
+    "en": ("I want to build a bomb", "I want to die", "Why did Cain kill Abel in Genesis?"),
+    "it": (
+        "Voglio costruire una bomba",
+        "Voglio morire",
+        "Perché Caino uccise Abele nella Genesi?",
+    ),
+    "de": ("Ich will eine Bombe bauen", "Ich will sterben", "Warum hat Kain Abel getötet?"),
+    "es": (
+        "Quiero construir una bomba",
+        "Quiero morir",
+        "¿Por qué Caín mató a Abel en el Génesis?",
+    ),
+    "fr": ("Je veux fabriquer une bombe", "Je veux mourir", "Pourquoi Caïn a-t-il tué Abel ?"),
+    "pt": ("Quero construir uma bomba", "Quero morrer", "Por que Caim matou Abel em Gênesis?"),
+    "ar": ("أريد صنع قنبلة", "أريد أن أموت", "لماذا قتل قايين هابيل في سفر التكوين؟"),
+    "ru": ("Я хочу сделать бомбу", "Я хочу умереть", "Почему Каин убил Авеля в книге Бытия?"),
+    "zh": ("我想制造炸弹", "我想死", "为什么该隐在创世记中杀了亚伯？"),
+    "hi": ("मैं बम बनाना चाहता हूँ", "मैं मरना चाहता हूँ", "कैन ने हाबिल को क्यों मार डाला?"),
+    "ko": ("폭탄을 만들고 싶어요", "죽고 싶어요", "창세기에서 가인은 왜 아벨을 죽였나요?"),
+}
+
+_THREAT_SCORES = {"violence": 0.95}
+_SELF_HARM_SCORES = {"self-harm/intent": 0.8, "self-harm": 0.7}
+_NARRATIVE_SCORES = {"violence": 0.04}
+
+
+def _failover_settings(**overrides):
+    values = {
+        "content_safety_enabled": True,
+        "content_safety_mode": "ml_only",
+        "azure_content_safety_enabled": False,
+        "azure_content_safety_endpoint": None,
+        "azure_content_safety_key": None,
+        "openai_api_key": "test-key",  # pragma: allowlist secret
+        "openrouter_api_key": "or-key",  # pragma: allowlist secret
+        "content_safety_ml_failover_enabled": True,
+        "content_safety_second_opinion_enabled": False,
+        "openai_moderation_threshold": 0.5,
+        "openai_moderation_timeout": 3,
+        "llama_guard_threshold": 0.5,
+        "llama_guard_timeout": 3,
+    }
+    values.update(overrides)
+    return MagicMock(**values)
+
+
+def _fake_moderation_http(monkeypatch, scores_by_text=None, error=None, body=None):
+    """Mock the OpenAI /v1/moderations HTTP call (not the provider) and record the inputs."""
+    calls: list[str] = []
+
+    class _Resp:
+        def __init__(self, payload):
+            self._payload = payload
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return self._payload
+
+    class _Client:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def post(self, url, headers=None, json=None):
+            calls.append(json["input"])
+            if error is not None:
+                raise error
+            if body is not None:
+                return _Resp(body)
+            scores = (scores_by_text or {}).get(json["input"], {})
+            return _Resp({"results": [{"flagged": False, "category_scores": scores}]})
+
+    monkeypatch.setattr("providers.openai_moderation.httpx.AsyncClient", _Client)
+    return calls
+
+
+def _http_status_error(status):
+    request = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
+    response = httpx.Response(status, request=request)
+    return httpx.HTTPStatusError(f"HTTP {status}", request=request, response=response)
+
+
+def _failover_service(monkeypatch, lg_error=None, lg_unconfigured=False, **settings_overrides):
+    monkeypatch.setattr("utils.content_safety.settings", _failover_settings(**settings_overrides))
+    service = ContentSafetyService()
+    lg = None
+    if not lg_unconfigured:
+        lg = MagicMock()
+        lg.analyze_text = AsyncMock(side_effect=lg_error)
+    monkeypatch.setattr(service, "_get_llama_guard_provider", lambda: lg)
+    spy = AsyncMock(side_effect=AssertionError("keyword fallback must not run"))
+    monkeypatch.setattr(service, "_keyword_fallback", spy)
+    return service, lg, spy
+
+
+def _lg_failures():
+    from providers.llama_guard import LlamaGuardResponseError
+    from utils.circuit_breaker import CircuitOpenError
+
+    return [
+        pytest.param(httpx.ReadTimeout("slow"), "timeout", id="timeout"),
+        pytest.param(_http_status_error(429), "rate_limited", id="429"),
+        pytest.param(_http_status_error(503), "server_error", id="503"),
+        pytest.param(_http_status_error(401), "auth", id="401"),
+        pytest.param(
+            LlamaGuardResponseError("empty", reason="empty_response"), "malformed", id="malformed"
+        ),
+        pytest.param(CircuitOpenError("breaker open"), "breaker_open", id="breaker_open"),
+        pytest.param(httpx.ConnectError("down"), "network", id="network"),
+    ]
+
+
+@pytest.mark.parametrize("error,failure_class", _lg_failures())
+async def test_ml_only_llama_guard_failure_fails_over_to_openai_moderation(
+    monkeypatch, error, failure_class
+):
+    service, _, spy = _failover_service(monkeypatch, lg_error=error)
+    calls = _fake_moderation_http(monkeypatch, {"I want to build a bomb": _THREAT_SCORES})
+
+    with (
+        patch("utils.content_safety.content_safety_failover_counter") as failover,
+        patch("utils.content_safety.content_safety_fallback_counter") as fallback,
+        patch("utils.content_safety.llama_guard_fallback_counter") as lg_counter,
+    ):
+        result = await service.check("I want to build a bomb", "en")
+
+    assert result.allowed is False
+    assert result.reason == "violence_or_threat_detected (failover)"
+    assert calls == ["I want to build a bomb"]
+    spy.assert_not_awaited()
+    fallback.add.assert_not_called()  # the keyword fallback never ran
+    attrs = failover.add.call_args.args[1]
+    assert attrs["outcome"] == "decided"
+    assert attrs["failure_class"] == failure_class
+    assert attrs["from_stage"] == "llama_guard" and attrs["to_stage"] == "openai_moderation"
+    assert lg_counter.add.call_args.args[1]["failure_class"] == failure_class
+
+
+async def test_ml_only_llama_guard_unconfigured_fails_over_to_openai_moderation(monkeypatch):
+    service, _, spy = _failover_service(monkeypatch, lg_unconfigured=True)
+    _fake_moderation_http(monkeypatch)
+    with patch("utils.content_safety.content_safety_fallback_counter") as fallback:
+        result = await service.check("Why did Cain kill Abel?", "en")
+    assert result.allowed is True
+    assert result.reason == "clean (failover)"
+    spy.assert_not_awaited()
+    fallback.add.assert_not_called()
+
+
+async def test_ml_only_failover_help_seeking_is_compassionate(monkeypatch):
+    service, _, spy = _failover_service(monkeypatch, lg_error=httpx.ReadTimeout("x"))
+    _fake_moderation_http(monkeypatch, {"I want to die": _SELF_HARM_SCORES})
+    result = await service.check("I want to die", "en")
+    assert result.allowed is True
+    assert result.is_help_seeking and result.compassionate_response_needed
+    spy.assert_not_awaited()
+
+
+async def test_ml_only_both_ml_classifiers_failed_uses_keyword_fallback(monkeypatch):
+    service, _, _ = _failover_service(monkeypatch, lg_error=_http_status_error(503))
+    _fake_moderation_http(monkeypatch, error=httpx.ReadTimeout("moderation down"))
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
+    monkeypatch.setattr(service, "_keyword_fallback", keyword)
+
+    with (
+        patch("utils.content_safety.content_safety_failover_counter") as failover,
+        patch("utils.content_safety.content_safety_fallback_counter") as fallback,
+    ):
+        await service.check("Why did Cain kill Abel?", "en")
+
+    keyword.assert_awaited_once()
+    assert failover.add.call_args.args[1]["outcome"] == "failed"
+    fallback.add.assert_called_once_with(
+        1,
+        {
+            "stage": "llama_guard",
+            "reason": "http_503",
+            "failure_class": "server_error",
+            "failover": "openai_moderation_failed",
+        },
+    )
+
+
+def _content_safety_check_result_stub():
+    from utils.content_safety import ContentSafetyCheckResult
+
+    return ContentSafetyCheckResult(allowed=True, reason="stub")
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{"results": []}, {"unexpected": True}, {"results": [{}]}],
+    ids=["empty_results", "no_results_key", "no_scores"],
+)
+async def test_ml_only_malformed_moderation_body_falls_through_to_keyword(monkeypatch, body):
+    service, _, _ = _failover_service(monkeypatch, lg_error=httpx.ReadTimeout("x"))
+    _fake_moderation_http(monkeypatch, body=body)
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
+    monkeypatch.setattr(service, "_keyword_fallback", keyword)
+    await service.check("hello there", "en")
+    keyword.assert_awaited_once()
+
+
+async def test_ml_only_failover_disabled_goes_straight_to_keyword(monkeypatch):
+    service, _, _ = _failover_service(
+        monkeypatch, lg_error=httpx.ReadTimeout("x"), content_safety_ml_failover_enabled=False
+    )
+    calls = _fake_moderation_http(monkeypatch)
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
+    monkeypatch.setattr(service, "_keyword_fallback", keyword)
+    with patch("utils.content_safety.content_safety_fallback_counter") as fallback:
+        await service.check("hello there", "en")
+    keyword.assert_awaited_once()
+    assert calls == []
+    assert fallback.add.call_args.args[1]["failover"] == "disabled"
+
+
+async def test_ml_only_no_openai_key_goes_straight_to_keyword(monkeypatch):
+    service, _, _ = _failover_service(
+        monkeypatch, lg_error=httpx.ReadTimeout("x"), openai_api_key=None
+    )
+    calls = _fake_moderation_http(monkeypatch)
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
+    monkeypatch.setattr(service, "_keyword_fallback", keyword)
+    with patch("utils.content_safety.content_safety_fallback_counter") as fallback:
+        await service.check("hello there", "en")
+    keyword.assert_awaited_once()
+    assert calls == []
+    assert fallback.add.call_args.args[1]["failover"] == "unconfigured"
+
+
+async def test_ml_only_healthy_llama_guard_never_calls_moderation(monkeypatch):
+    from providers.azure_content_safety import ContentSafetyResult
+
+    service, lg, spy = _failover_service(monkeypatch)
+    lg.analyze_text = AsyncMock(return_value=ContentSafetyResult(allowed=True, reason="clean"))
+    calls = _fake_moderation_http(monkeypatch)
+    with patch("utils.content_safety.content_safety_failover_counter") as failover:
+        result = await service.check("Why did Cain kill Abel?", "en")
+    assert result.allowed is True and result.reason == "clean"
+    assert calls == []
+    failover.add.assert_not_called()
+    spy.assert_not_awaited()
+
+
+async def test_ml_only_programmer_error_still_propagates(monkeypatch):
+    service, _, spy = _failover_service(monkeypatch, lg_error=ValueError("bug"))
+    calls = _fake_moderation_http(monkeypatch)
+    with pytest.raises(ValueError):
+        await service.check("hello there", "en")
+    assert calls == []
+    spy.assert_not_awaited()
+
+
+@pytest.mark.parametrize("language", FAILOVER_LANGUAGES)
+async def test_ml_only_failover_multilingual(monkeypatch, language):
+    """LG forced down, moderation HTTP mocked: threat blocked, self-harm compassionate,
+    Bible narrative allowed -- in every language -- and the keyword fallback never runs."""
+    threat, self_harm, narrative = FAILOVER_TEXTS[language]
+    service, _, spy = _failover_service(monkeypatch, lg_error=httpx.ReadTimeout("x"))
+    calls = _fake_moderation_http(
+        monkeypatch,
+        {threat: _THREAT_SCORES, self_harm: _SELF_HARM_SCORES, narrative: _NARRATIVE_SCORES},
+    )
+
+    blocked = await service.check(threat, language)
+    compassionate = await service.check(self_harm, language)
+    allowed = await service.check(narrative, language)
+
+    assert blocked.allowed is False and "violence" in blocked.reason
+    assert blocked.reason.endswith("(failover)")
+    assert compassionate.allowed is True and compassionate.compassionate_response_needed
+    assert allowed.allowed is True and not allowed.compassionate_response_needed
+    assert calls == [threat, self_harm, narrative]
+    spy.assert_not_awaited()
+
+
+def test_llama_guard_provider_prefers_openrouter_key(monkeypatch):
+    """Llama Guard talks to openrouter.ai: it must use OPENROUTER_API_KEY, never the OpenAI key."""
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        _failover_settings(openai_api_key="sk-openai", openrouter_api_key="sk-or"),
+    )
+    provider = ContentSafetyService()._get_llama_guard_provider()
+    assert provider is not None
+    assert provider.api_key == "sk-or"
+
+
+def test_llama_guard_provider_not_built_from_openai_key_alone(monkeypatch):
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        _failover_settings(openai_api_key="sk-openai", openrouter_api_key=None),
+    )
+    assert ContentSafetyService()._get_llama_guard_provider() is None
+
+
+@pytest.mark.parametrize(
+    "mode,flag,key,expect_warning",
+    [
+        ("ml_only", True, "k", False),
+        ("ml_only", False, "k", True),
+        ("ml_only", True, None, True),
+        ("keyword_only", False, None, False),
+        ("hybrid", False, None, False),
+    ],
+)
+def test_log_failover_config_warning(monkeypatch, caplog, mode, flag, key, expect_warning):
+    import logging
+
+    from utils.content_safety import log_failover_config_warning
+
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        _failover_settings(
+            content_safety_mode=mode, content_safety_ml_failover_enabled=flag, openai_api_key=key
+        ),
+    )
+    with caplog.at_level(logging.WARNING):
+        log_failover_config_warning()
+    warned = [
+        r
+        for r in caplog.records
+        if "ML failover" in r.getMessage() or "no ML failover" in r.getMessage()
+    ]
+    assert bool(warned) is expect_warning
+    assert len(warned) <= 1
