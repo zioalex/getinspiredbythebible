@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-08: BITB-262 🚧 In Progress — capability×client parity registry seeded (35 capabilities × 8 contracts, re-verified against code: all WIP-plan GAPs shipped on Android, BITB-042 drift closed by #685, live red row is BITB-267 api) + graph/landscape renderer + CI freshness gates (#1258)
 - 2026-11-10: BITB-272 slice 1 done (🚧 In Progress) — ml_only fails over to OpenAI Moderation before the keyword fallback, failure_class metrics, startup config warning, Llama Guard key fix; follow-ups BITB-288..292 opened
 - 2026-11-08: BITB-278 opened — Android follow-up chips round: flip the default-off `CHAT_FOLLOW_UPS_ENABLED` BuildConfig gate on and restyle the stock SuggestionChip to match the web chip colors (light: white / #E6D0B8 border / #374151 label); user-reported "colors a bit off" when side-loading a flag-on build (BITB-080/149/254 follow-up)
 - 2026-11-08: BITB-261 ✅ Done — stage 1 of the parity KG merged: OpenAPI artifact + stale-artifact CI gate + oasdiff-action (#1253); env-stripping determinism + audit regen adopted from #1251; follow-ups BITB-274/275/276/277 filed
@@ -3873,9 +3874,9 @@ report on PRs (warn-level first; policy documented with its flip condition).
 
 **Full Story:** [`BITB-261-parity-kg-stage1-openapi-contract-ci.md`](DONE/BITB-261-parity-kg-stage1-openapi-contract-ci.md)
 
-### 🎯 BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
+### 🚧 BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
 
-**Status:** 🎯 Todo — gated on BITB-261
+**Status:** 🚧 In Progress (PR #1258) — BITB-261 landed (PR #1253), so the gate is open
 **Priority:** P2
 **Size:** L
 **Created:** 2026-10-30

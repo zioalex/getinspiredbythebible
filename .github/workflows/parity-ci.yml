@@ -2,8 +2,11 @@ name: Parity CI
 
 # BITB-261 (BITB-260 stage 1): the committed OpenAPI contract artifact
 # (docs/parity/openapi.json) plus breaking-change reporting per PR.
+# BITB-262 (stage 2): the capability × client parity registry
+# (docs/parity/registry.yaml) with its derived graph.json/landscape.md.
 # Policy record: docs/parity/README.md (stale = hard gate; breaking = warn-only
-# until the baseline is trusted).
+# until the baseline is trusted; drifted REGISTRY ROWS are informational — the
+# payload, never the failure).
 
 # yamllint disable-line rule:truthy
 "on":
@@ -17,6 +20,12 @@ name: Parity CI
       - "scripts/export_openapi.py"
       - "scripts/test_export_openapi.py"
       - "docs/parity/**"
+      # BITB-262: the registry and its tooling; plus the strings files the
+      # registry's strings cross-check re-validates (graph.json embeds their
+      # facts, so it can go stale without a registry.yaml change).
+      - "tools/parity-graph/**"
+      - "android/app/src/main/res/**"
+      - "frontend/messages/**"
       - ".github/workflows/parity-ci.yml"
   push:
     branches:
@@ -26,6 +35,9 @@ name: Parity CI
       - "scripts/export_openapi.py"
       - "scripts/test_export_openapi.py"
       - "docs/parity/**"
+      - "tools/parity-graph/**"
+      - "android/app/src/main/res/**"
+      - "frontend/messages/**"
       - ".github/workflows/parity-ci.yml"
 
 jobs:
@@ -66,6 +78,53 @@ jobs:
       - name: Guard — committed OpenAPI artifact must match the app (BITB-261)
         run: |
           python scripts/export_openapi.py --check
+
+  # BITB-262 (BITB-260 stage 2): the parity registry layer. Schema validation,
+  # the strings cross-check (same source of truth as android-ci's
+  # translation-validation job), and the graph.json/landscape.md freshness
+  # gates all FAIL. Drifted/partial/absent registry rows are INFORMATIONAL —
+  # they render in the job summary and stay red until their story closes;
+  # they can never fail this job.
+  registry:
+    name: Parity registry (validate + freshness)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # The registry tooling is standalone (no api/ dependencies): it needs only
+      # jsonschema + PyYAML (+ pytest for the tool tests below). Pinned to the
+      # versions the tool is developed against.
+      - name: Install parity-graph dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema==4.26.0 PyYAML==6.0.3 pytest==9.2.0
+
+      - name: Tool tests (offline)
+        run: |
+          python -m pytest tools/parity-graph/ -q
+
+      - name: Validate registry + strings cross-check + graph freshness
+        run: |
+          python tools/parity-graph/analyze.py --check
+
+      - name: Landscape freshness
+        run: |
+          python tools/parity-graph/render.py --check
+
+      # The payload, never the failure: the drift watch (drifted/partial/absent
+      # rows with stories and evidence) renders in the job summary. This step
+      # only reads the registry and cannot fail the job.
+      - name: Drift watch → job summary (informational)
+        run: |
+          python tools/parity-graph/render.py --summary >> "$GITHUB_STEP_SUMMARY"
 
   # Warn-only breaking-change report: oasdiff/oasdiff-action/breaking@v0
   # compares the artifact exported from the PR base vs the PR head and posts

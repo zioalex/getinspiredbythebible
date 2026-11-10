@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://voxquieta.org/tools/parity-graph/registry.schema.json",
+  "title": "Vox Quieta cross-client parity registry (BITB-262)",
+  "description": "Schema for docs/parity/registry.yaml — the capability × client parity registry of BITB-260 stage 2. Validated by tools/parity-graph/analyze.py (jsonschema).",
+  "type": "object",
+  "required": ["schema_version", "updated", "clients", "contracts", "capabilities"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": 1},
+    "updated": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Date of the last re-verification pass over the rows (rows must be TRUE, not plausible)."
+    },
+    "clients": {"$ref": "#/$defs/clients"},
+    "contracts": {"type": "array", "items": {"$ref": "#/$defs/contract"}},
+    "capabilities": {"type": "array", "items": {"$ref": "#/$defs/capability"}}
+  },
+  "$defs": {
+    "clients": {
+      "type": "object",
+      "required": ["api", "web", "android", "ios"],
+      "additionalProperties": false,
+      "properties": {
+        "api": {"$ref": "#/$defs/client"},
+        "web": {"$ref": "#/$defs/client"},
+        "android": {"$ref": "#/$defs/client"},
+        "ios": {"$ref": "#/$defs/client"}
+      }
+    },
+    "client": {
+      "type": "object",
+      "required": ["kind", "repo_path", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"enum": ["backend", "client"]},
+        "repo_path": {"type": "string", "minLength": 1},
+        "status": {"enum": ["active", "planned"]},
+        "story": {"$ref": "#/$defs/storyRef"},
+        "description": {"type": "string", "minLength": 1}
+      }
+    },
+    "storyRef": {
+      "type": "string",
+      "pattern": "^BITB-\\d{3}$"
+    },
+    "contract": {
+      "type": "object",
+      "required": ["id", "description", "source_of_truth", "consumers"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "description": {"type": "string", "minLength": 1},
+        "status": {
+          "enum": ["active", "absent"],
+          "description": "absent = the contract has not landed yet (row reserved, e.g. platform-flags/BITB-242)."
+        },
+        "story": {"$ref": "#/$defs/storyRef"},
+        "note": {"type": "string"},
+        "source_of_truth": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1},
+          "description": "Repo files/decisions that define the contract. Path-like entries are existence-checked."
+        },
+        "locales": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 2},
+          "description": "Declares the locale set this contract covers; cross-checked against the real Android res and web messages locales (strings-catalog)."
+        },
+        "consumers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "api": {"$ref": "#/$defs/parityCell"},
+            "web": {"$ref": "#/$defs/parityCell"},
+            "android": {"$ref": "#/$defs/parityCell"},
+            "ios": {"$ref": "#/$defs/parityCell"}
+          }
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "required": ["id", "title", "description", "parity"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+        "title": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "kind": {
+          "enum": ["capability", "negative-obligation"],
+          "default": "capability",
+          "description": "negative-obligation rows record an absence that must be MAINTAINED (e.g. ios-no-verse-regex)."
+        },
+        "tier": {
+          "enum": [1, 2, null],
+          "description": "BITB-087 iOS tier this capability maps to (1 = in v1, 2 = explicitly deferred to a follow-up story, null = no tier row)."
+        },
+        "origin": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "enum": ["wip-plan", "bitb-087", "web-inventory", "story"]
+            },
+            "gaps": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "pattern": "^GAP-\\d{3}$"},
+              "description": "docs/WIP/android-feature-parity-plan.md GAP id(s) this row re-verifies."
+            },
+            "story": {"$ref": "#/$defs/storyRef"},
+            "note": {"type": "string"}
+          }
+        },
+        "contracts": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Contract ids this capability is governed by (validated to exist)."
+        },
+        "parity": {
+          "type": "object",
+          "required": ["api", "web", "android", "ios"],
+          "additionalProperties": false,
+          "properties": {
+            "api": {"$ref": "#/$defs/parityCell"},
+            "web": {"$ref": "#/$defs/parityCell"},
+            "android": {"$ref": "#/$defs/parityCell"},
+            "ios": {"$ref": "#/$defs/parityCell"}
+          }
+        }
+      }
+    },
+    "parityCell": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": ["synced", "drifted", "partial", "absent", "obligated", "n/a"]
+        },
+        "evidence": {
+          "description": "Concrete repo paths (optionally path:LINE or path:LINE-LINE) and/or PR/story pointers an independent verifier can open. Path-like entries are existence-checked.",
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+          ]
+        },
+        "story": {"$ref": "#/$defs/storyRef"},
+        "pr": {
+          "description": "Landed PR number(s) that implemented or fixed this cell.",
+          "oneOf": [
+            {"type": "integer", "minimum": 1},
+            {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1}}
+          ]
+        },
+        "note": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["synced", "drifted", "partial"]}},
+            "required": ["status"]
+          },
+          "then": {"required": ["evidence"]}
+        },
+        {
+          "if": {"properties": {"status": {"const": "obligated"}}, "required": ["status"]},
+          "then": {"required": ["story"]}
+        }
+      ]
+    }
+  }
+}
