@@ -340,3 +340,73 @@ def test_exempt_helper_unit():
 
 def flt_regex_match(text):
     return MultiLanguageContentFilter()._directed_harm_regex["en"].search(text)
+
+
+# ---------------------------------------------------------------------------
+# BITB-239: recall lost by the BITB-193 tightening is restored (it/fr/pt)
+# ---------------------------------------------------------------------------
+
+RECOVERED_THREATS = [
+    "ok muori",
+    "adesso muori!",
+    "Muori adesso!",
+    "Sei inutile, muori.",
+    "Crève charogne",
+    "morra seu idiota",
+    "J'espère que tu vas crever",
+    "Okay, muori!",
+    "Crève, sale charogne",
+    "Morra, sua vagabunda",
+    "Spero che tu muoia in un incidente",
+]
+
+# "Die to sin / in Christ" wording is theology, not a threat.
+DIE_TO_SIN = [
+    "Spero che tu muoia in Cristo e risorga",
+    "Spero che tu muoia in Cristo",
+    "Spero che tu muoia al peccato",
+    "Que você morra para o pecado",
+    "Espero que você morra para o pecado",
+    "Que você morra em Cristo",
+]
+
+# Phrasings the BITB-193 tightening removed that the recall fix must not bring back.
+TIGHTENING_NEGATIVES = [
+    "Se muori, vai in paradiso?",
+    "Ok, muori?",
+    "Se non mangi, muori.",
+    "Se bevi il veleno, muori.",
+    "Nel gioco, se tocchi la lava, muori!",
+    "Prima o poi, muori.",
+    "Je pense que tu vas crever un pneu",
+    "Je pense que tu vas crever l'abcès",
+    "Quando muori, dove vai?",
+    "Ora muori al peccato",
+    "Giochiamo a carte, morra, scacchi",
+    "J'espère que tu vas crever de rire",
+]
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+@pytest.mark.parametrize("text", RECOVERED_THREATS)
+def test_bitb239_recovered_threats_blocked(flt, service, language, text):
+    blocked, confidence, vtype, pattern = flt.check_multilingual(text, language)
+    assert (blocked, confidence, vtype) == (True, "high", "directed_harm")
+    assert pattern
+    result = _fallback(service, text, language)
+    assert result.allowed is False
+    assert "directed_harm" in result.reason
+    stage1 = service._check_stage1_keywords(text, language, time.monotonic())
+    assert stage1 is not None and stage1.allowed is False
+    assert stage1.reason == "keyword_violation:directed_harm"
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+@pytest.mark.parametrize("text", DIE_TO_SIN + TIGHTENING_NEGATIVES)
+def test_bitb239_die_to_sin_and_tightening_negatives_allowed(flt, service, language, text):
+    assert flt.check_multilingual(text, language)[0] is False
+    assert flt.find_directed_harm(normalize_text(text)) is None
+    result = _fallback(service, text, language)
+    assert "directed_harm" not in (result.reason or "")
+    stage1 = service._check_stage1_keywords(text, language, time.monotonic())
+    assert stage1 is None or stage1.allowed is True

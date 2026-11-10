@@ -22,6 +22,8 @@ Prioritized list of user stories and features for Vox Quieta.
 
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
+- 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
+- 2026-11-09: BITB-281 opened — pt "morra para o pecado, seu idiota" regression follow-up from BITB-239 (#1261)
 - 2026-11-08: BITB-262 🚧 In Progress — capability×client parity registry seeded (35 capabilities × 8 contracts, re-verified against code: all WIP-plan GAPs shipped on Android, BITB-042 drift closed by #685, live red row is BITB-267 api) + graph/landscape renderer + CI freshness gates (#1258)
 - 2026-11-10: BITB-272 slice 1 done (🚧 In Progress) — ml_only fails over to OpenAI Moderation before the keyword fallback, failure_class metrics, startup config warning, Llama Guard key fix; follow-ups BITB-288..292 opened
 - 2026-11-08: BITB-278 opened — Android follow-up chips round: flip the default-off `CHAT_FOLLOW_UPS_ENABLED` BuildConfig gate on and restyle the stock SuggestionChip to match the web chip colors (light: white / #E6D0B8 border / #374151 label); user-reported "colors a bit off" when side-loading a flag-on build (BITB-080/149/254 follow-up)
@@ -788,16 +790,29 @@ and "Why did Jesus have to go die on the cross?" are blocked as threats.
 
 Full story: [`BITB-238-stage1-english-help-seeking-kill-yourself.md`](BACKLOG_STORIES/BITB-238-stage1-english-help-seeking-kill-yourself.md)
 
-### 🎯 BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
+### 🔍 BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
 
 Follow-up to BITB-193: "adesso muori!", "Crève charogne", "morra seu idiota" no longer block in Stage 1 / fallback.
 
+**Resolution:** it/fr/pt patterns widened (lead-in/tail words, comma-led clause, extra insults, "que tu vas crever"); "die to sin / in Christ" wording exempted. Tests parametrized across 11 languages.
+
 Full story: [`BITB-239-directed-harm-recall-after-tightening.md`](BACKLOG_STORIES/BITB-239-directed-harm-recall-after-tightening.md)
+
+### 🎯 BITB-281: pt Directed Harm — "Que você morra para o pecado, seu idiota" No Longer Blocks
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-11-09
+
+Follow-up to BITB-239: add a pt `morra … <insult>` tail pattern to match the Italian one.
+
+Full story: [`BITB-281-pt-die-to-sin-insult-tail.md`](BACKLOG_STORIES/BITB-281-pt-die-to-sin-insult-tail.md)
 
 ### 🎯 BITB-240: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
 
