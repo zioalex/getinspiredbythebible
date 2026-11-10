@@ -73,6 +73,19 @@ def _classify_llama_guard_failure(e: Exception) -> str:
     return "other"
 
 
+def _status_failure_class(status: object) -> str:
+    """Map an HTTP status code to a coarse failure class (BITB-272)."""
+    if status == 429:
+        return "rate_limited"
+    if status in (401, 402, 403):
+        return "auth"
+    if status == 408:
+        return "timeout"
+    if isinstance(status, int) and status >= 500:
+        return "server_error"
+    return "other"
+
+
 def classify_failure_class(e: BaseException) -> str:
     """Coarse failure class for metrics (BITB-272): a low-cardinality complement to the detailed
     ``reason`` label. One of timeout | rate_limited | server_error | auth | malformed |
@@ -84,16 +97,7 @@ def classify_failure_class(e: BaseException) -> str:
     if isinstance(e, httpx.TimeoutException):
         return "timeout"
     if isinstance(e, httpx.HTTPStatusError):
-        status = getattr(e.response, "status_code", None)
-        if status == 429:
-            return "rate_limited"
-        if status in (401, 402, 403):
-            return "auth"
-        if status == 408:
-            return "timeout"
-        if isinstance(status, int) and status >= 500:
-            return "server_error"
-        return "other"
+        return _status_failure_class(getattr(e.response, "status_code", None))
     if isinstance(e, httpx.HTTPError):
         return "network"
     # Unparseable / unexpectedly-shaped moderation response body

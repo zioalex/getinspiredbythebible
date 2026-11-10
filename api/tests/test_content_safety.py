@@ -1098,7 +1098,7 @@ async def test_ml_only_failover_help_seeking_is_compassionate(monkeypatch):
 async def test_ml_only_both_ml_classifiers_failed_uses_keyword_fallback(monkeypatch):
     service, _, _ = _failover_service(monkeypatch, lg_error=_http_status_error(503))
     _fake_moderation_http(monkeypatch, error=httpx.ReadTimeout("moderation down"))
-    keyword = AsyncMock(return_value=ContentSafetyCheckResultStub())
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
     monkeypatch.setattr(service, "_keyword_fallback", keyword)
 
     with (
@@ -1120,7 +1120,7 @@ async def test_ml_only_both_ml_classifiers_failed_uses_keyword_fallback(monkeypa
     )
 
 
-def ContentSafetyCheckResultStub():
+def _content_safety_check_result_stub():
     from utils.content_safety import ContentSafetyCheckResult
 
     return ContentSafetyCheckResult(allowed=True, reason="stub")
@@ -1134,7 +1134,7 @@ def ContentSafetyCheckResultStub():
 async def test_ml_only_malformed_moderation_body_falls_through_to_keyword(monkeypatch, body):
     service, _, _ = _failover_service(monkeypatch, lg_error=httpx.ReadTimeout("x"))
     _fake_moderation_http(monkeypatch, body=body)
-    keyword = AsyncMock(return_value=ContentSafetyCheckResultStub())
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
     monkeypatch.setattr(service, "_keyword_fallback", keyword)
     await service.check("hello there", "en")
     keyword.assert_awaited_once()
@@ -1145,7 +1145,7 @@ async def test_ml_only_failover_disabled_goes_straight_to_keyword(monkeypatch):
         monkeypatch, lg_error=httpx.ReadTimeout("x"), content_safety_ml_failover_enabled=False
     )
     calls = _fake_moderation_http(monkeypatch)
-    keyword = AsyncMock(return_value=ContentSafetyCheckResultStub())
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
     monkeypatch.setattr(service, "_keyword_fallback", keyword)
     with patch("utils.content_safety.content_safety_fallback_counter") as fallback:
         await service.check("hello there", "en")
@@ -1159,7 +1159,7 @@ async def test_ml_only_no_openai_key_goes_straight_to_keyword(monkeypatch):
         monkeypatch, lg_error=httpx.ReadTimeout("x"), openai_api_key=None
     )
     calls = _fake_moderation_http(monkeypatch)
-    keyword = AsyncMock(return_value=ContentSafetyCheckResultStub())
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
     monkeypatch.setattr(service, "_keyword_fallback", keyword)
     with patch("utils.content_safety.content_safety_fallback_counter") as fallback:
         await service.check("hello there", "en")
