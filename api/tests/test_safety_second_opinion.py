@@ -53,6 +53,7 @@ def settings_mock(monkeypatch):
         azure_content_safety_enabled=False,
         openai_api_key=None,
         openrouter_api_key=None,
+        content_safety_ml_failover_enabled=True,
         content_safety_second_opinion_enabled=True,
         content_safety_second_opinion_timeout=0.2,
     )
