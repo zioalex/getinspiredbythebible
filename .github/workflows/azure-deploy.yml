@@ -1110,19 +1110,36 @@ jobs:
             echo "OPENAI_API_KEY not configured - skipping."
             exit 0
           fi
-          if ! az containerapp show \
+          # Skip only on a genuine not-found; any other error (auth, throttling)
+          # must fail the job, otherwise apply would add a secretRef with no secret.
+          if ! show_err=$(az containerapp show \
                --name "${{ env.BACKEND_APP_NAME }}" \
                --resource-group "${{ env.RESOURCE_GROUP }}" \
-               --output none 2>/dev/null; then
-            echo "Backend app does not exist yet - Terraform will create the secret."
-            exit 0
+               --output none 2>&1); then
+            if echo "$show_err" | grep -qiE 'ResourceNotFound|ResourceGroupNotFound|was not found'; then
+              echo "Backend app does not exist yet - Terraform will create the secret."
+              exit 0
+            fi
+            echo "::error::Could not query backend app before pre-seeding openai-api-key."
+            echo "$show_err" | grep -v -i 'openai-api-key=' >&2 || true
+            exit 1
           fi
-          az containerapp secret set \
-            --name "${{ env.BACKEND_APP_NAME }}" \
-            --resource-group "${{ env.RESOURCE_GROUP }}" \
-            --secrets "openai-api-key=$OPENAI_API_KEY" \
-            --output none
-          echo "Pre-seeded openai-api-key on ${{ env.BACKEND_APP_NAME }}."
+          for i in 1 2 3 4; do
+            if az containerapp secret set \
+                 --name "${{ env.BACKEND_APP_NAME }}" \
+                 --resource-group "${{ env.RESOURCE_GROUP }}" \
+                 --secrets "openai-api-key=$OPENAI_API_KEY" \
+                 --output none; then
+              echo "Pre-seeded openai-api-key on ${{ env.BACKEND_APP_NAME }}."
+              break
+            fi
+            if [ "$i" -eq 4 ]; then
+              echo "::error::Failed to pre-seed openai-api-key after retries."
+              exit 1
+            fi
+            echo "secret set attempt $i failed; retrying..."
+            sleep $((i * 5))
+          done
 
       - name: Terraform Apply
         working-directory: deployment

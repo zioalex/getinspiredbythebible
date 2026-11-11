@@ -124,3 +124,32 @@ def test_pre_seed_step_runs_before_terraform_apply():
             )
             return
     raise AssertionError("no job with Terraform Apply found")
+
+
+def _pre_seed_script() -> str:
+    wf = yaml.safe_load(_WORKFLOW.read_text())
+    for job in wf["jobs"].values():
+        for step in job.get("steps", []):
+            if step.get("name", "").startswith("Pre-seed openai-api-key"):
+                return step["run"]
+    raise AssertionError("pre-seed step not found")
+
+
+def test_pre_seed_skips_only_on_not_found_and_fails_otherwise():
+    """A failed `az containerapp show` for auth/throttling must not silently skip the seed.
+
+    Otherwise Terraform apply adds an OPENAI_API_KEY secretRef with no matching secret.
+    """
+    script = _pre_seed_script()
+    assert "2>/dev/null" not in script
+    assert "ResourceNotFound" in script
+    # The not-found branch exits 0; any other show failure exits 1.
+    not_found = script.index("ResourceNotFound")
+    assert "exit 0" in script[not_found : not_found + 200]
+    assert "exit 1" in script[not_found:]
+
+
+def test_pre_seed_retries_secret_set():
+    script = _pre_seed_script()
+    assert "for i in 1 2 3 4" in script
+    assert script.count("az containerapp secret set") == 1

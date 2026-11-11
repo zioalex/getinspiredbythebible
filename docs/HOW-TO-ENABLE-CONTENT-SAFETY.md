@@ -119,9 +119,24 @@ Setup, from zero:
    end to end, force a Llama Guard failure on a staging revision and look for
    `content_safety.failover_total{outcome="decided"}` in your metrics.
 
-Rotation: `gh secret set OPENAI_API_KEY` and re-run `azure-deploy.yml`. To disable: delete the
-repo secret and redeploy (the Container App secret is removed on the next Terraform apply), or
-set `CONTENT_SAFETY_ML_FAILOVER_ENABLED=false`.
+Rotation: `gh secret set OPENAI_API_KEY`. The populate step only runs when the deploy job runs,
+and the deploy job is skipped when the Terraform plan has no changes, so re-running
+`azure-deploy.yml` alone may not apply a new key. To rotate immediately, set it on the app and
+restart the active revision:
+
+```bash
+az containerapp secret set -n bible-app-backend -g <resource-group> \
+  --secrets "openai-api-key=<new-key>"
+az containerapp revision restart -n bible-app-backend -g <resource-group> \
+  --revision "$(az containerapp revision list -n bible-app-backend -g <resource-group> \
+    --query "[?properties.active].name | [0]" -o tsv)"
+```
+
+To disable: delete the repo secret and redeploy. Terraform removes the `OPENAI_API_KEY` env var,
+which disables the feature. Because the backend ignores `secret` changes, the `openai-api-key`
+secret stays on the app as an unused orphan; remove it with
+`az containerapp secret remove -n bible-app-backend -g <resource-group> --secret-names openai-api-key`.
+Alternatively set `CONTENT_SAFETY_ML_FAILOVER_ENABLED=false`.
 
 The live 11-language golden-set run of `omni-moderation-latest` is still open: the existing
 golden-set runner (`scripts/run_golden_set.py`) drives the chat API, not a moderation classifier.
