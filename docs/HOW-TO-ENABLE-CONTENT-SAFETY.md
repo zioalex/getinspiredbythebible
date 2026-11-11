@@ -68,7 +68,7 @@ cost, no rate-limit charges).
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `CONTENT_SAFETY_ML_FAILOVER_ENABLED` | `true` | `ml_only` only. Set `false` to restore keyword-fallback-only behaviour |
-| `OPENAI_API_KEY` | unset | Required for the failover; without it the failover is a no-op and the API logs one startup warning |
+| `OPENAI_API_KEY` | unset | Required for the failover; without it the failover is a no-op and the API logs one startup warning. In production set the `OPENAI_API_KEY` GitHub repo secret (see *Production wiring*) |
 | `OPENAI_MODERATION_TIMEOUT` | `3` | Seconds; reused for the failover call |
 | `OPENROUTER_API_KEY` | unset | Used by Llama Guard (it is never given `OPENAI_API_KEY`) |
 
@@ -89,8 +89,42 @@ in clear text by this service. Confirm this meets your data-retention bar before
 - `failure_class` values: `timeout`, `rate_limited`, `server_error`, `auth`, `malformed`,
   `breaker_open`, `network`, `other`.
 
-Wiring `OPENAI_API_KEY` into production and a live 11-language golden-set run are tracked as
-follow-up stories (see BITB-272).
+### Production wiring (BITB-288)
+
+The key reaches the backend Container App through the same out-of-band path as
+`MONITOR_PROBE_SECRET` (BITB-067 gap #6), so rotating it never forces an app replacement.
+Setup, from zero:
+
+1. **Owner decision:** confirm OpenAI's data retention (see *Privacy* above) is acceptable.
+2. Create an OpenAI API key (Moderation is free; no billing credit is needed for it).
+3. Add it as a GitHub repo secret: `gh secret set OPENAI_API_KEY` (Settings -> Secrets and
+   variables -> Actions). It is optional; while unset nothing changes.
+4. Run `azure-deploy.yml` (merge to `main`, or Actions -> Run workflow). The pipeline passes it
+   as `TF_VAR_openai_api_key` (this only creates the `openai-api-key` Container App secret and
+   the `OPENAI_API_KEY` env var `secretRef`), then the *Populate out-of-band secrets in backend
+   Container App* step sets the real value with `az containerapp secret set` and restarts the
+   active revision.
+5. **Verify:**
+
+   ```bash
+   # Secret exists (values are never shown) - expect "openai-api-key" in the list
+   az containerapp secret list -n <backend-app> -g <resource-group> --query "[].name" -o tsv
+   # Env var is wired to the secret
+   az containerapp show -n <backend-app> -g <resource-group> \
+     --query "properties.template.containers[0].env[?name=='OPENAI_API_KEY']"
+   ```
+
+   Then check the startup log (`az containerapp logs show ...`): the
+   `Content safety ml_only: no OPENAI_API_KEY ...` warning must be gone. To prove the failover
+   end to end, force a Llama Guard failure on a staging revision and look for
+   `content_safety.failover_total{outcome="decided"}` in your metrics.
+
+Rotation: `gh secret set OPENAI_API_KEY` and re-run `azure-deploy.yml`. To disable: delete the
+repo secret and redeploy (the Container App secret is removed on the next Terraform apply), or
+set `CONTENT_SAFETY_ML_FAILOVER_ENABLED=false`.
+
+The live 11-language golden-set run of `omni-moderation-latest` is still open: the existing
+golden-set runner (`scripts/run_golden_set.py`) drives the chat API, not a moderation classifier.
 
 ---
 

@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-11
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#TBD)
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -481,9 +482,9 @@ failover, tune timeouts/retry/breaker from data, and alert on a fallback-share S
 
 ---
 
-### 🎯 BITB-288: Wire OPENAI_API_KEY Into Production and Validate the OpenAI Moderation Failover on the 11-Language Golden Set
+### 🔍 BITB-288: Wire OPENAI_API_KEY Into Production and Validate the OpenAI Moderation Failover on the 11-Language Golden Set
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P1
 **Size:** S
 **Created:** 2026-11-10
@@ -492,7 +493,7 @@ BITB-272 slice 1 ships the ML failover, but it is a no-op in production until `O
 
 **Acceptance Criteria (summary):**
 
-- [ ] Add `OPENAI_API_KEY` (Key Vault / secret reference) to the backend Container App in `deployment/main.tf` and pass it through `.github/workflows/azure-deploy.yml`; `scripts/validate-env.py` stays green
+- [x] Add `OPENAI_API_KEY` (Key Vault / secret reference) to the backend Container App in `deployment/main.tf` and pass it through `.github/workflows/azure-deploy.yml`; `scripts/validate-env.py` stays green
 - [ ] Run a live golden set (crisis + threat + Bible narrative, en/it/de/es/fr/pt/ar/ru/zh/hi/ko) against `omni-moderation-latest` and record per-language results in this story
 - [ ] Owner step: add the secret value, confirm OpenAI data-retention is acceptable, then deploy; the startup warning no longer appears
 
