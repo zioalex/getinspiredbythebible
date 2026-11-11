@@ -450,41 +450,48 @@ _DH_PT_DIE_TO = (
 )
 
 # BITB-266: English directed-harm taunts the original three-phrase table missed. All run under
-# every language code (BITB-193). Help-seeking frames ("Is it a sin to think about killing
-# yourself?") never match: the slang forms exclude plain "yourself", the wish / imperative
-# forms need a hostile lead-in, and negated wishes ("I hope you never ...") are rejected.
-_DH_SLANG_KILL = r"\bkill(?:ing)?\s+(?:urself|ur\s+self|yoself|yo\s+self)\b"
+# every language code (BITB-193). These are deliberately NARROW: grief letters ("I wish you had
+# told me you were thinking about killing yourself"), caring wishes ("I hope you choose life
+# instead of killing yourself"), the overwork idiom ("stop killing urself over it") and
+# hotline wording ("Keep thinking about killing yourself? Call 988.") must stay allowed.
+_DH_YOU = r"(?:you|u)"
+_DH_YOURSELF = r"(?:yourself|urself|ur\s+self|yoself|yo\s+self)"
+# Slang imperative only ("kill urself"); "killing urself" alone is the overwork idiom.
+_DH_SLANG_KILL = r"\bkill\s+(?:urself|ur\s+self|yoself|yo\s+self)\b"
 _DH_KYS = r"\bkys\b"
-_DH_WISH_SUBJ = r"(?:i\s+)?(?:hope|wish)\s+(?:that\s+)?(?:you|u|you're|youre|you\s+are|ur)\b"
-_DH_WISH_NEG = (
-    r"(?![^.!?\n]{0,40}?(?:\bnever\b|\bnot\b|n't|\bdont\b|\bwont\b|\bstop\b|"
-    r"\bno\s+longer\b|\bnobody\b|\bno\s+one\b|"
-    # Caring / explanatory frames ("I hope you realize killing yourself would hurt them").
-    r"\bknow\w*|\bknew\b|\brealis\w*|\brealiz\w*|\bunderstand\w*|\bsee\b|\blearn\w*|"
-    r"\bremember\w*|\bthat\b|\bhow\b|\bwhy\b|\bwhat\b|\bhelp\b))"
-)
+# The wish verb must lead DIRECTLY into the act: "I hope you're thinking about killing
+# yourself", "I wish you were killing yourself". No free gap, so "I hope you find peace instead
+# of killing yourself" / "I wish you had come to me before killing yourself" never match.
 _DH_WISH_TAUNT = (
-    _DH_WISH_SUBJ
-    + _DH_WISH_NEG
-    + r"[^.!?\n]{0,40}?\bkill(?:ing)?\s+(?:yourself|urself|ur\s+self)\b"
+    r"\b(?:hope|wish)\s+(?:that\s+)?" + _DH_YOU + r"(?:'re|re|r|\s+are|\s+were|\s+r)?\s+"
+    r"(?:(?:thinking|think)\s+about\s+|considering\s+|consider\s+|going\s+to\s+|gonna\s+|"
+    r"start\s+|try\s+|end\s+up\s+)?kill(?:ing)?\s+" + _DH_YOURSELF + r"\b"
 )
+# Imperative at a clause start; a question mark later in the clause (hotline / rhetorical
+# wording) exempts it.
 _DH_IMPERATIVE_TAUNT = (
     _DH_START
-    + "[(\\[\uff08\u300c\u201c\"']*"
-    + r"(?:(?:just|so|then|now|go)\s+)?(?:start|keep|try|go|consider)\s+"
-    + r"(?:thinking\s+about\s+|on\s+)?killing\s+(?:yourself|urself)\b"
+    + "[(\\[（「“\"']*"
+    + r"(?:(?:just|so|then|now|go)\s+)?(?:start|keep|try|consider)\s+"
+    + r"(?:thinking\s+about\s+)?killing\s+(?:yourself|urself)\b(?![^.!\n]*\?)"
 )
+# "you should, loser". `(?:\s*,\s*|\s+)` (not `\s*,?\s*`) keeps it linear on whitespace runs;
+# insults that double as ordinary verbs (trash, freak, clown) are left out.
 _DH_SHOULD_INSULT = (
-    r"\byou\s+should(?:\s+(?:just|really))?(?:\s+(?:do\s+it|go\s+(?:ahead|for\s+it)|go))?"
-    r"\s*,?\s*(?:you\s+)?(?:loser|idiot|moron|freak|scum|trash|retard\w*|bitch|coward|"
-    r"worthless|pathetic|clown)\b"
+    r"\b" + _DH_YOU + r"\s+should(?:\s+(?:just|really))?"
+    r"(?:\s+(?:do\s+it|go\s+(?:ahead|for\s+it)|go))?"
+    r"(?:\s*,\s*|\s+)(?:you\s+)?(?:loser|idiot|moron|scum|retard\w*|bitch|coward|pathetic)"
+    r"(?![\w-])"
 )
-# Bare "You should." / "You should just do it!" only counts after a death reference in the
-# same message; a context-free "you should do it" is ordinary advice and stays allowed.
+# Bare "You should." / "You should just do it!" only counts as the answer to a second-person
+# self-harm reference ("Thinking about suicide? You should."). Dying relatives, "die to self"
+# theology and Bible narrative ("Judas killed himself. You should.") stay allowed.
 _DH_SHOULD_DEATH_CTX = (
-    r"\b(?:kill\w*|suicid\w*|die|dying|end\s+(?:it|your\s+life))\b[^\n]{0,80}?[.!?]\s*"
-    r"you\s+should(?:\s+just)?(?:\s+(?:do\s+it|go\s+ahead|go\s+for\s+it))?"
-    r"(?=\s*(?:[!.]|$))"
+    r"(?:\bkill(?:ing)?\s+"
+    + _DH_YOURSELF
+    + r"|\bsuicid\w*|\bend\s+your\s+life|\bbetter\s+off\s+dead)\b"
+    r"[^\n]{0,80}?[.!?]\s*" + _DH_YOU + r"\s+should(?:\s+just)?"
+    r"(?:\s+(?:do\s+it|go\s+ahead|go\s+for\s+it))?(?=\s*(?:[!.]|$))"
 )
 
 

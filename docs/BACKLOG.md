@@ -20,7 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-11-11: BITB-266 🔍 In Review — English directed-harm table blocks "killing yourself"/kys/"you should" taunts in Stage 1 and the keyword fallback, help-seeking frames stay allowed
+- 2026-11-11: BITB-293 opened — directed-harm reported speech ("she said 'kys' to me"), obfuscated kys and context-free death wishes (BITB-266 follow-up) (#1283)
+- 2026-11-11: BITB-266 🔍 In Review — English directed-harm table blocks "killing yourself"/kys/"you should" taunts in Stage 1 and the keyword fallback, help-seeking frames stay allowed (#1283)
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -777,7 +778,7 @@ Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BI
 
 Follow-up to BITB-238: "I hope you're thinking about killing yourself" and "Is it a sin? You should, loser." match no directed-harm pattern.
 
-Resolution: English table now blocks `killing urself`/`kys`, negation-guarded `I hope you ... killing yourself`, `start thinking about killing yourself`, and `you should` taunts (insult tail or after a death reference); help-seeking frames stay allowed. Tests across 11 language codes.
+Resolution: English table now blocks `kill urself`/`kys`, direct `I hope you're thinking about killing yourself` wishes, clause-start `start thinking about killing yourself`, and `you should` taunts (insult tail, or bare after a second-person self-harm reference); grief letters, caring wishes, pastoral/narrative context and the BITB-238 help-seeking frames stay allowed. Tests across 11 language codes. Follow-up: BITB-293.
 
 Full story: [`BITB-266-directed-harm-taunt-pattern-gaps.md`](BACKLOG_STORIES/BITB-266-directed-harm-taunt-pattern-gaps.md)
 
@@ -805,6 +806,17 @@ Follow-up to BITB-193: "adesso muori!", "Crève charogne", "morra seu idiota" no
 **Resolution:** it/fr/pt patterns widened (lead-in/tail words, comma-led clause, extra insults, "que tu vas crever"); "die to sin / in Christ" wording exempted. Tests parametrized across 11 languages.
 
 Full story: [`BITB-239-directed-harm-recall-after-tightening.md`](BACKLOG_STORIES/BITB-239-directed-harm-recall-after-tightening.md)
+
+### 🎯 BITB-293: Directed Harm — Reported Speech, Obfuscated "kys" and Context-Free Death Wishes
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-11-11
+
+Follow-up to BITB-266: "My sister said 'kys' to me" is blocked; "k y s", "kil urself", "I hope you die" are missed.
+
+Full story: [`BITB-293-directed-harm-reported-speech-and-obfuscation.md`](BACKLOG_STORIES/BITB-293-directed-harm-reported-speech-and-obfuscation.md)
 
 ### 🎯 BITB-281: pt Directed Harm — "Que você morra para o pecado, seu idiota" No Longer Blocks
 

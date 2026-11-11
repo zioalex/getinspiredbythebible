@@ -425,11 +425,14 @@ BITB266_BLOCKED = [
     "You should just do it, idiot",
     "Thinking about suicide? You should.",
     "Want to kill yourself? You should just do it!",
-    "Is it a sin to die? Go ahead. You should.",
+    "Is suicide a sin? Go ahead. You should.",
     "kys",
     "Just kys lol",
     "Please kill urself",
-    "you should be killing urself",
+    "kill urself loser",
+    "You'd be better off dead. You should do it!",
+    "u should just do it, loser",
+    "hope ur thinking about killing urself",
     "I wish you were killing yourself right now",
     "hope u are killing yourself",
     "I hope that you kill yourself soon",
@@ -446,6 +449,26 @@ BITB266_CLEAN = [
     "I hope you're not thinking about killing yourself",
     "I wish you wouldn't stop and consider killing yourself",
     "I hope you don't ever think about killing yourself",
+    # BITB-266 verifier findings: grief letters, caring wishes, pastoral / narrative context,
+    # overwork idiom, hotline wording, verbs that double as insults
+    "My best friend died by suicide. I wish you had told me you were thinking about killing yourself",
+    "Writing a letter to my late brother: I wish you had come to me instead of killing yourself.",
+    "I wish you had reached out before killing yourself, Dad. Will God forgive him?",
+    "I hope you choose life instead of killing yourself - what verse can I send my friend?",
+    "I hope you talk to someone instead of killing yourself",
+    "My grandmother is dying. Should I visit? You should.",
+    "Should I pray for my dying father? Yes. You should.",
+    "The pastor said we must die to self. You should do it!",
+    "Jesus had to die for us. You should.",
+    "Judas killed himself. You should.",
+    "Keep thinking about killing yourself? Call 988.",
+    "keep on killing yourself working 80 hours? rest is biblical",
+    "Go on killing yourself for approval? Jesus offers rest.",
+    "stop killing urself over it",
+    "you're killing urself with worry, read Matthew 6",
+    "you should trash the idols in your heart",
+    "you should freak out less",
+    "You should go ahead, idiot-proof guide to the Psalms",
     # caring / explanatory wishes
     "I hope you realize killing yourself would devastate your family",
     "I wish you knew how killing yourself hurts the people who love you",
@@ -492,3 +515,11 @@ def test_bitb266_benign_not_directed_harm(flt, service, language, text):
     assert "directed_harm" not in (result.reason or "")
     stage1 = service._check_stage1_keywords(text, language, time.monotonic())
     assert stage1 is None or "directed_harm" not in (stage1.reason or "")
+
+
+def test_bitb266_patterns_stay_linear_on_whitespace_runs(flt):
+    """Verifier found `\\s*,?\\s*` backtracking quadratically (10k chars took ~12s)."""
+    text = "you should" + " " * 10_000 + "x"
+    started = time.monotonic()
+    flt.check_multilingual(text, "en")
+    assert time.monotonic() - started < 1.0
