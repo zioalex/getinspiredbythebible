@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import app
 
 client = TestClient(app)
+# Loopback-peer client for local-only endpoints (BITB-297: no "testclient" special case).
+local_client = TestClient(app, client=("127.0.0.1", 50000))
 
 
 @pytest.mark.skipif(
@@ -58,10 +60,9 @@ def test_chapter_endpoint_localized_book():
 
 def test_health_endpoint():
     """Test that health endpoint returns valid status"""
-    # X-Real-IP header required: in sandbox environments the TestClient's
-    # request.client may be None, causing local_only middleware to return 403.
-    # Passing a loopback IP explicitly makes the test work in all environments.
-    response = client.get("/health", headers={"X-Real-IP": "127.0.0.1"})
+    # /health is local-only; the client IP is resolved from the socket peer, so use a
+    # loopback-peer TestClient (BITB-297).
+    response = local_client.get("/health")
     # 200 for healthy/degraded, 503 for unhealthy (e.g., no DB in CI)
     assert response.status_code in [200, 503]
     data = response.json()

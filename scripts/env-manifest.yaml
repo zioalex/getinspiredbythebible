@@ -230,6 +230,14 @@ variables:
     required_in: remote
     description: Allowed CORS origins (comma-separated)
 
+  TRUSTED_PROXY_CIDRS:
+    required_in: none
+    description: >-
+      Comma-separated CIDRs of trusted reverse proxies used to resolve the real client IP
+      from X-Forwarded-For (BITB-297). Overriding it replaces the default list
+      (loopback, RFC1918, 100.64.0.0/10, fc00::/7 and Cloudflare's ranges).
+    default: built-in list in api/config.py
+
   # ---------------------------------------------------------------------------
   # Frontend
   # ---------------------------------------------------------------------------
