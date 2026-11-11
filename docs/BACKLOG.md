@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-11
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-11: BITB-289 🚧 In Progress — Llama Guard breaker admits a single half-open probe with exponential cooldown backoff (10s→60s), safety check capped at an 8s total budget with jittered secondary retry; production benchmark remains an owner step
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -500,9 +501,9 @@ BITB-272 slice 1 ships the ML failover, but it is a no-op in production until `O
 
 ---
 
-### 🎯 BITB-289: Re-benchmark Llama Guard Timeouts, Add Jittered Retry, Tune Breaker Half-Open
+### 🚧 BITB-289: Re-benchmark Llama Guard Timeouts, Add Jittered Retry, Tune Breaker Half-Open
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-10
@@ -512,8 +513,8 @@ BITB-272 req. 3 and 4: primary 3 s / secondary 5 s timeouts come from a 2026-07 
 **Acceptance Criteria (summary):**
 
 - [ ] Fresh 100+ sample production benchmark of primary, secondary and OpenAI Moderation latency recorded in this story
-- [ ] Timeouts and one bounded retry with jitter set from measured p99, inside a hard overall cap for the safety check
-- [ ] Breaker thresholds and half-open probing reviewed so a short blip does not hold the keyword/failover path for the full open window; tests cover half-open recovery
+- [ ] Timeouts and one bounded retry with jitter set from measured p99, inside a hard overall cap for the safety check (slice 1: retry/jitter/8 s cap implemented with provisional values; final values pending benchmark)
+- [x] Breaker thresholds and half-open probing reviewed so a short blip does not hold the keyword/failover path for the full open window; tests cover half-open recovery (slice 1: single-probe half-open, 10 s→60 s backoff)
 
 **Full Story:** [`BITB-289-ml-safety-timeouts-retry-breaker-tuning.md`](BACKLOG_STORIES/BITB-289-ml-safety-timeouts-retry-breaker-tuning.md)
 

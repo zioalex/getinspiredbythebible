@@ -7,7 +7,7 @@ import json
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode
 
 
@@ -328,10 +328,26 @@ class Settings(BaseSettings):
     # Primary-model timeout (seconds). A 2026-07 100-sample production benchmark measured
     # primary p50/p95/p99 ~338/1450/2341ms, so 3s comfortably covers normal latency while
     # capping how long a hung/slow primary call blocks the chat request before the secondary
-    # model (providers/llama_guard.py, LlamaGuardProvider.SECONDARY_TIMEOUT_SECONDS) is tried.
+    # model (providers/llama_guard.py, settings.llama_guard_secondary_timeout) is tried.
     # Previously 10s — combined with the secondary's own timeout, worst case could reach ~20s
     # on a single chat message, which is too slow for a synchronous pre-generation safety check.
     llama_guard_timeout: int = 3  # LLM inference timeout (seconds)
+    # BITB-289 slice 1 — all values below are PROVISIONAL pending the fresh production
+    # benchmark (BITB-289 AC1, owner step); final values come from measured p99.
+    # Secondary-model timeout (seconds); previously the hard-coded
+    # LlamaGuardProvider.SECONDARY_TIMEOUT_SECONDS.
+    llama_guard_secondary_timeout: float = Field(default=5.0, gt=0)
+    # Hard overall cap (seconds) for primary + retry jitter + secondary. Equals the previous
+    # worst case (3s + 5s) so p95 is not worse than before.
+    llama_guard_total_budget_seconds: float = Field(default=8.0, gt=0)
+    # Uniform random delay 0..max (ms) before the secondary retry, applied only if the
+    # remaining budget still leaves a useful secondary window.
+    llama_guard_retry_jitter_max_ms: int = Field(default=250, ge=0)
+    # Circuit breaker: trip after N consecutive failures; base cooldown, doubling on each
+    # consecutive failed half-open probe up to the max; success resets to the base.
+    llama_guard_breaker_failure_threshold: int = Field(default=5, ge=1)
+    llama_guard_breaker_cooldown_seconds: float = Field(default=10.0, gt=0)
+    llama_guard_breaker_max_cooldown_seconds: float = Field(default=60.0, gt=0)
 
     # OpenAI Moderation Settings
     # Used as Stage 2 in keyword_only and hybrid modes (ml_only uses Llama Guard instead).
@@ -442,6 +458,19 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return v.strip()
         return v
+
+    @model_validator(mode="after")
+    def validate_llama_guard_breaker_cooldowns(self) -> "Settings":
+        """Backoff cap must not be below the base cooldown."""
+        if (
+            self.llama_guard_breaker_max_cooldown_seconds
+            < self.llama_guard_breaker_cooldown_seconds
+        ):
+            raise ValueError(
+                "llama_guard_breaker_max_cooldown_seconds must be >= "
+                "llama_guard_breaker_cooldown_seconds"
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_hnsw_ef_search(self) -> "Settings":
