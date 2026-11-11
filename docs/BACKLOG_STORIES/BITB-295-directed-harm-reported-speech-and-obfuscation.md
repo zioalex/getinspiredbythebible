@@ -1,4 +1,4 @@
-# BITB-293: Directed Harm — Reported Speech, Obfuscated "kys" and Context-Free Death Wishes
+# BITB-295: Directed Harm — Reported Speech, Obfuscated "kys" and Context-Free Death Wishes
 
 **Status:** 🎯 Todo
 **Priority:** P3

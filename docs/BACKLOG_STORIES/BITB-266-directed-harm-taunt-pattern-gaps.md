@@ -47,5 +47,5 @@ language codes, through `find_directed_harm_violation`, `check_multilingual`, th
 
 ## Follow-ups
 
-- BITB-293 — remaining directed-harm gaps: reported speech (`My sister said 'kys' to me`), spaced/obfuscated `k y s`,
+- BITB-295 — remaining directed-harm gaps: reported speech (`My sister said 'kys' to me`), spaced/obfuscated `k y s`,
   `kil urself`, and context-free wishes ("Nobody would miss you. You should do it.", "I hope you die").
