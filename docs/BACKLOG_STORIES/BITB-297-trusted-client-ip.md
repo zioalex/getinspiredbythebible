@@ -1,6 +1,6 @@
 # BITB-297: Trusted Client IP — Close the Local-Only Bypass and Stop Keying Limits on a Forged Header
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review — built and independently verified; owner production checks pending
 **Priority:** P0
 **Size:** M
 **Created:** 2026-11-11
@@ -140,3 +140,24 @@ Plus:
 ## Related
 
 BITB-118, BITB-156, BITB-298, July audit O5.
+
+## Implementation notes (2026-11-11)
+
+Built as specified, with these additions from verification:
+
+- The trusted-proxy setting is a comma-separated string (`TRUSTED_PROXY_CIDRS`), the
+  repo's convention for list-like settings; it cannot be empty or contain a network
+  broader than `/8` (IPv4) or `/7` (IPv6).
+- Repeated forwarded-for header lines are joined before the walk.
+- A request that passed a Cloudflare hop never resolves to a loopback or private address;
+  `CF-Connecting-IP` is accepted only if it names a non-proxy address.
+- With no socket peer the header is not believed (`unknown`); a literal `unknown` entry
+  resolves to `invalid`, so it cannot hit the debug-mode rule.
+- The local-only gate rejects **every** request that carries a forwarded-for header.
+  This goes beyond the story's table ("forged private entries" would otherwise still be
+  judged by address) and removes any dependence on how the ingress rewrites the header.
+
+## Follow-ups
+
+- BITB-308 — lock the origin to Cloudflare (residual risk: a sender on a Cloudflare
+  address can present a forged public client address).

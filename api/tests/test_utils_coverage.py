@@ -11,6 +11,7 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
+from starlette.datastructures import Headers
 
 from utils.book_names import (
     CHINESE_TO_ENGLISH,
@@ -83,7 +84,7 @@ class TestGetClientIp:
 
     def _make_request(self, headers=None, client_host=None):
         request = MagicMock()
-        request.headers = headers or {}
+        request.headers = Headers(headers or {})
         if client_host:
             request.client = MagicMock()
             request.client.host = client_host
@@ -99,55 +100,54 @@ class TestGetClientIp:
         assert get_client_ip(request) == "203.0.113.1"
 
     def test_x_forwarded_for_multiple(self):
-        """Should return the first IP (original client)."""
+        """Right-most untrusted entry is the client; forged left entries are ignored."""
         request = self._make_request(
-            headers={"X-Forwarded-For": "203.0.113.1, 10.0.0.1, 172.16.0.1"}
+            headers={"X-Forwarded-For": "198.51.100.7, 203.0.113.1, 10.0.0.1, 172.16.0.1"},
+            client_host="10.0.0.5",
         )
         assert get_client_ip(request) == "203.0.113.1"
 
-    def test_x_real_ip(self):
-        request = self._make_request(headers={"X-Real-IP": "203.0.113.2"})
-        assert get_client_ip(request) == "203.0.113.2"
-
-    def test_x_real_ip_with_whitespace(self):
-        request = self._make_request(headers={"X-Real-IP": "  203.0.113.2  "})
-        assert get_client_ip(request) == "203.0.113.2"
+    def test_x_real_ip_ignored(self):
+        request = self._make_request(
+            headers={"X-Real-IP": "203.0.113.2"}, client_host="198.51.100.5"
+        )
+        assert get_client_ip(request) == "198.51.100.5"
 
     def test_direct_client(self):
         request = self._make_request(client_host="192.168.1.1")
         assert get_client_ip(request) == "192.168.1.1"
 
-    def test_no_client_returns_empty(self):
+    def test_no_client_returns_unknown(self):
         request = self._make_request()
-        assert get_client_ip(request) == ""
+        assert get_client_ip(request) == "unknown"
 
-    def test_x_forwarded_for_takes_priority(self):
-        """X-Forwarded-For should take priority over X-Real-IP and direct client."""
+    def test_forged_left_entry_does_not_win(self):
+        """A client-supplied left-most entry must not override the real peer."""
         request = self._make_request(
-            headers={
-                "X-Forwarded-For": "1.2.3.4",
-                "X-Real-IP": "5.6.7.8",
-            },
-            client_host="10.0.0.1",
+            headers={"X-Forwarded-For": "1.2.3.4", "X-Real-IP": "5.6.7.8"},
+            client_host="203.0.113.50",
         )
-        assert get_client_ip(request) == "1.2.3.4"
+        assert get_client_ip(request) == "203.0.113.50"
 
 
 class TestRequireLocalAccess:
     """Tests for require_local_access dependency."""
 
     @pytest.mark.asyncio
-    async def test_allows_testclient(self):
-        """TestClient should always be allowed."""
+    async def test_testclient_string_no_longer_special(self):
+        """The literal peer "testclient" is not an IP and must be denied (BITB-297)."""
+        from fastapi import HTTPException
+
         from utils.local_only import require_local_access
 
         request = MagicMock()
-        request.headers = {}
+        request.headers = Headers({})
         request.client = MagicMock()
         request.client.host = "testclient"
 
-        # Should not raise
-        await require_local_access(request)
+        with pytest.raises(HTTPException) as exc:
+            await require_local_access(request)
+        assert exc.value.status_code == 403
 
     @pytest.mark.asyncio
     async def test_allows_local_ip(self):
@@ -155,7 +155,7 @@ class TestRequireLocalAccess:
         from utils.local_only import require_local_access
 
         request = MagicMock()
-        request.headers = {}
+        request.headers = Headers({})
         request.client = MagicMock()
         request.client.host = "127.0.0.1"
 
@@ -169,7 +169,7 @@ class TestRequireLocalAccess:
         from utils.local_only import require_local_access
 
         request = MagicMock()
-        request.headers = {}
+        request.headers = Headers({})
         request.client = MagicMock()
         request.client.host = "8.8.8.8"
 
@@ -185,7 +185,7 @@ class TestRequireLocalAccess:
         from utils.local_only import require_local_access
 
         request = MagicMock()
-        request.headers = {}
+        request.headers = Headers({})
         request.client = None
 
         with patch("utils.local_only.settings") as mock_settings:
@@ -200,7 +200,7 @@ class TestRequireLocalAccess:
         from utils.local_only import require_local_access
 
         request = MagicMock()
-        request.headers = {}
+        request.headers = Headers({})
         request.client = None
 
         with patch("utils.local_only.settings") as mock_settings:
