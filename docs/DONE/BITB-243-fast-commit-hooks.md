@@ -1,6 +1,6 @@
 # BITB-243: Fast pre-commit commit stage (move slow hooks to pre-push/manual)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Done (#1215, merged 2026-10-30)
 **Opened:** 2026-10-26
 **Size:** M
 **Owner:** infra-engineer (build), verifier (verify)

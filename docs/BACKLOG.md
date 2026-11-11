@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-11
 
 ## Changelog
 
@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-11: BITB-291 in progress — ML-path synthetic probe: content-safety results carry decided_by/failover, secret-gated POST /health/content-safety-probe (never stores the message), new ml-safety-path prod-monitor job alerts on Telegram when the keyword fallback decides
+- 2026-11-11: BITB-243 ✅ Done — backlog hygiene: the pre-push hook split already shipped in #1215 (2026-10-30); entry was left In Progress
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -538,9 +540,9 @@ BITB-272 req. 5: `content_safety_fallback_rate` fired 99 times in 30 days (BITB-
 
 ---
 
-### 🎯 BITB-291: Synthetic Probe of the ML Content-Safety Path in prod-monitor
+### 🚧 BITB-291: Synthetic Probe of the ML Content-Safety Path in prod-monitor
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress (2026-11-11)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-10
@@ -668,9 +670,9 @@ and the server re-attaches a sanitized trailer; the verse filter accepts refs fr
 
 **Full Story:** `docs/BACKLOG_STORIES/BITB-254-follow-up-chips-stop-after-few-turns.md`
 
-### 🎯 BITB-243: Fast Pre-commit Commit Stage (Slow Hooks → pre-push)
+### ✅ BITB-243: Fast Pre-commit Commit Stage (Slow Hooks → pre-push)
 
-**Status:** 🚧 In Progress · **Size:** M · **Opened:** 2026-10-26
+**Status:** ✅ Done (#1215, merged 2026-10-30) · **Size:** M · **Opened:** 2026-10-26
 
 Every `git commit` waits on ~16 hooks (MyPy, Bandit, hadolint, Prettier ×2,
 yamllint, ESLint, shellcheck, markdownlint, detect-secrets) that already run
@@ -680,7 +682,7 @@ seconds-fast; CI and `make pre-commit` behavior unchanged.
 **Acceptance:** same hook set in `--all-files`, `install-hooks` installs the
 pre-push hook type, docs updated, timing before/after in the PR description.
 
-Full story: [`BITB-243-fast-commit-hooks.md`](BACKLOG_STORIES/BITB-243-fast-commit-hooks.md)
+Full story: [`BITB-243-fast-commit-hooks.md`](DONE/BITB-243-fast-commit-hooks.md)
 
 ---
 
