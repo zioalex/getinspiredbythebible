@@ -597,6 +597,25 @@ user-facing error message.
 
 ---
 
+### Problem: `ml-safety-path` monitor alert fired (BITB-291)
+
+**Symptoms:** Telegram alert from the `ml-safety-path` job while `content-safety` is green.
+
+**Diagnosis:** read the job log / alert detail.
+
+- `ML safety path down: keyword_fallback decided` - Llama Guard (and the OpenAI Moderation
+  failover) are failing; check OpenRouter status/key and `content_safety.fallback_total`.
+- `ML safety path down: stage1_keywords` / `default_allow` / `disabled` - the probe message no
+  longer reaches ML, or `content_safety_enabled` is off.
+- `HTTP 404 ... probe secret mismatch or endpoint not deployed` - repo `MONITOR_PROBE_SECRET`
+  differs from the backend's `monitor_probe_secret`, or the backend predates BITB-291.
+- `DEGRADED: Llama Guard down, OpenAI Moderation failover decided` only alerts when
+  `REQUIRE_PRIMARY=true`; otherwise it is informational (safety still ML-backed).
+
+See `docs/HOW-TO-ENABLE-CONTENT-SAFETY.md` -> Synthetic ML-path probe.
+
+---
+
 ## Getting Help
 
 If issues persist:

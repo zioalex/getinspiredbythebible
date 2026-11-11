@@ -136,6 +136,10 @@ class ContentSafetyCheckResult:
     pattern_matched: str | None = None
     check_duration_ms: float = 0.0
     violated_categories: list[str] = field(default_factory=list)  # Llama Guard S-codes
+    # BITB-291: which stage/classifier produced this decision (see check()).
+    decided_by: str = "default_allow"
+    # True when OpenAI Moderation decided as the ml_only failover for a Llama Guard outage.
+    failover: bool = False
 
 
 class ContentSafetyViolationError(Exception):
@@ -310,6 +314,7 @@ class ContentSafetyService:
                 },
             )
             return ContentSafetyCheckResult(
+                decided_by="keyword_fallback",
                 allowed=False,
                 reason=f"keyword_violation:{violation} (fallback)",
                 pattern_matched=directed,
@@ -346,6 +351,7 @@ class ContentSafetyService:
                     },
                 )
                 return ContentSafetyCheckResult(
+                    decided_by="keyword_fallback",
                     allowed=False,
                     reason=AMBIGUOUS_REASON,
                     is_help_seeking=True,
@@ -364,6 +370,7 @@ class ContentSafetyService:
                 },
             )
             return ContentSafetyCheckResult(
+                decided_by="keyword_fallback",
                 allowed=True,
                 reason="possible_help_seeking (fallback)",
                 is_help_seeking=True,
@@ -387,6 +394,7 @@ class ContentSafetyService:
                 },
             )
             return ContentSafetyCheckResult(
+                decided_by="keyword_fallback",
                 allowed=False,
                 reason="keyword_violation:violence (fallback)",
                 pattern_matched=pattern,
@@ -395,6 +403,7 @@ class ContentSafetyService:
 
         # (f) No violations in fallback check
         return ContentSafetyCheckResult(
+            decided_by="keyword_fallback",
             allowed=True,
             reason="clean (fallback)",
             check_duration_ms=(time.monotonic() - start) * 1000,
@@ -442,6 +451,7 @@ class ContentSafetyService:
         duration = (time.monotonic() - start) * 1000
         if verdict == "SELF_HARM":
             return ContentSafetyCheckResult(
+                decided_by="keyword_fallback",
                 allowed=True,
                 reason="possible_help_seeking (fallback, second_opinion)",
                 is_help_seeking=True,
@@ -482,6 +492,7 @@ class ContentSafetyService:
                 },
             )
             return ContentSafetyCheckResult(
+                decided_by="stage1_keywords",
                 allowed=False,
                 reason=f"keyword_violation:{violation_type}",
                 pattern_matched=pattern_matched,
@@ -523,6 +534,7 @@ class ContentSafetyService:
             # If ml_only mode, return Llama Guard result directly (skip Azure)
             if settings.content_safety_mode == "ml_only":
                 return ContentSafetyCheckResult(
+                    decided_by="llama_guard",
                     allowed=llama_guard_result.allowed,
                     reason=llama_guard_result.reason,
                     categories=llama_guard_result.categories,
@@ -535,6 +547,7 @@ class ContentSafetyService:
             # If Llama Guard blocks, block immediately
             if not llama_guard_result.allowed:
                 return ContentSafetyCheckResult(
+                    decided_by="llama_guard",
                     allowed=False,
                     reason=llama_guard_result.reason,
                     categories=llama_guard_result.categories,
@@ -545,6 +558,7 @@ class ContentSafetyService:
             # If Llama Guard allows but flags help-seeking (and not hybrid mode), return it
             if llama_guard_result.is_help_seeking and settings.content_safety_mode != "hybrid":
                 return ContentSafetyCheckResult(
+                    decided_by="llama_guard",
                     allowed=True,
                     reason=llama_guard_result.reason,
                     categories=llama_guard_result.categories,
@@ -595,6 +609,7 @@ class ContentSafetyService:
             if result is not None:
                 content_safety_failover_counter.add(1, {**labels, "outcome": "decided"})
                 result.reason = f"{result.reason} (failover)"
+                result.failover = True
                 return result
             content_safety_failover_counter.add(1, {**labels, "outcome": "failed"})
             logger.warning(
@@ -644,6 +659,7 @@ class ContentSafetyService:
         )
         return (
             ContentSafetyCheckResult(
+                decided_by="openai_moderation",
                 allowed=result.allowed,
                 reason=result.reason,
                 categories=result.categories,
@@ -684,6 +700,7 @@ class ContentSafetyService:
         # hybrid mode: if blocked, return immediately
         if not result.allowed:
             return ContentSafetyCheckResult(
+                decided_by="openai_moderation",
                 allowed=False,
                 reason=result.reason,
                 categories=result.categories,
@@ -711,7 +728,7 @@ class ContentSafetyService:
             ContentSafetyCheckResult with allowed flag and context
         """
         if not settings.content_safety_enabled:
-            return ContentSafetyCheckResult(allowed=True, reason="disabled")
+            return ContentSafetyCheckResult(allowed=True, reason="disabled", decided_by="disabled")
 
         start = time.monotonic()
 
@@ -742,6 +759,7 @@ class ContentSafetyService:
                     total_ms = (time.monotonic() - start) * 1000
 
                     return ContentSafetyCheckResult(
+                        decided_by="azure",
                         allowed=azure_result.allowed,
                         reason=azure_result.reason,
                         categories=azure_result.categories,
@@ -761,6 +779,7 @@ class ContentSafetyService:
         # Default: allow (Stage 1 didn't block, Stage 2 allowed or unavailable)
         total_ms = (time.monotonic() - start) * 1000
         return ContentSafetyCheckResult(
+            decided_by="default_allow",
             allowed=True,
             reason="clean",
             check_duration_ms=total_ms,

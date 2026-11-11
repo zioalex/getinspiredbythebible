@@ -406,6 +406,54 @@ az containerapp update \
 
 ---
 
+## Synthetic ML-path probe (BITB-291)
+
+The `content-safety` monitor job only proves a harmful message is blocked. With Llama Guard
+down, the keyword fallback still blocks "build a bomb", so that job stays green during an ML
+outage. The `ml-safety-path` job (`scripts/monitor/synthetic_ml_safety_path.py`, job
+"ML safety path probe" in `.github/workflows/prod-monitor.yml`) asks the backend which stage
+decided.
+
+**Setup (zero to running):**
+
+1. Repo secret `MONITOR_PROBE_SECRET` must exist and match the backend's `monitor_probe_secret`
+   (already wired via `TF_VAR_monitor_probe_secret` in `azure-deploy.yml`; same secret the other
+   monitor jobs use). Telegram secrets are shared with the other jobs.
+2. Deploy a backend containing `POST /health/content-safety-probe`. It is hidden from OpenAPI and
+   returns **404** to any caller without a valid `X-Monitor-Probe-Secret`.
+3. Run locally:
+
+   ```bash
+   BACKEND_URL=https://<backend> MONITOR_PROBE_SECRET=<secret> \
+     python scripts/monitor/synthetic_ml_safety_path.py
+   ```
+
+   Optional env: `BENIGN_PROBE_MESSAGE` (default "Why did Cain kill Abel?"),
+   `UNSAFE_PROBE_MESSAGE`, `PROBE_LANGUAGE` (en), `PROBE_TIMEOUT_SECONDS` (30),
+   `REQUIRE_PRIMARY` (false).
+
+4. Raw request:
+
+   ```bash
+   curl -sS -X POST "$BACKEND_URL/health/content-safety-probe" \
+     -H "X-Monitor-Probe-Secret: $MONITOR_PROBE_SECRET" -H "Content-Type: application/json" \
+     -d '{"message": "Why did Cain kill Abel?", "language": "en"}'
+   ```
+
+**Reading `decided_by`:** `llama_guard`, `openai_moderation`, `azure` = ML path (`ml_path: true`).
+`stage1_keywords` (directed-harm/hate keyword pre-filter), `keyword_fallback` (ML unavailable),
+`default_allow` and `disabled` = not the ML path; the probe fails and names the value.
+`failover: true` means Llama Guard was down and OpenAI Moderation decided: the probe passes but
+prints `DEGRADED: Llama Guard down, OpenAI Moderation failover decided`. Set `REQUIRE_PRIMARY=true`
+to fail on that too.
+
+**Side effects:** the endpoint runs only the content-safety check (no chat, no LLM answer) and never
+stores the message (`record_blocked_sample` is not called). The two checks per run (every 5 minutes,
+about 576/day) are real checks and show up in the Llama Guard / fallback metrics; BITB-290 must
+account for them in the fallback-share denominator.
+
+---
+
 ## Crisis card (BITB-255)
 
 When the safety pipeline sees someone threatening to hurt themselves or someone else, the API sends

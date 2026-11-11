@@ -5,6 +5,7 @@ Provides:
 - /health - Comprehensive health check with component status
 - /health/live - Liveness probe (is the process running?)
 - /health/ready - Readiness probe (can we serve requests?)
+- /health/content-safety-probe - Monitor-secret-only ML safety path probe (BITB-291)
 """
 
 import asyncio
@@ -12,16 +13,18 @@ import resource
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from config import settings
 from providers import ProviderError, get_embedding_provider, get_llm_provider
 from scripture.database import async_session_factory
+from utils.content_safety import get_content_safety_service
 from utils.local_only import require_local_access
 from utils.logging_config import get_logger
+from utils.monitor_probe import is_monitor_probe
 
 logger = get_logger(__name__)
 
@@ -307,4 +310,50 @@ async def readiness_probe():
         "status": "ready",
         "database_latency_ms": db_health.latency_ms,
         "dependencies": dependencies,
+    }
+
+
+# Stages that count as the ML safety path (BITB-291).
+_ML_DECIDERS = frozenset({"llama_guard", "openai_moderation", "azure"})
+
+
+class ContentSafetyProbeRequest(BaseModel):
+    """Body for the monitor-only content-safety probe."""
+
+    message: str = Field(min_length=1, max_length=500)
+    language: str = Field(default="en", max_length=8)
+
+
+def require_monitor_probe(request: Request) -> None:
+    """404 (indistinguishable from an unknown route) unless the probe secret matches.
+
+    A dependency so it runs before request-body validation: an unauthorized caller sending a
+    malformed body still gets 404, not a 422 that would reveal the endpoint exists.
+    """
+    if not is_monitor_probe(request):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+@router.post(
+    "/content-safety-probe",
+    include_in_schema=False,
+    dependencies=[Depends(require_monitor_probe)],
+)
+async def content_safety_probe(body: ContentSafetyProbeRequest):
+    """Run ONE content-safety check and report which stage decided (BITB-291).
+
+    Authorized only by the monitor/smoke probe secret; any other caller gets a 404
+    identical to an unknown route, because which classifier decided (e.g. keyword
+    fallback active) is operationally sensitive. Calls the service directly: no chat,
+    no LLM answer, and the synthetic message is never stored (no ``record_blocked_sample``).
+    """
+    start = time.perf_counter()
+    result = await get_content_safety_service().check(body.message, body.language)
+    return {
+        "allowed": result.allowed,
+        "decided_by": result.decided_by,
+        "failover": result.failover,
+        "ml_path": result.decided_by in _ML_DECIDERS,
+        "reason": result.reason,
+        "duration_ms": round((time.perf_counter() - start) * 1000, 1),
     }
