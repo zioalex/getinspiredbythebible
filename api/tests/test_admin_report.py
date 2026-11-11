@@ -110,3 +110,42 @@ def test_dry_run_does_not_send():
     assert body["dry_run"] is True
     assert body["email_sent"] is False
     send.assert_not_called()
+
+
+# --- GET /admin/request-chain (BITB-297) -----------------------------------
+
+CHAIN_ENDPOINT = "/api/v1/admin/request-chain"
+
+
+def test_request_chain_requires_secret():
+    with patch.object(settings, "monitor_probe_secret", SECRET):
+        assert client.get(CHAIN_ENDPOINT).status_code == 401
+        assert (
+            client.get(CHAIN_ENDPOINT, headers={"X-Monitor-Probe-Secret": "nope"}).status_code
+            == 401
+        )
+
+
+def test_request_chain_unset_secret_fails_closed():
+    with patch.object(settings, "monitor_probe_secret", None):
+        assert client.get(CHAIN_ENDPOINT, headers=HEADERS).status_code == 401
+
+
+def test_request_chain_payload():
+    peer_client = TestClient(app, client=("10.0.0.5", 5555))
+    with patch.object(settings, "monitor_probe_secret", SECRET):
+        resp = peer_client.get(
+            CHAIN_ENDPOINT,
+            headers={
+                **HEADERS,
+                "X-Forwarded-For": "127.0.0.1, 203.0.113.9, 172.64.0.1",
+                "CF-Connecting-IP": "203.0.113.9",
+            },
+        )
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "x_forwarded_for": ["127.0.0.1", "203.0.113.9", "172.64.0.1"],
+        "peer": "10.0.0.5",
+        "cf_connecting_ip": "203.0.113.9",
+        "resolved": "203.0.113.9",
+    }

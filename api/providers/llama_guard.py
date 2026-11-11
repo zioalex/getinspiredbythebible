@@ -21,8 +21,10 @@ a much larger max_tokens budget and low reasoning effort to reliably emit a
 final verdict in the same safe/unsafe format as the primary.
 """
 
+import asyncio
 import hashlib
 import logging
+import random
 import time
 
 import httpx
@@ -102,7 +104,10 @@ class LlamaGuardProvider:
     # secondary p50/p95 ~494/1796ms with an outlier up to 16.6s, so 5s covers
     # normal latency with margin while still capping the worst case — combined
     # with a 3s primary timeout, total worst case is ~8s instead of ~20s.
+    # Default only: the live value is settings.llama_guard_secondary_timeout (BITB-289).
     SECONDARY_TIMEOUT_SECONDS = 5.0
+    # Smallest remaining budget (seconds) worth spending on a secondary call.
+    MIN_SECONDARY_WINDOW_SECONDS = 0.5
     REFERER = settings.production_frontend_url
     APP_TITLE = "VoxQuieta"
 
@@ -114,18 +119,25 @@ class LlamaGuardProvider:
             api_key: OpenRouter API key
             threshold: Unused (binary safe/unsafe output), kept for interface consistency
             timeout: Primary-model request timeout in seconds (default 3). The secondary
-                model has its own fixed timeout (SECONDARY_TIMEOUT_SECONDS).
+                model has its own timeout (settings.llama_guard_secondary_timeout).
         """
         self.api_key = api_key
         self.threshold = threshold  # unused but kept for interface consistency
         self.timeout = timeout
-        # Trip after 5 consecutive failures; cooldown 30s. When open,
-        # analyze_text() raises CircuitOpenError immediately so callers can
-        # fall back to the keyword filter without paying either model's timeout.
+        self.secondary_timeout = settings.llama_guard_secondary_timeout
+        self.total_budget = settings.llama_guard_total_budget_seconds
+        self.retry_jitter_max_ms = settings.llama_guard_retry_jitter_max_ms
+        # When open, analyze_text() raises CircuitOpenError immediately so callers can
+        # fall back without paying either model's timeout. Half-open admits a single
+        # probe and the cooldown backs off exponentially on consecutive re-opens (BITB-289).
         self._breaker = CircuitBreaker(
             name="llama_guard",
-            failure_threshold=5,
-            cooldown_seconds=30.0,
+            failure_threshold=settings.llama_guard_breaker_failure_threshold,
+            cooldown_seconds=settings.llama_guard_breaker_cooldown_seconds,
+            max_cooldown_seconds=settings.llama_guard_breaker_max_cooldown_seconds,
+            single_probe=True,
+            # Lease must outlive the hard budget so a slow probe keeps others short-circuited.
+            probe_timeout_seconds=self.total_budget + 1.0,
         )
 
     def _parse_llama_guard_response(self, response_text: str) -> tuple[bool, list[str]]:
@@ -362,6 +374,26 @@ class LlamaGuardProvider:
                 {"model_tier": tier, "outcome": outcome},
             )
 
+    async def _call_with_deadline(self, deadline: float, *args, **kwargs) -> tuple[bool, list[str]]:
+        """
+        Run `_call_model` under a hard wall-clock cap ending at `deadline` (time.monotonic()).
+
+        httpx timeouts are per-phase (connect/read/write/pool), so a trickled response can
+        exceed any single timeout; asyncio.timeout enforces the overall budget. A budget
+        overrun surfaces as httpx.TimeoutException so callers (content_safety failover) and
+        the primary/secondary failure paths treat it like any other timeout.
+        """
+        remaining = max(deadline - time.monotonic(), 0.0)
+        try:
+            async with asyncio.timeout(remaining):
+                return await self._call_model(*args, **kwargs)
+        except TimeoutError as e:
+            logger.warning(
+                "Llama Guard total budget exceeded",
+                extra={"budget": self.total_budget},
+            )
+            raise httpx.TimeoutException("llama_guard total budget exceeded") from e
+
     async def analyze_text(self, text: str, language: str = "en") -> ContentSafetyResult:
         """
         Analyze text using Llama Guard via OpenRouter.
@@ -392,20 +424,50 @@ class LlamaGuardProvider:
         # Format prompt with user message
         prompt = LLAMA_GUARD_PROMPT.format(user_message=text[:2000])
 
+        deadline = time.monotonic() + self.total_budget
+        # Primary uses the client-level default timeout unless the overall budget is tighter.
+        primary_timeout: float | None = (
+            self.total_budget if self.timeout > self.total_budget else None
+        )
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             try:
-                is_safe, violated_categories = await self._call_model(
-                    client, self.MODEL, prompt, text_hash, max_tokens=self.PRIMARY_MAX_TOKENS
+                is_safe, violated_categories = await self._call_with_deadline(
+                    deadline,
+                    client,
+                    self.MODEL,
+                    prompt,
+                    text_hash,
+                    max_tokens=self.PRIMARY_MAX_TOKENS,
+                    timeout=primary_timeout,
                 )
                 llama_guard_primary_result_counter.add(1, {"outcome": "success"})
             except (httpx.HTTPError, LlamaGuardResponseError) as primary_error:
                 llama_guard_primary_result_counter.add(1, {"outcome": "failed"})
+                remaining = deadline - time.monotonic()
+                if remaining < self.MIN_SECONDARY_WINDOW_SECONDS:
+                    logger.warning(
+                        "Primary Llama Guard model failed and the time budget is exhausted; "
+                        "skipping secondary model",
+                        extra={"text_hash": text_hash, "error": str(primary_error)},
+                    )
+                    llama_guard_secondary_model_counter.add(1, {"outcome": "skipped_budget"})
+                    self._breaker.record_failure()
+                    raise
                 logger.warning(
                     "Primary Llama Guard model failed, retrying with secondary model",
                     extra={"text_hash": text_hash, "error": str(primary_error)},
                 )
+                jitter = random.uniform(0, self.retry_jitter_max_ms / 1000)  # nosec B311
+                if jitter > 0 and remaining - jitter >= self.MIN_SECONDARY_WINDOW_SECONDS:
+                    await asyncio.sleep(jitter)
+                remaining = deadline - time.monotonic()
+                secondary_timeout = min(
+                    self.secondary_timeout, max(remaining, self.MIN_SECONDARY_WINDOW_SECONDS)
+                )
                 try:
-                    is_safe, violated_categories = await self._call_model(
+                    is_safe, violated_categories = await self._call_with_deadline(
+                        deadline,
                         client,
                         self.SECONDARY_MODEL,
                         prompt,
@@ -413,7 +475,7 @@ class LlamaGuardProvider:
                         max_tokens=self.SECONDARY_MAX_TOKENS,
                         reasoning_effort=self.SECONDARY_REASONING_EFFORT,
                         tier="secondary",
-                        timeout=self.SECONDARY_TIMEOUT_SECONDS,
+                        timeout=secondary_timeout,
                     )
                     llama_guard_secondary_model_counter.add(1, {"outcome": "recovered"})
                 except (httpx.HTTPError, LlamaGuardResponseError):

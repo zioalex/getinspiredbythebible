@@ -283,7 +283,7 @@ llama_guard_secondary_model_counter = meter.create_counter(
         "secondary model (openai/gpt-oss-safeguard-20b), by outcome"
     ),
     unit="1",
-)  # attributes: outcome (recovered|also_failed)
+)  # attributes: outcome (recovered|also_failed|skipped_budget)
 
 # Emitted on every primary-model attempt (success or failure), independent of
 # whether a secondary-model retry follows. Needed because
