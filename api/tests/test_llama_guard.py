@@ -4,6 +4,7 @@ Tests for Llama Guard 3 content safety provider via OpenRouter.
 All tests use mocked httpx responses - no real API calls.
 """
 
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -646,3 +647,299 @@ def test_non_s11_combinations_unchanged():
     assert provider._map_categories_to_result(False, ["S6"], "h").reason == (
         "unsafe_content_detected"
     )
+
+
+# ---------------------------------------------------------------------------
+# BITB-289: total budget, jittered retry, single-probe half-open
+# ---------------------------------------------------------------------------
+
+
+def _ok_response(text: str = "safe") -> MagicMock:
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = make_llama_guard_response(text)
+    resp.raise_for_status = lambda: None
+    return resp
+
+
+def _null_response() -> MagicMock:
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = {"choices": [{"message": {"role": "assistant", "content": None}}]}
+    resp.raise_for_status = lambda: None
+    return resp
+
+
+@pytest.mark.asyncio
+async def test_total_budget_caps_secondary_timeout():
+    """Remaining budget below the secondary timeout caps the secondary call."""
+    provider = LlamaGuardProvider(api_key="k")
+    provider.total_budget = 8.0
+    provider.retry_jitter_max_ms = 0
+    clock = {"t": 100.0}
+
+    async def fake_post(*args, **kwargs):
+        if kwargs["json"]["model"] == LlamaGuardProvider.MODEL:
+            clock["t"] += 5.0  # primary burns 5s of the 8s budget
+            return _null_response()
+        return _ok_response("safe")
+
+    with (
+        patch("providers.llama_guard.time.monotonic", side_effect=lambda: clock["t"]),
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+    ):
+        mock_post.side_effect = fake_post
+        result = await provider.analyze_text("hi", "en")
+
+    assert result.allowed is True
+    secondary_call = mock_post.call_args_list[1]
+    assert secondary_call.kwargs["timeout"] == pytest.approx(3.0)
+
+
+@pytest.mark.asyncio
+async def test_secondary_skipped_when_budget_exhausted():
+    provider = LlamaGuardProvider(api_key="k")
+    provider.total_budget = 8.0
+    clock = {"t": 100.0}
+
+    async def fake_post(*args, **kwargs):
+        clock["t"] += 7.8  # leaves 0.2s < minimum useful window
+        return _null_response()
+
+    from providers.llama_guard import LlamaGuardResponseError
+
+    with (
+        patch("providers.llama_guard.time.monotonic", side_effect=lambda: clock["t"]),
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
+        mock_post.side_effect = fake_post
+        with pytest.raises(LlamaGuardResponseError):
+            await provider.analyze_text("hi", "en")
+
+    assert mock_post.call_count == 1
+    assert provider._breaker._consecutive_failures == 1
+    mock_secondary_counter.add.assert_called_once_with(1, {"outcome": "skipped_budget"})
+
+
+@pytest.mark.asyncio
+async def test_retry_jitter_applied_and_bounded():
+    provider = LlamaGuardProvider(api_key="k")
+    provider.retry_jitter_max_ms = 250
+
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch("providers.llama_guard.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        patch("providers.llama_guard.random.uniform", return_value=0.2) as mock_uniform,
+    ):
+        mock_post.side_effect = [_null_response(), _ok_response("safe")]
+        result = await provider.analyze_text("hi", "en")
+
+    assert result.allowed is True
+    mock_uniform.assert_called_once_with(0, 0.25)
+    mock_sleep.assert_awaited_once_with(0.2)
+
+
+@pytest.mark.asyncio
+async def test_no_jitter_when_primary_succeeds():
+    provider = LlamaGuardProvider(api_key="k")
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch("providers.llama_guard.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
+        mock_post.return_value = _ok_response("safe")
+        await provider.analyze_text("hi", "en")
+    mock_sleep.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_half_open_admits_single_probe_under_concurrency():
+    """After cooldown during an ongoing outage only ONE concurrent call reaches HTTP."""
+    import asyncio
+
+    from utils.circuit_breaker import CircuitOpenError
+
+    provider = LlamaGuardProvider(api_key="k")
+    provider.retry_jitter_max_ms = 0
+    breaker = provider._breaker
+    gate = asyncio.Event()
+    started = {"n": 0}
+
+    async def slow_fail(*args, **kwargs):
+        started["n"] += 1
+        await gate.wait()
+        raise httpx.ConnectError("down")
+
+    # Do NOT patch time.monotonic here: it is also the asyncio loop clock, and freezing it
+    # stops the wait_for() bounds below from ever firing (a regression would hang, not fail).
+    # Backdate the breaker's open time instead so the cooldown has already elapsed.
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.side_effect = slow_fail
+        for _ in range(breaker.failure_threshold):
+            breaker.record_failure()
+        assert breaker.state == "open"
+        breaker._opened_at = time.monotonic() - breaker.current_cooldown_seconds - 1
+
+        t1 = asyncio.create_task(provider.analyze_text("a", "en"))
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        t2 = asyncio.create_task(provider.analyze_text("b", "en"))
+        try:
+            with pytest.raises(CircuitOpenError):
+                await asyncio.wait_for(t2, timeout=2)
+            assert started["n"] == 1
+            gate.set()
+            with pytest.raises(httpx.ConnectError):
+                await asyncio.wait_for(t1, timeout=2)
+        finally:
+            gate.set()
+            t1.cancel()
+            t2.cancel()
+
+    assert breaker.state == "open"
+    assert breaker.current_cooldown_seconds == breaker.cooldown_seconds * 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "language", ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
+)
+async def test_secondary_verdict_returned_for_every_language(language):
+    provider = LlamaGuardProvider(api_key="k")
+    provider.retry_jitter_max_ms = 0
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.side_effect = [_null_response(), _ok_response("unsafe\nS10")]
+        result = await provider.analyze_text("text", language)
+    assert result.allowed is False
+    assert result.reason == "hate_speech_detected"
+    assert mock_post.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_hung_post_is_capped_by_total_budget_and_records_breaker_failure():
+    """httpx timeouts are per-phase; the overall budget must still hard-cap a hung call."""
+    import asyncio
+    import time as _time
+
+    provider = LlamaGuardProvider(api_key="k", timeout=30)
+    provider.total_budget = 0.3
+    provider.retry_jitter_max_ms = 0
+
+    async def hang(*args, **kwargs):
+        await asyncio.Event().wait()
+
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
+        mock_post.side_effect = hang
+        start = _time.monotonic()
+        with pytest.raises(httpx.TimeoutException):
+            await asyncio.wait_for(provider.analyze_text("hi", "en"), timeout=5)
+        elapsed = _time.monotonic() - start
+
+    assert elapsed < 0.3 + 0.5
+    assert provider._breaker._consecutive_failures == 1
+    mock_secondary_counter.add.assert_called_once_with(1, {"outcome": "skipped_budget"})
+
+
+@pytest.mark.asyncio
+async def test_hung_secondary_hits_budget_both_failed_path():
+    import asyncio
+
+    provider = LlamaGuardProvider(api_key="k", timeout=30)
+    provider.total_budget = 1.0
+    provider.retry_jitter_max_ms = 0
+
+    async def post(*args, **kwargs):
+        if kwargs["json"]["model"] == LlamaGuardProvider.MODEL:
+            return _null_response()
+        await asyncio.Event().wait()
+
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+        patch(
+            "providers.llama_guard.llama_guard_secondary_model_counter"
+        ) as mock_secondary_counter,
+    ):
+        mock_post.side_effect = post
+        with pytest.raises(httpx.TimeoutException):
+            await asyncio.wait_for(provider.analyze_text("hi", "en"), timeout=5)
+
+    assert provider._breaker._consecutive_failures == 1
+    mock_secondary_counter.add.assert_called_once_with(1, {"outcome": "also_failed"})
+
+
+@pytest.mark.asyncio
+async def test_budget_timeout_still_fails_over_to_openai_moderation(monkeypatch):
+    """ml_only: a hung Llama Guard (budget timeout) must reach the OpenAI Moderation failover."""
+    import asyncio
+
+    from tests.test_content_safety import (
+        _THREAT_SCORES,
+        _failover_service,
+        _fake_moderation_http,
+    )
+
+    service, _, spy = _failover_service(monkeypatch)
+    provider = LlamaGuardProvider(api_key="k", timeout=30)
+    provider.total_budget = 0.3
+    provider.retry_jitter_max_ms = 0
+    monkeypatch.setattr(service, "_get_llama_guard_provider", lambda: provider)
+    # _fake_moderation_http swaps httpx.AsyncClient globally, so a single post mock serves both:
+    # Llama Guard (OpenRouter URL) hangs, the OpenAI moderation call answers.
+    calls = _fake_moderation_http(monkeypatch, {"I want to build a bomb": _THREAT_SCORES})
+    moderation_post = httpx.AsyncClient.post
+
+    async def route(self, url, *args, **kwargs):
+        if "openrouter" in url:
+            await asyncio.Event().wait()
+        return await moderation_post(self, url, *args, **kwargs)
+
+    with patch("httpx.AsyncClient.post", new=route):
+        result = await asyncio.wait_for(service.check("I want to build a bomb", "en"), timeout=5)
+
+    assert result.allowed is False
+    assert result.reason == "violence_or_threat_detected (failover)"
+    assert calls == ["I want to build a bomb"]
+    spy.assert_not_awaited()
+
+
+def test_breaker_probe_lease_covers_budget():
+    provider = LlamaGuardProvider(api_key="k")
+    assert provider._breaker.probe_timeout_seconds == provider.total_budget + 1.0
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("llama_guard_total_budget_seconds", 0),
+        ("llama_guard_secondary_timeout", -1),
+        ("llama_guard_breaker_cooldown_seconds", 0),
+        ("llama_guard_breaker_max_cooldown_seconds", 0),
+        ("llama_guard_breaker_failure_threshold", 0),
+        ("llama_guard_retry_jitter_max_ms", -1),
+    ],
+)
+def test_llama_guard_settings_reject_invalid_values(field, value):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        type(settings)(**{**settings.model_dump(), field: value})
+
+
+def test_llama_guard_settings_reject_max_cooldown_below_base():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        type(settings)(
+            **{
+                **settings.model_dump(),
+                "llama_guard_breaker_cooldown_seconds": 30.0,
+                "llama_guard_breaker_max_cooldown_seconds": 10.0,
+            }
+        )

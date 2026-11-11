@@ -1,6 +1,6 @@
 # BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
 
-**Status:** 🔍 In Review
+**Status:** ✅ Done — PR #1261, 2026-11-10
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
