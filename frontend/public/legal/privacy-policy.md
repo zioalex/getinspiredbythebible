@@ -1,10 +1,10 @@
 ---
-lastUpdated: 2026-11-03
+lastUpdated: 2026-11-11
 ---
 
 # Privacy Policy
 
-Last updated: November 3, 2026
+Last updated: November 11, 2026
 
 ## Who We Are
 
@@ -30,14 +30,18 @@ AI providers:
   content-safety check).
 - **Azure OpenAI (Microsoft)** — receives your message text to compute text embeddings used
   to find the most relevant Scripture passages.
+- **OpenAI** — receives your message text only when our primary safety check (Llama Guard)
+  is temporarily unavailable, to screen it for safety (OpenAI Moderation).
 
 Your message text is used by these providers **only** to generate or safety-screen the
 response to that message. It is not used by us — or, per each provider's API terms, by the
-provider — to train their general-purpose AI models, it is not retained by the provider
-beyond what is needed to service the request, and it is never used for advertising or sold.
-See [OpenRouter's privacy policy](https://openrouter.ai/privacy) and
-[Microsoft's privacy statement](https://privacy.microsoft.com) for each provider's own
-data-handling practices.
+provider — to train their general-purpose AI models, and it is never used for advertising or
+sold. Each provider may retain it under its own data-handling terms: OpenAI keeps the message
+text it receives for up to 30 days for abuse monitoring, after which it is deleted unless the
+law requires otherwise. See [OpenRouter's privacy policy](https://openrouter.ai/privacy),
+[Microsoft's privacy statement](https://privacy.microsoft.com) and
+[OpenAI's API data privacy commitments](https://openai.com/enterprise-privacy/) for each
+provider's own data-handling practices.
 
 ### Data Collected Automatically
 
@@ -69,12 +73,13 @@ with a passphrase only you know, so it stays in your hands even in transit.
 
 ## Third-Party Services
 
-| Service                       | Purpose                                             | Privacy Policy                                                     |
-| ----------------------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
-| Firebase Crashlytics (Google) | Crash reporting                                     | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google)   | Anonymised usage analytics                          | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| OpenRouter                    | AI response generation and content-safety screening | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
-| Azure OpenAI (Microsoft)      | Text embeddings for Scripture search                | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+| Service                       | Purpose                                                                      | Privacy Policy                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Firebase Crashlytics (Google) | Crash reporting                                                              | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| Firebase Analytics (Google)   | Anonymised usage analytics                                                   | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| OpenRouter                    | AI response generation and content-safety screening                          | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
+| Azure OpenAI (Microsoft)      | Text embeddings for Scripture search                                         | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
+| OpenAI                        | Backup content-safety screening (only when the primary check is unavailable) | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
 
 ## Read Aloud
 
@@ -117,7 +122,7 @@ Since we collect no personally identifiable information, most requests can be fu
 clearing your local conversation history within the app. For crash/analytics data held by
 Google, please refer to Google's privacy controls at
 [myaccount.google.com](https://myaccount.google.com). For data handled by our AI providers,
-see the OpenRouter and Microsoft privacy policies linked above.
+see the OpenRouter, Microsoft and OpenAI privacy policies linked above.
 
 For any privacy questions, contact us at: **<privacy@voxquieta.org>**
 
