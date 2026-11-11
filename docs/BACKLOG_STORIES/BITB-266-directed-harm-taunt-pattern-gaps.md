@@ -30,16 +30,18 @@ Added named constants to `DIRECTED_HARM_PATTERNS["en"]` in `api/utils/security.p
   free gap, so grief letters ("I wish you had told me you were thinking about killing yourself") and caring wishes
   ("I hope you choose life instead of killing yourself") stay allowed.
 - `_DH_IMPERATIVE_TAUNT`: clause-start `(just) start/keep/try/consider (thinking about) killing yourself`; a later
-  `?` in the clause (hotline wording "Keep thinking about killing yourself? Call 988.") exempts it.
+  `?` in the clause (hotline wording "Keep thinking about killing yourself? Call 988.") and the overwork /
+  mortification idioms ("keep killing yourself at that job", "consider killing yourself to sin") exempt it.
 - `_DH_SHOULD_INSULT`: `you/u should (just) (do it|go ahead|go)` + insult (verbs like trash/freak/clown excluded);
   written as `(?:\s*,\s*|\s+)` to stay linear on whitespace runs.
-- `_DH_SHOULD_DEATH_CTX`: a bare `You should.` / `You should just do it!` only after a second-person self-harm
-  reference (kill yourself / suicide / end your life / better off dead). Dying relatives, "die to self" and Bible
-  narrative ("Judas killed himself. You should.") stay allowed.
+- `_DH_SHOULD_DEATH_CTX`: a bare `You should.` / `You should just do it!` only as the direct answer to a
+  second-person self-harm question ("Thinking about suicide? You should.", "Want to kill yourself? Go ahead, you
+  should."). No gap across sentences, so caring advice, grief, dying relatives, "die to self" and Bible narrative
+  stay allowed.
 
-Independent verification found false positives in a first, broader draft (grief letters, dying relatives, overwork idiom,
-hotline wording) and a quadratic-backtracking pattern; all were fixed and are pinned in the clean corpus, plus a
-10k-character timing test.
+Two independent verification rounds found false positives in broader drafts (grief letters, caring advice, dying
+relatives, overwork / mortification idioms, hotline wording) and quadratic backtracking (whitespace and newline runs);
+all were fixed and are pinned in the clean corpus, plus 10k-character timing tests.
 
 Tests: BITB-266 section in `api/tests/test_stage1_directed_harm_any_language.py` (blocked and clean corpora × 11
 language codes, through `find_directed_harm_violation`, `check_multilingual`, the keyword fallback and

@@ -465,15 +465,20 @@ _DH_KYS = r"\bkys\b"
 _DH_WISH_TAUNT = (
     r"\b(?:hope|wish)\s+(?:that\s+)?" + _DH_YOU + r"(?:'re|re|r|\s+are|\s+were|\s+r)?\s+"
     r"(?:(?:thinking|think)\s+about\s+|considering\s+|consider\s+|going\s+to\s+|gonna\s+|"
-    r"start\s+|try\s+|end\s+up\s+)?kill(?:ing)?\s+" + _DH_YOURSELF + r"\b"
+    r"start\s+|try\s+|end\s+up\s+)?kill(?:ing)?\s+" + _DH_YOURSELF + r"\b(?!\s+laughing)"
 )
 # Imperative at a clause start; a question mark later in the clause (hotline / rhetorical
-# wording) exempts it.
+# wording) exempts it, and so do the overwork / mortification idioms ("keep killing yourself at
+# that job", "consider killing yourself to sin"). Own clause-start (no `\n` inside `\s*`) so
+# newline runs stay linear.
+_DH_IMP_START = r"(?:^|[.!;:][ \t]*|\n[ \t]*|[¡¿][ \t]*)"
 _DH_IMPERATIVE_TAUNT = (
-    _DH_START
+    _DH_IMP_START
     + "[(\\[（「“\"']*"
     + r"(?:(?:just|so|then|now|go)\s+)?(?:start|keep|try|consider)\s+"
     + r"(?:thinking\s+about\s+)?killing\s+(?:yourself|urself)\b(?![^.!\n]*\?)"
+    + r"(?!\s+(?:with|at|over|for|from|trying|working|less|daily|laughing|"
+    r"to\s+(?:sin|self|the\s+(?:flesh|world))))"
 )
 # "you should, loser". `(?:\s*,\s*|\s+)` (not `\s*,?\s*`) keeps it linear on whitespace runs;
 # insults that double as ordinary verbs (trash, freak, clown) are left out.
@@ -483,14 +488,15 @@ _DH_SHOULD_INSULT = (
     r"(?:\s*,\s*|\s+)(?:you\s+)?(?:loser|idiot|moron|scum|retard\w*|bitch|coward|pathetic)"
     r"(?![\w-])"
 )
-# Bare "You should." / "You should just do it!" only counts as the answer to a second-person
-# self-harm reference ("Thinking about suicide? You should."). Dying relatives, "die to self"
-# theology and Bible narrative ("Judas killed himself. You should.") stay allowed.
+# Bare "You should." / "You should just do it!" only counts as the DIRECT answer to a
+# second-person self-harm question ("Thinking about suicide? You should.", "Want to kill
+# yourself? Go ahead, you should."). No gap across sentences, so caring advice ("If you are
+# thinking about suicide, please call 988. You should."), grief ("My brother committed
+# suicide. Should I go? You should.") and narrative stay allowed.
 _DH_SHOULD_DEATH_CTX = (
-    r"(?:\bkill(?:ing)?\s+"
-    + _DH_YOURSELF
-    + r"|\bsuicid\w*|\bend\s+your\s+life|\bbetter\s+off\s+dead)\b"
-    r"[^\n]{0,80}?[.!?]\s*" + _DH_YOU + r"\s+should(?:\s+just)?"
+    r"\b(?:thinking\s+about|considering|want(?:ing)?\s+to|going\s+to|planning\s+(?:on|to))\s+"
+    r"(?:suicide|kill(?:ing)?\s+" + _DH_YOURSELF + r"|end(?:ing)?\s+your\s+life)"
+    r"\s*\?\s*(?:go\s+ahead\s*[,.!]?\s*)?" + _DH_YOU + r"\s+should(?:\s+just)?"
     r"(?:\s+(?:do\s+it|go\s+ahead|go\s+for\s+it))?(?=\s*(?:[!.]|$))"
 )
 
