@@ -458,7 +458,10 @@ _DH_KYS = r"\bkys\b"
 _DH_WISH_SUBJ = r"(?:i\s+)?(?:hope|wish)\s+(?:that\s+)?(?:you|u|you're|youre|you\s+are|ur)\b"
 _DH_WISH_NEG = (
     r"(?![^.!?\n]{0,40}?(?:\bnever\b|\bnot\b|n't|\bdont\b|\bwont\b|\bstop\b|"
-    r"\bno\s+longer\b|\bnobody\b|\bno\s+one\b))"
+    r"\bno\s+longer\b|\bnobody\b|\bno\s+one\b|"
+    # Caring / explanatory frames ("I hope you realize killing yourself would hurt them").
+    r"\bknow\w*|\bknew\b|\brealis\w*|\brealiz\w*|\bunderstand\w*|\bsee\b|\blearn\w*|"
+    r"\bremember\w*|\bthat\b|\bhow\b|\bwhy\b|\bwhat\b|\bhelp\b))"
 )
 _DH_WISH_TAUNT = (
     _DH_WISH_SUBJ

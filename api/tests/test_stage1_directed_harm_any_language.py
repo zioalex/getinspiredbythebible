@@ -446,6 +446,12 @@ BITB266_CLEAN = [
     "I hope you're not thinking about killing yourself",
     "I wish you wouldn't stop and consider killing yourself",
     "I hope you don't ever think about killing yourself",
+    # caring / explanatory wishes
+    "I hope you realize killing yourself would devastate your family",
+    "I wish you knew how killing yourself hurts the people who love you",
+    "I hope you understand killing yourself is never God's answer",
+    "I hope you see that killing yourself leaves pain behind",
+    "I wish you'd let someone help before killing yourself crosses your mind",
     # clause-start rule
     "If you start thinking about killing yourself, call someone",
     "When you keep thinking about killing yourself, please talk to a pastor",
