@@ -42,7 +42,7 @@ seed step sets the secret on the live app first (no-op if the repo secret is emp
 Not done. The existing harness (`scripts/run_golden_set.py`, `golden-set-live.yml`) drives the chat API and
 evaluates answers; it cannot target OpenAI Moderation, and no OpenAI key exists in the build sandbox. Building a
 moderation-classifier golden set (crisis + threat + Bible narrative x 11 languages vs `omni-moderation-latest`)
-is remaining work for a follow-up story; the second acceptance criterion stays unticked.
+is remaining work, filed as BITB-293; the second acceptance criterion stays unticked.
 
 ## Notes
 
@@ -51,3 +51,7 @@ Owner-only steps (secret value, retention sign-off) stay unticked acceptance cri
 ## Related
 
 BITB-272, BITB-257, BITB-223, BITB-224.
+
+## Follow-ups
+
+- BITB-293 — 11-language safety golden set for a single moderation classifier (AC 2).

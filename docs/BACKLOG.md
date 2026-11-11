@@ -20,7 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#TBD)
+- 2026-11-11: BITB-293 opened — 11-language safety golden set runner for a single moderation classifier (OpenAI Moderation first), follow-up of BITB-288 AC 2 (#1280)
+- 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#1280)
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -574,6 +575,25 @@ BITB-272 slice 1 fails over only to OpenAI Moderation. If both OpenRouter and Op
 - [ ] Metrics reuse `content_safety.failover_total` with a `to_stage` label per hop
 
 **Full Story:** [`BITB-292-azure-content-safety-second-failover.md`](BACKLOG_STORIES/BITB-292-azure-content-safety-second-failover.md)
+
+---
+
+### 🎯 BITB-293: 11-Language Safety Golden Set for a Single Moderation Classifier (OpenAI Moderation First)
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-11
+
+Follow-up to BITB-288 (#1280): the only golden-set harness drives the chat API, so the OpenAI Moderation failover cannot be measured per language before it is trusted.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Versioned crisis / threat / Bible-narrative dataset for all 11 languages
+- [ ] `scripts/run_safety_golden_set.py --classifier ...` with per-language recall / false-positive table and threshold exit code; offline tests across 11 languages
+- [ ] Manual `workflow_dispatch` run; owner records `omni-moderation-latest` results in BITB-288
+
+**Full Story:** [`BITB-293-moderation-classifier-golden-set.md`](BACKLOG_STORIES/BITB-293-moderation-classifier-golden-set.md)
 
 ---
 
