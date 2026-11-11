@@ -51,6 +51,7 @@ from routes import (  # noqa: E402
     scripture_router,
 )
 from scripture import check_db_connection, check_translation_coverage, close_db  # noqa: E402
+from utils.client_ip import resolve_client_ip  # noqa: E402
 from utils.local_only import require_local_access  # noqa: E402
 from utils.logging_config import get_logger, setup_logging  # noqa: E402
 from utils.metrics import (  # noqa: E402
@@ -504,12 +505,7 @@ async def report_client_error(report: ClientErrorReport, request: Request):
     client_errors_counter.add(1, {"type": metric_type})
 
     detail = report.detail[: settings.client_error_max_detail_chars]
-    client_ip = request.headers.get(
-        "CF-Connecting-IP",
-        request.headers.get(
-            "X-Forwarded-For", request.client.host if request.client else "unknown"
-        ),
-    )
+    client_ip = resolve_client_ip(request)
     logger.warning(
         "Client error report: %s — %s",
         report.type,

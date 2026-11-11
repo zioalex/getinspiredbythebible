@@ -16,6 +16,7 @@ import httpx
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from starlette.datastructures import Headers
 from starlette.requests import Request
 
 # Add parent directory to path to import modules
@@ -214,19 +215,22 @@ class TestClientIPExtraction:
     """Tests for client IP extraction."""
 
     def test_cf_connecting_ip_header(self):
-        """CF-Connecting-IP header should be preferred."""
+        """CF-Connecting-IP is used only when every hop is trusted and the last
+        forwarded hop is a Cloudflare address (BITB-297)."""
         mock_request = MagicMock(spec=Request)
-        mock_request.headers = {"CF-Connecting-IP": "1.2.3.4"}
+        mock_request.headers = Headers(
+            {"CF-Connecting-IP": "203.0.113.4", "X-Forwarded-For": "172.64.0.1"}
+        )
         mock_request.client = MagicMock()
         mock_request.client.host = "192.168.1.1"
 
         ip = _get_client_ip(mock_request)
-        assert ip == "1.2.3.4"
+        assert ip == "203.0.113.4"
 
     def test_x_forwarded_for_header(self):
-        """X-Forwarded-For header should be used as fallback."""
+        """The right-most untrusted X-Forwarded-For entry is the client."""
         mock_request = MagicMock(spec=Request)
-        mock_request.headers = {"X-Forwarded-For": "5.6.7.8, 192.168.1.1"}
+        mock_request.headers = Headers({"X-Forwarded-For": "9.9.9.9, 5.6.7.8, 192.168.1.1"})
         mock_request.client = MagicMock()
         mock_request.client.host = "127.0.0.1"
 
@@ -236,7 +240,7 @@ class TestClientIPExtraction:
     def test_direct_client_ip(self):
         """Direct client IP should be used when no proxy headers."""
         mock_request = MagicMock(spec=Request)
-        mock_request.headers = {}
+        mock_request.headers = Headers({})
         mock_request.client = MagicMock()
         mock_request.client.host = "10.0.0.1"
 
@@ -253,7 +257,7 @@ class TestRequireTurnstile:
         mock_request = MagicMock(spec=Request)
         mock_request.method = "POST"
         mock_request.url.path = "/api/v1/chat"
-        mock_request.headers = {}
+        mock_request.headers = Headers({})
 
         with patch("utils.turnstile.settings") as mock_settings:
             mock_settings.turnstile_enabled = False
@@ -284,7 +288,7 @@ class TestRequireTurnstile:
         mock_request = MagicMock(spec=Request)
         mock_request.method = "GET"
         mock_request.url.path = "/api/v1/scripture/search"
-        mock_request.headers = {}
+        mock_request.headers = Headers({})
         mock_request.client = MagicMock()
         mock_request.client.host = "192.168.1.1"
 
@@ -320,7 +324,7 @@ class TestRequireTurnstile:
         mock_request = MagicMock(spec=Request)
         mock_request.method = "POST"
         mock_request.url.path = "/api/v1/chat"
-        mock_request.headers = {}
+        mock_request.headers = Headers({})
         mock_request.client = MagicMock()
         mock_request.client.host = "192.168.1.1"
 
@@ -341,7 +345,7 @@ class TestRequireTurnstile:
         mock_request = MagicMock(spec=Request)
         mock_request.method = "POST"
         mock_request.url.path = "/api/v1/chat"
-        mock_request.headers = {"X-Turnstile-Token": "valid-token"}
+        mock_request.headers = Headers({"X-Turnstile-Token": "valid-token"})
         mock_request.client = MagicMock()
         mock_request.client.host = "192.168.1.1"
 
@@ -365,7 +369,7 @@ class TestRequireTurnstile:
         mock_request = MagicMock(spec=Request)
         mock_request.method = "POST"
         mock_request.url.path = "/api/v1/chat"
-        mock_request.headers = {"X-Turnstile-Token": "invalid-token"}
+        mock_request.headers = Headers({"X-Turnstile-Token": "invalid-token"})
         mock_request.client = MagicMock()
         mock_request.client.host = "192.168.1.1"
 

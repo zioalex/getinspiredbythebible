@@ -3,12 +3,66 @@ Application configuration using Pydantic Settings.
 Supports environment variables and .env files.
 """
 
+import ipaddress
 import json
 from functools import lru_cache
 from typing import Annotated, Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode
+
+IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
+IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
+
+# Cloudflare published ranges. Source: https://www.cloudflare.com/ips/
+# Copied 2026-11-11. Cloudflare-ness is decided by THIS constant; trust is decided
+# by the ``trusted_proxy_cidrs`` setting (whose default includes these ranges).
+CLOUDFLARE_CIDRS: tuple[str, ...] = (
+    # IPv4
+    "173.245.48.0/20",
+    "103.21.244.0/22",
+    "103.22.200.0/22",
+    "103.31.4.0/22",
+    "141.101.64.0/18",
+    "108.162.192.0/18",
+    "190.93.240.0/20",
+    "188.114.96.0/20",
+    "197.234.240.0/22",
+    "198.41.128.0/17",
+    "162.158.0.0/15",
+    "104.16.0.0/13",
+    "104.24.0.0/14",
+    "172.64.0.0/13",
+    "131.0.72.0/22",
+    # IPv6
+    "2400:cb00::/32",
+    "2606:4700::/32",
+    "2803:f800::/32",
+    "2405:b500::/32",
+    "2405:8100::/32",
+    "2a06:98c0::/29",
+    "2c0f:f248::/32",
+)
+
+# Loopback, RFC 1918, CGNAT (Container Apps ingress hop), IPv6 ULA.
+INTERNAL_PROXY_CIDRS: tuple[str, ...] = (
+    "127.0.0.0/8",
+    "::1/128",
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "100.64.0.0/10",
+    "fc00::/7",
+)
+
+DEFAULT_TRUSTED_PROXY_CIDRS = ",".join(INTERNAL_PROXY_CIDRS + CLOUDFLARE_CIDRS)
+
+
+def parse_cidrs(value: str) -> tuple[IPNetwork, ...]:
+    """Parse a comma-separated CIDR list; raises ValueError on an invalid entry."""
+    return tuple(
+        ipaddress.ip_network(c.strip(), strict=False) for c in value.split(",") if c.strip()
+    )
 
 
 class Settings(BaseSettings):
@@ -273,6 +327,11 @@ class Settings(BaseSettings):
     # Health probes, docs, and info endpoints don't go through the frontend
     # Turnstile widget and must work without a token.
     turnstile_skip_paths: str = "/health,/docs,/redoc,/openapi.json,/config,/,/api/v1/client-errors"
+
+    # Trusted reverse-proxy networks (comma-separated CIDRs) used to resolve the real
+    # client IP from the forwarded-for chain (BITB-297). Default: loopback + private ranges +
+    # Cloudflare. See utils/client_ip.py and docs/SECURITY.md.
+    trusted_proxy_cidrs: str = DEFAULT_TRUSTED_PROXY_CIDRS
     # Development: Use Cloudflare test keys for local testing
     # Test secret: 1x0000000000000000000000000000000AA (always passes)
     # Test secret: 2x0000000000000000000000000000000AA (always fails)
@@ -387,6 +446,22 @@ class Settings(BaseSettings):
         "mxbai-embed-large:semantic": 0.55,
         "text-embedding-3-small:semantic": 0.50,
     }
+
+    @field_validator("trusted_proxy_cidrs")
+    @classmethod
+    def validate_trusted_proxy_cidrs(cls, v: str) -> str:
+        try:
+            networks = parse_cidrs(v)
+        except ValueError as exc:
+            raise ValueError(f"TRUSTED_PROXY_CIDRS contains an invalid CIDR: {exc}") from exc
+        # Empty would resolve every request to the ingress address: one shared
+        # rate-limit key and, on a private ingress, an open local-only gate.
+        if not networks:
+            raise ValueError("TRUSTED_PROXY_CIDRS must not be empty")
+        for net in networks:
+            if net.prefixlen < (8 if net.version == 4 else 7):
+                raise ValueError(f"TRUSTED_PROXY_CIDRS entry {net} is too broad to trust")
+        return v
 
     @field_validator("retrieval_miss_low_score_threshold", mode="before")
     @classmethod
