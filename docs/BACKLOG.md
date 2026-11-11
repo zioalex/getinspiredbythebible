@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-11: BITB-297 in review — one trusted-proxy client-IP resolver replaces three left-most-header copies; local-only gate rejects proxied requests; probe-gated request-chain endpoint; BITB-308 created (origin lock-down) (#1286)
 - 2026-11-11: BITB-296..307 created — verified project review (live + executed evidence) and improvement plan: chat-history validation, trusted client IP, endpoint rate limits, Arabic/Hindi share image, SEO fixes, topic pages, Bible chapter pages, verse of the day, runtime/model alignment, secrets inventory + restore drill, roadmap refresh, API hygiene (`docs/audits/2026-11-11-improvement-plan.md`) (#1284)
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
@@ -205,9 +206,10 @@ re-litigating a settled rule.
 
 ---
 
-### 🎯 BITB-297: Trusted Client IP — Close the Local-Only Bypass and Stop Keying Limits on a Forged Header
+### 🔍 BITB-297: Trusted Client IP — Close the Local-Only Bypass and Stop Keying Limits on a Forged Header
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review — built and independently verified; owner production checks pending
+**Follow-ups:** BITB-308 (origin lock-down)
 **Priority:** P0
 **Size:** M
 **Created:** 2026-11-11
@@ -3827,6 +3829,25 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-308: Lock the Backend Origin to Cloudflare (No Direct Container Apps Access)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-11
+
+BITB-297 follow-up: the Container Apps FQDN answers without Cloudflare, so a sender on a Cloudflare address (e.g. a Worker) is a trusted hop and may present a forged public client address to dodge per-IP limits. It cannot pass the local-only gate. Fix is origin lock-down (mTLS or a zone secret).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Direct requests to the FQDN that did not pass the project's Cloudflare zone are rejected
+- [ ] Monitors that call the FQDN keep working
+- [ ] Residual-risk note removed from `docs/SECURITY.md`
+
+**Full Story:** [`BITB-308-origin-lockdown-cloudflare-only.md`](BACKLOG_STORIES/BITB-308-origin-lockdown-cloudflare-only.md)
+
+---
 
 ### 🎯 BITB-303: Verse of the Day — Page, Dated Archive and Feed
 

@@ -123,6 +123,29 @@ The implementation uses **fail-open** for availability:
 
 Rate limiting prevents abuse by restricting request frequency.
 
+### Client IP trust model
+
+Per-IP limits, the local-only gate (`/health`, `/debug/embeddings`) and Turnstile `remoteip` all use
+one resolver, `api/utils/client_ip.py` (BITB-297). Headers are client-forgeable, so:
+
+- The chain is `X-Forwarded-For` entries plus the socket peer, walked **right to left**; every hop inside
+  `TRUSTED_PROXY_CIDRS` is skipped and the first untrusted entry is the client.
+- Default trusted networks: loopback, RFC 1918, `100.64.0.0/10`, `fc00::/7` and Cloudflare's published ranges.
+- `CF-Connecting-IP` is only a fallback when every hop is trusted and the last forwarded hop is a Cloudflare
+  address, and only if it names a non-proxy address.
+- A request that passed a Cloudflare hop never resolves to a loopback or private address: if nothing to the
+  left of that hop is a plausible client, the Cloudflare hop itself is returned.
+- The local-only gate additionally rejects every request that carries a forwarded-for header: local
+  callers connect directly.
+- `X-Real-IP` is ignored; an unparseable entry is treated as an untrusted client, never as local. Repeated
+  header lines are joined. With no socket peer the header is not believed at all.
+- `TRUSTED_PROXY_CIDRS` cannot be empty or contain a network broader than `/8` (IPv4) or `/7` (IPv6).
+- **Residual risk (BITB-308):** the Container Apps FQDN is reachable without Cloudflare. A sender on a
+  Cloudflare address (for example a Worker) is a trusted hop, so it may be able to present a forged *public*
+  client address and dodge per-IP limits. It cannot pass the local-only gate. The fix is origin lock-down.
+- Verify the real chain in production: `GET /api/v1/admin/request-chain` with `X-Monitor-Probe-Secret`
+  (through `api.voxquieta.org` and the Container Apps FQDN); adjust `TRUSTED_PROXY_CIDRS` if it differs.
+
 ### Limits
 
 | Scope | Default | Configuration |

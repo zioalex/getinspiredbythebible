@@ -25,6 +25,7 @@ from fastapi import Depends, HTTPException, Request
 
 from config import settings
 from utils.circuit_breaker import CircuitBreaker
+from utils.client_ip import resolve_client_ip
 from utils.metrics import turnstile_fail_open_counter
 
 from .monitor_probe import is_monitor_probe
@@ -180,27 +181,8 @@ def _should_skip_path(path: str) -> bool:
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request, handling proxies."""
-    # Check CF-Connecting-IP (Cloudflare)
-    cf_ip = request.headers.get("CF-Connecting-IP")
-    if cf_ip:
-        return str(cf_ip).strip()
-
-    # Check X-Forwarded-For header
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        return str(forwarded).split(",")[0].strip()
-
-    # Check X-Real-IP header
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return str(real_ip).strip()
-
-    # Fallback to direct client IP
-    if request.client:
-        return str(request.client.host)
-
-    return "unknown"
+    """Client IP resolved through the trusted-proxy chain (see utils/client_ip.py)."""
+    return resolve_client_ip(request)
 
 
 async def require_turnstile(request: Request) -> None:
