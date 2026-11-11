@@ -44,7 +44,8 @@
 #   (BITB-223) REMOVED rules (destruction on next apply is intended):
 #   - backend_unhandled_exceptions — 4th pager for the same event as backend_asgi_exceptions
 #     + backend_errors + backend_5xx_rate; redundant.
-#   - llama_guard_primary_failure_rate — redundant with content_safety_fallback_rate +
+#   - llama_guard_primary_failure_rate — redundant with the content_safety_fallback_burn_* rules
+#     (BITB-290, successors of content_safety_fallback_rate) +
 #     the GH content-safety probe (asserts both directions end-to-end every 5 min).
 #   - backend_error_rate_other — "other" 4xx are client faults; actionable server-side
 #     errors are covered by backend_errors.
@@ -72,15 +73,14 @@
 #       degrades to verse-less responses silently while this persists.
 #       (BITB-223) demoted to PT15M — real signal, but the symptom is covered by
 #       the GH verse-search probe; kept for diagnosis, not urgent paging.
-#   - azurerm_monitor_scheduled_query_rules_alert_v2.content_safety_fallback_rate (BITB-061, BITB-223)
-#       Fires when any content-safety provider (Llama Guard, OpenAI Moderation, Azure)
-#       degrades to the local keyword-only filter (utils/content_safety.py). The
-#       keyword filter still blocks/allows correctly, but this is the only signal
-#       that the ML-backed safety net is temporarily degraded for a crisis-sensitive
-#       product. (BITB-223) recalibrated: evaluated every 5 minutes, but the breach
-#       must be sustained for 30 minutes (6 of 6 five-minute windows) before paging —
-#       falling back occasionally is the designed behavior (BITB-061); only a
-#       sustained degradation pages.
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.content_safety_fallback_burn_fast (BITB-290)
+#   - azurerm_monitor_scheduled_query_rules_alert_v2.content_safety_fallback_burn_slow (BITB-290)
+#       Multi-window burn-rate alerts on the keyword-fallback SHARE of checked
+#       messages (content_safety.fallback_total / content_safety.checks_total;
+#       utils/content_safety.py). They REPLACE content_safety_fallback_rate
+#       (BITB-061/BITB-223), which paged on any sustained fallback event with no
+#       denominator. Fast: Sev2, 14.4x budget over 1h AND 5m. Slow: Sev3, 6x budget
+#       over 6h AND 30m. Budget = var.content_safety_fallback_slo_target.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_client_rejection_spike (BITB-223)
 #       Sev3 companion to backend_5xx_rate: 401/403/429 responses are excluded from
 #       that Sev1 rule (they're expected — Turnstile bot-rejection, auth, rate-limit),
@@ -118,7 +118,8 @@
 #     >=3 breaches each) so deploy-time app-replacement blips don't page (BITB-067
 #     gap #5). Sustained-window gating preferred over time-of-day suppression —
 #     deploy windows vary.
-#   - content_safety_fallback_rate — 30 minutes sustained (see above).
+#   - content_safety_fallback_rate — REMOVED in BITB-290, replaced by the two
+#     content_safety_fallback_burn_* share-of-checks burn-rate rules (see above).
 #   - backend_probe_failures — kept (BITB-224): it reads ContainerAppSystemLogs_CL
 #     ReplicaUnhealthy, not the availability web tests. The two web-test metric alerts
 #     (backend_availability, backend_preflight_availability) only fire while the web
@@ -1303,49 +1304,61 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_error
   tags = local.tags
 }
 
-# Content safety fallback alert (BITB-061).
-# Fires when the content_safety.fallback_total custom metric records any
-# provider-unavailable or provider-failure event (utils/content_safety.py).
-# Every fallback branch already degrades safely to the local keyword-only
-# filter (never to allow-all), but for a pastoral-care product screening
-# self-harm/violence content, a degraded ML safety net is itself an
-# operator-actionable signal, not just a resilience detail.
+# Content safety keyword-fallback SLO burn-rate alerts (BITB-290; replace
+# content_safety_fallback_rate from BITB-061/BITB-223).
 #
-# (BITB-223) RECALIBRATED: this was the noisiest rule in the fleet (99 firings
-# in 30 days) because ANY single fallback event paged. Falling back
-# occasionally is the designed behavior (BITB-061): the secondary model
-# recovers transient primary failures, and the keyword filter still screens
-# correctly during fallback. Now the breach must be SUSTAINED for 30 minutes —
-# the metric above threshold in 6 consecutive 5-minute windows (failing_periods
-# 6 of 6 over a PT5M window_duration) — before paging. A blip (one or a few
-# fallback events, minutes-long) does not page; a persistently degraded safety
-# pipeline still pages within ~30 minutes. Kept at PT5M evaluation, Sev2.
-resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallback_rate" {
+# SLO: at most var.content_safety_fallback_slo_target (default 0.5%, owner to
+# confirm) of messages screened by ContentSafetyService.check() may degrade to
+# the local keyword-only filter, measured over 7 days. Numerator:
+# content_safety.fallback_total (keyword-fallback decisions only, BITB-272).
+# Denominator: content_safety.checks_total (one per screened message, BITB-290).
+# Azure caps alert look-back at 48h, so the 7-day budget is enforced through
+# Google-SRE multi-window burn rates instead of a direct 7d query:
+#   fast: 14.4x budget over 1h AND 5m  (default 7.2% share)  -> Sev2, PT5M
+#   slow:  6x   budget over 6h AND 30m (default 3% share)    -> Sev3, PT15M
+# The short window stops the alert staying red after recovery. A low-traffic
+# guard (>= 3 fallbacks in the long window) stops a single fallback among a
+# handful of messages from paging. (BITB-223) removed the any-fallback rule's
+# noise by sustained-window gating; this is the principled replacement.
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallback_burn_fast" {
   count                = local.alerts_enabled ? 1 : 0
-  name                 = "${local.name_prefix}-content-safety-fallback-rate"
+  name                 = "${local.name_prefix}-content-safety-fallback-burn-fast"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
   evaluation_frequency = "PT5M"
-  window_duration      = "PT5M"
+  window_duration      = "PT1H"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 2
-  description          = "Content safety provider (Llama Guard / OpenAI Moderation / Azure) degraded to keyword-only fallback (content_safety.fallback_total metric) for a SUSTAINED 30 minutes (every 5-minute window in the last 30 minutes above zero). Occasional fallback is designed behavior (BITB-061) and does not page; only a persistently degraded ML safety net does. See utils/content_safety.py."
+  description          = "Keyword-fallback share of checked messages (content_safety.fallback_total / content_safety.checks_total) is burning the ${var.content_safety_fallback_slo_target} SLO error budget at 14.4x over BOTH the 1h and 5m windows (min 3 fallbacks in the long window, to ignore low-traffic noise). Replaces the BITB-223 any-fallback rule content_safety_fallback_rate (BITB-290). See docs/HOW-TO-ENABLE-CONTENT-SAFETY.md and the Content Safety section of the performance workbook."
 
   criteria {
     query                   = <<-KQL
-      customMetrics
-      | where timestamp > ago(5m)
-      | where name == "content_safety.fallback_total"
-      | summarize total = sum(valueSum) by bin(timestamp, 5m)
-      | where total > 0
+      let slo = ${var.content_safety_fallback_slo_target};
+      let burn = 14.4;
+      let m = customMetrics
+        | where timestamp > ago(1h)
+        | where name in ("content_safety.fallback_total", "content_safety.checks_total");
+      let long_w = m
+        | summarize fb = sumif(valueSum, name == "content_safety.fallback_total"),
+                    chk = sumif(valueSum, name == "content_safety.checks_total");
+      let short_w = m
+        | where timestamp > ago(5m)
+        | summarize sfb = sumif(valueSum, name == "content_safety.fallback_total"),
+                    schk = sumif(valueSum, name == "content_safety.checks_total");
+      long_w
+      | extend dummy = 1
+      | join kind=inner (short_w | extend dummy = 1) on dummy
+      | where chk > 0 and schk > 0 and fb >= 3
+      | where todouble(fb) / todouble(chk) > burn * slo and todouble(sfb) / todouble(schk) > burn * slo
+      | project fb, chk, share = todouble(fb) / todouble(chk), sfb, schk
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
     operator                = "GreaterThan"
 
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 6
-      number_of_evaluation_periods             = 6
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
     }
   }
 
@@ -1356,12 +1369,66 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallba
   tags = local.tags
 }
 
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallback_burn_slow" {
+  count                = local.alerts_enabled ? 1 : 0
+  name                 = "${local.name_prefix}-content-safety-fallback-burn-slow"
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT6H"
+  scopes               = [azurerm_application_insights.main[0].id]
+  severity             = 3
+  description          = "Keyword-fallback share of checked messages (content_safety.fallback_total / content_safety.checks_total) is burning the ${var.content_safety_fallback_slo_target} SLO error budget at 6x over BOTH the 6h and 30m windows (min 3 fallbacks in the long window, to ignore low-traffic noise). Replaces the BITB-223 any-fallback rule content_safety_fallback_rate (BITB-290). See docs/HOW-TO-ENABLE-CONTENT-SAFETY.md and the Content Safety section of the performance workbook."
+
+  criteria {
+    query                   = <<-KQL
+      let slo = ${var.content_safety_fallback_slo_target};
+      let burn = 6;
+      let m = customMetrics
+        | where timestamp > ago(6h)
+        | where name in ("content_safety.fallback_total", "content_safety.checks_total");
+      let long_w = m
+        | summarize fb = sumif(valueSum, name == "content_safety.fallback_total"),
+                    chk = sumif(valueSum, name == "content_safety.checks_total");
+      let short_w = m
+        | where timestamp > ago(30m)
+        | summarize sfb = sumif(valueSum, name == "content_safety.fallback_total"),
+                    schk = sumif(valueSum, name == "content_safety.checks_total");
+      long_w
+      | extend dummy = 1
+      | join kind=inner (short_w | extend dummy = 1) on dummy
+      | where chk > 0 and schk > 0 and fb >= 3
+      | where todouble(fb) / todouble(chk) > burn * slo and todouble(sfb) / todouble(schk) > burn * slo
+      | project fb, chk, share = todouble(fb) / todouble(chk), sfb, schk
+    KQL
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.ops_email[0].id]
+  }
+
+  tags = local.tags
+}
+
+# content_safety_fallback_rate: REMOVED in BITB-290 (was BITB-061, recalibrated in
+# BITB-223). It paged on any sustained fallback event with no denominator; the two
+# burn-rate rules above alert on the fallback share of checked messages instead.
+# Destruction on next apply is intended.
+
 # Llama-Guard primary-model failure-rate alert: REMOVED in BITB-223.
 # Was: sustained >=90% primary-model failure rate (min 5 calls/bin, 2 of 3
 # evaluations) at Sev3 — the state where the primary ML classifier is stuck
 # failing but the secondary recovers every request end-to-end. Redundant with
-# content_safety_fallback_rate (the aggregate fallback signal, recalibrated
-# above to a 30-minute sustained breach) and with the GitHub content-safety
+# the content_safety_fallback_burn_* rules (BITB-290; the aggregate fallback-share
+# signal, successors of content_safety_fallback_rate) and with the GitHub content-safety
 # probe, which asserts BOTH classification directions end-to-end every 5
 # minutes. No 3am action existed for this state on its own. Destruction on
 # next apply is intended.

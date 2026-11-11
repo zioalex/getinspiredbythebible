@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-11
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -521,7 +522,7 @@ BITB-272 req. 3 and 4: primary 3 s / secondary 5 s timeouts come from a 2026-07 
 
 ### 🎯 BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (2026-11-11)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-10
@@ -530,9 +531,10 @@ BITB-272 req. 5: `content_safety_fallback_rate` fired 99 times in 30 days (BITB-
 
 **Acceptance Criteria (summary):**
 
-- [ ] Dashboard tile: keyword-fallback share of checked messages by `stage`, `reason`, `failure_class`, `failover`
-- [ ] Multi-window burn-rate alert in Terraform replaces the any-fallback alert; coordinate with BITB-223 so alerts are not duplicated
-- [ ] Companion tile for `content_safety.failover_total` (failover absorbed vs failed)
+- [x] Dashboard tile: keyword-fallback share of checked messages by `stage`, `reason`, `failure_class`, `failover`
+- [x] Multi-window burn-rate alerts in Terraform (`content_safety_fallback_burn_fast`/`_slow`) replace the any-fallback alert; coordinate with BITB-223 so alerts are not duplicated
+- [x] Companion tile for `content_safety.failover_total` (failover absorbed vs failed)
+- [ ] Owner steps: confirm the SLO target; `terraform apply`
 
 **Full Story:** [`BITB-290-content-safety-fallback-share-slo-alert.md`](BACKLOG_STORIES/BITB-290-content-safety-fallback-share-slo-alert.md)
 
