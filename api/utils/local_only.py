@@ -10,6 +10,7 @@ import ipaddress
 from fastapi import HTTPException, Request
 
 from config import settings
+from utils.client_ip import UNKNOWN, resolve_client_ip, was_forwarded
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -38,30 +39,8 @@ def is_local_ip(ip_str: str) -> bool:
 
 
 def get_client_ip(request: Request) -> str:
-    """
-    Extract client IP from request, handling proxies.
-
-    Checks X-Forwarded-For header first (for reverse proxy setups),
-    then falls back to direct client host.
-    """
-    # Check X-Forwarded-For header (set by reverse proxies)
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        # X-Forwarded-For can contain multiple IPs: client, proxy1, proxy2
-        # The first IP is the original client
-        client_ip = str(forwarded_for).split(",")[0].strip()
-        return client_ip
-
-    # Check X-Real-IP header (nginx)
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return str(real_ip).strip()
-
-    # Fall back to direct client
-    if request.client:
-        return str(request.client.host)
-
-    return ""
+    """Client IP resolved through the trusted-proxy chain (see utils/client_ip.py)."""
+    return resolve_client_ip(request)
 
 
 async def require_local_access(request: Request) -> None:
@@ -72,28 +51,30 @@ async def require_local_access(request: Request) -> None:
 
     Allows:
     - Local/internal IP addresses
-    - "testclient" (FastAPI TestClient)
-    - Empty IPs in debug mode
+    - Undeterminable IPs in debug mode
 
     Usage:
         @router.get("/debug", dependencies=[Depends(require_local_access)])
         async def debug_endpoint():
             ...
     """
-    client_ip = get_client_ip(request)
+    # A request relayed by any proxy is not local, whatever the header claims: local
+    # callers (container health check, same-host curl) connect directly (BITB-297).
+    if was_forwarded(request):
+        logger.warning("Proxied request to a local-only endpoint, denying access")
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: this endpoint is only accessible from local network",
+        )
 
-    # Allow FastAPI TestClient (used in tests)
-    # "testclient" is a special value that only comes from TestClient
-    if client_ip == "testclient":
-        logger.debug("TestClient detected, allowing access")
-        return
+    client_ip = resolve_client_ip(request)
 
-    # In debug mode, allow empty IPs (e.g., from test frameworks)
-    if settings.debug and not client_ip:
+    # In debug mode, allow an undeterminable IP (e.g., from test frameworks)
+    if settings.debug and client_ip == UNKNOWN:
         logger.debug("No client IP in debug mode, allowing access")
         return
 
-    if not client_ip:
+    if client_ip == UNKNOWN:
         logger.warning("Could not determine client IP, denying access")
         raise HTTPException(
             status_code=403,

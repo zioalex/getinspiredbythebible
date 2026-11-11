@@ -22,6 +22,11 @@ Prioritized list of user stories and features for Vox Quieta.
 
 - 2026-11-11: BITB-293 opened — 11-language safety golden set runner for a single moderation classifier (OpenAI Moderation first), follow-up of BITB-288 AC 2 (#1280)
 - 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#1280)
+- 2026-11-11: BITB-238 ✅ Done — status drift fixed: help-seeking/theological exemption shipped in #1249 (merged 2026-11-08) but the entry still read Todo (#1278)
+- 2026-11-11: BITB-239 ✅ Done — status drift fixed: it/fr/pt directed-harm recall shipped in #1261 (merged 2026-11-10); follow-up BITB-281 stays open (#1278)
+- 2026-11-11: BITB-289 🚧 In Progress — Llama Guard breaker admits a single half-open probe with exponential cooldown backoff (10s→60s), safety check capped at an 8s total budget with jittered secondary retry; production benchmark remains an owner step (#1278)
+- 2026-11-11: BITB-297 in review — one trusted-proxy client-IP resolver replaces three left-most-header copies; local-only gate rejects proxied requests; probe-gated request-chain endpoint; BITB-308 created (origin lock-down) (#1286)
+- 2026-11-11: BITB-296..307 created — verified project review (live + executed evidence) and improvement plan: chat-history validation, trusted client IP, endpoint rate limits, Arabic/Hindi share image, SEO fixes, topic pages, Bible chapter pages, verse of the day, runtime/model alignment, secrets inventory + restore drill, roadmap refresh, API hygiene (`docs/audits/2026-11-11-improvement-plan.md`) (#1284)
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -186,6 +191,64 @@ re-litigating a settled rule.
 ---
 
 ## P0 - Critical (Ship Now)
+
+### 🎯 BITB-296: Validate and Bound Client-Supplied Chat History
+
+**Status:** 🎯 Todo
+**Priority:** P0
+**Size:** S
+**Created:** 2026-11-11
+
+`ConversationMessage.role` is a free string forwarded to the LLM and history has no size limits: a request with `role: "system"` turns and a 1,000,000-character entry was accepted (reproduced 2026-11-11). Neither safety layer looks at history and there is no body-size limit.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Roles other than `user`/`assistant` → `422`; history trimmed to the last `max_conversation_history` entries; entries truncated to a configurable cap
+- [ ] Request bodies over 1 MiB → `413` before parsing, without buffering SSE
+- [ ] Long honest conversations (60 entries) still return `200`; integration tests through `chat()` and `chat_stream()`
+
+**Full Story:** [`BITB-296-chat-history-validation.md`](BACKLOG_STORIES/BITB-296-chat-history-validation.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🔍 BITB-297: Trusted Client IP — Close the Local-Only Bypass and Stop Keying Limits on a Forged Header
+
+**Status:** 🔍 In Review — built and independently verified; owner production checks pending
+**Follow-ups:** BITB-308 (origin lock-down)
+**Priority:** P0
+**Size:** M
+**Created:** 2026-11-11
+
+Live on 2026-11-11: `GET api.voxquieta.org/health` → `403`, the same request with `X-Forwarded-For: 127.0.0.1` → `200`. Three copies of the IP logic trust the left-most header entry, so the local-only gate and every per-IP rate limit are client-controlled; each bypassed health call makes paid LLM and embedding calls.
+
+**Acceptance Criteria (summary):**
+
+- [ ] One right-to-left resolver with a trusted-proxy list replaces all three copies; `testclient` special-case removed
+- [ ] Table-driven tests for Cloudflare, direct, overwritten-header, IPv6 and forged cases
+- [ ] Probe-gated `/admin/request-chain` endpoint; owner confirms the forged request returns `403` in production (also satisfies the trusted-proxy criterion on BITB-118/156)
+
+**Full Story:** [`BITB-297-trusted-client-ip.md`](BACKLOG_STORIES/BITB-297-trusted-client-ip.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-298: Rate-Limit Search, Feedback and Church Endpoints; Bound Their Inputs
+
+**Status:** 🎯 Todo
+**Priority:** P0
+**Size:** S
+**Created:** 2026-11-11
+
+`/scripture/search` (a paid embedding call per request), `/feedback`, `/feedback/contact` (sends email) and `/church/search` have no rate limit; feedback and contact text fields accepted 1,000,000 characters; the church proxy forges browser headers. `require_rate_limit` cannot be reused as-is because it would charge feedback against the chat session cap.
+
+**Acceptance Criteria (summary):**
+
+- [ ] New IP-only, per-scope limiter on the five routes; feedback never consumes chat session budget (regression test)
+- [ ] `max_length` on every text input; `q` capped at 200
+- [ ] Honest `User-Agent` on the church proxy; `/scripture/stats` cached
+
+**Full Story:** [`BITB-298-guard-cost-endpoints.md`](BACKLOG_STORIES/BITB-298-guard-cost-endpoints.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
 
 ### 🔍 BITB-255: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
 
@@ -362,6 +425,120 @@ positives on Bible queries. This unblocks it.
 
 ## P1 - High Priority (Next Sprint)
 
+### 🎯 BITB-299: Share Image — Arabic Returns 503, Hindi Is Mis-Shaped
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-11-11
+
+Live on 2026-11-11: `/ar/opengraph-image` → `503` (reproduced locally: the request-time renderer cannot process the Arabic font), and the Hindi tagline renders with broken conjuncts. Arabic links shared on messaging apps show no preview.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Share images pre-rendered with a browser engine and committed, one per locale; request-time rendering removed
+- [ ] Staleness test fails when a tagline changes without regenerating
+- [ ] Arabic and Hindi images checked by eye, screenshots in the PR
+
+**Full Story:** [`BITB-299-share-image-arabic-hindi.md`](BACKLOG_STORIES/BITB-299-share-image-arabic-hindi.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-300: SEO On-Page Fixes — Headings, Descriptions, Noindex, Localized 404, Honest Sitemap Dates
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-11-11
+
+Live check 2026-11-11: two brand-name `<h1>`s on the homepage, meta description identical to the title tagline, `/tester` indexable, English-only 404, one build timestamp on all 66 sitemap entries, bare `og:locale`, SVG logo in JSON-LD, 27 physical direction classes that do not mirror in Arabic.
+
+**Acceptance Criteria (summary):**
+
+- [ ] One descriptive `<h1>` per page and a distinct 120–155-character description in all 11 locales
+- [ ] `/tester` noindex; localized 404; sitemap dates from git; region-qualified `og:locale`; PNG logo; logical direction classes
+- [ ] Owner records the Search Console baseline and decides the Cloudflare AI-crawler setting
+
+**Full Story:** [`BITB-300-seo-on-page-fixes.md`](BACKLOG_STORIES/BITB-300-seo-on-page-fixes.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-301: Topic Landing Pages in 11 Languages ("Bible Verses About …")
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** L
+**Created:** 2026-11-11
+
+The live sitemap has 66 URLs and none contains scripture, so people searching for verses about anxiety, grief or hope cannot find the site. Twelve life topics already exist in the data model.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `/[locale]/topics` and 12 topic pages, server-rendered with verses in each locale's own translation (ISR, no build-time API access)
+- [ ] Curated, validated verse lists (all 13 translations, Psalm numbering checked); localized intros; "Talk about this" prefills the chat
+- [ ] Sitemap, hreflang, `ItemList` structured data; owner reviews the verse lists
+
+**Full Story:** [`BITB-301-topic-landing-pages.md`](BACKLOG_STORIES/BITB-301-topic-landing-pages.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-302: Server-Rendered Bible Chapter Pages (Verses Addressable by Anchor)
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** L
+**Created:** 2026-11-11
+
+403,856 verses across 13 translations exist only behind a client-side modal. Chapter pages make scripture linkable and indexable. The repo documents the licence of one translation only, so pages are gated by a per-translation allowlist that ships with KJV.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `/[locale]/bible`, `/[book]`, `/[book]/[chapter]` with `#vN` anchors, previous/next and "Ask about this chapter"
+- [ ] Allowlist enforced in routes, hreflang, navigation and a chunked sitemap index
+- [ ] Owner records each translation's licence in `docs/TRANSLATION_LICENCES.md` before enabling it
+
+**Full Story:** [`BITB-302-bible-chapter-pages.md`](BACKLOG_STORIES/BITB-302-bible-chapter-pages.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-304: Align the Python Runtime, Fix the Claude Model Configuration, Probe Configured Models
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-11-11
+
+Production runs Python 3.14 while every CI job and tool targets 3.12. `LLM_PROVIDER=claude` sends the Ollama default `llama3:8b` to Anthropic, and the documented Claude model was retired on 2026-06-15. `LLM_PROVIDER=openai` validates but cannot be built. Nothing warns when a configured model disappears.
+
+**Acceptance Criteria (summary):**
+
+- [ ] CI and Dockerfile on one Python version, with a test that fails if they diverge
+- [ ] Claude works with only an API key; `openai` rejected at start-up
+- [ ] Weekly model-existence probe; quarterly majors report
+
+**Full Story:** [`BITB-304-runtime-and-model-alignment.md`](BACKLOG_STORIES/BITB-304-runtime-and-model-alignment.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-305: Secrets-Expiry Inventory and Check, Database Restore Drill, Retirement Dates on Record
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-11
+
+No expiry date or owner is recorded for any credential (the release PAT has a one-year maximum life and stops releases when it lapses), no restore has been recorded, and the embedding-model retirement date is unknown. Builder part needs no secrets; the rest are owner steps.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `docs/secrets-inventory.yaml` (names and dates only) + weekly check failing 21 days before expiry, with a live header check for GitHub PATs
+- [ ] Restore-drill procedure and log table
+- [ ] Owner fills dates, runs the drill, confirms the budget alert, names a second admin or accepts the risk
+
+**Full Story:** [`BITB-305-secrets-inventory-and-restore-drill.md`](BACKLOG_STORIES/BITB-305-secrets-inventory-and-restore-drill.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
 ### 🔄 BITB-286: 2026-11-07→09 Session Cost Retrospective — $20.27/80 Sessions Ledger, $13 Durable Infra vs $4.5 Waste (Verifier Allowlist, Misdiagnosis, Reconciliation Tax, Free-Lane Routing); Fixes in This PR: Verifier Tool Allowlist, Falsification-First Rule, Free-Lane Routing, Session-Per-Incident, Resume-Over-Rebrief, Autoupdate Labels, Risk-Tiered Verification (+BITB-287 Tooling PR)
 
 **Status:** 🔄 In progress (protocol/config fixes in the same PR; tooling follow-ups in BITB-287)
@@ -502,9 +679,9 @@ BITB-272 slice 1 ships the ML failover, but it is a no-op in production until `O
 
 ---
 
-### 🎯 BITB-289: Re-benchmark Llama Guard Timeouts, Add Jittered Retry, Tune Breaker Half-Open
+### 🚧 BITB-289: Re-benchmark Llama Guard Timeouts, Add Jittered Retry, Tune Breaker Half-Open
 
-**Status:** 🎯 Todo
+**Status:** 🚧 In Progress
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-10
@@ -514,8 +691,8 @@ BITB-272 req. 3 and 4: primary 3 s / secondary 5 s timeouts come from a 2026-07 
 **Acceptance Criteria (summary):**
 
 - [ ] Fresh 100+ sample production benchmark of primary, secondary and OpenAI Moderation latency recorded in this story
-- [ ] Timeouts and one bounded retry with jitter set from measured p99, inside a hard overall cap for the safety check
-- [ ] Breaker thresholds and half-open probing reviewed so a short blip does not hold the keyword/failover path for the full open window; tests cover half-open recovery
+- [ ] Timeouts and one bounded retry with jitter set from measured p99, inside a hard overall cap for the safety check (slice 1: retry/jitter/8 s cap implemented with provisional values; final values pending benchmark)
+- [x] Breaker thresholds and half-open probing reviewed so a short blip does not hold the keyword/failover path for the full open window; tests cover half-open recovery (slice 1: single-probe half-open, 10 s→60 s backoff)
 
 **Full Story:** [`BITB-289-ml-safety-timeouts-retry-breaker-tuning.md`](BACKLOG_STORIES/BITB-289-ml-safety-timeouts-retry-breaker-tuning.md)
 
@@ -799,9 +976,9 @@ Follow-up to BITB-238: "I hope you're thinking about killing yourself" and "Is i
 
 Full story: [`BITB-266-directed-harm-taunt-pattern-gaps.md`](BACKLOG_STORIES/BITB-266-directed-harm-taunt-pattern-gaps.md)
 
-### 🎯 BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
+### ✅ BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — PR #1249, 2026-11-08
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
@@ -811,9 +988,9 @@ and "Why did Jesus have to go die on the cross?" are blocked as threats.
 
 Full story: [`BITB-238-stage1-english-help-seeking-kill-yourself.md`](BACKLOG_STORIES/BITB-238-stage1-english-help-seeking-kill-yourself.md)
 
-### 🔍 BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
+### ✅ BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
 
-**Status:** 🔍 In Review
+**Status:** ✅ Done — PR #1261, 2026-11-10
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
@@ -3676,6 +3853,82 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-308: Lock the Backend Origin to Cloudflare (No Direct Container Apps Access)
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-11
+
+BITB-297 follow-up: the Container Apps FQDN answers without Cloudflare, so a sender on a Cloudflare address (e.g. a Worker) is a trusted hop and may present a forged public client address to dodge per-IP limits. It cannot pass the local-only gate. Fix is origin lock-down (mTLS or a zone secret).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Direct requests to the FQDN that did not pass the project's Cloudflare zone are rejected
+- [ ] Monitors that call the FQDN keep working
+- [ ] Residual-risk note removed from `docs/SECURITY.md`
+
+**Full Story:** [`BITB-308-origin-lockdown-cloudflare-only.md`](BACKLOG_STORIES/BITB-308-origin-lockdown-cloudflare-only.md)
+
+---
+
+### 🎯 BITB-303: Verse of the Day — Page, Dated Archive and Feed
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-11
+
+Nothing on the site changes from day to day and the "daily" in the tagline is not backed by anything. A committed 366-verse schedule gives a daily page in 11 languages with no model cost and a URL future notifications can open.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Today's page, dated archive (no future dates), RSS feed, homepage line
+- [ ] All 366 references validated in all 13 translations; UTC rollover tested
+- [ ] Owner reviews the list
+
+**Full Story:** [`BITB-303-verse-of-the-day.md`](BACKLOG_STORIES/BITB-303-verse-of-the-day.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-306: Refresh the Roadmap, Archive Completed Backlog Entries, Unstick the Audit Trend
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-11
+
+`docs/ROADMAP.md` was last updated 2026-02-23; `docs/BACKLOG.md` is 7,623 lines with completed stories mixed into the priority sections; the audit trend has shown the 2026-07-05 snapshot for four months although its workflow succeeds.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Roadmap rewritten around the 2026-11-11 plan
+- [ ] Done and cancelled entries moved verbatim to `docs/BACKLOG_DONE.md`; story-ID check still passes
+- [ ] Audit-metrics snapshot refreshed or the blocker documented
+
+**Full Story:** [`BITB-306-roadmap-refresh-and-backlog-archive.md`](BACKLOG_STORIES/BITB-306-roadmap-refresh-and-backlog-archive.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-307: Trim `/config`, Stop Leaking Upstream Errors, Drop the Session Metric Label, Tighten CORS
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-11
+
+Public `/config` names the providers and models; the provider error handler returns the upstream exception text; a client-chosen `session_id` is a metric label (unbounded cardinality); production CORS allows credentials, `*` methods/headers and localhost origins.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `/config` limited to what shipped clients read (snapshot test); detail behind the probe secret
+- [ ] Generic upstream error body; session label removed
+- [ ] CORS methods/headers explicit; localhost only in debug or by flag; local and CI stacks keep working
+
+**Full Story:** [`BITB-307-info-disclosure-and-telemetry-hygiene.md`](BACKLOG_STORIES/BITB-307-info-disclosure-and-telemetry-hygiene.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
 
 ### 🔄 BITB-287: Process & Cost Tooling — BACKLOG union merge driver, registry cost telemetry, budget guardrail
 
