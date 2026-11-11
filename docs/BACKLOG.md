@@ -520,7 +520,7 @@ BITB-272 req. 3 and 4: primary 3 s / secondary 5 s timeouts come from a 2026-07 
 
 ---
 
-### 🎯 BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
+### 🔍 BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
 
 **Status:** 🔍 In Review (2026-11-11)
 **Priority:** P1
