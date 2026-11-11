@@ -20,7 +20,9 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-11-11: BITB-289 🚧 In Progress — Llama Guard breaker admits a single half-open probe with exponential cooldown backoff (10s→60s), safety check capped at an 8s total budget with jittered secondary retry; production benchmark remains an owner step
+- 2026-11-11: BITB-238 ✅ Done — status drift fixed: help-seeking/theological exemption shipped in #1249 (merged 2026-11-08) but the entry still read Todo (#1278)
+- 2026-11-11: BITB-239 ✅ Done — status drift fixed: it/fr/pt directed-harm recall shipped in #1261 (merged 2026-11-10); follow-up BITB-281 stays open (#1278)
+- 2026-11-11: BITB-289 🚧 In Progress — Llama Guard breaker admits a single half-open probe with exponential cooldown backoff (10s→60s), safety check capped at an 8s total budget with jittered secondary retry; production benchmark remains an owner step (#1278)
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -779,9 +781,9 @@ Follow-up to BITB-238: "I hope you're thinking about killing yourself" and "Is i
 
 Full story: [`BITB-266-directed-harm-taunt-pattern-gaps.md`](BACKLOG_STORIES/BITB-266-directed-harm-taunt-pattern-gaps.md)
 
-### 🎯 BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
+### ✅ BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 
-**Status:** 🎯 Todo
+**Status:** ✅ Done — PR #1249, 2026-11-08
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
@@ -791,9 +793,9 @@ and "Why did Jesus have to go die on the cross?" are blocked as threats.
 
 Full story: [`BITB-238-stage1-english-help-seeking-kill-yourself.md`](BACKLOG_STORIES/BITB-238-stage1-english-help-seeking-kill-yourself.md)
 
-### 🔍 BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
+### ✅ BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
 
-**Status:** 🔍 In Review
+**Status:** ✅ Done — PR #1261, 2026-11-10
 **Priority:** P2
 **Size:** S
 **Created:** 2026-10-24
