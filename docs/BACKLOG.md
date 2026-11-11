@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-11
 
 ## Changelog
 
@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-11: BITB-294 opened — provision Azure Content Safety in prod + enable the openai_moderation,azure chain (BITB-292 follow-up)
+- 2026-11-11: BITB-292 🔍 In Review — ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN, e.g. openai_moderation,azure): Azure Content Safety tried after OpenAI Moderation, keyword fallback only when every configured classifier failed, per-hop failover_total labels
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -557,9 +559,9 @@ BITB-272 req. 6: an outage of Llama Guard or the failover is currently found onl
 
 ---
 
-### 🎯 BITB-292: Azure Content Safety as an Ordered Second ML Failover
+### 🔍 BITB-292: Azure Content Safety as an Ordered Second ML Failover
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-10
@@ -568,11 +570,32 @@ BITB-272 slice 1 fails over only to OpenAI Moderation. If both OpenRouter and Op
 
 **Acceptance Criteria (summary):**
 
-- [ ] Configurable ordered failover list for `ml_only` (e.g. `openai_moderation,azure`), default unchanged
-- [ ] Azure is tried only after OpenAI Moderation fails; keyword fallback only when every configured classifier failed; unit + integration tests across the 11 languages
-- [ ] Metrics reuse `content_safety.failover_total` with a `to_stage` label per hop
+- [x] Configurable ordered failover list for `ml_only` (e.g. `openai_moderation,azure`), default unchanged
+- [x] Azure is tried only after OpenAI Moderation fails; keyword fallback only when every configured classifier failed; unit + integration tests across the 11 languages
+- [x] Metrics reuse `content_safety.failover_total` with a `to_stage` label per hop
+
+**Follow-ups:** BITB-294 (prod provisioning + chain enablement)
 
 **Full Story:** [`BITB-292-azure-content-safety-second-failover.md`](BACKLOG_STORIES/BITB-292-azure-content-safety-second-failover.md)
+
+---
+
+### 🎯 BITB-294: Provision Azure Content Safety in Production and Enable the `openai_moderation,azure` Chain
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-11
+
+BITB-292 ships the Azure failover hop in code, but Terraform provisions no Content Safety resource and wires none of the Azure/chain env vars, so prod always skips the hop (BITB-288-shaped gap).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Terraform Content Safety resource + endpoint/key/timeout/chain env wiring
+- [ ] Golden-set check of Azure verdicts across 11 languages (self-harm-only → help-seeking)
+- [ ] Owner step: apply + verify a forced double outage takes the Azure hop
+
+**Full Story:** [`BITB-294-provision-azure-content-safety-prod-chain.md`](BACKLOG_STORIES/BITB-294-provision-azure-content-safety-prod-chain.md)
 
 ---
 
