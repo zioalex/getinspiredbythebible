@@ -465,7 +465,7 @@ _DH_KYS = r"\bkys\b"
 _DH_WISH_TAUNT = (
     r"\b(?:hope|wish)\s+(?:that\s+)?" + _DH_YOU + r"(?:'re|re|r|\s+are|\s+were|\s+r)?\s+"
     r"(?:(?:thinking|think)\s+about\s+|considering\s+|consider\s+|going\s+to\s+|gonna\s+|"
-    r"start\s+|try\s+|end\s+up\s+)?kill(?:ing)?\s+" + _DH_YOURSELF + r"\b(?!\s+laughing)"
+    r"start\s+|try\s+|end\s+up\s+)?kill(?:ing)?\s+" + _DH_YOURSELF + r"\b(?!\s+(?:laughing|slowly))"
 )
 # Imperative at a clause start; a question mark later in the clause (hotline / rhetorical
 # wording) exempts it, and so do the overwork / mortification idioms ("keep killing yourself at
@@ -477,8 +477,8 @@ _DH_IMPERATIVE_TAUNT = (
     + "[(\\[（「“\"']*"
     + r"(?:(?:just|so|then|now|go)\s+)?(?:start|keep|try|consider)\s+"
     + r"(?:thinking\s+about\s+)?killing\s+(?:yourself|urself)\b(?![^.!\n]*\?)"
-    + r"(?!\s+(?:with|at|over|for|from|trying|working|less|daily|laughing|"
-    r"to\s+(?:sin|self|the\s+(?:flesh|world))))"
+    + r"(?!\s+(?:with|at|over|for|from|trying|working|less|daily|laughing|slowly|dead|"
+    r"to\s+(?:sin|self|the\s+(?:flesh|world|old))))"
 )
 # "you should, loser". `(?:\s*,\s*|\s+)` (not `\s*,?\s*`) keeps it linear on whitespace runs;
 # insults that double as ordinary verbs (trash, freak, clown) are left out.

@@ -481,6 +481,9 @@ BITB266_CLEAN = [
     "Consider killing yourself to sin, as Paul says in Romans 6.",
     "Then start killing yourself to sin daily.",
     "I hope you're killing yourself laughing at this sermon",
+    "I hope you're killing yourself slowly with that diet lol",
+    "Consider killing yourself to the old self (Col 3:5)",
+    "So consider killing yourself dead to sin",
     # caring / explanatory wishes
     "I hope you realize killing yourself would devastate your family",
     "I wish you knew how killing yourself hurts the people who love you",
