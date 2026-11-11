@@ -449,6 +449,42 @@ _DH_PT_DIE_TO = (
     r"(?:pecado|cristo|jesus|mundo|carne|si\s+mesm|voc[êe]\s+mesm|ti\s+mesm))"
 )
 
+# BITB-266: English directed-harm taunts the original three-phrase table missed. All run under
+# every language code (BITB-193). Help-seeking frames ("Is it a sin to think about killing
+# yourself?") never match: the slang forms exclude plain "yourself", the wish / imperative
+# forms need a hostile lead-in, and negated wishes ("I hope you never ...") are rejected.
+_DH_SLANG_KILL = r"\bkill(?:ing)?\s+(?:urself|ur\s+self|yoself|yo\s+self)\b"
+_DH_KYS = r"\bkys\b"
+_DH_WISH_SUBJ = r"(?:i\s+)?(?:hope|wish)\s+(?:that\s+)?(?:you|u|you're|youre|you\s+are|ur)\b"
+_DH_WISH_NEG = (
+    r"(?![^.!?\n]{0,40}?(?:\bnever\b|\bnot\b|n't|\bdont\b|\bwont\b|\bstop\b|"
+    r"\bno\s+longer\b|\bnobody\b|\bno\s+one\b))"
+)
+_DH_WISH_TAUNT = (
+    _DH_WISH_SUBJ
+    + _DH_WISH_NEG
+    + r"[^.!?\n]{0,40}?\bkill(?:ing)?\s+(?:yourself|urself|ur\s+self)\b"
+)
+_DH_IMPERATIVE_TAUNT = (
+    _DH_START
+    + "[(\\[\uff08\u300c\u201c\"']*"
+    + r"(?:(?:just|so|then|now|go)\s+)?(?:start|keep|try|go|consider)\s+"
+    + r"(?:thinking\s+about\s+|on\s+)?killing\s+(?:yourself|urself)\b"
+)
+_DH_SHOULD_INSULT = (
+    r"\byou\s+should(?:\s+(?:just|really))?(?:\s+(?:do\s+it|go\s+(?:ahead|for\s+it)|go))?"
+    r"\s*,?\s*(?:you\s+)?(?:loser|idiot|moron|freak|scum|trash|retard\w*|bitch|coward|"
+    r"worthless|pathetic|clown)\b"
+)
+# Bare "You should." / "You should just do it!" only counts after a death reference in the
+# same message; a context-free "you should do it" is ordinary advice and stays allowed.
+_DH_SHOULD_DEATH_CTX = (
+    r"\b(?:kill\w*|suicid\w*|die|dying|end\s+(?:it|your\s+life))\b[^\n]{0,80}?[.!?]\s*"
+    r"you\s+should(?:\s+just)?(?:\s+(?:do\s+it|go\s+ahead|go\s+for\s+it))?"
+    r"(?=\s*(?:[!.]|$))"
+)
+
+
 # BITB-238: English help-seeking / theological exemptions for the directed-harm table.
 # The English patterns ("kill yourself", "go die", "you should die") run under every language
 # code (BITB-193), so questions like "Is it a sin to kill yourself?" or "Why did Jesus have to go
@@ -1840,6 +1876,13 @@ class MultiLanguageContentFilter:
             r"\bi\s+will\s+kill\s+you\b",
             r"\bi\s+want\s+to\s+kill\s+you\b",
             r"\bgo\s+fuck\s+yourself\b",
+            # BITB-266
+            _DH_SLANG_KILL,
+            _DH_KYS,
+            _DH_WISH_TAUNT,
+            _DH_IMPERATIVE_TAUNT,
+            _DH_SHOULD_INSULT,
+            _DH_SHOULD_DEATH_CTX,
         ],
         "it": [
             r"\bvattene a fanculo\b",

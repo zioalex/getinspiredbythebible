@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-10
+**Last Updated:** 2026-11-11
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-11: BITB-266 🔍 In Review — English directed-harm table blocks "killing yourself"/kys/"you should" taunts in Stage 1 and the keyword fallback, help-seeking frames stay allowed
 - 2026-11-09: BITB-287 in progress — process & cost tooling: BACKLOG.md union merge driver for auto-resolving changelog append conflicts, registry cost telemetry (per-dispatch tokens/cost in child registry lines), budget guardrail (make check-llm-budget with OpenRouter credits check) (#1275)
 - 2026-11-09: BITB-286 in progress — 2026-11-07→09 session cost retrospective: $20.27/80 sessions ledger, $13 durable infra vs $4.5 waste (verifier tool allowlist, misdiagnosis, reconciliation tax, free-lane routing); fixes in this PR: verifier tool allowlist, falsification-first rule, free-lane routing, session-per-incident, resume-over-rebrief, autoupdate labels, risk-tiered verification (+BITB-287 tooling PR) (#1275)
 - 2026-11-09: BITB-239 🔍 In Review — it/fr/pt directed-harm recall restored ("adesso muori!", "Crève charogne", "morra seu idiota", "que tu vas crever"); "die to sin" wording (muoia in Cristo / morra para o pecado) unblocked (#1261)
@@ -767,14 +768,16 @@ are anchored to remove cross-language false positives, and pt "Quero que eu morr
 
 Full story: [`BITB-193-stage1-directed-harm-any-language.md`](BACKLOG_STORIES/BITB-193-stage1-directed-harm-any-language.md)
 
-### 🎯 BITB-266: Directed-Harm Patterns Miss "Killing Yourself" Taunts and "You Should" Wishes
+### 🔍 BITB-266: Directed-Harm Patterns Miss "Killing Yourself" Taunts and "You Should" Wishes
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P2
 **Size:** S
 **Created:** 2026-11-04
 
 Follow-up to BITB-238: "I hope you're thinking about killing yourself" and "Is it a sin? You should, loser." match no directed-harm pattern.
+
+Resolution: English table now blocks `killing urself`/`kys`, negation-guarded `I hope you ... killing yourself`, `start thinking about killing yourself`, and `you should` taunts (insult tail or after a death reference); help-seeking frames stay allowed. Tests across 11 language codes.
 
 Full story: [`BITB-266-directed-harm-taunt-pattern-gaps.md`](BACKLOG_STORIES/BITB-266-directed-harm-taunt-pattern-gaps.md)
 
