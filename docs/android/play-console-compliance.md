@@ -28,9 +28,12 @@ human with Play Console access:
 
 - [x] **Data safety form** (Play Console → App content → Data safety):
   update to reflect that chat message text is shared with third-party AI
-  processors (OpenRouter, Azure OpenAI) for the purpose of generating and
+  processors (OpenRouter, Azure OpenAI, OpenAI) for the purpose of generating and
   safety-screening responses. Confirm the "Location" section still correctly
   states no location data is collected.
+  BITB-309 added OpenAI (Moderation API, used only as the content-safety
+  fallback when Llama Guard is unavailable; up to 30 days abuse-monitoring
+  retention) — re-check that the Data safety form lists it.
 - [x] **Content rating questionnaire** (Play Console → App content → Content
   rating): re-confirm the IARC questionnaire is complete. Google's July 2026
   update states unrated apps are no longer allowed on Play.
