@@ -23,7 +23,7 @@ copy-pasteable, timestamped log:
 
 1. **(a) Obtain token → POST succeeds** — waits up to 5s for the widget, attaches
    the token as `X-Turnstile-Token`, POSTs to the configured URL (default:
-   production `https://voxquieta.org/api/v1/chat`), logs the status.
+   production `https://api.voxquieta.org/api/v1/chat`), logs the status.
 2. **(b) Single-use** — re-attaches the *last* attached token (kept for this test);
    Cloudflare must reject it (`timeout-or-duplicate` → expect 403).
 3. **(c) Force 403 → reset → exactly one retry** — sends a deliberately stale token,
@@ -41,8 +41,9 @@ copy-pasteable, timestamped log:
 2. In the simulator/device toolbar pick your physical iPhone (iOS 17+),
    **Signing & Capabilities → set your Team** (automatic signing; the bundle id
    is `org.voxquieta.ios.turnstileprobe`).
-3. Get the production site key from `https://voxquieta.org/config`
-   (`turnstile_site_key`), paste it into the app's **site key** field (a
+3. Get the production site key from `https://api.voxquieta.org/config`
+   (`security.turnstile_site_key`, e.g.
+   `curl -sS https://api.voxquieta.org/config | jq .security`), paste it into the app's **site key** field (a
    placeholder key ships in `ProbeConfig.swift` for convenience).
 4. Press Cmd+R on the physical iPhone. (Simulator runs do NOT satisfy the gate —
    the doc requires a physical device.)
