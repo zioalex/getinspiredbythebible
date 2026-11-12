@@ -208,6 +208,7 @@ def _settings_for_general_stream(mock_settings, *, follow_ups_enabled: bool):
     mock_settings.llm_temperature = 0.7
     mock_settings.llm_max_tokens = 1024
     mock_settings.max_conversation_history = 10
+    mock_settings.max_history_message_length = 8000  # BITB-296: read by ConversationMessage
     mock_settings.max_context_verses = 10
     mock_settings.chat_follow_ups_enabled = follow_ups_enabled
     mock_settings.chat_clarification_enabled = False
