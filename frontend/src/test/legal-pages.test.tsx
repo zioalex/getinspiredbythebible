@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import enMessages from "../../messages/en.json";
 
@@ -115,4 +115,51 @@ describe("Localized legal documents", () => {
       );
     });
   }
+});
+
+// BITB-309: the policy must name OpenAI (moderation fallback) and state its
+// 30-day abuse-monitoring retention honestly, in every language.
+describe("privacy policy discloses OpenAI moderation (BITB-309)", () => {
+  const allLocales = ["en", ...nonEnglishLocales];
+  const OPENAI_URL = "https://openai.com/enterprise-privacy/";
+
+  for (const locale of allLocales) {
+    const file =
+      locale === "en" ? "privacy-policy.md" : `privacy-policy.${locale}.md`;
+    const raw = readFileSync(join(legalDir, file), "utf8");
+
+    describe(locale, () => {
+      it("has lastUpdated >= 2026-11-11", () => {
+        const m = raw.match(/^lastUpdated:\s*(\d{4}-\d{2}-\d{2})\s*$/m);
+        expect(m).not.toBeNull();
+        expect(m![1] >= "2026-11-11").toBe(true);
+      });
+
+      it("links OpenAI privacy page in prose and table", () => {
+        expect(raw.split(OPENAI_URL).length - 1).toBeGreaterThanOrEqual(2);
+      });
+
+      it("still links OpenRouter and Microsoft", () => {
+        expect(raw).toContain("https://openrouter.ai/privacy");
+        expect(raw).toContain("https://privacy.microsoft.com");
+      });
+
+      it("states the 30-day retention in the paragraph with the OpenAI link", () => {
+        const paragraph = raw
+          .split(/\n\s*\n/)
+          .find((p) => p.includes(OPENAI_URL) && !p.startsWith("|"));
+        expect(paragraph).toBeDefined();
+        expect(paragraph).toContain("30");
+      });
+
+      it("has an OpenAI row in the third-party table", () => {
+        expect(raw).toMatch(/^\|\s*OpenAI\s*\|/m);
+      });
+    });
+  }
+
+  it("en: the old blanket no-retention claim is gone", () => {
+    const raw = readFileSync(join(legalDir, "privacy-policy.md"), "utf8");
+    expect(raw).not.toContain("not retained by the provider beyond");
+  });
 });
