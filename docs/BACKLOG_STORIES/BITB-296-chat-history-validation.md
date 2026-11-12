@@ -122,8 +122,13 @@ the fix must not start rejecting long, honest conversations.
   clarification check only needs zero versus non-zero.
 - **A bad role in an entry that is trimmed away is not rejected** — it never reaches the
   model. A bad role inside the kept window is a `422`.
-- The web client shows its generic error for a `413` (not a misleading one), so neither
-  client was changed.
+- **The web client now sends only the last 20 history messages** (`recentHistory` in
+  `frontend/src/lib/api.ts`), as Android already did (`takeLast(20)`). Independent
+  verification found that the web client sent the whole thread, so a very long honest
+  conversation (roughly 170–250 exchanges of multi-byte text) would pass 1 MiB and then
+  get a `413` on every turn. The backend reads at most the last 10, so nothing is lost.
+- The web client shows its generic error for a `413` (not a misleading one), so no `413`
+  branch was added. Android is unchanged.
 
 ## Out of scope
 

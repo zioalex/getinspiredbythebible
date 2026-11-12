@@ -355,6 +355,21 @@ export interface Message {
   follow_ups?: string[];
 }
 
+/**
+ * BITB-296: how many history messages a chat request carries. The backend only ever
+ * reads the last `max_conversation_history` (10) and rejects bodies over 1 MiB with a
+ * 413, so sending the whole thread would make a very long conversation fail on every
+ * turn. Matches the Android cap (`ChatViewModel.kt`, `takeLast(20)`).
+ */
+export const MAX_HISTORY_MESSAGES_SENT = 20;
+
+/** The most recent history messages to send with a chat request (BITB-296). */
+export function recentHistory(history: Message[]): Message[] {
+  return history.length > MAX_HISTORY_MESSAGES_SENT
+    ? history.slice(-MAX_HISTORY_MESSAGES_SENT)
+    : history;
+}
+
 export interface Verse {
   reference: string;
   text: string;
@@ -554,7 +569,7 @@ export async function sendMessage(
       `${API_URL}/api/v1/chat`,
       {
         message,
-        conversation_history: history,
+        conversation_history: recentHistory(history),
         include_search: true,
         preferred_translation: preferredTranslation,
         session_id: sessionId,
@@ -701,7 +716,7 @@ export async function* streamMessage(
     headers,
     body: JSON.stringify({
       message,
-      conversation_history: history,
+      conversation_history: recentHistory(history),
       include_search: true,
       preferred_translation: preferredTranslation,
       session_id: sessionId,
@@ -723,7 +738,7 @@ export async function* streamMessage(
         headers: retryHeaders,
         body: JSON.stringify({
           message,
-          conversation_history: history,
+          conversation_history: recentHistory(history),
           include_search: true,
           preferred_translation: preferredTranslation,
           session_id: sessionId,
