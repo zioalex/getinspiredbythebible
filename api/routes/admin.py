@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from reports.weekly_report import build_weekly_report, render_html, render_text
 from scripture import check_translation_coverage, get_db_session
+from utils.client_ip import describe_request_chain
 from utils.email_service import email_service
 from utils.logging_config import get_logger
 from utils.monitor_probe import is_monitor_probe
@@ -90,3 +91,16 @@ async def get_translation_coverage(
             for u in unusable
         ],
     }
+
+
+@router.get("/request-chain", include_in_schema=False)
+async def get_request_chain(request: Request):
+    """Show the proxy chain this process sees for the calling request (BITB-297).
+
+    Lets the owner confirm the real ingress behaviour in production and tune
+    ``TRUSTED_PROXY_CIDRS``. Guarded by the monitor-probe shared secret
+    (``X-Monitor-Probe-Secret``); fail-closed (401) when unset.
+    """
+    if not is_monitor_probe(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return describe_request_chain(request)

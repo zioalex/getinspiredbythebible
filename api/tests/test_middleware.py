@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from main import app
 
 client = TestClient(app)
+local_client = TestClient(app, client=("127.0.0.1", 50000))  # /health is local-only (BITB-297)
 
 
 class TestCorrelationIDMiddleware:
@@ -31,7 +32,7 @@ class TestCorrelationIDMiddleware:
 
     def test_generated_request_id_in_response(self):
         """When no X-Request-ID sent, response should have UUID in X-Request-ID header."""
-        response = client.get("/health")
+        response = local_client.get("/health")
 
         # Should have X-Request-ID header
         assert "x-request-id" in response.headers
@@ -46,7 +47,7 @@ class TestCorrelationIDMiddleware:
     def test_client_request_id_preserved(self):
         """When client sends X-Request-ID, same value should appear in response."""
         client_request_id = "test-request-123"
-        response = client.get("/health", headers={"X-Request-ID": client_request_id})
+        response = local_client.get("/health", headers={"X-Request-ID": client_request_id})
 
         # Should have X-Request-ID header with the same value
         assert "x-request-id" in response.headers
@@ -54,7 +55,7 @@ class TestCorrelationIDMiddleware:
 
     def test_request_id_is_valid_uuid(self):
         """Generated request ID should be a valid UUID v4 format."""
-        response = client.get("/health")
+        response = local_client.get("/health")
 
         request_id = response.headers["x-request-id"]
 
@@ -83,8 +84,8 @@ class TestCorrelationIDMiddleware:
 
     def test_different_requests_get_different_ids(self):
         """Two separate requests should get different request IDs."""
-        response1 = client.get("/health")
-        response2 = client.get("/health")
+        response1 = local_client.get("/health")
+        response2 = local_client.get("/health")
 
         request_id1 = response1.headers["x-request-id"]
         request_id2 = response2.headers["x-request-id"]
@@ -105,7 +106,7 @@ class TestCorrelationIDMiddleware:
         test_request_id = "test-log-request-456"
 
         with caplog.at_level("DEBUG"):
-            response = client.get("/health", headers={"X-Request-ID": test_request_id})
+            response = local_client.get("/health", headers={"X-Request-ID": test_request_id})
 
         # Should have successful response
         assert response.status_code in [200, 503]  # Healthy or degraded
@@ -149,7 +150,7 @@ class TestCorrelationIDMiddleware:
         assert initial_value == ""
 
         # Make a request
-        response = client.get("/health")
+        response = local_client.get("/health")
         assert response.status_code in [200, 503]
 
         # After request, context var should be cleaned up (back to empty)
@@ -167,7 +168,7 @@ class TestCorrelationIDMiddleware:
         ]
 
         for custom_id in custom_ids:
-            response = client.get("/health", headers={"X-Request-ID": custom_id})
+            response = local_client.get("/health", headers={"X-Request-ID": custom_id})
 
             # Should preserve the custom ID exactly
             assert response.headers["x-request-id"] == custom_id

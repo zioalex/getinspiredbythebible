@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-03
+lastUpdated: 2026-11-11
 ---
 
 # Política de Privacidade
 
 > _Esta tradução foi gerada por inteligência artificial e é fornecida apenas como conveniência. Em caso de omissão, ambiguidade ou contradição com o original em inglês, prevalece a versão em inglês, que é a canônica._
 
-Última atualização: 3 de novembro de 2026
+Última atualização: 11 de novembro de 2026
 
 ## Quem somos
 
@@ -25,8 +25,9 @@ Para responder às suas perguntas, nossa API envia o texto da sua mensagem aos s
 
 - **OpenRouter** — recebe o texto da sua mensagem para gerar a resposta baseada nas Escrituras (geração por modelo de linguagem) e para verificar a segurança das mensagens (verificação de segurança de conteúdo Llama Guard).
 - **Azure OpenAI (Microsoft)** — recebe o texto da sua mensagem para calcular os embeddings de texto usados para encontrar as passagens bíblicas mais relevantes.
+- **OpenAI** — recebe o texto da sua mensagem apenas quando a nossa verificação de segurança principal (Llama Guard) está temporariamente indisponível, para verificar a sua segurança (OpenAI Moderation).
 
-O texto da sua mensagem é usado por esses provedores **exclusivamente** para gerar ou verificar a segurança da resposta àquela mensagem. Ele não é usado por nós — nem, conforme os termos de API de cada provedor, pelo provedor — para treinar seus modelos de IA de uso geral, não é retido pelo provedor além do necessário para atender à solicitação e nunca é usado para publicidade nem vendido. Consulte a [política de privacidade da OpenRouter](https://openrouter.ai/privacy) e a [declaração de privacidade da Microsoft](https://privacy.microsoft.com) para conhecer as práticas de tratamento de dados de cada provedor.
+O texto da sua mensagem é usado por esses provedores **exclusivamente** para gerar ou verificar a segurança da resposta àquela mensagem. Ele não é usado por nós — nem, conforme os termos de API de cada provedor, pelo provedor — para treinar seus modelos de IA de uso geral e nunca é usado para publicidade nem vendido. Cada provedor pode retê-lo segundo seus próprios termos de tratamento de dados: a OpenAI mantém o texto das mensagens que recebe por até 30 dias para monitoramento de abusos e, depois disso, o exclui, salvo se a lei exigir de outra forma. Consulte a [política de privacidade da OpenRouter](https://openrouter.ai/privacy), a [declaração de privacidade da Microsoft](https://privacy.microsoft.com) e os [compromissos de privacidade de dados da API da OpenAI](https://openai.com/enterprise-privacy/) para conhecer as práticas de tratamento de dados de cada provedor.
 
 ### Dados coletados automaticamente
 
@@ -52,12 +53,13 @@ Você pode visualizar, renomear, excluir ou limpar esse histórico a qualquer mo
 
 ## Serviços de terceiros
 
-| Serviço                       | Finalidade                                                        | Política de Privacidade                                            |
-| ----------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Firebase Crashlytics (Google) | Relatórios de falhas                                              | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google)   | Análises de uso anonimizadas                                      | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| OpenRouter                    | Geração de respostas de IA e verificação de segurança de conteúdo | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
-| Azure OpenAI (Microsoft)      | Embeddings de texto para busca de passagens bíblicas              | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+| Serviço                       | Finalidade                                                                                                 | Política de Privacidade                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Firebase Crashlytics (Google) | Relatórios de falhas                                                                                       | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| Firebase Analytics (Google)   | Análises de uso anonimizadas                                                                               | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| OpenRouter                    | Geração de respostas de IA e verificação de segurança de conteúdo                                          | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
+| Azure OpenAI (Microsoft)      | Embeddings de texto para busca de passagens bíblicas                                                       | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
+| OpenAI                        | Verificação de segurança de conteúdo de reserva (somente quando a verificação principal está indisponível) | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
 
 ## Leitura em voz alta
 
@@ -100,7 +102,7 @@ Se você estiver no Espaço Econômico Europeu, tem o direito de:
 - solicitar a exclusão de seus dados,
 - opor-se ao processamento de seus dados.
 
-Como não coletamos informações de identificação pessoal, a maioria das solicitações pode ser atendida limpando seu histórico de conversas local no aplicativo. Para dados de falhas/análises mantidos pelo Google, consulte os controles de privacidade do Google em [myaccount.google.com](https://myaccount.google.com). Para dados tratados por nossos provedores de IA, consulte as políticas de privacidade da OpenRouter e da Microsoft indicadas acima.
+Como não coletamos informações de identificação pessoal, a maioria das solicitações pode ser atendida limpando seu histórico de conversas local no aplicativo. Para dados de falhas/análises mantidos pelo Google, consulte os controles de privacidade do Google em [myaccount.google.com](https://myaccount.google.com). Para dados tratados por nossos provedores de IA, consulte as políticas de privacidade da OpenRouter, da Microsoft e da OpenAI indicadas acima.
 
 Para quaisquer dúvidas sobre privacidade, entre em contato conosco em: **<privacy@voxquieta.org>**
 

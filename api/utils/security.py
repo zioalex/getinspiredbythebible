@@ -19,6 +19,7 @@ from fastapi import Depends, HTTPException, Request
 from config import settings
 
 from . import translation_registry as tr
+from .client_ip import resolve_client_ip
 from .logging_config import get_logger
 from .monitor_probe import is_monitor_probe
 from .rate_limiter import get_rate_limiter
@@ -178,23 +179,8 @@ def get_content_filter() -> ContentFilter:
 
 
 def get_client_ip(request: Request) -> str:
-    """Extract client IP from request, handling proxies."""
-    # Check X-Forwarded-For header (set by proxies/load balancers)
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        # Take the first IP (original client)
-        return str(forwarded).split(",")[0].strip()
-
-    # Check X-Real-IP header (nginx)
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return str(real_ip).strip()
-
-    # Fallback to direct client IP
-    if request.client:
-        return str(request.client.host)
-
-    return "unknown"
+    """Client IP resolved through the trusted-proxy chain (see utils/client_ip.py)."""
+    return resolve_client_ip(request)
 
 
 async def require_rate_limit(request: Request) -> None:
