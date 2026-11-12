@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-12
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-12: BITB-296 🔍 In Review — history roles limited to user/assistant (422), history trimmed to the last 10 entries and each entry truncated to 8000 characters, pure-ASGI 1 MiB body guard answers 413 without buffering SSE (#1289)
 - 2026-11-11: BITB-309 🔍 In Review — privacy policy (11 languages) discloses OpenAI Moderation as the safety-check fallback and states OpenAI's 30-day abuse-monitoring retention; must merge before BITB-288 (#1280)
 - 2026-11-11: BITB-238 ✅ Done — status drift fixed: help-seeking/theological exemption shipped in #1249 (merged 2026-11-08) but the entry still read Todo (#1278)
 - 2026-11-11: BITB-239 ✅ Done — status drift fixed: it/fr/pt directed-harm recall shipped in #1261 (merged 2026-11-10); follow-up BITB-281 stays open (#1278)
@@ -191,9 +192,9 @@ re-litigating a settled rule.
 
 ## P0 - Critical (Ship Now)
 
-### 🎯 BITB-296: Validate and Bound Client-Supplied Chat History
+### 🔍 BITB-296: Validate and Bound Client-Supplied Chat History
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (PR #1289)
 **Priority:** P0
 **Size:** S
 **Created:** 2026-11-11
