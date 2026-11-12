@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-03
+lastUpdated: 2026-11-11
 ---
 
 # 개인정보 처리방침
 
 > _이 번역문은 인공지능에 의해 생성되었으며 편의 제공을 위한 것입니다. 누락, 모호함 또는 영어 원본과의 불일치가 있는 경우 영어 원본이 정본이며 우선합니다._
 
-최종 수정일: 2026년 11월 3일
+최종 수정일: 2026년 11월 11일
 
 ## 소개
 
@@ -25,8 +25,9 @@ Vox Quieta(이하 "당사", "우리")는 무료 성경 영감 앱입니다. 당�
 
 - **OpenRouter** — 성경 말씀에 기반한 응답 생성(대규모 언어 모델 완성) 및 메시지 안전성 검사(Llama Guard 콘텐츠 안전성 검사)를 위해 메시지 텍스트를 수신합니다.
 - **Azure OpenAI (Microsoft)** — 가장 관련성 높은 성경 구절을 찾는 데 사용되는 텍스트 임베딩을 계산하기 위해 메시지 텍스트를 수신합니다.
+- **OpenAI** — 당사의 기본 안전성 검사(Llama Guard)를 일시적으로 사용할 수 없을 때에만, 안전성 검사를 위해 메시지 텍스트를 수신합니다(OpenAI Moderation).
 
-이들 제공업체는 메시지 텍스트를 **오직** 해당 메시지에 대한 응답 생성 또는 안전성 검사에만 사용합니다. 당사는 물론 — 각 제공업체의 API 약관에 따라 — 제공업체도 이를 범용 AI 모델 학습에 사용하지 않으며, 요청 처리에 필요한 기간을 초과하여 보관하지 않고, 광고에 사용하거나 판매하지 않습니다. 각 제공업체의 데이터 처리 관행은 [OpenRouter 개인정보 처리방침](https://openrouter.ai/privacy)과 [Microsoft 개인정보 처리방침](https://privacy.microsoft.com)을 참조하세요.
+이들 제공업체는 메시지 텍스트를 **오직** 해당 메시지에 대한 응답 생성 또는 안전성 검사에만 사용합니다. 당사는 물론 — 각 제공업체의 API 약관에 따라 — 제공업체도 이를 범용 AI 모델 학습에 사용하지 않으며, 광고에 사용하거나 판매하지 않습니다. 각 제공업체는 자체 데이터 처리 약관에 따라 이를 보관할 수 있습니다. OpenAI는 수신한 메시지 텍스트를 악용 모니터링을 위해 최대 30일간 보관하며, 법률상 달리 요구되지 않는 한 그 이후에는 삭제합니다. 각 제공업체의 데이터 처리 관행은 [OpenRouter 개인정보 처리방침](https://openrouter.ai/privacy), [Microsoft 개인정보 처리방침](https://privacy.microsoft.com) 및 [OpenAI의 API 데이터 개인정보 보호 약속](https://openai.com/enterprise-privacy/)을 참조하세요.
 
 ### 자동으로 수집되는 데이터
 
@@ -52,12 +53,13 @@ Vox Quieta(이하 "당사", "우리")는 무료 성경 영감 앱입니다. 당�
 
 ## 제3자 서비스
 
-| 서비스                        | 목적                               | 개인정보 처리방침                                                  |
-| ----------------------------- | ---------------------------------- | ------------------------------------------------------------------ |
-| Firebase Crashlytics (Google) | 충돌 보고                          | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google)   | 익명화된 사용 분석                 | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| OpenRouter                    | AI 응답 생성 및 콘텐츠 안전성 검사 | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
-| Azure OpenAI (Microsoft)      | 성경 구절 검색용 텍스트 임베딩     | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+| 서비스                        | 목적                                                     | 개인정보 처리방침                                                       |
+| ----------------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Firebase Crashlytics (Google) | 충돌 보고                                                | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| Firebase Analytics (Google)   | 익명화된 사용 분석                                       | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| OpenRouter                    | AI 응답 생성 및 콘텐츠 안전성 검사                       | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
+| Azure OpenAI (Microsoft)      | 성경 구절 검색용 텍스트 임베딩                           | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
+| OpenAI                        | 예비 콘텐츠 안전성 검사(기본 검사를 사용할 수 없을 때만) | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
 
 ## 소리 내어 읽기
 
@@ -94,7 +96,7 @@ Vox Quieta(이하 "당사", "우리")는 무료 성경 영감 앱입니다. 당�
 - 데이터 삭제를 요청할 권리,
 - 데이터 처리에 이의를 제기할 권리.
 
-당사는 개인 식별 정보를 수집하지 않으므로 대부분의 요청은 앱 내 로컬 대화 기록을 지우는 방법으로 충족될 수 있습니다. Google이 보유한 충돌/분석 데이터의 경우 [myaccount.google.com](https://myaccount.google.com)의 Google 개인정보 보호 설정을 참조하시기 바랍니다. 당사 AI 제공업체가 처리하는 데이터에 대해서는 위에 링크된 OpenRouter 및 Microsoft의 개인정보 처리방침을 참조하세요.
+당사는 개인 식별 정보를 수집하지 않으므로 대부분의 요청은 앱 내 로컬 대화 기록을 지우는 방법으로 충족될 수 있습니다. Google이 보유한 충돌/분석 데이터의 경우 [myaccount.google.com](https://myaccount.google.com)의 Google 개인정보 보호 설정을 참조하시기 바랍니다. 당사 AI 제공업체가 처리하는 데이터에 대해서는 위에 링크된 OpenRouter, Microsoft 및 OpenAI의 개인정보 처리방침을 참조하세요.
 
 개인정보 관련 문의 사항은 다음으로 연락주세요: **<privacy@voxquieta.org>**
 

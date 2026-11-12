@@ -21,6 +21,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   condensed once, at the 2026-10-22 restructuring).
 
 - 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
+- 2026-11-11: BITB-309 🔍 In Review — privacy policy (11 languages) discloses OpenAI Moderation as the safety-check fallback and states OpenAI's 30-day abuse-monitoring retention; must merge before BITB-288 (#1280)
 - 2026-11-11: BITB-238 ✅ Done — status drift fixed: help-seeking/theological exemption shipped in #1249 (merged 2026-11-08) but the entry still read Todo (#1278)
 - 2026-11-11: BITB-239 ✅ Done — status drift fixed: it/fr/pt directed-harm recall shipped in #1261 (merged 2026-11-10); follow-up BITB-281 stays open (#1278)
 - 2026-11-11: BITB-289 🚧 In Progress — Llama Guard breaker admits a single half-open probe with exponential cooldown backoff (10s→60s), safety check capped at an 8s total budget with jittered secondary retry; production benchmark remains an owner step (#1278)
@@ -656,6 +657,26 @@ failover, tune timeouts/retry/breaker from data, and alert on a fallback-share S
 - [ ] Failover classifier passes the 11-language safety golden set — BITB-288
 
 **Full Story:** [`BITB-272-ml-safety-reliability-rare-keyword-fallback.md`](BACKLOG_STORIES/BITB-272-ml-safety-reliability-rare-keyword-fallback.md)
+
+---
+
+### 🔍 BITB-309: Privacy Policy — Disclose OpenAI Moderation and State Provider Retention Honestly
+
+**Status:** 🔍 In Review
+**Priority:** P1
+**Size:** S
+**Created:** 2026-11-11
+
+BITB-288 sends user message text to OpenAI (Moderation API) whenever Llama Guard is down, but the privacy policy names only OpenRouter and Azure OpenAI and claims providers keep nothing beyond the request — false for OpenAI's default 30-day abuse-monitoring logs. Blocks merging #1280.
+
+**Acceptance Criteria (summary):**
+
+- [x] All 11 policy files name OpenAI (fallback-only safety screening) with its privacy link, in the AI-processing list, the Third-Party Services table and Your Rights
+- [x] Per-provider retention wording: OpenAI up to 30 days for abuse monitoring; others per their linked policies
+- [x] `lastUpdated` 2026-11-11 everywhere; parametrized 11-locale Vitest test
+- [ ] Owner: merge before #1280; re-check the Play Console Data safety form
+
+**Full Story:** [`BITB-309-privacy-policy-disclose-openai-moderation.md`](BACKLOG_STORIES/BITB-309-privacy-policy-disclose-openai-moderation.md)
 
 ---
 

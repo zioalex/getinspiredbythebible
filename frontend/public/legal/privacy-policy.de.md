@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-03
+lastUpdated: 2026-11-11
 ---
 
 # Datenschutzrichtlinie
 
 > _Diese Übersetzung wurde von einer KI erstellt und dient ausschließlich der Bequemlichkeit. Bei Auslassungen, Unklarheiten oder Widersprüchen zum englischen Original ist die englische Fassung verbindlich und vorrangig._
 
-Letzte Aktualisierung: 3. November 2026
+Letzte Aktualisierung: 11. November 2026
 
 ## Wer wir sind
 
@@ -25,8 +25,9 @@ Um deine Fragen zu beantworten, sendet unsere API den Text deiner Nachricht an d
 
 - **OpenRouter** — erhält deinen Nachrichtentext, um die auf der Heiligen Schrift basierende Antwort zu erzeugen (Sprachmodell-Vervollständigung) und um Nachrichten auf Sicherheit zu prüfen (Llama-Guard-Inhaltssicherheitsprüfung).
 - **Azure OpenAI (Microsoft)** — erhält deinen Nachrichtentext, um Text-Embeddings zu berechnen, mit denen die relevantesten Bibelstellen gefunden werden.
+- **OpenAI** — erhält deinen Nachrichtentext nur dann, wenn unsere primäre Sicherheitsprüfung (Llama Guard) vorübergehend nicht verfügbar ist, um ihn auf Sicherheit zu prüfen (OpenAI Moderation).
 
-Dein Nachrichtentext wird von diesen Anbietern **ausschließlich** verwendet, um die Antwort auf diese Nachricht zu erzeugen oder auf Sicherheit zu prüfen. Er wird weder von uns noch — gemäß den API-Bedingungen des jeweiligen Anbieters — vom Anbieter zum Training ihrer allgemeinen KI-Modelle verwendet, nicht länger vom Anbieter aufbewahrt, als zur Bearbeitung der Anfrage nötig ist, und niemals für Werbung genutzt oder verkauft. Siehe die [Datenschutzrichtlinie von OpenRouter](https://openrouter.ai/privacy) und die [Datenschutzerklärung von Microsoft](https://privacy.microsoft.com) für die jeweiligen Datenverarbeitungspraktiken.
+Dein Nachrichtentext wird von diesen Anbietern **ausschließlich** verwendet, um die Antwort auf diese Nachricht zu erzeugen oder auf Sicherheit zu prüfen. Er wird weder von uns noch — gemäß den API-Bedingungen des jeweiligen Anbieters — vom Anbieter zum Training ihrer allgemeinen KI-Modelle verwendet und niemals für Werbung genutzt oder verkauft. Jeder Anbieter darf ihn nach seinen eigenen Datenverarbeitungsbedingungen speichern: OpenAI bewahrt den Nachrichtentext, den es erhält, bis zu 30 Tage zur Missbrauchsüberwachung auf; danach wird er gelöscht, sofern das Gesetz nichts anderes verlangt. Siehe die [Datenschutzrichtlinie von OpenRouter](https://openrouter.ai/privacy), die [Datenschutzerklärung von Microsoft](https://privacy.microsoft.com) und die [Datenschutzzusagen von OpenAI für die API](https://openai.com/enterprise-privacy/) für die jeweiligen Datenverarbeitungspraktiken.
 
 ### Automatisch erhobene Daten
 
@@ -52,12 +53,13 @@ Du kannst diesen Verlauf jederzeit ansehen, umbenennen, löschen oder vollständ
 
 ## Drittanbieterdienste
 
-| Dienst                        | Zweck                                             | Datenschutzrichtlinie                                              |
-| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
-| Firebase Crashlytics (Google) | Absturzberichte                                   | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| Firebase Analytics (Google)   | Anonymisierte Nutzungsanalysen                    | [policies.google.com/privacy](https://policies.google.com/privacy) |
-| OpenRouter                    | KI-Antworterzeugung und Inhaltssicherheitsprüfung | [openrouter.ai/privacy](https://openrouter.ai/privacy)             |
-| Azure OpenAI (Microsoft)      | Text-Embeddings für die Bibelstellensuche         | [privacy.microsoft.com](https://privacy.microsoft.com)             |
+| Dienst                        | Zweck                                                                               | Datenschutzrichtlinie                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Firebase Crashlytics (Google) | Absturzberichte                                                                     | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| Firebase Analytics (Google)   | Anonymisierte Nutzungsanalysen                                                      | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| OpenRouter                    | KI-Antworterzeugung und Inhaltssicherheitsprüfung                                   | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
+| Azure OpenAI (Microsoft)      | Text-Embeddings für die Bibelstellensuche                                           | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
+| OpenAI                        | Ersatz-Inhaltssicherheitsprüfung (nur wenn die primäre Prüfung nicht verfügbar ist) | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
 
 ## Vorlesen
 
@@ -99,7 +101,7 @@ Wenn du dich im Europäischen Wirtschaftsraum befindest, hast du das Recht:
 - die Löschung deiner Daten zu verlangen,
 - der Verarbeitung deiner Daten zu widersprechen.
 
-Da wir keine personenbezogenen Daten erheben, können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter und Microsoft.
+Da wir keine personenbezogenen Daten erheben, können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter, Microsoft und OpenAI.
 
 Bei Fragen zum Datenschutz erreichst du uns unter: **<privacy@voxquieta.org>**
 
