@@ -70,7 +70,9 @@ You may directly edit or create:
 
 - `opencode.json` (via regeneration — see *Self-Improvement*) and `.opencode/**`
 - `AGENTS.md` (repo or worktree copies)
-- `docs/BACKLOG.md`, `docs/BACKLOG_STORIES/**`, `docs/DONE/**`
+- `docs/BACKLOG_STORIES/**`, `docs/DONE/**` (story files carry the status in their front
+  matter; `docs/BACKLOG.md` is a stub no PR edits — never edit it, and never read it whole:
+  query the backlog with `make backlog ARGS="list --status in-review"` / `ARGS="show BITB-NNN"`)
 - GitHub PR metadata via `gh` (titles, descriptions, comments)
 - Scratch files outside the repository (e.g. under /tmp)
 

@@ -35,8 +35,10 @@ Gather **all** the requirements before planning:
    writing the plan — do not guess on decisions that change the outcome.
 3. Write an explicit plan: the problem/why, the precise change per file, and a
    verification section (which tests/commands prove it works).
-4. Add the plan to the story from Stage 0 and update the `docs/BACKLOG.md`
-   entry per *Backlog Hygiene* in `AGENTS.md` (sequential `BITB-NNN`).
+4. Add the plan to the story file from Stage 0 and keep its front matter
+   (`status`, `prs`) current per *Backlog Hygiene* in `AGENTS.md` (sequential
+   `BITB-NNN`; find stories with `make backlog`, never by reading `docs/BACKLOG.md`,
+   which is a stub that PRs must not edit).
 
 ## Stage 2 — Build (delegate to Sonnet)
 
@@ -75,7 +77,7 @@ main session must treat the PR's CI run as the gate it watches to green.
   row, or a design question the plan didn't settle), stop and ask the user
   instead of looping again.
 - After the PR is open, a red CI run counts as a FAIL and re-enters the loop.
-- Mark the story status and update `docs/BACKLOG.md`.
+- Set the story's front matter (`status`, `prs`); do not touch `docs/BACKLOG.md`.
 - Summarize for the user: what changed, test results, and any follow-ups.
 - Once the PR merges, file a follow-up `BITB-NNN` story for every point it left
   unfixed (see *Backlog Hygiene* in `AGENTS.md`), on a fresh branch from `main`.
