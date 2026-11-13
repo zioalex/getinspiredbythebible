@@ -380,6 +380,15 @@ content_safety_fallback_counter = meter.create_counter(
 # (BITB-272): llama_guard stage also carries failure_class and failover
 # (openai_moderation_failed|unconfigured|disabled). Incremented ONLY when the keyword fallback runs.
 
+content_safety_checks_counter = meter.create_counter(
+    name="content_safety.checks_total",
+    description=(
+        "Messages screened by ContentSafetyService.check() while content safety is enabled - "
+        "denominator of the keyword-fallback-share SLO (BITB-290)"
+    ),
+    unit="1",
+)  # attributes: mode (keyword_only|hybrid|ml_only)
+
 content_safety_failover_counter = meter.create_counter(
     name="content_safety.failover_total",
     description=(

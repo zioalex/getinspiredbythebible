@@ -461,6 +461,17 @@ variable "content_safety_mode" {
   }
 }
 
+variable "content_safety_fallback_slo_target" {
+  description = "Max keyword-fallback share of content-safety checks over 7 days (BITB-290 SLO; owner to confirm). Error budget for the content_safety_fallback_burn_* alerts."
+  type        = number
+  default     = 0.005
+
+  validation {
+    condition     = var.content_safety_fallback_slo_target > 0 && var.content_safety_fallback_slo_target < 1
+    error_message = "content_safety_fallback_slo_target must be a fraction strictly between 0 and 1 (e.g. 0.005 = 0.5%)."
+  }
+}
+
 # -----------------------------------------------------------------------------
 # OpenRouter Fallback Configuration
 # -----------------------------------------------------------------------------

@@ -83,8 +83,18 @@ in clear text by this service. Confirm this meets your data-retention bar before
   `failed`), `reason`, `failure_class`.
 - `content_safety.fallback_total` is incremented **only when the keyword fallback actually
   runs**; labels `stage`, `reason`, `failure_class`, `failover` (`openai_moderation_failed` |
-  `unconfigured` | `disabled`). The `content_safety_fallback_rate` alert sums this counter, so
-  failures absorbed by the failover no longer trigger it.
+  `unconfigured` | `disabled`). Failures absorbed by the failover are not counted.
+- `content_safety.checks_total` (label `mode`) is incremented once per message screened by
+  `ContentSafetyService.check()` while content safety is enabled. It is the denominator of the
+  keyword-fallback-share SLO (BITB-290): `fallback_total / checks_total`, target at most 0.5 %
+  over 7 days.
+- Alerts: `content_safety_fallback_burn_fast` (Sev2, 14.4x budget over 1 h and 5 min) and
+  `content_safety_fallback_burn_slow` (Sev3, 6x budget over 6 h and 30 min), each with a
+  minimum of 3 fallbacks to ignore low-traffic noise. They replace the old any-fallback
+  `content_safety_fallback_rate` alert. Change the target with the Terraform variable
+  `content_safety_fallback_slo_target` (default `0.005`) and apply.
+- The performance workbook has a *Content Safety* section: share tile, fallbacks by
+  stage/reason/failure class/failover, share per hour, and failover outcomes.
 - `llama_guard.fallback_total` keeps counting every Llama Guard failure, now with `failure_class`.
 - `failure_class` values: `timeout`, `rate_limited`, `server_error`, `auth`, `malformed`,
   `breaker_open`, `network`, `other`.

@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
 - 2026-11-11: BITB-293 opened — 11-language safety golden set runner for a single moderation classifier (OpenAI Moderation first), follow-up of BITB-288 AC 2 (#1280)
 - 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#1280)
 - 2026-11-11: BITB-309 ✅ Done — privacy policy OpenAI disclosure merged before BITB-288; story moved to docs/DONE (#1287)
@@ -723,9 +724,9 @@ BITB-272 req. 3 and 4: primary 3 s / secondary 5 s timeouts come from a 2026-07 
 
 ---
 
-### 🎯 BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
+### 🔍 BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (2026-11-11)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-10
@@ -734,9 +735,10 @@ BITB-272 req. 5: `content_safety_fallback_rate` fired 99 times in 30 days (BITB-
 
 **Acceptance Criteria (summary):**
 
-- [ ] Dashboard tile: keyword-fallback share of checked messages by `stage`, `reason`, `failure_class`, `failover`
-- [ ] Multi-window burn-rate alert in Terraform replaces the any-fallback alert; coordinate with BITB-223 so alerts are not duplicated
-- [ ] Companion tile for `content_safety.failover_total` (failover absorbed vs failed)
+- [x] Dashboard tile: keyword-fallback share of checked messages by `stage`, `reason`, `failure_class`, `failover`
+- [x] Multi-window burn-rate alerts in Terraform (`content_safety_fallback_burn_fast`/`_slow`) replace the any-fallback alert; coordinate with BITB-223 so alerts are not duplicated
+- [x] Companion tile for `content_safety.failover_total` (failover absorbed vs failed)
+- [ ] Owner steps: confirm the SLO target; `terraform apply`
 
 **Full Story:** [`BITB-290-content-safety-fallback-share-slo-alert.md`](BACKLOG_STORIES/BITB-290-content-safety-fallback-share-slo-alert.md)
 
