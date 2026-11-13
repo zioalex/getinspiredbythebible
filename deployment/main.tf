@@ -220,6 +220,13 @@ locals {
       }
     } : {},
 
+    # OpenAI Moderation key for content safety (only when secret is provided) — BITB-288
+    var.openai_api_key != "" ? {
+      "OPENAI_API_KEY" = {
+        secret_name = "openai-api-key" # pragma: allowlist secret
+      }
+    } : {},
+
     # Browser smoke-test bypass (only when secret is provided) — BITB-064
     var.smoke_probe_secret != "" ? {
       "SMOKE_PROBE_SECRET" = {
@@ -566,10 +573,10 @@ resource "azurerm_postgresql_flexible_server_database" "app" {
 # changes, terraform_data is replaced, which in turn triggers a replacement of
 # the backend container app via replace_triggered_by.
 #
-# monitor_probe_secret / smoke_probe_secret are deliberately EXCLUDED (BITB-067
-# gap #6): they are provisioned out-of-band by the "Populate probe secrets in
-# backend Container App" step in azure-deploy.yml (az containerapp secret set),
-# mirroring the BITB-056 Telegram-token pattern, so rotating them no longer
+# monitor_probe_secret / smoke_probe_secret / openai_api_key are deliberately
+# EXCLUDED (BITB-067 gap #6, BITB-288): they are provisioned out-of-band by the
+# "Populate out-of-band secrets in backend Container App" step in
+# azure-deploy.yml (az containerapp secret set), mirroring the BITB-056 Telegram-token pattern, so rotating them no longer
 # forces a full app replacement (which previously re-triggered the origin-TLS
 # cert-unbind bug, BITB-067 gap #5). The `secret` blocks below still declare
 # these as ACA secrets (so the env var `secretRef`s resolve) but their `value`
@@ -579,8 +586,8 @@ resource "azurerm_postgresql_flexible_server_database" "app" {
 
 resource "terraform_data" "backend_secret_trigger" {
   # Hash GH-sourced sensitive values that must force a backend replacement when
-  # they change. Do NOT add monitor_probe_secret / smoke_probe_secret here —
-  # see the comment above.
+  # they change. Do NOT add monitor_probe_secret / smoke_probe_secret /
+  # openai_api_key here — see the comment above.
   triggers_replace = sha256(join("|", [
     var.openrouter_api_key,
   ]))
@@ -712,6 +719,17 @@ resource "azurerm_container_app" "backend" {
     for_each = var.monitor_probe_secret != "" ? [1] : []
     content {
       name  = "monitor-probe-secret"
+      value = "set-out-of-band-see-azure-deploy-yml" # pragma: allowlist secret
+    }
+  }
+
+  # OpenAI API key for content-safety OpenAI Moderation (only when set) —
+  # BITB-288. Same out-of-band pattern as monitor-probe-secret above: the
+  # `value` is a bootstrap placeholder, the real key is set by azure-deploy.yml.
+  dynamic "secret" {
+    for_each = var.openai_api_key != "" ? [1] : []
+    content {
+      name  = "openai-api-key"
       value = "set-out-of-band-see-azure-deploy-yml" # pragma: allowlist secret
     }
   }
