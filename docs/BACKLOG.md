@@ -20,8 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-11-13: BITB-310 🎯 Todo — telemetry endpoints (client-errors/client-events) can spend chat session budget via a stray session_id; move them to the IP-only limiter (BITB-298 follow-up) (#TBD)
-- 2026-11-13: BITB-298 🔍 In Review — IP-only per-scope limiter on search/feedback/contact/church, input caps, honest church User-Agent, cached /scripture/stats (#TBD)
+- 2026-11-13: BITB-310 🎯 Todo — telemetry endpoints (client-errors/client-events) can spend chat session budget via a stray session_id; move them to the IP-only limiter (BITB-298 follow-up) (#1290)
+- 2026-11-13: BITB-298 🔍 In Review — IP-only per-scope limiter on search/feedback/contact/church, input caps, honest church User-Agent, cached /scripture/stats (#1290)
 - 2026-11-11: BITB-309 🔍 In Review — privacy policy (11 languages) discloses OpenAI Moderation as the safety-check fallback and states OpenAI's 30-day abuse-monitoring retention; must merge before BITB-288 (#1280)
 - 2026-11-11: BITB-238 ✅ Done — status drift fixed: help-seeking/theological exemption shipped in #1249 (merged 2026-11-08) but the entry still read Todo (#1278)
 - 2026-11-11: BITB-239 ✅ Done — status drift fixed: it/fr/pt directed-harm recall shipped in #1261 (merged 2026-11-10); follow-up BITB-281 stays open (#1278)
