@@ -972,7 +972,7 @@
     }
   },
   "info": {
-    "description": "\n    A conversational AI that helps people find spiritual encouragement\n    and relevant scripture based on their life situations.\n\n    ## Features\n\n    - **Chat**: Natural conversation with Bible-grounded responses\n    - **Scripture Search**: Semantic search for relevant verses\n    - **Verse Lookup**: Get specific verses with context\n\n    ## LLM Providers\n\n    The API supports multiple LLM backends:\n    - **Ollama** (default): Self-hosted, local inference\n    - **Claude**: Anthropic's Claude API\n    - **OpenAI**: Coming soon\n    ",
+    "description": "\n    A conversational AI that helps people find spiritual encouragement\n    and relevant scripture based on their life situations.\n\n    ## Features\n\n    - **Chat**: Natural conversation with Bible-grounded responses\n    - **Scripture Search**: Semantic search for relevant verses\n    - **Verse Lookup**: Get specific verses with context\n\n    ## LLM Providers\n\n    The API supports multiple LLM backends:\n    - **Ollama** (default): Self-hosted, local inference\n    - **Claude**: Anthropic's Claude API\n    - **OpenRouter**: Hosted open models via the OpenRouter aggregator\n    ",
     "title": "Vox Quieta",
     "version": "0.1.0"
   },
