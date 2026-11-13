@@ -242,7 +242,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
           cache: pip
           cache-dependency-path: api/requirements.txt
 
@@ -497,7 +497,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
           cache: pip
           cache-dependency-path: api/requirements.txt
 

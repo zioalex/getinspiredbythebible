@@ -1,0 +1,35 @@
+name: Dependency Majors Report
+
+# Quarterly report of direct dependencies whose latest major version is ahead of ours (BITB-304).
+# Dependabot ignores major bumps (.github/dependabot.yml), so nothing else surfaces them.
+# scripts/report_dependency_majors.py writes one markdown table to the job summary for
+# api/requirements.txt (PyPI) and frontend/package.json (npm). Report only: it never fails on
+# "behind" and opens no GitHub Issue; file follow-up BITB stories from the summary.
+
+on:
+  schedule:
+    - cron: "23 7 1 1,4,7,10 *" # 1st of Jan/Apr/Jul/Oct, 07:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - name: Unit-test the report script
+        run: |
+          pip install pytest
+          python -m pytest scripts/test_report_dependency_majors.py -q
+
+      - name: Write major-version report to the job summary
+        run: python scripts/report_dependency_majors.py

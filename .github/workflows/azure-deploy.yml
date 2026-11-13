@@ -1466,7 +1466,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       - name: Install test dependencies
         run: pip install httpx pytest pytest-asyncio pydantic pydantic-settings
@@ -1663,7 +1663,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       - name: Install dependencies
         # Install the API's pinned requirements rather than a hand-picked list:
@@ -1791,7 +1791,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       - name: Generate translation matrix
         id: gen
@@ -1856,7 +1856,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
           cache: "pip"
           cache-dependency-path: "api/requirements.txt"
 
@@ -1961,7 +1961,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
           cache: "pip"
           cache-dependency-path: "api/requirements.txt"
 

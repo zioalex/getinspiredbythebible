@@ -6,7 +6,7 @@
 Users chat with an AI about the Bible, and the app detects verse references
 in responses, linking them to scripture. Deployed on Azure.
 
-**Tech stack:** Python 3.12 / FastAPI / PostgreSQL 16 + pgvector /
+**Tech stack:** Python 3.14 / FastAPI / PostgreSQL 16 + pgvector /
 Next.js / React / TypeScript / Kotlin / Jetpack Compose / Terraform / Azure
 
 ## Standard Workflow: Plan → Build → Verify
@@ -339,7 +339,7 @@ config changes*.
 
 ### Python (api/)
 
-- **Black** - formatter, line length 100, target Python 3.12
+- **Black** - formatter, line length 100, target Python 3.14
 - **Ruff** - linter (replaces flake8/isort), rules: E,F,W,C90,I,N (E501 ignored)
 - **MyPy** - type checker, `ignore_missing_imports=true`
 - **Bandit** - security linter (skips B101, B601, B608)
@@ -411,6 +411,15 @@ When `main` moves, updates opted-in open PRs (auto-merge enabled or `autoupdate`
 that are behind it, so auto-merge can proceed. Skips drafts, forks, Dependabot and
 release-please PRs. Needs secret `AUTO_UPDATE_PR_TOKEN` (falls back to
 `RELEASE_PLEASE_TOKEN`) because `GITHUB_TOKEN` updates do not trigger CI. See the BITB-165 story.
+
+### Scheduled model and dependency checks (BITB-304)
+
+| Workflow | Schedule | What it does |
+| ----- | ----- | ------------- |
+| `model-existence-probe.yml` | Weekly (Mon 06:17 UTC) | `scripts/check_configured_models.py`: fails if any configured OpenRouter/Claude model ID has been retired (exit 1), exit 2 on a network error |
+| `dependency-majors-report.yml` | Quarterly | `scripts/report_dependency_majors.py`: job-summary table of direct deps behind a major (report only) |
+
+Details: `docs/CONTRIBUTING.md` → *Scheduled workflows*.
 
 ### Deployment (`azure-deploy.yml`)
 

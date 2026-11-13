@@ -41,6 +41,7 @@ from config import settings  # noqa: E402
 from middleware.access_audit import AccessAuditMiddleware  # noqa: E402
 from middleware.correlation_id import CorrelationIDMiddleware  # noqa: E402
 from providers import ProviderError, get_embedding_provider, get_llm_provider  # noqa: E402
+from providers.factory import effective_llm_model  # noqa: E402
 from routes import (  # noqa: E402
     admin_router,
     chat_router,
@@ -198,10 +199,7 @@ async def lifespan(app: FastAPI):
         },
     )
     # Get the actual model being used based on provider
-    if settings.llm_provider == "openrouter":
-        llm_model = settings.openrouter_model
-    else:
-        llm_model = settings.llm_model
+    llm_model = effective_llm_model(settings)
 
     logger.info(
         "LLM configuration",
@@ -330,7 +328,7 @@ app = FastAPI(
     The API supports multiple LLM backends:
     - **Ollama** (default): Self-hosted, local inference
     - **Claude**: Anthropic's Claude API
-    - **OpenAI**: Coming soon
+    - **OpenRouter**: Hosted open models via the OpenRouter aggregator
     """,
     lifespan=lifespan,
 )
@@ -419,10 +417,7 @@ async def get_config():
     Useful for debugging and frontend configuration.
     """
     # Get the actual model being used based on provider
-    if settings.llm_provider == "openrouter":
-        llm_model = settings.openrouter_model
-    else:
-        llm_model = settings.llm_model
+    llm_model = effective_llm_model(settings)
 
     return {
         "telemetry": {

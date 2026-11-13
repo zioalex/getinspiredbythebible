@@ -53,10 +53,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Python 3.12
+      - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
           cache: pip
           cache-dependency-path: |
             api/requirements.txt
@@ -94,10 +94,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Python 3.12
+      - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       # The registry tooling is standalone (no api/ dependencies): it needs only
       # jsonschema + PyYAML (+ pytest for the tool tests below). Pinned to the
@@ -141,10 +141,10 @@ jobs:
       - name: Checkout PR head
         uses: actions/checkout@v7
 
-      - name: Set up Python 3.12
+      - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
           cache: pip
           cache-dependency-path: api/requirements.txt
 

@@ -48,7 +48,7 @@ scripture based on their life situations. The system combines semantic search ca
 | Layer | Technology | Purpose |
 |-------|------------|---------|
 | **Frontend** | Next.js 14, React, TypeScript, Tailwind CSS | Modern web interface |
-| **Backend API** | FastAPI, Python 3.12, Pydantic | REST API server |
+| **Backend API** | FastAPI, Python 3.14, Pydantic | REST API server |
 | **Database** | PostgreSQL 16 + pgvector | Data storage & vector search |
 | **LLM (Default)** | Ollama (llama3:8b) | Local language model |
 | **Embeddings** | Ollama (mxbai-embed-large) | Text-to-vector conversion (multilingual) |

@@ -1,6 +1,6 @@
 # BITB-304: Align the Python Runtime, Fix the Claude Model Configuration, Probe Configured Models
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (PR #PR)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-11-11

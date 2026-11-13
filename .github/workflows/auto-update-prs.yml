@@ -50,7 +50,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       - name: Update behind PR branches
         env:
