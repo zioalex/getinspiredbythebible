@@ -1,14 +1,25 @@
+---
+id: BITB-287
+status: in-progress
+priority: P2
+size: M
+rank: 50
+created: 2026-11-09
+---
+
 # BITB-287: Process & Cost Tooling — BACKLOG union driver, registry cost telemetry, budget guardrail
 
-**Status:** 🔄 In progress (PR to follow)
-**Priority:** P2
-**Size:** M
-**Created:** 2026-11-09
+**Migration note (2026-11-13, status):** (PR to follow)
 **Follow-up to:** BITB-286 (session cost retrospective)
 
 ## Requirements
 
 ### 1. BACKLOG.md union merge driver
+
+> **Superseded by BITB-313 (2026-11-13):** GitHub computes PR mergeability and performs squash
+> merges server-side and ignores `.gitattributes` merge drivers, so a driver cannot fix PR
+> conflicts. BITB-313 removes the conflict source instead: story front matter is the source of
+> truth and `docs/BACKLOG.md` is a stub. Do not implement this requirement.
 
 The `docs/BACKLOG.md` changelog is append-only, one entry per line. Same-day same-position additions cause mechanical conflicts that consume orchestrator turns. A union merge driver (or a targeted custom driver) should make same-position append-only conflicts auto-resolvable.
 
@@ -45,7 +56,7 @@ A make target that queries OpenRouter's `/api/v1/credits` or `/api/v1/key` endpo
 
 ## Acceptance Criteria
 
-- [ ] BACKLOG.md union driver implemented and tested (manual merge simulation with same-day append conflict)
+- [x] ~~BACKLOG.md union driver implemented and tested~~ — superseded by BITB-313, not needed
 - [ ] Registry records per-dispatch cost in new `kind: "cost"` lines (or enriched `created`/`status` lines)
 - [ ] `make check-llm-budget` exists, works with env var, outputs JSON + human line, exits non-zero below threshold
 - [ ] All tests pass: generator suite, plugin suite, `make verify-opencode-config`, `make pre-commit`

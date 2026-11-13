@@ -1,9 +1,16 @@
+---
+id: BITB-155
+status: in-progress
+priority: P1
+size: S
+rank: 470
+created: 2026-09-15
+---
+
 # BITB-155: OpenRouter Model Refresh — Paid Llama 3.3 Primary + Gemma 4 31B Cross-Provider Fallback
 
-**Status:** 🚧 In Progress
-**Priority:** P1 (High) — the configured primary model no longer exists on OpenRouter
-**Size:** S (< 4 hrs — config + docs + scripts, no app-logic change)
-**Created:** 2026-09-15
+**Migration note (2026-11-13, priority):** (High) — the configured primary model no longer exists on OpenRouter
+**Migration note (2026-11-13, size):** (< 4 hrs — config + docs + scripts, no app-logic change)
 **Follow-up to:** BITB-154 (same resilience theme, applied to the app's own LLM provider)
 
 ## User Story

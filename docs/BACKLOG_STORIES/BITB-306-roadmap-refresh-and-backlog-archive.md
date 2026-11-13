@@ -1,12 +1,21 @@
+---
+id: BITB-306
+status: todo
+priority: P2
+size: S
+rank: 30
+created: 2026-11-11
+---
+
 # BITB-306: Refresh the Roadmap, Archive Completed Backlog Entries, Unstick the Audit Trend
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S
-**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows P1, P2, P3.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), any wave.
 **Commit:** `docs: refresh roadmap and archive completed backlog entries (BITB-306)`
+
+**Re-scoped (2026-11-13):** the `docs/BACKLOG.md` archive part is done by BITB-313 (the
+index is gone, history archived under `docs/backlog/`). Only the roadmap refresh (and the audit
+trend item) remain.
 
 ## Problem
 

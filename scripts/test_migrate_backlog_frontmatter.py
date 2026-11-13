@@ -91,7 +91,8 @@ def test_normalize_priority(raw: str, expected: tuple[str | None, str]) -> None:
         ("XS (single table edit)", ("XS", "(single table edit)")),
         ("S–M (one workflow)", ("M", "S–M (one workflow)")),
         ("S–M", ("M", "S–M")),
-        ("Provisional XL (4–6 weeks)", ("XL", "")),
+        ("Provisional XL (4–6 weeks)", ("XL", "Provisional XL (4–6 weeks)")),
+        ("S/M (spike + decision)", ("M", "S/M (spike + decision)")),
         (
             "XL (4–6 implementation weeks after all gates)",
             ("XL", "(4–6 implementation weeks after all gates)"),
@@ -253,7 +254,7 @@ def test_migration_end_to_end(repo: Path) -> None:
     }
     text = (repo / S / "BITB-001-first.md").read_text(encoding="utf-8")
     assert "**Status:**" not in text and "**Priority:**" not in text
-    assert "**Status note:** PR #1272 (constraint documented)" in text
+    assert "**Migration note (2026-11-13, status):** PR #1272 (constraint documented)" in text
     assert "**Prompted by:** the owner" in text
     assert text.endswith("## Problem\n\nText that must survive byte-for-byte.\n")
 
@@ -269,6 +270,9 @@ def test_migration_end_to_end(repo: Path) -> None:
     assert four["created"] == "2026-09-19" and four["size"] == "S"
     assert "**Date:**" not in (repo / D / "BITB-004-stale.md").read_text(encoding="utf-8")
     assert any("BITB-004 status" in c and "index wins" in c for c in report.conflicts)
+    assert "rank" not in four  # file says P2, the index section was P3: no rank seeded
+    four_text = (repo / D / "BITB-004-stale.md").read_text(encoding="utf-8")
+    assert "previously read" not in four_text and "**Status note:**" not in four_text
 
     # No header and not in the index: defaults are reported, body untouched.
     six = _meta(repo, S + "BITB-006-plain.md")
@@ -317,3 +321,53 @@ def test_main_aborts_on_unknown_status(repo: Path, capsys: pytest.CaptureFixture
     code = mig.main(["--root", str(repo), "--dry-run"])
     assert code == 1
     assert "BITB-006-plain.md" in capsys.readouterr().err
+
+
+def test_blocked_status_depends_on_every_named_story() -> None:
+    info = mig.normalize_status(
+        "⏸️ Gated Later. Blocked on BITB-085 closure and hard prerequisites BITB-086 and BITB-109."
+    )
+    assert info.depends_on == ["BITB-085", "BITB-086", "BITB-109"]
+
+
+def test_priority_moves_only_list_open_stories_with_a_changed_priority(tmp_path: Path) -> None:
+    index = (
+        "## P1 - High\n\n### 🎯 BITB-010: Open mover\n\n**Status:** 🎯 Todo\n\nx\n\n"
+        "### 🎯 BITB-011: Open stayer\n\n**Status:** 🎯 Todo\n\nx\n\n"
+        "### ✅ BITB-012: Closed mover\n\n**Status:** ✅ Done\n\nx\n"
+    )
+    files = {
+        "docs/BACKLOG.md": index,
+        S + "BITB-010-a.md": "# BITB-010: A\n\n**Priority:** P3\n",
+        S + "BITB-011-b.md": "# BITB-011: B\n\n**Priority:** P1\n",
+        S + "BITB-012-c.md": "# BITB-012: C\n\n**Priority:** P3\n",
+    }
+    for rel, content in files.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    report = mig.run(tmp_path, tmp_path / "docs" / "BACKLOG.md", write=True)
+    assert report.priority_moves == [("BITB-010", "P1", "P3", "story file Priority line")]
+    assert "| BITB-010 | P1 | P3 | story file Priority line |" in mig.render_priority_moves(report)
+    assert "rank" not in _meta(tmp_path, S + "BITB-010-a.md")
+    assert _meta(tmp_path, S + "BITB-011-b.md")["rank"] == 20
+
+
+def test_story_specific_corrections(tmp_path: Path) -> None:
+    index = (
+        "## P1 - High\n\n### 🚧 BITB-002: Index only\n\n"
+        "**Status:** 🚧 In Progress (PR #171 merged, ready to start)\n\nx\n"
+    )
+    for rel, content in {
+        "docs/BACKLOG.md": index,
+        S + "BITB-023-a.md": "# BITB-023: A\n\n**Status:** 🎯 Todo\n**Priority:** P1\n",
+    }.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+    mig.run(tmp_path, tmp_path / "docs" / "BACKLOG.md", write=True)
+    two = next((tmp_path / S).glob("BITB-002-*.md"))
+    assert "prs" not in _meta(tmp_path, two.relative_to(tmp_path).as_posix())
+    assert "PR #171 merged" in two.read_text(encoding="utf-8")
+    text = (tmp_path / S / "BITB-023-a.md").read_text(encoding="utf-8")
+    assert "git show 2a8b257d:docs/BACKLOG.md" in text

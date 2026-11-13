@@ -1,9 +1,14 @@
+---
+id: BITB-184
+status: todo
+priority: P3
+size: S
+rank: 80
+created: 2026-10-10
+---
+
 # BITB-184: Detect a Bracketed Chapter:Verse After the Book Name (`Romans (8:28)`, `罗马书（8:28）`)
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-10
 **Prompted by:** BITB-182 follow-up — found while writing the `verse-citing` follow-up chip cases.
 
 ## Bug Report

@@ -1,9 +1,15 @@
+---
+id: BITB-102
+status: done
+priority: P2
+size: M
+rank: 1100
+created: 2026-08-07
+---
+
 # BITB-102: PWA Offline Shell — Versioned Service Worker for the App Shell + Scripture GETs
 
-**Status:** ✅ Done (2026-09-12)
-**Priority:** P2
-**Size:** M (1 day)
-**Created:** 2026-08-07
+**Migration note (2026-11-13, status):** (2026-09-12)
 **Completed:** 2026-09-12
 **Split from:** BITB-084 Part C, per that story's own explicit guidance ("if Part C threatens
 the timebox, split it out — Parts A+B alone deliver installability"). BITB-084 (Parts A, B, D —

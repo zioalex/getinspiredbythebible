@@ -1,9 +1,17 @@
+---
+id: BITB-154
+status: in-progress
+priority: P1
+size: S
+rank: 510
+created: 2026-09-14
+prs: [1077]
+---
+
 # BITB-154: KubeOpenCode Multi-Provider Resilience — Cross-Provider Fallback + Survive Provider Outage
 
-**Status:** 🚧 In Progress (PR #1077)
-**Priority:** P1
-**Size:** S (config change, already implemented; pending merge + cluster sync)
-**Created:** 2026-09-14
+**Migration note (2026-11-13, status):** (PR #1077)
+**Migration note (2026-11-13, size):** (config change, already implemented; pending merge + cluster sync)
 **Related:** BITB-123 (agent graph), BITB-124 (parallel dispatch), PR #1066 (Copilot auth)
 
 ---

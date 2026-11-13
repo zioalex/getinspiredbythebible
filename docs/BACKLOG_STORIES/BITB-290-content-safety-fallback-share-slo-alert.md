@@ -1,9 +1,14 @@
+---
+id: BITB-290
+status: todo
+priority: P1
+size: M
+rank: 160
+created: 2026-11-10
+---
+
 # BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
 
-**Status:** 🎯 Todo
-**Priority:** P1
-**Size:** M
-**Created:** 2026-11-10
 **Prompted by:** BITB-272 slice 1 (ML failover to OpenAI Moderation before the keyword fallback).
 
 ## Problem

@@ -1,9 +1,14 @@
+---
+id: BITB-180
+status: todo
+priority: P2
+size: M
+rank: 390
+created: 2026-10-10
+---
+
 # BITB-180: Topic-Aware Passage Carry-Over for Follow-Up Turns
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** M
-**Created:** 2026-10-10
 **Prompted by:** BITB-178 follow-up (PR #1145, Notes).
 
 ## Problem

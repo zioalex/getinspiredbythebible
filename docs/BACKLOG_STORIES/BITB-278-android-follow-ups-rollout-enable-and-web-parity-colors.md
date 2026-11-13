@@ -1,9 +1,15 @@
+---
+id: BITB-278
+status: in-progress
+priority: P2
+size: S
+rank: 60
+created: 2026-11-08
+---
+
 # BITB-278: Enable Follow-Up Chips on Android + Match Web Chip Colors
 
-**Status:** 🚧 In Progress
-**Priority:** P2
-**Size:** S (Android only)
-**Created:** 2026-11-08
+**Migration note (2026-11-13, size):** (Android only)
 **Parent:** BITB-080 (suggested follow-up questions), BITB-149 (Android chips), BITB-254 (echo-back fix)
 
 ## Bug Report / Round Goal
@@ -108,4 +114,4 @@ primary-400 #C48D62 border / primary-50 #FAF5F0 background on hover.
 | `android/.../FollowUpChipsComposeTest.kt` + new JVM unit test | Palette pinned for both modes; existing tests unchanged |
 | `android/.../presentation/screens/ShouldShowFollowUps.kt` | KDoc: gate now default-on (killable per-build) |
 | `deployment/variables.tf`, `scripts/env-manifest.yaml` | Refresh "Android stays dark" claims |
-| `docs/BACKLOG.md` + this story | Entry + changelog line |
+| this story's front matter | `status` / `prs` (changelog = commit subject, BITB-313) |

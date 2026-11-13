@@ -1,19 +1,19 @@
 ---
 id: BITB-313
-status: todo
+status: in-review
 priority: P1
 size: L
 created: 2026-11-13
-prs: []
+prs: [1292]
 follow_ups: []
 supersedes: BITB-287 requirement 1 (BACKLOG.md union merge driver)
 ---
 
 # BITB-313: Conflict-Free, Agent-Friendly Backlog — Story Files Are the Single Source of Truth
 
-> This story's own header is written in the **proposed** front-matter format, as a worked
-> example. Until the migration lands, the BITB-111/153 checks still read the bold
-> `**Status:**` lines of every other story.
+> This story's own header was the first file written in the new front-matter format; the
+> migration (`scripts/migrate_backlog_frontmatter.py`) has since converted every other story
+> and left this one untouched.
 
 ## User story
 
@@ -136,10 +136,12 @@ retrieval, edit reliability, prompt-injection exposure, …):
 ## Non-functional requirements
 
 - **Context budget:**
-  - `make backlog --status todo,in-progress,in-review --format compact` ≤ 12 KB (≈3k
-    tokens) on today's data.
-  - `show` ≤ 1 KB without `--full`.
-  - Tests assert these budgets so they cannot regress silently.
+  - Every `list --format compact` line is ≤ 73 bytes (titles are truncated by bytes), so 165
+    open stories (today's backlog) fit in 12 KB (≈3k tokens) whatever the titles are. The
+    tests assert the per-line cap on the real tree and a 12 KB budget on a synthetic
+    165-story fixture with maximum-length titles; neither depends on the real story count.
+    Beyond ~165 open stories, narrow with `--status/--priority/--grep` or `--limit N`.
+  - `show` ≤ 1 KB without `--full` (asserted for every real story).
 - **Local/remote LLM parity:** no network, no GitHub token, no third-party Python
   packages. A minimal YAML subset parser lives in the script, because the pod and laptops
   may lack PyYAML. Python 3.12. Runs in < 2 s on 300 stories.
@@ -189,6 +191,27 @@ retrieval, edit reliability, prompt-injection exposure, …):
 2. **Cutover:** the BITB-313 author resolves every PR still open at cutover (moves its
    `BACKLOG.md` edits into story front matter and pushes).
 3. Spec approved; proceed to Plan → Build → Verify.
+
+## Implementation notes and deviations (Build + fix round 1, 2026-11-13)
+
+- **Extra status-merge rule (amends FR6 and the Plan).** The story file normally wins, but the
+  index wins when the file says `todo` and the index is further along, or when the index says
+  `done` with merge evidence (the file lives in `docs/DONE/`, or the index text mentions
+  merged/shipped/completed/verified). Thirty-two file-vs-index conflicts were found; each is
+  printed in the migration report.
+- **Migration notes.** Free text from the old bold header lines is kept as
+  `**Migration note (2026-11-13, status|priority|size|created):**` lines: frozen context, not
+  live state (the old "story header previously read" notes were dropped).
+- **Rank** is seeded only when the final priority equals the index section's priority, counting
+  index positions as on `origin/main` (without BITB-313's own slot).
+- `check_story_ids.py` (BITB-235) only had its docstring and hint message reworded.
+- `backlog-check` runs in `make test` and CI (`test_update.yml`, `backlog.yml`), not in
+  pre-commit.
+- Compact lines are capped at 73 bytes (title width is derived per line), see the NFR above.
+- `docs/backlog/LEGEND.md` was rewritten for the new enums rather than copied.
+- The `backlog-stub-guard` exemption is `github.event.pull_request.number == 1292` (this
+  cutover PR) plus the `backlog-stub-edit` label; the PR-number exemption is inert after the
+  merge.
 
 ## Plan (Opus, 2026-11-13)
 

@@ -1,11 +1,17 @@
+---
+id: BITB-151
+status: in-progress
+priority: P1
+size: M
+rank: 500
+created: 2026-09-12
+---
+
 # BITB-151: Culturally Tuned Warmth — Only When the Person Needs Support
 
-**Status:** 🚧 In Progress — implemented and merged dark behind `chat_cultural_tone_enabled=False`;
-sample pack + native-speaker review + prod enablement pending
-**Priority:** P1 — user-reported quality gap on the product's core promise (spiritual support), and
-the classifier it depends on already ships
-**Size:** M (1-2 days for `it` + the gating and tests; each further locale is S)
-**Created:** 2026-09-12
+**Migration note (2026-11-13, status):** implemented and merged dark behind `chat_cultural_tone_enabled=False`; sample pack + native-speaker review + prod enablement pending
+**Migration note (2026-11-13, priority):** user-reported quality gap on the product's core promise (spiritual support), and the classifier it depends on already ships
+**Migration note (2026-11-13, size):** (1-2 days for `it` + the gating and tests; each further locale is S)
 **Reported by:** product owner, relaying Italian users — "the answers are too cold"
 
 ## User Story

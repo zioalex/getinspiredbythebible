@@ -1,9 +1,14 @@
+---
+id: BITB-293
+status: todo
+priority: P1
+size: M
+rank: 190
+created: 2026-11-11
+---
+
 # BITB-293: 11-Language Safety Golden Set for a Single Moderation Classifier (OpenAI Moderation First)
 
-**Status:** 🎯 Todo
-**Priority:** P1
-**Size:** M
-**Created:** 2026-11-11
 **Prompted by:** BITB-288 (#1280). Its AC 2, a live golden set against `omni-moderation-latest`, could not be done because no harness can score a single classifier.
 
 ## Problem

@@ -1,9 +1,14 @@
+---
+id: BITB-301
+status: todo
+priority: P1
+size: L
+rank: 30
+created: 2026-11-11
+---
+
 # BITB-301: Topic Landing Pages in 11 Languages ("Bible Verses About …")
 
-**Status:** 🎯 Todo
-**Priority:** P1
-**Size:** L
-**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) row S3.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 3. **After BITB-300.**
 **Commit:** `feat(frontend): topic landing pages in 11 languages (BITB-301)`

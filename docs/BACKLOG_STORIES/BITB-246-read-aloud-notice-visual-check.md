@@ -1,9 +1,13 @@
+---
+id: BITB-246
+status: todo
+priority: P3
+size: S
+created: 2026-10-27
+---
+
 # BITB-246: Visually Check the "Speech Engine Didn't Respond" Notice Beside the Action Rail (Web)
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-27
 **Follow-up of:** BITB-241 (PR #1203)
 
 ## Problem

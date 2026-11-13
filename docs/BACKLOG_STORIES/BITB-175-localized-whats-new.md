@@ -1,9 +1,13 @@
+---
+id: BITB-175
+status: todo
+priority: P3
+size: M
+created: 2026-10-04
+---
+
 # BITB-175: Localized What's New / Changelog Entries (Web + Android)
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** M
-**Created:** 2026-10-04
 **Prompted by:** BITB-119 verification — the What's New surfaces only show English text.
 
 ## User Story

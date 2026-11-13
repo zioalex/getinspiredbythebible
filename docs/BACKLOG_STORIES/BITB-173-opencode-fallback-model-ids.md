@@ -1,9 +1,13 @@
+---
+id: BITB-173
+status: done
+priority: P1
+size: S
+created: 2026-10-01
+---
+
 # BITB-173: Runtime Fallback Chain Pins Non-Existent Model IDs — Failovers Never Fire
 
-**Status:** ✅ Done
-**Priority:** P1
-**Size:** S
-**Created:** 2026-10-01
 **Completed:** 2026-10-01
 **PR:** #1128
 

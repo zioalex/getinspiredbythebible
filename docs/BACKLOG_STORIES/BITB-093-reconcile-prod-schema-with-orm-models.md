@@ -1,9 +1,15 @@
+---
+id: BITB-093
+status: done
+priority: P1
+size: M
+rank: 900
+created: 2026-08-10
+---
+
 # BITB-093: Reconcile the Production Schema with the ORM Models
 
-**Status:** ✅ Done (2026-08-15)
-**Priority:** P1
-**Size:** M
-**Created:** 2026-08-10
+**Migration note (2026-11-13, status):** (2026-08-15)
 **Blocked:** BITB-089 Stage 2 (stamping production) — now unblocked, stamped and verified.
 
 > **Outcome.** `scripts/reconcile-prod-schema.sql` ran against production, and

@@ -52,6 +52,25 @@ _HEADING_RE = re.compile(r"^###\s+(\S*?)\s*BITB-(\d+):\s*(.*)$")
 _PIPE_SPLIT_RE = re.compile(r"\s+\|\s+(?=\*\*[A-Za-z ]+:\*\*)")
 _WRAP_WIDTH = 75  # a Size line at least this long may continue on the next line
 _WRAPPING_KEYS = frozenset({"Status", "Priority", "Size"})
+_MIGRATION_DATE = "2026-11-13"
+
+# Corrections for individual stories where the generic rules read the source text wrongly.
+# BITB-002: "PR #171 merged, ready to start" -- #171 is a prerequisite, not the story's own PR.
+_NO_PRS = frozenset({"BITB-002"})
+# BITB-023/024: the old index held a *different* legacy story under the same number.
+_EXTRA_NOTES: dict[str, str] = {
+    story_id: (
+        f"**Migration note ({_MIGRATION_DATE}, index):** the old `docs/BACKLOG.md` entry with "
+        "the same number was a different legacy story, recoverable via "
+        "`git show 2a8b257d:docs/BACKLOG.md`."
+    )
+    for story_id in ("BITB-023", "BITB-024")
+}
+
+
+def _note(kind: str, text: str) -> str:
+    """A frozen migration note; labelled so it is never mistaken for a live status copy."""
+    return f"**Migration note ({_MIGRATION_DATE}, {kind}):** {text}"
 
 
 class MigrationError(Exception):
@@ -118,6 +137,8 @@ def normalize_status(raw: str, where: str = "") -> StatusInfo:
     deps = list(
         dict.fromkeys(re.findall(r"(?:blocked (?:by|on)|gated on)\s+(BITB-\d+)", text, flags=re.I))
     )
+    if status == "blocked":
+        deps = list(dict.fromkeys(re.findall(r"BITB-\d+", text)))
     return StatusInfo(status=status, note=note, prs=prs, depends_on=deps)
 
 
@@ -151,7 +172,7 @@ def normalize_size(raw: str) -> tuple[str | None, str]:
     """Return ``(XS..XL or None, note)``; a range keeps the larger size and the original."""
     text = raw.strip()
     match = re.match(
-        r"^(?:provisional\s+)?(XS|XL|S|M|L)(?:\s*[–-]\s*(XS|XL|S|M|L))?(?![A-Za-z])", text, re.I
+        r"^(?:provisional\s+)?(XS|XL|S|M|L)(?:\s*[–/-]\s*(XS|XL|S|M|L))?(?![A-Za-z])", text, re.I
     )
     if not match:
         word = re.match(r"^(small|medium|large)\b", text, re.I)
@@ -160,7 +181,7 @@ def normalize_size(raw: str) -> tuple[str | None, str]:
         return _SIZE_WORDS[word.group(1).lower()], text[word.end() :].strip()
     size = (match.group(2) or match.group(1)).upper()
     leftover = text[match.end() :].strip()
-    if match.group(2):
+    if match.group(2) or text.lower().startswith("provisional"):
         return size, text
     if re.fullmatch(r"\(\s*[<~]?\s*\d[^)]{0,12}(hr|hour|day|week)s?\s*\)", leftover, re.I):
         leftover = ""
@@ -355,6 +376,7 @@ class Report:
     duplicates: list[str] = field(default_factory=list)
     anomalies: list[str] = field(default_factory=list)
     created_missing: int = 0
+    priority_moves: list[tuple[str, str, str, str]] = field(default_factory=list)
 
     def render(self) -> str:
         out = [
@@ -427,14 +449,12 @@ def _build_meta(  # noqa: C901
                     f"{story_id} status: file={info.status} index={idx_info.status} -> {verdict}"
                 )
                 if index_wins:
-                    previous = _strip_leading_symbols(header.status_raw)
                     info = StatusInfo(
                         status=idx_info.status,
                         note=idx_info.note,
                         prs=idx_info.prs,
                         depends_on=idx_info.depends_on,
                     )
-                    notes.append(f"**Status note:** story header previously read: {previous}")
     elif entry and entry.header.status_raw is not None:
         info = normalize_status(entry.header.status_raw, f"{where} (index)")
     if info is None:
@@ -447,7 +467,7 @@ def _build_meta(  # noqa: C901
             report.defaults.append(f"{story_id} status=todo (no status anywhere)")
     meta["status"] = info.status
     if info.note:
-        notes.insert(0, f"**Status note:** {info.note}")
+        notes.insert(0, _note("status", info.note))
         report.notes.append(story_id)
 
     # priority
@@ -474,7 +494,7 @@ def _build_meta(  # noqa: C901
         report.defaults.append(f"{story_id} priority=P3 (no priority anywhere)")
     meta["priority"] = prio
     if prio_leftover:
-        notes.append(f"**Priority note:** {prio_leftover}")
+        notes.append(_note("priority", prio_leftover))
 
     # size
     size: str | None = None
@@ -492,10 +512,22 @@ def _build_meta(  # noqa: C901
     if size:
         meta["size"] = size
     if size_left:
-        notes.append(f"**Size note:** {size_left}")
+        notes.append(_note("size", size_left))
 
-    if entry and entry.rank is not None:
+    section_prio = _SECTION_PRIORITY.get(entry.section) if entry else None
+    if entry and entry.rank is not None and prio == section_prio:
         meta["rank"] = entry.rank
+    if section_prio and prio != section_prio and info.status not in backlog.CLOSED_STATUSES:
+        source = (
+            "story file Priority line"
+            if header.priority_raw is not None
+            else (
+                "index Priority line"
+                if entry and entry.header.priority_raw is not None
+                else "default"
+            )
+        )
+        report.priority_moves.append((story_id, entry.section if entry else "", prio, source))
 
     created = (
         _first_date(header.created_raw)
@@ -508,11 +540,13 @@ def _build_meta(  # noqa: C901
     else:
         report.created_missing += 1
     if header.created_raw and not _first_date(header.created_raw):
-        notes.append(f"**Created note:** {header.created_raw}")
+        notes.append(_note("created", header.created_raw))
 
-    meta["prs"] = info.prs
+    meta["prs"] = [] if story_id in _NO_PRS else info.prs
     meta["depends_on"] = [d for d in info.depends_on if d in known_ids and d != story_id]
     notes.extend(header.extras)
+    if story_id in _EXTRA_NOTES:
+        notes.append(_EXTRA_NOTES[story_id])
     return meta, notes
 
 
@@ -619,11 +653,27 @@ def run(root: Path, backlog_md: Path, write: bool) -> Report:
     return report
 
 
+def render_priority_moves(report: Report) -> str:
+    """Markdown table of open stories whose final priority differs from their index section."""
+    lines = [
+        "# Open stories whose priority moved in the BITB-313 migration",
+        "",
+        "| Story | Index section | Final priority | Winning value from |",
+        "|---|---|---|---|",
+    ]
+    for story_id, section, prio, source in sorted(report.priority_moves):
+        lines.append(f"| {story_id} | {section} | {prio} | {source} |")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--dry-run", action="store_true", help="report only; write nothing")
     parser.add_argument("--root", type=Path, default=_ROOT, help=argparse.SUPPRESS)
     parser.add_argument("--backlog", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument(
+        "--priority-moves-md", type=Path, help="write the priority-moves table to this file"
+    )
     args = parser.parse_args(argv)
     backlog_md = args.backlog or (args.root / "docs" / "BACKLOG.md")
     try:
@@ -632,6 +682,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ABORT: {exc}", file=sys.stderr)
         return 1
     sys.stdout.write(report.render())
+    if args.priority_moves_md:
+        args.priority_moves_md.write_text(render_priority_moves(report), encoding="utf-8")
     return 0
 
 

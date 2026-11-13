@@ -1,9 +1,18 @@
+---
+id: BITB-122
+status: done
+priority: P1
+size: S
+rank: 550
+created: 2026-09-05
+prs: [1041]
+---
+
 # BITB-122: Support Android 7.0+ Tablets (Lower minSdk 26 -> 24)
 
-**Status:** 🚧 In Progress
-**Priority:** P1 — user-visible install failure on a real device (Android 7.1.1 tablet, API 25)
-**Size:** S (config + desugaring, emulator/API-matrix verification)
-**Created:** 2026-09-05
+**Migration note (2026-11-13, status):** (PR #1041 merged 2026-09-05)
+**Migration note (2026-11-13, priority):** user-visible install failure on a real device (Android 7.1.1 tablet, API 25)
+**Migration note (2026-11-13, size):** (config + desugaring, emulator/API-matrix verification)
 **Reported by:** product owner — app does not work on old Android tablet (7.1.1)
 **Affects:** Android (`android/`) only — backend/frontend untouched
 

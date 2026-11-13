@@ -1,10 +1,16 @@
+---
+id: BITB-106
+status: done
+priority: P2
+size: M
+created: 2026-08-21
+---
+
 # BITB-106: Corpus Tagging Is Validated for Two Languages and Impossible for Four
 
-**Status:** ✅ Done (2026-09-18)
-**Priority:** P2 — a quality and scope-honesty gap, not a correctness bug; topic boosting works where
-it is validated and silently does nothing where it is not
-**Size:** M (corpus runs and vocabulary work; the ru/zh/hi/ko decision is the maintainer's)
-**Created:** 2026-08-21
+**Migration note (2026-11-13, status):** (2026-09-18)
+**Migration note (2026-11-13, priority):** a quality and scope-honesty gap, not a correctness bug; topic boosting works where it is validated and silently does nothing where it is not
+**Migration note (2026-11-13, size):** (corpus runs and vocabulary work; the ru/zh/hi/ko decision is the maintainer's)
 **Prompted by:** PR #970 (BITB-044), which validated its tagging against real corpora for `en` and
 `de` only
 

@@ -1,9 +1,14 @@
+---
+id: BITB-307
+status: todo
+priority: P2
+size: S
+rank: 40
+created: 2026-11-11
+---
+
 # BITB-307: Trim `/config`, Stop Leaking Upstream Errors, Drop the Session Metric Label, Tighten CORS
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S
-**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows R14, R15, R16, R18.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), any wave.
 **Commit:** `fix(api): trim public config, generic upstream errors, bounded metric labels (BITB-307)`

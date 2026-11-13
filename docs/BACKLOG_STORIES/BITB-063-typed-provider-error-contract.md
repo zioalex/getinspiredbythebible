@@ -1,9 +1,16 @@
+---
+id: BITB-063
+status: done
+priority: P1
+size: S
+rank: 620
+created: 2026-07-03
+---
+
 # BITB-063: Typed Provider Error Contract — Make the Unreachable 503 Reachable
 
-**Status:** ✅ Done
-**Priority:** P1 (High) — 2026-07 adversarial audit E1 (HIGH); total-LLM-outage handling is dead code, outages misreport as generic 500s
-**Size:** S (typed exception + two route handlers + the contract test that was always missing)
-**Created:** 2026-07-03
+**Migration note (2026-11-13, priority):** (High) — 2026-07 adversarial audit E1 (HIGH); total-LLM-outage handling is dead code, outages misreport as generic 500s
+**Migration note (2026-11-13, size):** (typed exception + two route handlers + the contract test that was always missing)
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E1 (context: A8, D4)
 
 ## User Story
