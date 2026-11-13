@@ -58,7 +58,7 @@ variables:
   OPENAI_API_KEY:
     required_in: both
     condition: LLM_PROVIDER=openai
-    description: OpenAI API key (also used by OpenAI Moderation in content safety keyword_only/hybrid modes, and as the ml_only failover when Llama Guard is down, BITB-272)
+    description: OpenAI API key (also used by OpenAI Moderation in content safety keyword_only/hybrid modes, and as the ml_only failover when Llama Guard is down, BITB-272). Remote wiring is optional and out-of-band via repo secret OPENAI_API_KEY (BITB-288)
     sensitive: true
 
   # OpenRouter-specific

@@ -23,6 +23,9 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-11-13: BITB-304 🔍 In Review — one Python version (3.14, `.python-version`) for CI and Dockerfile with a divergence test; Claude works with only an API key (current Sonnet default, no Ollama name); `openai` LLM provider rejected at start-up; weekly model-existence probe + quarterly dependency-majors report; follow-ups BITB-311, BITB-312 opened (#1291)
 - 2026-11-13: BITB-312 opened — opencode agent prompts still say "Python 3.12" (BITB-304 follow-up)
 - 2026-11-13: BITB-311 opened — Docker Compose always sets LLM_MODEL, so LLM_PROVIDER=claude gets an Ollama model name (BITB-304 follow-up)
+- 2026-11-11: BITB-293 opened — 11-language safety golden set runner for a single moderation classifier (OpenAI Moderation first), follow-up of BITB-288 AC 2 (#1280)
+- 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#1280)
+- 2026-11-11: BITB-309 ✅ Done — privacy policy OpenAI disclosure merged before BITB-288; story moved to docs/DONE (#1287)
 - 2026-11-11: BITB-309 🔍 In Review — privacy policy (11 languages) discloses OpenAI Moderation as the safety-check fallback and states OpenAI's 30-day abuse-monitoring retention; must merge before BITB-288 (#1280)
 - 2026-11-11: BITB-238 ✅ Done — status drift fixed: help-seeking/theological exemption shipped in #1249 (merged 2026-11-08) but the entry still read Todo (#1278)
 - 2026-11-11: BITB-239 ✅ Done — status drift fixed: it/fr/pt directed-harm recall shipped in #1261 (merged 2026-11-10); follow-up BITB-281 stays open (#1278)
@@ -663,9 +666,9 @@ failover, tune timeouts/retry/breaker from data, and alert on a fallback-share S
 
 ---
 
-### 🔍 BITB-309: Privacy Policy — Disclose OpenAI Moderation and State Provider Retention Honestly
+### ✅ BITB-309: Privacy Policy — Disclose OpenAI Moderation and State Provider Retention Honestly
 
-**Status:** 🔍 In Review
+**Status:** ✅ Done (#1287, 2026-11-11)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-11-11
@@ -677,15 +680,18 @@ BITB-288 sends user message text to OpenAI (Moderation API) whenever Llama Guard
 - [x] All 11 policy files name OpenAI (fallback-only safety screening) with its privacy link, in the AI-processing list, the Third-Party Services table and Your Rights
 - [x] Per-provider retention wording: OpenAI up to 30 days for abuse monitoring; others per their linked policies
 - [x] `lastUpdated` 2026-11-11 everywhere; parametrized 11-locale Vitest test
-- [ ] Owner: merge before #1280; re-check the Play Console Data safety form
+- [x] Merged before #1280 (#1287)
+- [ ] Owner: re-check the Play Console Data safety form
 
-**Full Story:** [`BITB-309-privacy-policy-disclose-openai-moderation.md`](BACKLOG_STORIES/BITB-309-privacy-policy-disclose-openai-moderation.md)
+**Follow-ups:** none — the remaining owner step stays as an unticked criterion
+
+**Full Story:** [`BITB-309-privacy-policy-disclose-openai-moderation.md`](DONE/BITB-309-privacy-policy-disclose-openai-moderation.md)
 
 ---
 
 ### 🎯 BITB-288: Wire OPENAI_API_KEY Into Production and Validate the OpenAI Moderation Failover on the 11-Language Golden Set
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P1
 **Size:** S
 **Created:** 2026-11-10
@@ -694,7 +700,7 @@ BITB-272 slice 1 ships the ML failover, but it is a no-op in production until `O
 
 **Acceptance Criteria (summary):**
 
-- [ ] Add `OPENAI_API_KEY` (Key Vault / secret reference) to the backend Container App in `deployment/main.tf` and pass it through `.github/workflows/azure-deploy.yml`; `scripts/validate-env.py` stays green
+- [x] Add `OPENAI_API_KEY` (Key Vault / secret reference) to the backend Container App in `deployment/main.tf` and pass it through `.github/workflows/azure-deploy.yml`; `scripts/validate-env.py` stays green
 - [ ] Run a live golden set (crisis + threat + Bible narrative, en/it/de/es/fr/pt/ar/ru/zh/hi/ko) against `omni-moderation-latest` and record per-language results in this story
 - [ ] Owner step: add the secret value, confirm OpenAI data-retention is acceptable, then deploy; the startup warning no longer appears
 
@@ -775,6 +781,25 @@ BITB-272 slice 1 fails over only to OpenAI Moderation. If both OpenRouter and Op
 - [ ] Metrics reuse `content_safety.failover_total` with a `to_stage` label per hop
 
 **Full Story:** [`BITB-292-azure-content-safety-second-failover.md`](BACKLOG_STORIES/BITB-292-azure-content-safety-second-failover.md)
+
+---
+
+### 🎯 BITB-293: 11-Language Safety Golden Set for a Single Moderation Classifier (OpenAI Moderation First)
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-11
+
+Follow-up to BITB-288 (#1280): the only golden-set harness drives the chat API, so the OpenAI Moderation failover cannot be measured per language before it is trusted.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Versioned crisis / threat / Bible-narrative dataset for all 11 languages
+- [ ] `scripts/run_safety_golden_set.py --classifier ...` with per-language recall / false-positive table and threshold exit code; offline tests across 11 languages
+- [ ] Manual `workflow_dispatch` run; owner records `omni-moderation-latest` results in BITB-288
+
+**Full Story:** [`BITB-293-moderation-classifier-golden-set.md`](BACKLOG_STORIES/BITB-293-moderation-classifier-golden-set.md)
 
 ---
 

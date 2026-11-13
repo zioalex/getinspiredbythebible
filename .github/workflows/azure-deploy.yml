@@ -23,6 +23,9 @@
 #   TF_VAR_CLAUDE_API_KEY       - Claude API key
 #   TF_VAR_SMTP2GO_API_KEY      - SMTP2GO API key
 #   TF_VAR_TURNSTILE_SECRET_KEY - Cloudflare Turnstile server-side secret
+#   OPENAI_API_KEY              - OpenAI API key for content-safety OpenAI Moderation
+#                                 (failover when Llama Guard is down, BITB-272/288);
+#                                 provisioned out-of-band like MONITOR_PROBE_SECRET
 #   CLOUDFLARE_ORIGIN_CERT_B64  - Base64-encoded Cloudflare Origin Certificate
 #   TF_VAR_CLOUDFLARE_ORIGIN_CERT_PASSWORD - Certificate password
 #
@@ -596,6 +599,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
       TF_VAR_smoke_probe_secret: ${{ secrets.SMOKE_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
       # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
@@ -872,6 +876,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
       TF_VAR_smoke_probe_secret: ${{ secrets.SMOKE_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
       # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
@@ -1090,6 +1095,52 @@ jobs:
           name: tfplan
           path: deployment
 
+      # BITB-288: backend `lifecycle.ignore_changes = [secret]` means Terraform
+      # will NOT add a newly declared `openai-api-key` ACA secret to an
+      # already-existing app, yet it WILL add the OPENAI_API_KEY env secretRef
+      # to the template; the new revision would then reference a missing secret
+      # and fail to provision. Seed the secret on the live app BEFORE apply.
+      # No-op when the repo secret is empty or the app does not exist yet (a
+      # first create gets the secret block from Terraform).
+      - name: Pre-seed openai-api-key secret on existing backend app (BITB-288)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "${OPENAI_API_KEY:-}" ]; then
+            echo "OPENAI_API_KEY not configured - skipping."
+            exit 0
+          fi
+          # Skip only on a genuine not-found; any other error (auth, throttling)
+          # must fail the job, otherwise apply would add a secretRef with no secret.
+          if ! show_err=$(az containerapp show \
+               --name "${{ env.BACKEND_APP_NAME }}" \
+               --resource-group "${{ env.RESOURCE_GROUP }}" \
+               --output none 2>&1); then
+            if echo "$show_err" | grep -qiE 'ResourceNotFound|ResourceGroupNotFound|was not found'; then
+              echo "Backend app does not exist yet - Terraform will create the secret."
+              exit 0
+            fi
+            echo "::error::Could not query backend app before pre-seeding openai-api-key."
+            echo "$show_err" | grep -v -i 'openai-api-key=' >&2 || true
+            exit 1
+          fi
+          for i in 1 2 3 4; do
+            if az containerapp secret set \
+                 --name "${{ env.BACKEND_APP_NAME }}" \
+                 --resource-group "${{ env.RESOURCE_GROUP }}" \
+                 --secrets "openai-api-key=$OPENAI_API_KEY" \
+                 --output none; then
+              echo "Pre-seeded openai-api-key on ${{ env.BACKEND_APP_NAME }}."
+              break
+            fi
+            if [ "$i" -eq 4 ]; then
+              echo "::error::Failed to pre-seed openai-api-key after retries."
+              exit 1
+            fi
+            echo "secret set attempt $i failed; retrying..."
+            sleep $((i * 5))
+          done
+
       - name: Terraform Apply
         working-directory: deployment
         run: terraform apply -auto-approve tfplan
@@ -1139,14 +1190,16 @@ jobs:
           echo "::error::Failed to set telegram-bot-token in Key Vault $kv after retries."
           exit 1
 
-      # BITB-067 gap #6: set the probe secrets on the backend Container App
+      # BITB-067 gap #6 / BITB-288: set the probe secrets and the OpenAI API key
+      # (content-safety OpenAI Moderation) on the backend Container App
       # out-of-band, so rotating them never forces a full app replacement (main.tf's
       # `secret` blocks now hold only a bootstrap placeholder — see backend_secret_trigger).
-      # No-op for a given secret if its repo secret is empty (probe disabled).
-      - name: Populate probe secrets in backend Container App (BITB-067)
+      # No-op for a given secret if its repo secret is empty (feature disabled).
+      - name: Populate out-of-band secrets in backend Container App (BITB-067, BITB-288)
         env:
           MONITOR_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
           SMOKE_PROBE_SECRET: ${{ secrets.SMOKE_PROBE_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -o pipefail
           pairs=()
@@ -1156,8 +1209,11 @@ jobs:
           if [ -n "${SMOKE_PROBE_SECRET:-}" ]; then
             pairs+=("smoke-probe-secret=$SMOKE_PROBE_SECRET")
           fi
+          if [ -n "${OPENAI_API_KEY:-}" ]; then
+            pairs+=("openai-api-key=$OPENAI_API_KEY")
+          fi
           if [ "${#pairs[@]}" -eq 0 ]; then
-            echo "No probe secrets configured — skipping."
+            echo "No out-of-band secrets configured — skipping."
             exit 0
           fi
           # Retry: transient RBAC/propagation failures, same pattern as the
@@ -1168,11 +1224,11 @@ jobs:
                  --resource-group "${{ env.RESOURCE_GROUP }}" \
                  --secrets "${pairs[@]}" \
                  --output none; then
-              echo "Probe secret(s) set on ${{ env.BACKEND_APP_NAME }}: ${pairs[*]%%=*}."
+              echo "Out-of-band secret(s) set on ${{ env.BACKEND_APP_NAME }}: ${pairs[*]%%=*}."
               break
             fi
             if [ "$i" -eq 4 ]; then
-              echo "::error::Failed to set probe secret(s) on ${{ env.BACKEND_APP_NAME }} after retries."
+              echo "::error::Failed to set out-of-band secret(s) on ${{ env.BACKEND_APP_NAME }} after retries."
               exit 1
             fi
             echo "secret set attempt $i failed; retrying..."
@@ -1193,10 +1249,10 @@ jobs:
               --resource-group "${{ env.RESOURCE_GROUP }}" \
               --revision "$revision" \
               --output none
-            echo "Restarted revision $revision to pick up the new probe secret value(s)."
+            echo "Restarted revision $revision to pick up the new secret value(s)."
           else
-            echo "::warning::Could not determine active revision to restart; probe" \
-              "secret rotation may not take effect until the next deploy."
+            echo "::warning::Could not determine active revision to restart; secret" \
+              "rotation may not take effect until the next deploy."
           fi
 
       - name: Verify Deployment
@@ -1532,6 +1588,7 @@ jobs:
       TF_VAR_turnstile_site_key: ${{ vars['TF_VAR_TURNSTILE_SITE_KEY'] }}
       TF_VAR_turnstile_secret_key: ${{ secrets.TF_VAR_TURNSTILE_SECRET_KEY }}
       TF_VAR_monitor_probe_secret: ${{ secrets.MONITOR_PROBE_SECRET }}
+      TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
       TF_VAR_smoke_probe_secret: ${{ secrets.SMOKE_PROBE_SECRET }}
       TF_VAR_alert_email: ${{ secrets.TF_VAR_ALERT_EMAIL }}
       # BITB-056: Azure Monitor -> Telegram bridge. Only the chat id is a TF var; the
