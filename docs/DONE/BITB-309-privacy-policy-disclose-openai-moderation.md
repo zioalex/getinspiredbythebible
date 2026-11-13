@@ -1,6 +1,6 @@
 # BITB-309: Privacy Policy — Disclose OpenAI Moderation and State Provider Retention Honestly
 
-**Status:** 🔍 In Review
+**Status:** ✅ Done — PR #1287, merged 2026-11-11
 **Priority:** P1 (blocks merging BITB-288 / PR #1280)
 **Size:** S
 **Created:** 2026-11-11
@@ -73,7 +73,7 @@ In **all 11** policy files (en base + it, de, es, fr, pt, ar, ru, zh, hi, ko):
 - [x] `lastUpdated: 2026-11-11` in every file.
 - [x] Vitest test in `frontend/src/test/legal-pages.test.tsx`, parametrized over all 11
       locales, asserts the above.
-- [ ] Owner: merge this before PR #1280.
+- [x] Owner: merge this before PR #1280 (#1287 merged 2026-11-11).
 - [ ] Owner: in Play Console → Data safety, confirm the form still matches (data shared
       with AI processors for app functionality / safety); no new data type is collected.
 
@@ -83,3 +83,8 @@ In **all 11** policy files (en base + it, de, es, fr, pt, ar, ru, zh, hi, ko):
   disclosure when it is enabled in production (BITB-294).
 - Applying for OpenAI Zero Data Retention.
 - Terms of Service changes.
+
+## Follow-ups
+
+None. The Play Console Data safety re-check is an owner-only step and stays above as an
+unticked acceptance criterion.
