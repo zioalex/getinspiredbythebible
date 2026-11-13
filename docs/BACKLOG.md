@@ -8,7 +8,7 @@ Prioritized list of user stories and features for Vox Quieta.
 
 > **Convention (enforced since 2026-10-22): one entry per line, newest first, append-only.**
 >
-> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#PR)`
+> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#1291)`
 >
 > - Add your entry **directly below this blockquote**, at the top of the list.
 > - **Never edit, reword, or reorder existing entries** — a status change gets a
@@ -20,7 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
-- 2026-11-13: BITB-304 🔍 In Review — one Python version (3.14, `.python-version`) for CI and Dockerfile with a divergence test; Claude works with only an API key (current Sonnet default, no Ollama name); `openai` LLM provider rejected at start-up; weekly model-existence probe + quarterly dependency-majors report; follow-ups BITB-311, BITB-312 opened (#PR)
+- 2026-11-13: BITB-304 🔍 In Review — one Python version (3.14, `.python-version`) for CI and Dockerfile with a divergence test; Claude works with only an API key (current Sonnet default, no Ollama name); `openai` LLM provider rejected at start-up; weekly model-existence probe + quarterly dependency-majors report; follow-ups BITB-311, BITB-312 opened (#1291)
 - 2026-11-13: BITB-312 opened — opencode agent prompts still say "Python 3.12" (BITB-304 follow-up)
 - 2026-11-13: BITB-311 opened — Docker Compose always sets LLM_MODEL, so LLM_PROVIDER=claude gets an Ollama model name (BITB-304 follow-up)
 - 2026-11-11: BITB-309 🔍 In Review — privacy policy (11 languages) discloses OpenAI Moderation as the safety-check fallback and states OpenAI's 30-day abuse-monitoring retention; must merge before BITB-288 (#1280)
@@ -505,7 +505,7 @@ The live sitemap has 66 URLs and none contains scripture, so people searching fo
 
 ### 🔍 BITB-304: Align the Python Runtime, Fix the Claude Model Configuration, Probe Configured Models
 
-**Status:** 🔍 In Review — PR #PR; owner step: confirm the first `model-existence-probe` run is green
+**Status:** 🔍 In Review — PR #1291; owner step: confirm the first `model-existence-probe` run is green
 **Follow-ups:** BITB-311 (Compose LLM_MODEL default), BITB-312 (opencode prompt text)
 **Priority:** P1
 **Size:** S
