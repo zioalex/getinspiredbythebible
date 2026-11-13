@@ -541,6 +541,7 @@ avoid stale entries accumulating in `.git/worktrees/`.
   `make backlog-check` (validates all front matter; also run by `make test` and CI). Then open
   only the one story file you need. Edit a status with a single-line change, e.g.
   `status: todo` → `status: in-progress`. Offline, stdlib-only: `python3 scripts/backlog.py --help`.
+- **Migration notes** (`**Migration note (2026-11-13, …):**`) are frozen 2026-11-13 context, not live state. When you change `status`/`priority`, update or delete the note.
 - **When creating a new story:** create **one file**,
   `docs/BACKLOG_STORIES/BITB-<NNN>-<slug>.md`, with the front matter above (start from any recent
   story). Nothing else to update. Open the PR immediately (it is the id claim, see below).

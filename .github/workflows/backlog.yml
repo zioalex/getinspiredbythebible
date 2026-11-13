@@ -51,7 +51,7 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           git fetch origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
-          if git diff --name-only "origin/${BASE_BRANCH}...HEAD" \
+          if git diff --no-renames --name-only "origin/${BASE_BRANCH}...HEAD" \
             | grep -E '^(docs/BACKLOG_STORIES/|docs/DONE/|scripts/(test_)?(backlog|migrate_backlog_frontmatter)|\.github/workflows/backlog\.yml)'; then
             echo "relevant=true" >> "$GITHUB_OUTPUT"
           else
@@ -78,7 +78,7 @@ jobs:
 
       - name: Backlog tooling tests
         run: |
-          pip install pytest
+          pip install pytest==9.2.0
           python -m pytest scripts/test_backlog.py scripts/test_migrate_backlog_frontmatter.py -v
 
   backlog-stub-guard:
@@ -96,16 +96,17 @@ jobs:
       - name: Fail if the PR edits docs/BACKLOG.md
         env:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
         run: |
           git fetch origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
-          if ! git diff --name-only "origin/${BASE_BRANCH}...HEAD" | grep -qx 'docs/BACKLOG.md'; then
+          if ! git diff --no-renames --name-only "origin/${BASE_BRANCH}...HEAD" | grep -qx 'docs/BACKLOG.md'; then
             echo "docs/BACKLOG.md is untouched."
             exit 0
           fi
-          if [[ "${PR_TITLE}" == *BITB-313* ]]; then
-            echo "Exempt: the BITB-313 cutover PR may edit docs/BACKLOG.md."
+          # The cutover PR itself (#1292) rewrites the file; the exemption is inert after it merges.
+          if [[ "${PR_NUMBER}" == "1292" ]]; then
+            echo "Exempt: the BITB-313 cutover PR (#1292) may edit docs/BACKLOG.md."
             exit 0
           fi
           if grep -q '"backlog-stub-edit"' <<<"${PR_LABELS}"; then

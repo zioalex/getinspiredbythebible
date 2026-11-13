@@ -34,7 +34,8 @@ supersedes: free text
 
 The story title is the file's one `# BITB-NNN: Title` heading (there is no `title` key).
 Free text that used to sit in the old bold header lines (status wording, size ranges) was kept
-as `**Status note:**`, `**Priority note:**` and `**Size note:**` lines under the heading.
+as `**Migration note (2026-11-13, status|priority|size|created):**` lines under the heading.
+Migration notes are frozen 2026-11-13 context; when you change `status`/`priority`, update or delete the note.
 
 Retired status emoji, for reading old text: todo (target), in-progress (construction),
 in-review (magnifier), done (check mark), cancelled (cross mark).

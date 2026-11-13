@@ -6,6 +6,9 @@ git history, so there is nothing to hand-write and nothing to conflict on. Run
 `make backlog-changelog` (or `python3 scripts/backlog.py changelog --since 2026-11-13`) for the
 current entries.
 
+The convention block below ("add your entry directly below this blockquote") is **obsolete**:
+do not add entries to this file.
+
 ---
 
 > **Convention (enforced since 2026-10-22): one entry per line, newest first, append-only.**

@@ -2,7 +2,7 @@ name: Story ID Check
 
 # BITB-235: story-ID duplicate-claim check. Backlog Hygiene says "highest BITB-NNN + 1", but
 # that only sees main — two concurrent PRs can (and did, twice) claim the same number, which
-# scripts/check_backlog_story_ids.py (BITB-111) notices only *after* the second PR merges. This
+# scripts/backlog.py check (BITB-313; formerly BITB-111) notices only *after* the second PR merges. This
 # check fails the PR *before* merge when a docs/BACKLOG_STORIES/BITB-NNN-*.md file it adds
 # claims an ID that already exists on the base branch (minus files this PR deletes — a
 # renumber must not flag itself) or is added by another open PR on the same base.
