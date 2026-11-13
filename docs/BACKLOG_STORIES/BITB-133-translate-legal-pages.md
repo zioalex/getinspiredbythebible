@@ -1,9 +1,3 @@
----
-id: BITB-133
-status: todo
-priority: P3
----
-
 # BITB-133: Translate Privacy Policy and Terms of Service into All Supported Languages
 
 ## User Story

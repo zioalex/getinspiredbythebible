@@ -1,18 +1,9 @@
----
-id: BITB-125
-status: done
-priority: P2
-size: S
-rank: 1130
-created: 2026-09-09
-prs: [1090]
----
-
 # BITB-125: `scripts/migrations/utils.py` Silently Drops TLS Entirely for `?ssl=verify-ca`/`?ssl=verify-full`
 
-**Status note:** (PR #1090 merged 2026-09-22)
-**Status note:** story header previously read: Todo
-**Priority note:** latent, not currently triggered by any DSN in this repo, but a real correctness gap
+**Status:** 🎯 Todo
+**Priority:** P2 — latent, not currently triggered by any DSN in this repo, but a real correctness gap
+**Size:** S
+**Created:** 2026-09-09
 **Prompted by:** the independent Verify pass on BITB-099
 
 ## The Finding

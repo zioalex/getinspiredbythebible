@@ -1,15 +1,8 @@
----
-id: BITB-197
-status: in-review
-priority: P2
-size: S
-rank: 350
-created: 2026-10-13
----
-
 # BITB-197: Blocked-Response Templates Missing ru/zh/hi/ko
 
-**Status note:** (2026-10-21)
+**Status:** 🔍 In Review (2026-10-21)
+**Size:** S
+**Created:** 2026-10-13
 
 ## Problem
 

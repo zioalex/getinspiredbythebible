@@ -1,16 +1,9 @@
----
-id: BITB-248
-status: done
-priority: P1
-size: S
-rank: 730
-created: 2026-10-27
-prs: [1226]
----
-
 # BITB-248: Web Read Aloud Still Stuck on Pause on Snap Firefox (Start Watchdog Trusted `speaking`)
 
-**Status note:** PR #1226, merged 2026-10-28
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-27
 **Prompted by:** owner retest 2026-10-27 after BITB-241 shipped — "I just tested the play button on firefox
 Linux and still it doesn't work" (stuck on Pause, no notice).
 

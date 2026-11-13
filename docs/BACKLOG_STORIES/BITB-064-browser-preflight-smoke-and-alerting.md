@@ -1,18 +1,11 @@
----
-id: BITB-064
-status: done
-priority: P1
-size: M
-rank: 590
-created: 2026-07-05
-prs: [824]
----
-
 # BITB-064: Catch Browser-Only Outages — CORS-Preflight Smoke Test + Instrumented-Request Alerting
 
-**Status note:** scripted cross-origin probe, Azure preflight web test, runbook, AND the full production **browser** smoke test all delivered on the PR #824 branch.
-**Priority note:** (High) — a total browser-facing chat outage shipped to production and **no monitor, alert, or Telegram notification fired**; only a user report surfaced it.
-**Size note:** (1-2 days — one new synthetic probe + wiring; optional Azure availability test)
+**Status:** ✅ Done — scripted cross-origin probe, Azure preflight web test, runbook, AND the full
+production **browser** smoke test all delivered on the PR #824 branch.
+**Priority:** P1 (High) — a total browser-facing chat outage shipped to production and **no monitor,
+alert, or Telegram notification fired**; only a user report surfaced it.
+**Size:** M (1-2 days — one new synthetic probe + wiring; optional Azure availability test)
+**Created:** 2026-07-05
 **Incident ref:** FastAPI 0.137 / starlette 1.3.1 put an `_IncludedRouter` in `app.routes`; the pinned
 OpenTelemetry FastAPI instrumentation (`azure-monitor-opentelemetry==1.8.8` → `opentelemetry-instrumentation-fastapi==0.61b0`)
 did `route.path` on it and raised `'_IncludedRouter' object has no attribute 'path'` on **every CORS

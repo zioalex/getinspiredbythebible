@@ -1,14 +1,9 @@
----
-id: BITB-308
-status: todo
-priority: P2
-size: M
-rank: 10
-created: 2026-11-11
----
-
 # BITB-308: Lock the Backend Origin to Cloudflare (No Direct Container Apps Access)
 
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-11
 **Prompted by:** BITB-297 verification, finding 2.
 
 ## Problem

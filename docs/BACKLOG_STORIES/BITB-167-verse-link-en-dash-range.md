@@ -1,15 +1,9 @@
----
-id: BITB-167
-status: in-progress
-priority: P3
-size: S
-rank: 120
-created: 2026-09-30
----
-
 # BITB-167: Tapped Verse Link With an En-Dash Range Falls Back to Verse 1 on Android
 
-**Status note:** (2026-10-04)
+**Status:** 🚧 In Progress (2026-10-04)
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-30
 **Found by:** BITB-164 verification
 
 ## User Story

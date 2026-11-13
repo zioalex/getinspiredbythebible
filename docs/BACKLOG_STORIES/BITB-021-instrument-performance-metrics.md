@@ -1,16 +1,9 @@
----
-id: BITB-021
-status: done
-priority: P1
-size: M
-rank: 780
-created: 2026-03-06
----
-
 # BITB-021: Instrument LLM and Database Performance Metrics
 
-**Status note:** (metrics defined, all providers instrumented, repository instrumented, integration tests added)
-**Priority note:** (High — dashboard is deployed but shows no data)
+**Priority:** P1 (High — dashboard is deployed but shows no data)
+**Status:** ✅ Done (metrics defined, all providers instrumented, repository instrumented, integration tests added)
+**Size:** M (4-6 hours)
+**Created:** 2026-03-06
 **Updated:** 2026-05-16
 
 ---

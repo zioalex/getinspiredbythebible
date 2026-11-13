@@ -1,17 +1,9 @@
----
-id: BITB-229
-status: todo
-priority: P2
-size: M
-rank: 300
-created: 2026-10-23
-depends_on: [BITB-228]
----
-
 # BITB-229: Shrink the PG Disk 64 → 32 GB via Dump/Restore
 
-**Status note:** (blocked by BITB-228)
-**Size note:** (planned maintenance window + runbook)
+**Status:** 🎯 Todo (blocked by BITB-228)
+**Priority:** P2
+**Size:** M (planned maintenance window + runbook)
+**Created:** 2026-10-23
 **Parent:** BITB-150 (Phase 0 follow-up — the storage-ratchet answer)
 
 ## User Story

@@ -1,17 +1,13 @@
----
-id: BITB-050
-status: done
-priority: P1
-size: S
-rank: 730
-created: 2026-06-12
----
-
 # BITB-050: Improve Thematic Verse Search & Response Depth for Specific Questions
 
-**Status note:** status marker was left stale; corrected 2026-08-28 after verifying against `main`. Both deliverables are shipped: the justice/prophetic-theme guidance and the 120-word cap are in `_expand_query` (`api/chat/service.py`), and `SPECIFIC_FOCUS_GUIDANCE` ("Addressing the User's Specific Focus") is in `api/chat/prompts.py`, with `api/tests/test_chat_service_expansion.py` covering the expansion prompt.
-**Priority note:** (High) — answer quality on nuanced study questions
-**Size note:** (< 4 hrs) — prompt-only; flag rollout deferred to BITB-043
+**Status:** ✅ Done — status marker was left stale; corrected 2026-08-28 after verifying against
+`main`. Both deliverables are shipped: the justice/prophetic-theme guidance and the 120-word cap are
+in `_expand_query` (`api/chat/service.py`), and `SPECIFIC_FOCUS_GUIDANCE` ("Addressing the User's
+Specific Focus") is in `api/chat/prompts.py`, with `api/tests/test_chat_service_expansion.py`
+covering the expansion prompt.
+**Priority:** P1 (High) — answer quality on nuanced study questions
+**Size:** S (< 4 hrs) — prompt-only; flag rollout deferred to BITB-043
+**Created:** 2026-06-12
 **Source:** Beta tester feedback (Oliver Osthoever, 2026-06-12)
 
 ## User Story

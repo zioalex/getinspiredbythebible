@@ -1,17 +1,9 @@
----
-id: BITB-042
-status: done
-priority: P2
-size: M
-rank: 920
-created: 2026-06-05
-prs: [684, 685, 783]
----
-
 # BITB-042: Feedback "Rethink" Delay + Explicit Maintainer-Sharing Notice on Thumbs-Down
 
-**Status note:** confirmed directly in code on `main`: `frontend/src/components/FeedbackControls.tsx` has `FEEDBACK_RETHINK_MS`, the maintainer notice, and `aria-live` status, with all 11 locales carrying `maintainerNotice`. Web PR #684 was closed without an explicit merge record but the feature is live regardless; Android parity shipped in PR #685 and completed in PR #783 (2026-07-03). No iOS app exists yet (see BITB-085), so iOS parity does not apply.
-**Status note:** story header previously read: In Progress — web implemented; Android/iOS parity still open
+**Status:** 🚧 In Progress — web implemented; Android/iOS parity still open
+**Priority:** P2
+**Size:** M (1-2 days)
+**Created:** 2026-06-05
 
 ## User Story
 

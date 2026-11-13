@@ -1,14 +1,9 @@
----
-id: BITB-091
-status: todo
-priority: P3
-size: M
-rank: 270
-created: 2026-07-31
----
-
 # BITB-091: Backfill the Five Legacy Non-ORM Tables into Alembic
 
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-07-31
 **Depends on:** BITB-089 (Alembic authoritative in the deploy pipeline).
 
 ## User Story

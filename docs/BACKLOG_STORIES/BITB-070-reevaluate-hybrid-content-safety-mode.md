@@ -1,16 +1,10 @@
----
-id: BITB-070
-status: todo
-priority: P3
-size: M
-rank: 170
-created: 2026-07-17
----
-
 # BITB-070: Re-evaluate `hybrid` Content-Safety Mode (Two-Vendor Defense-in-Depth)
 
-**Priority note:** (Low) — `ml_only` is currently reliable and safe; this is a deliberate future upgrade, not a gap.
-**Size note:** (1-2 days, mostly infra + a small code change)
+**Status:** 🎯 Todo
+**Priority:** P3 (Low) — `ml_only` is currently reliable and safe; this is a deliberate
+future upgrade, not a gap.
+**Size:** M (1-2 days, mostly infra + a small code change)
+**Created:** 2026-07-17
 
 ## User Story
 

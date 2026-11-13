@@ -1,16 +1,9 @@
----
-id: BITB-279
-status: in-progress
-priority: P1
-size: S
-rank: 100
-created: 2026-11-08
----
-
 # BITB-279: Broken Fallback Chains — `opencode/*` Model References Never Serve; Paid Tier-2 Cannot Rescue an Exhausted Key
 
-**Status note:** chains, generator constants, test suite and agents.md guards aligned in this PR; BITB-280 live-load gate follows
-**Size note:** (agents) + S follow-up (generator constants)
+**Status:** 🔄 In progress — chains, generator constants, test suite and agents.md guards aligned in this PR; BITB-280 live-load gate follows
+**Priority:** P1
+**Size:** S (agents) + S follow-up (generator constants)
+**Created:** 2026-11-08
 **Incident:** 2026-11-08 21:30–21:36 UTC (fallback chain dead during weekly-key exhaustion)
 
 ## Bug Report (live evidence, 2026-11-08)

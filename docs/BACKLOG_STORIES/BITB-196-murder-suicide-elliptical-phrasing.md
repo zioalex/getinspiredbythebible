@@ -1,13 +1,8 @@
----
-id: BITB-196
-status: in-review
-priority: P1
-size: M
-rank: 380
-created: 2026-10-13
----
-
 # BITB-196: Murder-Suicide Elliptical Phrasing Takes the Compassionate Path
+
+**Status:** 🔍 In Review
+**Size:** M
+**Created:** 2026-10-13
 
 ## Problem
 

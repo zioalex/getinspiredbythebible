@@ -1,14 +1,9 @@
----
-id: BITB-288
-status: in-review
-priority: P1
-size: S
-rank: 150
-created: 2026-11-10
----
-
 # BITB-288: Wire OPENAI_API_KEY Into Production and Validate the OpenAI Moderation Failover on the 11-Language Golden Set
 
+**Status:** 🔍 In Review
+**Priority:** P1
+**Size:** S
+**Created:** 2026-11-10
 **Prompted by:** BITB-272 slice 1 (ML failover to OpenAI Moderation before the keyword fallback).
 
 ## Problem

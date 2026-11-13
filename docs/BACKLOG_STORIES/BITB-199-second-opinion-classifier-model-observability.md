@@ -1,13 +1,8 @@
----
-id: BITB-199
-status: todo
-priority: P3
-size: S
-rank: 30
-created: 2026-10-13
----
-
 # BITB-199: Second-Opinion Classifier Uses the Primary Model Only
+
+**Status:** 🎯 Todo
+**Size:** S
+**Created:** 2026-10-13
 
 ## Problem
 

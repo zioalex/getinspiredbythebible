@@ -1,14 +1,9 @@
----
-id: BITB-267
-status: todo
-priority: P3
-size: S
-rank: 370
-created: 2026-11-05
----
-
 # BITB-267: Backend Verse Parser Misses a Citation After `**`, `—` or `¿`
 
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-11-05
 **Prompted by:** BITB-189 — the backend whitelist lookbehind was widened to closing brackets/quotes,
 but other non-letter starts remain a backend-vs-web/Android boundary gap.
 

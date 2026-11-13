@@ -1,15 +1,9 @@
----
-id: BITB-056
-status: in-progress
-priority: P2
-size: M
-created: 2026-06-26
----
-
 # BITB-056: Backend Error Alert — Precise, Actionable, and DB-Threshold-Aware
 
-**Status note:** (Phase 1 implemented; Phase 2 + DB tier bump = follow-up)
-**Priority note:** (Medium) — alert quality / on-call signal-to-noise
+**Status:** 🚧 In progress (Phase 1 implemented; Phase 2 + DB tier bump = follow-up)
+**Priority:** P2 (Medium) — alert quality / on-call signal-to-noise
+**Size:** M (1-2 days)
+**Created:** 2026-06-26
 
 ## User Story
 

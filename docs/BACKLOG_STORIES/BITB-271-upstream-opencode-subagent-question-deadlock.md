@@ -1,15 +1,9 @@
----
-id: BITB-271
-status: todo
-priority: P2
-size: S
-rank: 140
-created: 2026-11-08
----
-
 # BITB-271: Upstream opencode — Subagent `question` Tool Call Parks Forever; No Default Denial, Timeout, or Parent Routing
 
-**Status note:** (contains an owner-run external step)
+**Status:** 🎯 Todo (contains an owner-run external step)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-08
 **Follow-up to:** BITB-269 (deferred as out-of-scope item 2)
 
 ## User Story

@@ -1,15 +1,9 @@
----
-id: BITB-048
-status: done
-priority: P2
-size: S
-rank: 870
-created: 2026-06-12
----
-
 # BITB-048: Auto-Dismiss Keyboard After Sending a Message (Android)
 
-**Priority note:** (Medium) — visible UX friction on every message
+**Status:** ✅ Done
+**Priority:** P2 (Medium) — visible UX friction on every message
+**Size:** S (< 1 hr)
+**Created:** 2026-06-12
 **Source:** Beta tester feedback (Oliver Osthoever, 2026-06-11)
 
 ## User Story

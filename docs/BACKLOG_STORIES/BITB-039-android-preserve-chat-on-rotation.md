@@ -1,17 +1,9 @@
----
-id: BITB-039
-status: done
-priority: P1
-size: S
-rank: 750
-created: 2026-06-04
-prs: [689]
----
-
 # BITB-039: Android — Keep the Current Chat When the Phone Is Rotated
 
-**Status note:** (PR #689 — 2026-06-06)
-**Priority note:** (High) — data-loss UX bug on a common interaction
+**Status:** ✅ Done (PR #689 — 2026-06-06)
+**Priority:** P1 (High) — data-loss UX bug on a common interaction
+**Size:** S (< 4 hours)
+**Created:** 2026-06-04
 
 ## User Story
 

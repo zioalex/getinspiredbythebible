@@ -1,13 +1,6 @@
----
-id: BITB-031
-status: done
-priority: P3
-prs: [546]
----
-
 # BITB-031: Android Settings — "What's New" / Changelog Screen
 
-**Status note:** (PR #546 merged 2026-05-13 — What's New / Changelog screen added to Settings)
+**Status:** ✅ Done (PR #546 merged 2026-05-13 — What's New / Changelog screen added to Settings)
 
 ## User Story
 

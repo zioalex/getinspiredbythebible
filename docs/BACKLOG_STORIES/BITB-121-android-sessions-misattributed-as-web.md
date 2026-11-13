@@ -1,16 +1,9 @@
----
-id: BITB-121
-status: in-progress
-priority: P1
-size: S
-rank: 1190
-created: 2026-09-04
-prs: [1038]
----
-
 # BITB-121: Android Sessions Are Counted as Web in the Weekly Report
 
-**Status note:** implementation in PR #1038; rollout verification pending
+**Status:** 🚧 In Progress - implementation in PR #1038; rollout verification pending
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-04
 
 ## User Story
 

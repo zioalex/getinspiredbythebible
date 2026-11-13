@@ -1,16 +1,9 @@
----
-id: BITB-178
-status: done
-priority: P1
-size: M
-rank: 460
-created: 2026-10-09
-prs: [1145]
----
-
 # BITB-178: Wrong Referent in a Verse Explanation, Then a Flip on "Are You Sure?"
 
-**Status note:** (PR #1145 merged 2026-10-10; AC12 live run pending, owner)
+**Status:** ✅ Done (PR #1145 merged 2026-10-10; AC12 live run pending, owner)
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-09
 **Prompted by:** product-owner report — a German conversation about Luke 1:79 (transcript below)
 
 ## Bug Report

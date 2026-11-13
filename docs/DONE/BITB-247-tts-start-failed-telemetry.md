@@ -1,16 +1,9 @@
----
-id: BITB-247
-status: done
-priority: P2
-size: M
-rank: 720
-created: 2026-10-27
-prs: [1226]
----
-
 # BITB-247: Read-Aloud Telemetry — Attempts, Completions and Failures (Web + Android)
 
-**Status note:** PR #1226, merged 2026-10-28
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-27
 **Follow-up of:** BITB-241 (PR #1203); widened on 2026-10-27 at the owner's request: "visibility on how many
 users try the play button, how many fail and how many succeed", to decide on a fallback voice
 (Azure Speech vs in-page Piper).

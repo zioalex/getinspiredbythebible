@@ -1,16 +1,10 @@
----
-id: BITB-137
-status: todo
-priority: P2
-size: L
-created: 2026-06-08
----
-
 # BITB-137: Product Analytics Dashboard (Metabase)
 
-**Status note:** Proposed — not yet started.
-**Priority note:** Medium. Follows the weekly digest email (which ships the same metrics now); this is the longer-term, interactive successor.
-**Size note:** (multi-day: infra + DB role + dashboard authoring).
+**Priority:** P2 — Medium. Follows the weekly digest email (which ships the
+same metrics now); this is the longer-term, interactive successor.
+**Status:** 📋 Proposed — not yet started.
+**Size:** L (multi-day: infra + DB role + dashboard authoring).
+**Created:** 2026-06-08
 
 ---
 

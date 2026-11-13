@@ -1,16 +1,14 @@
----
-id: BITB-156
-status: in-progress
-priority: P2
-size: M
-rank: 490
-created: 2026-09-16
-prs: [1103]
----
-
 # BITB-156: Android Server-Driven Session Limit + BITB-118 Instrumentation/IP-Cap Follow-Up
 
-**Status note:** (PR #1103 open — Part A: Android server-driven limit + "Continue this conversation". Parts B/C/D — instrumentation, IP-cap prerequisites, purge-horizon — remain deferred/unstarted.)
+**Status:** 🚧 In Progress (PR #1103 open — Part A: Android server-driven limit + "Continue this
+conversation". Parts B/C/D — instrumentation, IP-cap prerequisites, purge-horizon — remain
+deferred/unstarted.)
+
+**Priority:** P2
+
+**Size:** M
+
+**Created:** 2026-09-16
 
 **Split from:** BITB-118 — the backend + web slice of that story shipped first (server-published
 `chat.session_max_requests`, a non-destructive "Continue this conversation" action, and

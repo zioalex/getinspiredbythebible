@@ -1,14 +1,9 @@
----
-id: BITB-215
-status: todo
-priority: P3
-size: S
-rank: 680
-created: 2026-10-22
----
-
 # BITB-215: Help for Installing an Offline Voice When the Browser Has None (Web)
 
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
 **Follow-up of:** BITB-210 (PR #1190), which left the "help" link optional and didn't build it
 
 ## Problem

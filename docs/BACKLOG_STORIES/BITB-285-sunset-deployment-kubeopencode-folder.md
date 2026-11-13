@@ -1,15 +1,9 @@
----
-id: BITB-285
-status: in-progress
-priority: P2
-size: M
-rank: 100
-created: 2026-11-09
----
-
 # BITB-285: Sunset the Obsolete `deployment/kubeopencode/` Folder — Consolidate KubeOpenCode Manifests and Docs in `k8s/kubeopencode/`
 
-**Status note:** implementation PR (desktop manifest promoted, runbooks migrated, folder stubbed, references repointed; owner sign-off pending)
+**Status:** 🔄 In progress — implementation PR (desktop manifest promoted, runbooks migrated, folder stubbed, references repointed; owner sign-off pending)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-09
 **Owner ruling:** 2026-11-09 — `k8s/kubeopencode/` is **THE canonical home** for all KubeOpenCode manifests and docs; `deployment/kubeopencode/` is **obsolete**
 **Filed from:** the BITB-283 correction round on PR #1272 (which briefly added `deployment/kubeopencode/agent-wf3.yaml` under the wrong assumption that the deployment folder was canonical)
 

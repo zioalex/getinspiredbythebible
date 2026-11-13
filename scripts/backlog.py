@@ -70,12 +70,12 @@ ALLOWED_SHARED_ID_GROUPS: tuple[frozenset[str], ...] = (
     ),
 )
 
-_ID_RE = re.compile(r"^BITB-\d+$")
+_ID_RE = re.compile(r"^BITB-\d{3,}$")
 _FILENAME_ID_RE = re.compile(r"^(BITB-\d+)-")
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _TITLE_PREFIX_RE = re.compile(r"^BITB-\d+\s*:?\s*")
 _BOLD_HEADER_RE = re.compile(r"^\*\*(Status|Priority|Size|Created):\*\*")
-_FIX_HINT = "see AGENTS.md -> Backlog Hygiene for the front-matter schema"
+_FIX_HINT = "see docs/backlog/LEGEND.md for the front-matter schema"
 
 
 class FrontMatterError(ValueError):
@@ -227,7 +227,16 @@ def load_story(root: Path, path: Path) -> Story:
     rel = path.relative_to(root).as_posix()
     match = _FILENAME_ID_RE.match(path.name)
     story = Story(path=rel, id=match.group(1) if match else "", title="")
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_bytes().decode("utf-8")
+    except UnicodeDecodeError as exc:
+        story.errors.append(
+            f"not valid UTF-8 ({exc.reason} at byte {exc.start}) — re-save as UTF-8"
+        )
+        return story
+    if text.startswith("\ufeff"):
+        story.errors.append("starts with a UTF-8 BOM — remove it (the file must begin with '---')")
+        text = text.lstrip("\ufeff")
     try:
         block, body = split_front_matter(text)
     except FrontMatterError as exc:
@@ -292,6 +301,11 @@ def check_stories(stories: list[Story]) -> list[str]:  # noqa: C901
         by_id.setdefault(story.id, []).append(story)
         for err in story.errors:
             errors.append(f"{story.path}: {err}")
+        if story.id and not _ID_RE.match(story.id):
+            errors.append(
+                f"{story.path}: id {story.id!r} must be zero-padded to 3 digits "
+                f"(e.g. BITB-{story.number:03d}) — rename the file and set the 'id:' line"
+            )
         meta = story.meta
         if not meta:
             continue
@@ -301,7 +315,10 @@ def check_stories(stories: list[Story]) -> list[str]:  # noqa: C901
                 f"id {story.id!r} — set 'id: {story.id}'"
             )
         if "id" in meta and not _ID_RE.match(str(meta["id"])):
-            errors.append(f"{story.path}: id must look like BITB-123 — fix the 'id:' line")
+            errors.append(
+                f"{story.path}: id must look like BITB-123 (zero-padded, 3+ digits) "
+                "— fix the 'id:' line"
+            )
         if meta.get("status") not in STATUSES:
             errors.append(
                 f"{story.path}: status {meta.get('status')!r} invalid — use one of "
@@ -393,15 +410,25 @@ def _pr_label(story: Story) -> str:
     return f"#{story.prs[-1]}" if story.prs else "-"
 
 
-# Sized so the open-items listing stays under the 12 KB (~3k token) agent budget (BITB-313).
-TITLE_WIDTH = 46
+# Every compact line is capped at this many bytes so that 165 open stories (today's backlog)
+# stay under the 12 KB (~3k token) agent budget regardless of title length (BITB-313).
+MAX_LINE_BYTES = 73
 
 
-def format_compact(stories: list[Story], title_width: int = TITLE_WIDTH) -> str:
-    lines = [
-        f"{s.id} {s.priority} {s.size} {s.status} {_pr_label(s)} {_truncate(s.title, title_width)}"
-        for s in stories
-    ]
+def _truncate_bytes(text: str, budget: int) -> str:
+    raw = text.encode("utf-8")
+    if len(raw) <= budget:
+        return text
+    cut = raw[: max(budget - 3, 0)].decode("utf-8", errors="ignore").rstrip()
+    return cut + "…"
+
+
+def format_compact(stories: list[Story], max_line: int = MAX_LINE_BYTES) -> str:
+    lines = []
+    for s in stories:
+        prefix = f"{s.id} {s.priority} {s.size} {s.status} {_pr_label(s)} "
+        budget = max(max_line - len(prefix.encode("utf-8")), 12)
+        lines.append(prefix + _truncate_bytes(s.title, budget))
     return "\n".join(lines) + ("\n" if lines else "")
 
 
@@ -446,8 +473,15 @@ def next_id(stories: list[Story]) -> str:
     return f"BITB-{highest + 1:03d}"
 
 
+def normalize_id(raw: str) -> str | None:
+    """``BITB-1``, ``bitb-001`` and ``1`` all become ``BITB-001``; ``None`` when not an id."""
+    match = re.fullmatch(r"(?:BITB-)?(\d+)", raw.strip(), re.IGNORECASE)
+    return f"BITB-{int(match.group(1)):03d}" if match else None
+
+
 def show_story(root: Path, stories: list[Story], story_id: str, full: bool) -> str:
-    matches = [s for s in stories if s.id == story_id.upper()]
+    wanted = normalize_id(story_id) or story_id.upper()
+    matches = [s for s in stories if s.id == wanted]
     if not matches:
         raise SystemExit(f"{story_id}: no such story (try: python3 scripts/backlog.py list --all)")
     out: list[str] = []
@@ -466,7 +500,16 @@ def show_story(root: Path, stories: list[Story], story_id: str, full: bool) -> s
 # changelog (derived from git history, never hand-written)
 # --------------------------------------------------------------------------------------
 
-_BITB_IN_SUBJECT = re.compile(r"BITB-\d+")
+_BITB_IN_SUBJECT = re.compile(r"BITB-(\d+(?:/\d+)*)")
+_PR_IN_SUBJECT = re.compile(r"\(#\d+\)")
+
+
+def expand_ids(subject: str) -> list[str]:
+    """Every story id in ``subject``; slash forms like ``BITB-282/283`` expand to both ids."""
+    found: list[str] = []
+    for match in _BITB_IN_SUBJECT.finditer(subject):
+        found.extend(f"BITB-{int(num):03d}" for num in match.group(1).split("/"))
+    return list(dict.fromkeys(found))
 
 
 def git_changelog(
@@ -491,8 +534,8 @@ def git_changelog(
     entries: list[str] = []
     for line in result.stdout.splitlines():
         date, _, subject = line.partition("\t")
-        ids = list(dict.fromkeys(_BITB_IN_SUBJECT.findall(subject)))
-        if not ids:
+        ids = expand_ids(subject)
+        if not ids or not _PR_IN_SUBJECT.search(subject):
             continue
         if since and date < since:
             continue
@@ -518,6 +561,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_list.add_argument("--size", help="comma list, e.g. XS,S")
     p_list.add_argument("--grep", help="case-insensitive text in id + title")
     p_list.add_argument("--all", action="store_true", help="include done and cancelled")
+    p_list.add_argument("--limit", type=int, help="print at most N stories")
     p_list.add_argument("--format", choices=("compact", "md", "json"), default="compact")
 
     p_show = sub.add_parser("show", help="path + front matter of one story")
@@ -527,7 +571,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_log = sub.add_parser("changelog", help="derived from git log subjects")
     p_log.add_argument("--ref", default="origin/main")
     p_log.add_argument("--since", help="YYYY-MM-DD")
-    p_log.add_argument("--limit", type=int)
+    p_log.add_argument("--limit", type=int, help="print at most N entries")
 
     sub.add_parser("check", help="validate every story's front matter")
     sub.add_parser("render", help="full markdown index to stdout")
@@ -535,8 +579,32 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _validated(
+    parser: argparse.ArgumentParser, flag: str, raw: str | None, allowed: tuple[str, ...]
+) -> str | None:
+    """Normalise a comma list against the enum (case-insensitive); exit 2 on a bad value."""
+    if not raw:
+        return None
+    by_lower = {value.lower(): value for value in allowed}
+    values = []
+    for part in (p.strip() for p in raw.split(",") if p.strip()):
+        if part.lower() not in by_lower:
+            parser.error(f"{flag}: invalid value {part!r}; allowed: {', '.join(allowed)}")
+        values.append(by_lower[part.lower()])
+    return ",".join(values)
+
+
 def main(argv: list[str] | None = None) -> int:
-    args = _build_parser().parse_args(argv)
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    try:
+        return _run(parser, args)
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:  # noqa: C901
     root: Path = args.root
     if args.command == "changelog":
         entries = git_changelog(root, args.ref, args.since, args.limit)
@@ -553,18 +621,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f"OK: {len(stories)} stories")
         return 0
     if args.command == "list":
+        if args.limit is not None and args.limit < 1:
+            parser.error("--limit: must be at least 1")
         picked = filter_stories(
             stories,
-            status=args.status,
-            priority=args.priority,
-            size=args.size,
+            status=_validated(parser, "--status", args.status, STATUSES),
+            priority=_validated(parser, "--priority", args.priority, PRIORITIES),
+            size=_validated(parser, "--size", args.size, SIZES),
             grep=args.grep,
             show_all=args.all,
         )
+        if args.limit is not None:
+            picked = picked[: args.limit]
         formatter = {"compact": format_compact, "md": format_md, "json": format_json}
         sys.stdout.write(formatter[args.format](picked))
         return 0
     if args.command == "show":
+        if normalize_id(args.id) is None and not re.fullmatch(r"BITB-\d+", args.id, re.IGNORECASE):
+            parser.error(f"invalid story id {args.id!r}; expected BITB-NNN")
         sys.stdout.write(show_story(root, stories, args.id, args.full))
         return 0
     if args.command == "render":

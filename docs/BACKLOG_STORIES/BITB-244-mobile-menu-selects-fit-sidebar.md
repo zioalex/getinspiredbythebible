@@ -1,16 +1,9 @@
----
-id: BITB-244
-status: in-review
-priority: P1
-size: S
-rank: 270
-created: 2026-10-27
-prs: [1225]
----
-
 # BITB-244: Bible Version / Language Selects Overflow the Mobile Menu
 
-**Status note:** (PR #1225)
+**Status:** 🔄 In Review (PR #1225)
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-27
 **Type:** Bug (mobile, web frontend)
 **GitHub Issue:** #1223 (filed at the owner's request for tester feedback)
 

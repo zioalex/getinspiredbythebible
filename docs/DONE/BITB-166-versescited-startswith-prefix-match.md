@@ -1,16 +1,9 @@
----
-id: BITB-166
-status: done
-priority: P3
-size: S
-rank: 110
-created: 2026-09-30
-prs: [1127]
----
-
 # BITB-166: Server `versesCited` Path Still Uses Prefix (`startsWith`) Verse Matching on Android
 
-**Status note:** (PR #1127, 2026-10-01)
+**Status:** ✅ Done (PR #1127, 2026-10-01)
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-30
 **Found by:** BITB-164
 
 ## User Story

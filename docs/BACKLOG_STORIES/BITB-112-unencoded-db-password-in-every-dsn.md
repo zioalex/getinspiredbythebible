@@ -1,17 +1,14 @@
----
-id: BITB-112
-status: in-progress
-priority: P1
-size: M
-rank: 1100
-created: 2026-08-28
----
-
 # BITB-112: Every Database URL in This Repo Assumes the Password Is URL-Safe
 
-**Status note:** all nine sites (eight in `azure-deploy.yml`, one in `main.tf`) now percent-encode the password, `administrator_password` is left literal on purpose (commented at both sites), and a guard test (`api/tests/test_azure_deploy_workflow_credentials.py`) fails on a future raw-password DSN. The one AC this PR cannot close is the live rehearsal — see *Verification* below.
-**Priority note:** the same defect already took `eval-prod` down once, and one of the remaining sites is the running production app's own connection string
-**Size note:** S–M (mechanical fix at ~10 sites + a charset guard + tests; the care is in not breaking a working deploy while changing how its credential is encoded)
+**Status:** 🚧 In Progress — all nine sites (eight in `azure-deploy.yml`, one in `main.tf`) now
+percent-encode the password, `administrator_password` is left literal on purpose (commented at both
+sites), and a guard test (`api/tests/test_azure_deploy_workflow_credentials.py`) fails on a future
+raw-password DSN. The one AC this PR cannot close is the live rehearsal — see *Verification* below.
+**Priority:** P1 — the same defect already took `eval-prod` down once, and one of the remaining
+sites is the running production app's own connection string
+**Size:** S–M (mechanical fix at ~10 sites + a charset guard + tests; the care is in not breaking a
+working deploy while changing how its credential is encoded)
+**Created:** 2026-08-28
 **Prompted by:** BITB-101's first non-skipped `eval-prod` run
 ([33212723774](https://github.com/zioalex/getinspiredbythebible/actions/runs/33212723774)), which
 died at import in 1.5s because `search_eval_ro`'s password was interpolated into a DSN raw. Fixed

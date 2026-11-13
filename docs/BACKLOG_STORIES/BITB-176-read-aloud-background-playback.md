@@ -1,14 +1,9 @@
----
-id: BITB-176
-status: todo
-priority: P3
-size: M
-rank: 530
-created: 2026-10-04
----
-
 # BITB-176: Read Aloud — Keep Playing with the Screen Off (Android)
 
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-04
 **Prompted by:** BITB-119 verification — v1 deliberately stops playback on `ON_STOP` (screen off /
 app backgrounded), so the "listen with the display off" use case is not served yet.
 

@@ -236,8 +236,7 @@ def test_compact_format_and_truncation(sample: Path) -> None:
     stories = backlog.filter_stories(backlog.load_all(sample), status="in-review")
     line = backlog.format_compact(stories).rstrip("\n")
     assert line.startswith("BITB-015 P2 S in-review #1300 ")
-    title = line.split("#1300 ", 1)[1]
-    assert len(title) == backlog.TITLE_WIDTH and title.endswith("…")
+    assert len(line.encode()) <= backlog.MAX_LINE_BYTES and line.endswith("…")
     assert backlog.format_compact([]) == ""
 
 
@@ -300,6 +299,8 @@ def test_changelog_from_git_subjects(tmp_path: Path) -> None:
             ("2026-11-02T10:00:00", "feat(api): thing (BITB-100) (#11)"),
             ("2026-11-05T10:00:00", "fix: two stories BITB-101 and BITB-102 (#12)"),
             ("2026-11-06T10:00:00", "docs: BITB-103 again BITB-103 (#13)"),
+            ("2026-11-07T10:00:00", "docs: BITB-104 but no pull request number"),
+            ("2026-11-09T10:00:00", "fix: slash form BITB-282/283 (#14)"),
         ]
     ):
         (tmp_path / f"f{n}").write_text(str(n))
@@ -307,23 +308,51 @@ def test_changelog_from_git_subjects(tmp_path: Path) -> None:
         _git(tmp_path, "commit", "-q", "-m", subject, date=date)
     entries = backlog.git_changelog(tmp_path, "origin/main")  # falls back to HEAD
     assert entries == [
+        "- 2026-11-09: BITB-282, BITB-283 — fix: slash form BITB-282/283 (#14)",
         "- 2026-11-06: BITB-103 — docs: BITB-103 again BITB-103 (#13)",
         "- 2026-11-05: BITB-101, BITB-102 — fix: two stories BITB-101 and BITB-102 (#12)",
         "- 2026-11-02: BITB-100 — feat(api): thing (BITB-100) (#11)",
-    ]
-    assert backlog.git_changelog(tmp_path, "HEAD", since="2026-11-05") == entries[:2]
+    ]  # the BITB-104 commit has no (#PR), so it is not an entry
+    assert backlog.git_changelog(tmp_path, "HEAD", since="2026-11-05") == entries[:3]
     assert backlog.git_changelog(tmp_path, "HEAD", limit=1) == entries[:1]
 
 
-# ---------------------------------------------------------------- context budgets (real tree)
+# ---------------------------------------------------------------- context budgets
 
 
-def test_budget_open_items_compact_listing() -> None:
-    stories = backlog.filter_stories(
-        backlog.load_all(_REPO_ROOT), status="todo,in-progress,in-review"
-    )
-    size = len(backlog.format_compact(stories).encode("utf-8"))
-    assert size <= 12 * 1024, f"open-items listing is {size} bytes; budget is 12288 (BITB-313)"
+def _open_stories_with_long_titles(count: int) -> list[backlog.Story]:
+    """Worst case for line width: longest status, 4-digit PR, multibyte maximum-length titles."""
+    return [
+        backlog.Story(
+            path=f"docs/BACKLOG_STORIES/BITB-{n:03d}-x.md",
+            id=f"BITB-{n:03d}",
+            title=("Ünïcödé — " * 40)[:300],
+            meta={
+                "id": f"BITB-{n:03d}",
+                "status": "in-progress",
+                "priority": "P1",
+                "size": "XL",
+                "prs": [1292],
+            },
+        )
+        for n in range(1, count + 1)
+    ]
+
+
+def test_budget_every_compact_line_is_short_on_real_tree() -> None:
+    stories = backlog.filter_stories(backlog.load_all(_REPO_ROOT), show_all=True)
+    for line in backlog.format_compact(stories).splitlines():
+        assert len(line.encode("utf-8")) <= 80, line
+
+
+def test_budget_every_compact_line_is_short_with_maximum_titles() -> None:
+    for line in backlog.format_compact(_open_stories_with_long_titles(5)).splitlines():
+        assert len(line.encode("utf-8")) <= 80, line
+
+
+def test_budget_165_open_stories_fit_in_12kb() -> None:
+    text = backlog.format_compact(_open_stories_with_long_titles(165))
+    assert len(text.encode("utf-8")) <= 12 * 1024
 
 
 def test_budget_show_without_full() -> None:
@@ -393,3 +422,86 @@ def test_front_matter_status_flip_is_a_single_line_edit() -> None:
     changed = [a for a, b in zip(text.splitlines(), flipped.splitlines(), strict=True) if a != b]
     assert changed == ["status: todo"]
     assert text.count("status: todo") == 1
+
+
+# ---------------------------------------------------------------- robustness (fix round 1)
+
+
+def test_unicode_error_and_bom_reported_by_check(tmp_path: Path) -> None:
+    root = _repo(tmp_path, {S + "BITB-001-a.md": _story()})
+    (root / S / "BITB-002-bad.md").write_bytes(b"---\nid: BITB-002\n\xff\xfe\n")
+    (root / S / "BITB-003-bom.md").write_bytes(b"\xef\xbb\xbf" + _story("BITB-003").encode())
+    errors = backlog.check_stories(backlog.load_all(root))
+    assert any("BITB-002-bad.md" in e and "not valid UTF-8" in e for e in errors)
+    assert any("BITB-003-bom.md" in e and "BOM" in e for e in errors)
+    assert backlog.main(["--root", str(root), "list"]) == 0  # no traceback anywhere
+
+
+def test_show_full_on_undecodable_file_has_no_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _repo(tmp_path, {S + "BITB-001-a.md": _story()})
+    (root / S / "BITB-001-a.md").write_bytes(b"\xff\xfe")
+    assert backlog.main(["--root", str(root), "show", "BITB-001", "--full"]) == 1
+    assert "error:" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "args",
+    [["--status", "wip"], ["--priority", "P9"], ["--size", "HUGE"], ["--limit", "0"]],
+)
+def test_list_rejects_bad_filter_values(
+    sample: Path, args: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as exc:
+        backlog.main(["--root", str(sample), "list", *args])
+    assert exc.value.code == 2
+    err = capsys.readouterr().err
+    assert "allowed:" in err or "at least 1" in err
+
+
+def test_list_filter_values_are_case_insensitive_and_limit_works(sample: Path, capsys) -> None:
+    assert backlog.main(["--root", str(sample), "list", "--priority", "p1", "--limit", "2"]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert [ln.split()[0] for ln in lines] == ["BITB-012", "BITB-011"]
+    assert backlog.main(["--root", str(sample), "list", "--status", "TODO", "--size", "s"]) == 0
+
+
+@pytest.mark.parametrize("raw", ["BITB-1", "bitb-001", "1", " 001 "])
+def test_show_normalises_ids(sample: Path, raw: str) -> None:
+    assert backlog.normalize_id(raw) == "BITB-001"
+    assert "path: docs/DONE/BITB-001-done.md" in backlog.show_story(
+        sample, backlog.load_all(sample), raw, full=False
+    )
+
+
+def test_show_rejects_garbage_id(sample: Path) -> None:
+    with pytest.raises(SystemExit) as exc:
+        backlog.main(["--root", str(sample), "show", "story-one"])
+    assert exc.value.code == 2
+    assert backlog.normalize_id("story") is None
+
+
+def test_check_rejects_unpadded_ids(tmp_path: Path) -> None:
+    errors = _check(tmp_path, {S + "BITB-14-a.md": _story("BITB-14")})
+    assert any("zero-padded" in e for e in errors)
+    assert (
+        backlog.check_stories(
+            backlog.load_all(_repo(tmp_path / "ok", {S + "BITB-1000-a.md": _story("BITB-1000")}))
+        )
+        == []
+    )
+
+
+def test_check_hint_points_at_legend(tmp_path: Path) -> None:
+    errors = _check(tmp_path, {S + "BITB-001-a.md": "# BITB-001: No front matter\n"})
+    assert any("docs/backlog/LEGEND.md" in e for e in errors)
+
+
+def test_expand_ids_and_pr_requirement() -> None:
+    assert backlog.expand_ids("fix: BITB-282/283 and BITB-9 (#1)") == [
+        "BITB-282",
+        "BITB-283",
+        "BITB-009",
+    ]
+    assert backlog.expand_ids("chore: nothing") == []

@@ -1,15 +1,9 @@
----
-id: BITB-014
-status: done
-priority: P0
-size: S
-created: 2026-03-04
-prs: [225]
----
-
 # BITB-014: Fix Migration Pipeline Dependency Bug
 
-**Status note:** (PR #225 merged 2026-03-04)
+**Priority:** P0 (Critical/Blocker)
+**Status:** ✅ Done (PR #225 merged 2026-03-04)
+**Size:** S (< 2 hours)
+**Created:** 2026-03-04
 **Completed:** 2026-03-04
 
 ---

@@ -1,16 +1,10 @@
----
-id: BITB-115
-status: done
-priority: P1
-size: M
-rank: 570
-created: 2026-09-04
----
-
 # BITB-115: Bible Version Sticks to the Old Language After a Language Switch
 
-**Priority note:** user-visible correctness bug on the core product surface (wrong-language scripture served after an explicit language change)
-**Size note:** S–M (web fix is small; Android needs a DTO field added first)
+**Status:** ✅ Done
+**Priority:** P1 — user-visible correctness bug on the core product surface (wrong-language
+scripture served after an explicit language change)
+**Size:** S–M (web fix is small; Android needs a DTO field added first)
+**Created:** 2026-09-04
 **Reported by:** product owner, from real usage — "when you select to change the language inline,
 like in a message, the Bible is not changed, so it stays with the previous language"
 **Affects:** web (`frontend/`), Android (`android/`) — the backend behaves as designed

@@ -1,18 +1,11 @@
----
-id: BITB-099
-status: in-progress
-priority: P2
-size: M
-rank: 1120
-created: 2026-08-18
-prs: [1058]
----
-
 # BITB-099: Production Postgres Connections Encrypt but Do Not Authenticate the Server
 
-**Status note:** implemented in PR #1058, independently verified; stays In Progress until the post-merge production deploy proves a live `verify-full` connection (see AC3 below)
-**Priority note:** a real gap against a public endpoint, but not an active incident
-**Size note:** S–M (config only, no CA bundle needed — the work was in scanning every DSN site, not in managing a bundle; see Decision below)
+**Status:** 🚧 In Progress — implemented in PR #1058, independently verified; stays In Progress
+until the post-merge production deploy proves a live `verify-full` connection (see AC3 below)
+**Priority:** P2 — a real gap against a public endpoint, but not an active incident
+**Size:** S–M (config only, no CA bundle needed — the work was in scanning every DSN site, not in
+managing a bundle; see Decision below)
+**Created:** 2026-08-18
 **Prompted by:** noticed while walking an operator through connecting to production during BITB-096
 
 ## Decision (2026-09-09)

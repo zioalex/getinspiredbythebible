@@ -1,15 +1,9 @@
----
-id: BITB-228
-status: todo
-priority: P2
-size: M
-rank: 290
-created: 2026-10-23
----
-
 # BITB-228: Drop the Dead Indexes — 6.8 GB of Lifetime-Zero-Scan Weight
 
-**Size note:** S–M (one migration PR, low-risk DDL)
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S–M (one migration PR, low-risk DDL)
+**Created:** 2026-10-23
 **Parent:** BITB-150 (Phase 0 follow-up — Part B lever 4)
 **Supersedes the scope of:** BITB-098 (its two `_english` GIN indexes are a subset of this list)
 

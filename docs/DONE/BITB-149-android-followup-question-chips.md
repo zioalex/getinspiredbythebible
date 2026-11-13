@@ -1,17 +1,9 @@
----
-id: BITB-149
-status: done
-priority: P2
-size: S
-rank: 1080
-created: 2026-09-11
-prs: [1109]
----
-
 # BITB-149: Android — Suggested Follow-Up Question Chips
 
-**Status note:** (PR #1109 merged 2026-09-29)
-**Size note:** (Android-only; the backend contract and the design already exist)
+**Status:** ✅ Done (PR #1109 merged 2026-09-29)
+**Priority:** P2
+**Size:** S (Android-only; the backend contract and the design already exist)
+**Created:** 2026-09-11
 **Completed:** 2026-09-29
 **Parent ref:** BITB-080 (backend + web shipped that story; this is its deferred Android half)
 

@@ -1,14 +1,9 @@
----
-id: BITB-289
-status: in-progress
-priority: P1
-size: M
-rank: 160
-created: 2026-11-10
----
-
 # BITB-289: Re-benchmark Llama Guard Timeouts, Add Jittered Retry, Tune Breaker Half-Open
 
+**Status:** 🚧 In Progress
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-10
 **Prompted by:** BITB-272 slice 1 (ML failover to OpenAI Moderation before the keyword fallback).
 
 ## Problem

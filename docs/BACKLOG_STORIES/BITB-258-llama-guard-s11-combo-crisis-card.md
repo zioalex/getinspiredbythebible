@@ -1,14 +1,9 @@
----
-id: BITB-258
-status: in-review
-priority: P1
-size: S
-rank: 210
-created: 2026-10-29
----
-
 # BITB-258: Crisis Card for Llama Guard S11 Combined with Other Categories
 
+**Status:** 🔍 In Review
+**Priority:** P1
+**Size:** S
+**Created:** 2026-10-29
 **Prompted by:** BITB-255 verification (2026-10-29)
 
 ## Problem (verified in code)

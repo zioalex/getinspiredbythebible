@@ -1,14 +1,9 @@
----
-id: BITB-252
-status: todo
-priority: P2
-size: S
-rank: 770
-created: 2026-10-28
----
-
 # BITB-252: Android Read Aloud Stays on Pause When the TTS Engine Never Starts
 
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-28
 **Follow-up of:** BITB-247 (PR #1226)
 
 ## Problem

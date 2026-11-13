@@ -1,14 +1,9 @@
----
-id: BITB-253
-status: todo
-priority: P3
-size: S
-rank: 780
-created: 2026-10-28
----
-
 # BITB-253: Integration Tests Intermittently Fail at "Load CI Test Data"
 
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-28
 **Follow-up of:** BITB-250 (seen on PR #1226)
 
 ## Problem

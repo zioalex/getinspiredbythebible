@@ -1,14 +1,9 @@
----
-id: BITB-292
-status: todo
-priority: P1
-size: M
-rank: 190
-created: 2026-11-10
----
-
 # BITB-292: Azure Content Safety as an Ordered Second ML Failover
 
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-10
 **Prompted by:** BITB-272 slice 1 (ML failover to OpenAI Moderation before the keyword fallback).
 
 ## Problem

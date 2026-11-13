@@ -1,15 +1,9 @@
----
-id: BITB-280
-status: in-progress
-priority: P2
-size: M
-rank: 120
-created: 2026-11-08
----
-
 # BITB-280: Pre-Merge Live-Config Load Gate — Boot a Scratch opencode on the Committed Config Before It Reaches the Pod
 
-**Status note:** PR pending review
+**Status:** 🔄 In progress — PR pending review
+**Priority:** P2
+**Size:** M
+**Created:** 2026-11-08
 **Incident:** 2026-11-08 18:51 (the motivating failure this gate exists to make impossible to repeat)
 
 ## Bug Report (the gap this gate closes)

@@ -1,14 +1,9 @@
----
-id: BITB-300
-status: todo
-priority: P1
-size: S
-rank: 30
-created: 2026-11-11
----
-
 # BITB-300: SEO On-Page Fixes — Headings, Descriptions, Noindex, Localized 404, Honest Sitemap Dates
 
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows S5–S11, S15, S16.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 2.
 **Commit:** `feat(frontend): SEO on-page fixes across 11 locales (BITB-300)`

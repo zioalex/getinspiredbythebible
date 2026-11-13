@@ -1,14 +1,9 @@
----
-id: BITB-171
-status: done
-priority: P1
-size: S
-rank: 1190
-created: 2026-09-30
----
-
 # BITB-171: k8s agent-default-wf2.yaml Is a Stripped Sketch — Applying It Degrades the Live Agent
 
+**Status:** ✅ Done
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-30
 **Completed:** 2026-09-30
 **PR:** #1125
 

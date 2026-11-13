@@ -1,15 +1,9 @@
----
-id: BITB-242
-status: todo
-priority: P2
-size: M
-rank: 210
-created: 2026-10-26
----
-
 # BITB-242: Platform-Selective Feature Flags — Server-Driven Per-Platform (Web/Android) Flag Registry
 
-**Size note:** (cross-cutting: api + frontend + android + deployment)
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** M (cross-cutting: api + frontend + android + deployment)
+**Created:** 2026-10-26
 **Driver:** BITB-080 follow-up chips rollout (PR #1216 contract: "Android renders behind its
 own default-off flag"); generalizes the BITB-119 `features.tts_enabled` pattern.
 

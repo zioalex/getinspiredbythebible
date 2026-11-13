@@ -1,15 +1,8 @@
----
-id: BITB-195
-status: cancelled
-priority: P2
-size: S
-rank: 370
-created: 2026-10-13
----
-
 # BITB-195: Decision — Mixed Self-Harm and Third-Party Violence Messages
 
-**Status note:** decided and implemented in BITB-185 v2 (second-opinion classifier)
+**Status:** ❌ Cancelled — decided and implemented in BITB-185 v2 (second-opinion classifier)
+**Size:** S
+**Created:** 2026-10-13
 
 **As a** product owner, **I want** a defined behaviour for messages combining self-harm and harm to others, **so that** safety handling is deliberate rather than an accident of check order.
 

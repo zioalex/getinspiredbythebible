@@ -1,16 +1,9 @@
----
-id: BITB-235
-status: in-review
-priority: P3
-size: S
-rank: 560
-created: 2026-10-23
-prs: [1220, 1221]
----
-
 # BITB-235: Story IDs Collide Between Concurrent PRs
 
-**Status note:** (allocation rule: PR #1220; CI check: PR #1221)
+**Status:** 🔍 In Review (allocation rule: PR #1220; CI check: PR #1221)
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-23
 **Type:** Process / tooling
 **Follow-up of:** BITB-218 (PR #1195), BITB-219 (PR #1191)
 

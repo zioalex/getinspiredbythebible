@@ -1,16 +1,9 @@
----
-id: BITB-250
-status: done
-priority: P2
-size: M
-rank: 750
-created: 2026-10-28
-prs: [1226]
----
-
 # BITB-250: Cross-Browser Read-Aloud E2E Tests with Browser-Quirk Engine Profiles (Web)
 
-**Status note:** PR #1226, merged 2026-10-28
+**Status:** ✅ Done — PR #1226, merged 2026-10-28
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-28
 **Prompted by:** owner request 2026-10-27, after Edge and Chrome (non-Snap) were confirmed working: "Can we add
 some tests to catch such issues for the major browsers?"
 

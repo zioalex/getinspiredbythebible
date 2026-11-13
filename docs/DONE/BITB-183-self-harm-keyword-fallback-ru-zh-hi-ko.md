@@ -1,16 +1,9 @@
----
-id: BITB-183
-status: done
-priority: P2
-size: S
-rank: 430
-created: 2026-10-10
-prs: [1148]
----
-
 # BITB-183: Self-Harm Keyword Fallback for Russian, Chinese, Hindi and Korean
 
-**Status note:** PR #1148, 2026-10-11 (native-speaker review AC left open)
+**Status:** ✅ Done — PR #1148, 2026-10-11 (native-speaker review AC left open)
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-10
 **Prompted by:** BITB-182 follow-up — the gap was pinned by
 `TestFollowUpCases::test_languages_without_keyword_patterns_are_documented` in
 `api/tests/test_golden_set.py` (now flipped to `test_every_language_has_keyword_self_harm_patterns`).

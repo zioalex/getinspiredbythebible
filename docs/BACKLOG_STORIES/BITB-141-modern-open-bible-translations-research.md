@@ -1,15 +1,9 @@
----
-id: BITB-141
-status: todo
-priority: P2
-size: L
-created: 2026-06-17
----
-
 # BITB-141: Modern Open-Licensed Bible Translations Research (DBS / SWORD / unfoldingWord)
 
-**Priority note:** (Medium) — content freshness across all languages
-**Size note:** (research + per-locale shortlist; spawns follow-up loading stories)
+**Status:** 🎯 Todo
+**Priority:** P2 (Medium) — content freshness across all languages
+**Size:** L (research + per-locale shortlist; spawns follow-up loading stories)
+**Created:** 2026-06-17
 **Source:** Product request — "offer more recent versions in all languages, starting from DBS / SWORD / unfoldingWord"
 
 ## User Story

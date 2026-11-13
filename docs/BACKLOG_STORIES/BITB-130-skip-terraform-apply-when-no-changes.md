@@ -1,14 +1,9 @@
----
-id: BITB-130
-status: done
-priority: P2
-size: S
-created: 2026-03-04
----
-
 # BITB-130: Skip Terraform Apply When No Changes Detected
 
-**Status note:** (has_changes == 'true' gate in azure-deploy.yml line 738)
+**Priority:** P2 (Medium)
+**Status:** ✅ Done (has_changes == 'true' gate in azure-deploy.yml line 738)
+**Size:** S (< 2 hours)
+**Created:** 2026-03-04
 
 ---
 

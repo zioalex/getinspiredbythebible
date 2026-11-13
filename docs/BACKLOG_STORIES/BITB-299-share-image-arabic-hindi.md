@@ -1,14 +1,9 @@
----
-id: BITB-299
-status: todo
-priority: P1
-size: S
-rank: 20
-created: 2026-11-11
----
-
 # BITB-299: Share Image — Arabic Returns 503, Hindi Is Mis-Shaped
 
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** S
+**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows S1, S2.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 2.
 **Commit:** `fix(frontend): pre-rendered share images for all 11 locales (BITB-299)`

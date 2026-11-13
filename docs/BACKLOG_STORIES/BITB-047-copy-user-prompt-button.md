@@ -1,15 +1,9 @@
----
-id: BITB-047
-status: done
-priority: P2
-size: S
-rank: 860
-created: 2026-06-12
----
-
 # BITB-047: One-Tap Copy of the User's Prompt (Web + Android)
 
-**Priority note:** (Medium) — UX convenience for power users
+**Status:** ✅ Done
+**Priority:** P2 (Medium) — UX convenience for power users
+**Size:** S (< 4 hrs)
+**Created:** 2026-06-12
 **Source:** Beta tester feedback (Oliver Osthoever, 2026-06-11)
 
 ## User Story

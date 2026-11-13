@@ -1,14 +1,9 @@
----
-id: BITB-207
-status: todo
-priority: P3
-size: S
-rank: 600
-created: 2026-10-22
----
-
 # BITB-207: Short Answers Grow to the Side Rail's Height (Android)
 
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-22
 **Follow-up of:** BITB-205 (PR #1188)
 
 ## Problem

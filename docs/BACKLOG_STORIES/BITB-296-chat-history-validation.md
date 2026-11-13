@@ -1,14 +1,9 @@
----
-id: BITB-296
-status: todo
-priority: P0
-size: S
-rank: 10
-created: 2026-11-11
----
-
 # BITB-296: Validate and Bound Client-Supplied Chat History
 
+**Status:** 🎯 Todo
+**Priority:** P0
+**Size:** S
+**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows R4, R5, R6.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 1.
 **Commit:** `fix(api): validate and bound client-supplied chat history (BITB-296)`

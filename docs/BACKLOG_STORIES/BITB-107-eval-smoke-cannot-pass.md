@@ -1,16 +1,10 @@
----
-id: BITB-107
-status: done
-priority: P1
-size: M
-rank: 920
-created: 2026-08-22
----
-
 # BITB-107: `eval-smoke` Cannot Pass — the Plumbing Check Has Broken Plumbing
 
-**Priority note:** the only route that was safe to run before letting the nightly touch production is the one that fails; it currently blocks the recommended pre-flight entirely
-**Size note:** S–M (config fixes; one root cause still to be pinned down)
+**Status:** ✅ Done
+**Priority:** P1 — the only route that was safe to run before letting the nightly touch production
+is the one that fails; it currently blocks the recommended pre-flight entirely
+**Size:** S–M (config fixes; one root cause still to be pinned down)
+**Created:** 2026-08-22
 **Prompted by:** run
 [32565015468](https://github.com/zioalex/getinspiredbythebible/actions/runs/32565015468), the first
 real `eval-smoke` execution after `AZURE_OPENAI_ENDPOINT` was configured

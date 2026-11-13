@@ -1,15 +1,6 @@
----
-id: BITB-029
-status: done
-priority: P2
-size: S
-rank: 950
-created: 2026-05-10
----
-
 # BITB-029: Surface Bible Version Information More Clearly
 
-**Status note:** amber chip badge in top header bar (web); backend prompt guidance already wired (`BIBLE_VERSION_GUIDANCE`).
+**Status:** ✅ Done — amber chip badge in top header bar (web); backend prompt guidance already wired (`BIBLE_VERSION_GUIDANCE`).
 
 ## User Story
 

@@ -1,14 +1,9 @@
----
-id: BITB-015
-status: done
-priority: P1
-size: S
-created: 2026-03-04
----
-
 # BITB-015: Consolidate Agent Configuration
 
-**Status note:** (GEMINI.md dangling symlink removed 2026-05-24; PO prompt in opencode.json; CLAUDE.md deleted)
+**Priority:** P1 (High)
+**Status:** ✅ Done (GEMINI.md dangling symlink removed 2026-05-24; PO prompt in opencode.json; CLAUDE.md deleted)
+**Size:** S (< 3 hours)
+**Created:** 2026-03-04
 
 ---
 

@@ -1,14 +1,9 @@
----
-id: BITB-188
-status: todo
-priority: P3
-size: S
-rank: 90
-created: 2026-10-11
----
-
 # BITB-188: Keep Follow-Up Runner Sessions Out of the Weekly Report
 
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-10-11
 **Prompted by:** BITB-182 follow-up — the runner's traffic was not checked against the weekly report.
 
 ## Bug Report

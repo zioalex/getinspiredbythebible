@@ -1,16 +1,9 @@
----
-id: BITB-286
-status: in-progress
-priority: P2
-size: S
-rank: 80
-created: 2026-11-09
----
-
 # BITB-286: 2026-11-07→09 Session Cost Retrospective — $20.27 / 80 Sessions, What to Change
 
-**Status note:** protocol/config fixes in the same PR; tooling follow-ups in BITB-287
-**Size note:** (this record) + dispatched follow-ups
+**Status:** 🔄 In progress — protocol/config fixes in the same PR; tooling follow-ups in BITB-287
+**Priority:** P2
+**Size:** S (this record) + dispatched follow-ups
+**Created:** 2026-11-09
 **Source:** operator request, after the arc exhausted a full $20 weekly OpenRouter key
 
 ## The ledger (from `/data/sessions/opencode.db`, table `session`)

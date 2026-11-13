@@ -1,16 +1,9 @@
----
-id: BITB-220
-status: done
-priority: P2
-size: L
-created: 2026-10-23
-prs: [1196]
----
-
 # BITB-220: Independent Audit of Every Makefile Target
 
-**Status note:** PR #1196, merged 2026-10-23
-**Status note:** story header previously read: In Review — PR #1196
+**Status:** � In Review — PR #1196
+**Priority:** P2
+**Size:** L
+**Created:** 2026-10-23
 
 **As a** maintainer, **I want** every `make` target audited, classified by blast radius and
 exercised against recording fakes,

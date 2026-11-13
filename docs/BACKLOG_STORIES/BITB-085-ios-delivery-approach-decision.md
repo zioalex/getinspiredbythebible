@@ -1,16 +1,9 @@
----
-id: BITB-085
-status: in-progress
-priority: P2
-size: M
-rank: 1110
-created: 2026-07-29
----
-
 # BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
 
-**Status note:** (SwiftUI recommendation provisional; Turnstile device proof not executed)
-**Size note:** S–M (1 day of analysis + the account/tooling setup it unblocks)
+**Status:** 🚧 In Progress (SwiftUI recommendation provisional; Turnstile device proof not executed)
+**Priority:** P2
+**Size:** S–M (1 day of analysis + the account/tooling setup it unblocks)
+**Created:** 2026-07-29
 **Part of:** the iOS delivery plan — Stage 1 of BITB-084 → **BITB-085** → BITB-086 → BITB-109 → BITB-087 → BITB-088.
 **Gates:** BITB-087 and BITB-088 must not start before this closes.
 

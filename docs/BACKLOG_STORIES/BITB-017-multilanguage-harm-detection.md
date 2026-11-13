@@ -1,16 +1,10 @@
----
-id: BITB-017
-status: done
-priority: P0
-size: M
-created: 2026-02-24
-prs: [208]
----
-
 # BITB-017: Multi-Language Violence & Harm Detection
 
-**Status note:** (PR #208 merged and deployed to production)
-**Priority note:** (Critical Security)
+**Priority:** P0 (Critical Security)
+**Size:** M (1-2 days)
+**Status:** ✅ Done (PR #208 merged and deployed to production)
+**Size:** M (1-2 days)
+**Created:** 2026-02-24
 **Completed:** 2026-03-04
 
 ---

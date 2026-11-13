@@ -1,14 +1,9 @@
----
-id: BITB-170
-status: done
-priority: P2
-size: S
-rank: 1180
-created: 2026-09-30
----
-
 # BITB-170: kubeopencode README — Document All 14 Files + Egress/Netpol Apply Order + RBAC + Hardening Cross-Link + OpenCode Config Sync
 
+**Status:** ✅ Done
+**Priority:** P2
+**Size:** S
+**Created:** 2026-09-30
 **Completed:** 2026-09-30
 **PR:** #1124
 

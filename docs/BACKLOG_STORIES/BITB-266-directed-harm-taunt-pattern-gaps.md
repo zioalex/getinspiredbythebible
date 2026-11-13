@@ -1,13 +1,9 @@
----
-id: BITB-266
-status: todo
-priority: P2
-size: S
-rank: 310
-created: 2026-11-04
----
-
 # BITB-266: Directed-Harm Patterns Miss "Killing Yourself" Taunts and "You Should" Wishes
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-04
 
 ## Problem
 

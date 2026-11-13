@@ -1,14 +1,9 @@
----
-id: BITB-232
-status: todo
-priority: P2
-size: S
-rank: 330
-created: 2026-10-23
----
-
 # BITB-232: Storage Auto-Grow Early Warning — the Alert That Catches the Ratchet
 
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-23
 **Parent:** BITB-150 (Phase 0 follow-up — the ratchet finding turned into a guard)
 
 ## User Story

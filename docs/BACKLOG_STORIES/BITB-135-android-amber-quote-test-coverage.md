@@ -1,13 +1,6 @@
----
-id: BITB-135
-status: done
-priority: P3
-prs: [677]
----
-
 # BITB-135: Android Amber Quote Chip — Test Coverage Follow-up
 
-**Status note:** (PR #677 + this PR)
+**Status:** ✅ Done (PR #677 + this PR)
 
 ## User Story
 

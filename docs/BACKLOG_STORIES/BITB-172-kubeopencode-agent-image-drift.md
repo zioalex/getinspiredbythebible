@@ -1,14 +1,9 @@
----
-id: BITB-172
-status: done
-priority: P1
-size: S
-rank: 1200
-created: 2026-09-30
----
-
 # BITB-172: Repo-vs-Live Drift — agentImage Wiring Uncommitted, Mobile Credential Pre-Wired
 
+**Status:** ✅ Done
+**Priority:** P1
+**Size:** S
+**Created:** 2026-09-30
 **Completed:** 2026-09-30
 **PR:** #1126
 

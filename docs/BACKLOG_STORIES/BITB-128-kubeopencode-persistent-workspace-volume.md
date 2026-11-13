@@ -1,15 +1,9 @@
----
-id: BITB-128
-status: in-progress
-priority: P2
-size: S
-rank: 490
-created: 2026-09-12
----
-
 # BITB-128: Persistent KubeOpenCode Workspace Volume
 
-**Size note:** (reduced from M — the CRD provides this natively; see *Gate: resolved*)
+**Priority:** P2 (Medium)
+**Status:** 🚧 In Progress
+**Size:** S (reduced from M — the CRD provides this natively; see *Gate: resolved*)
+**Created:** 2026-09-12
 **Affects:** `deployment/kubeopencode/` only — no application code
 
 ---

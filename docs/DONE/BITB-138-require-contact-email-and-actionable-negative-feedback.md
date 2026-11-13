@@ -1,17 +1,9 @@
----
-id: BITB-138
-status: done
-priority: P2
-size: M
-rank: 900
-created: 2026-06-08
-prs: [702, 1068]
----
-
 # BITB-138: Require Contact Email + Full Feedback Email Content + Negative-Feedback Reason Chips
 
-**Status note:** (PR #702 merged 2026-06-08, under this story's original ID of BITB-043 — renamed to BITB-138 by the BITB-111 ID-collision cleanup, #1068; the backlog entry's Todo/In-Progress status was never carried forward across that rename)
-**Status note:** story header previously read: In Progress
+**Status:** 🚧 In Progress
+**Priority:** P2
+**Size:** M (1-2 days)
+**Created:** 2026-06-08
 
 ## User Story
 

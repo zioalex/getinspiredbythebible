@@ -1,13 +1,9 @@
----
-id: BITB-240
-status: todo
-priority: P3
-size: M
-rank: 350
-created: 2026-10-24
----
-
 # BITB-240: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** M
+**Created:** 2026-10-24
 
 ## Problem
 

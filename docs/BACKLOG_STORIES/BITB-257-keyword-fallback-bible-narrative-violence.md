@@ -1,15 +1,9 @@
----
-id: BITB-257
-status: in-review
-priority: P1
-size: M
-rank: 120
-created: 2026-10-29
----
-
 # BITB-257: Keyword Fallback Blocks Third-Person Bible Narrative as Violence (and Shows a Crisis Card)
 
-**Status note:** (2026-11-08)
+**Status:** 🔍 In review (2026-11-08)
+**Priority:** P1
+**Size:** M
+**Created:** 2026-10-29
 **Prompted by:** BITB-255 verification (2026-10-29)
 
 ## Problem (verified in code)

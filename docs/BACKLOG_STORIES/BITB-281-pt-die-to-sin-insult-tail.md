@@ -1,13 +1,9 @@
----
-id: BITB-281
-status: todo
-priority: P3
-size: S
-rank: 340
-created: 2026-11-09
----
-
 # BITB-281: pt Directed Harm — "Que você morra para o pecado, seu idiota" No Longer Blocks
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** S
+**Created:** 2026-11-09
 
 ## Problem
 

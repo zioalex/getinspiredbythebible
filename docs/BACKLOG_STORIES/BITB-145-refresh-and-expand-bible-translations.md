@@ -1,17 +1,9 @@
----
-id: BITB-145
-status: todo
-priority: P2
-size: M
-rank: 850
-created: 2026-07-10
----
-
 # BITB-145: Refresh & Expand Bible Translations from Bible SuperSearch
 
-**Status note:** Backlog
-**Priority note:** (Medium) — content/coverage enhancement; several languages ship only one century-old version
-**Size note:** (1-2 days, mostly data loading + registration)
+**Status:** 📋 Backlog
+**Priority:** P2 (Medium) — content/coverage enhancement; several languages ship only one century-old version
+**Size:** M (1-2 days, mostly data loading + registration)
+**Created:** 2026-07-10
 **Source:** Product owner request + Bible SuperSearch JSON collection —
 `https://sourceforge.net/projects/biblesuper/files/All%20Bibles%20-%20JSON/`
 

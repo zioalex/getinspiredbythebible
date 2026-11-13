@@ -1,15 +1,9 @@
----
-id: BITB-251
-status: todo
-priority: P2
-size: M
-rank: 760
-created: 2026-10-28
----
-
 # BITB-251: Read-Aloud Fallback Voice When the Browser's Speech Engine Is Missing or Broken (Web)
 
-**Status note:** (decision pending data)
+**Status:** 🎯 Todo (decision pending data)
+**Priority:** P2
+**Size:** M
+**Created:** 2026-10-28
 **Follow-up of:** BITB-247, BITB-248 (PR #1226)
 
 ## Problem

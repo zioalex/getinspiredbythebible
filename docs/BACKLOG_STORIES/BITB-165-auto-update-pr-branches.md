@@ -1,13 +1,6 @@
----
-id: BITB-165
-status: in-progress
-priority: P2
-size: S
-rank: 440
-created: 2026-09-29
----
-
 # BITB-165: Auto-update opted-in PR branches when main moves
+
+**Status:** 🚧 In Progress | **Priority:** P2 | **Size:** S | **Created:** 2026-09-29
 
 ## User story
 

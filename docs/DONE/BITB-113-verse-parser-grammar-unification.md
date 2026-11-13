@@ -1,16 +1,9 @@
----
-id: BITB-113
-status: done
-priority: P2
-size: L
-rank: 970
-created: 2026-08-31
-prs: [1105]
----
-
 # BITB-113: Verse-Parser Grammar Unification — Generate the Separator/Range Grammar for TS + Kotlin
 
-**Status note:** (PR #1105, 2026-09-26)
+**Status:** ✅ Done (PR #1105, 2026-09-26)
+**Priority:** P2
+**Size:** L
+**Created:** 2026-08-31
 **Split from:** [BITB-108](BITB-108-verse-parser-phase-3-regex-grammar.md) — its ReDoS-safety ACs
 (benchmark + fix for the connector branch) shipped separately; this story is the remaining scope.
 

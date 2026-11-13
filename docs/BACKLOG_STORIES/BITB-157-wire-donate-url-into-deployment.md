@@ -1,13 +1,9 @@
----
-id: BITB-157
-status: in-progress
-priority: P3
-size: S
-created: 2026-09-17
----
-
 # BITB-157: Wire `NEXT_PUBLIC_DONATE_URL` Into Docker Compose / Dockerfile / Azure Deploy
 
+**Status:** 🚧 In Progress
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-17
 **Follow-up from:** BITB-074 (PR #1084)
 
 **As** the maintainer, **I want** `NEXT_PUBLIC_DONATE_URL` to actually reach a built/deployed

@@ -1,19 +1,9 @@
----
-id: BITB-046
-status: in-progress
-priority: P2
-size: M
-rank: 840
-created: 2026-06-12
-prs: [787]
----
-
 # BITB-046: Add German Bible Translations (Luther 1912 + Elberfelder 1871)
 
-**Status note:** code merged in PR #787 (2026-07-10; `luther1912` is already the German default in `api/utils/language.py` on `main`), but the PR's own "post-merge operator steps" called for manually running `load_bible.py --translation luther1912` / `elberfelder1871` to populate the verses and embeddings, and that can't be confirmed from source alone
-**Status note:** story header previously read: Todo
-**Priority note:** (Medium) — content breadth for the German audience
-**Size note:** (1-2 days, mostly data loading)
+**Status:** 🎯 Todo
+**Priority:** P2 (Medium) — content breadth for the German audience
+**Size:** M (1-2 days, mostly data loading)
+**Created:** 2026-06-12
 **Source:** Beta tester feedback (Oliver Osthoever, 2026-06-12)
 
 > **Update (descoped):** Only **Luther 1912** ships. getBible has no Luther 1912, so it is added as a

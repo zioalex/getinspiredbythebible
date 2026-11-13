@@ -1,13 +1,8 @@
----
-id: BITB-204
-status: todo
-priority: P2
-size: S
-rank: 440
-created: 2026-10-19
----
-
 # BITB-204: Self-Harm Fallback Misses "Kill Myself" Word-Order Variants (ru/zh/ko)
+
+**Status:** 🎯 Todo
+**Size:** S
+**Created:** 2026-10-19
 
 ## Problem
 

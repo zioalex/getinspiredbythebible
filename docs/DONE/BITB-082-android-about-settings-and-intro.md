@@ -1,17 +1,9 @@
----
-id: BITB-082
-status: done
-priority: P2
-size: S
-rank: 1040
-created: 2026-07-27
-prs: [941]
----
-
 # BITB-082: Android — About Settings Row + First-Run Intro Fold-In
 
-**Status note:** (PR #941 merged 2026-07-29)
-**Status note:** story header previously read: Todo
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S (~1 day)
+**Created:** 2026-07-27
 **Source:** Deferred scope — both BITB-076 and BITB-077 explicitly excluded Android and pointed
 here rather than widening their own stories.
 

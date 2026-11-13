@@ -1,15 +1,9 @@
----
-id: BITB-127
-status: in-progress
-priority: P3
-size: S
-rank: 130
-created: 2026-09-10
----
-
 # BITB-127: Make `translations.created_at` Timezone-Aware
 
-**Status note:** (PR pending)
+**Status:** 🚧 In Progress (PR pending)
+**Priority:** P3
+**Size:** S
+**Created:** 2026-09-10
 **Last Updated:** 2026-10-06
 **Surfaced by:** BITB-094 (column-type audit) — see
 `docs/audits/BITB-094-column-type-audit.md`

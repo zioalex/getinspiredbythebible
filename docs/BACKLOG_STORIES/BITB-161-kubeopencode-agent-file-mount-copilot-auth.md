@@ -1,19 +1,13 @@
----
-id: BITB-161
-status: todo
-priority: P2
-size: S
-rank: 480
-created: 2026-09-13
----
-
 # BITB-161: KubeOpenCode Agent File-Mount Support for Copilot Auth
 
 > **Note:** Originally filed as BITB-133 in PR #1069; renumbered to BITB-161
 > after BITB-111 (#1068) reclaimed BITB-133 for the renumbered
 > "translate legal pages" story. See the BITB-111 Renumbering Log.
 
-**Size note:** (docs + upstream request; implementation size unknown — may be upstream)
+**Priority:** P2 (Medium)
+**Status:** 🎯 Todo
+**Size:** S (docs + upstream request; implementation size unknown — may be upstream)
+**Created:** 2026-09-13
 **Affects:** `deployment/kubeopencode/` only — no application code
 
 ---

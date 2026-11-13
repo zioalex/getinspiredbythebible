@@ -1,14 +1,9 @@
----
-id: BITB-233
-status: todo
-priority: P2
-size: S
-rank: 340
-created: 2026-10-23
----
-
 # BITB-233: PostgreSQL Server-Log Hygiene — Dead Parameters and the Unmade Diagnostic Decision
 
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-10-23
 **Parent:** BITB-150 (Phase 0 follow-up — resolves the Part A/Part B overlap finding)
 
 ## User Story

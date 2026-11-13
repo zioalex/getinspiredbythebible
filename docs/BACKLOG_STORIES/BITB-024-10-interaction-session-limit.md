@@ -1,12 +1,12 @@
----
-id: BITB-024
-status: done
-priority: P1
-size: S
-created: 2026-03-07
----
-
 # BITB-024: Fix & Complete the 10-Interaction Session Limit
+
+**Priority:** P1 (High)
+
+**Status:** Todo → Done
+
+**Size:** S (2–4 hours)
+
+**Created:** 2026-03-07
 
 ---
 

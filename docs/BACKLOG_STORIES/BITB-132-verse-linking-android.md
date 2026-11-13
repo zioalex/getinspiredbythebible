@@ -1,13 +1,6 @@
----
-id: BITB-132
-status: done
-priority: P1
----
-
 # BITB-132: Verify and Fix Verse Linking in Android Chat
 
-**Status note:** (buildVerseRefRegex/verseRefRegex wired into ChatMessageItem with ParseVerseLinkTest + VerseRefLinkTest; verified 2026-05-24)
-**Priority note:** core user experience feature
+**Status:** ✅ Done (buildVerseRefRegex/verseRefRegex wired into ChatMessageItem with ParseVerseLinkTest + VerseRefLinkTest; verified 2026-05-24)
 
 ## User Story
 

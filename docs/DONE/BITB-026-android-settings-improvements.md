@@ -1,15 +1,6 @@
----
-id: BITB-026
-status: done
-priority: P2
-size: S
-rank: 960
-created: 2026-05-08
----
-
 # BITB-026: Android Settings UX Improvements
 
-**Status note:** (SettingsScreen.kt already has read-only translation row, clear-history button with confirm dialog, reordered sections; verified 2026-05-24)
+**Status:** ✅ Done (SettingsScreen.kt already has read-only translation row, clear-history button with confirm dialog, reordered sections; verified 2026-05-24)
 
 ## User Story
 
