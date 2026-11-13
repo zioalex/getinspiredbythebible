@@ -43,6 +43,7 @@ from providers.llama_guard import LlamaGuardResponseError
 from utils.circuit_breaker import CircuitOpenError
 from utils.logging_config import get_logger
 from utils.metrics import (
+    content_safety_checks_counter,
     content_safety_failover_counter,
     content_safety_fallback_counter,
     content_safety_second_opinion_counter,
@@ -816,6 +817,9 @@ class ContentSafetyService:
         """
         if not settings.content_safety_enabled:
             return ContentSafetyCheckResult(allowed=True, reason="disabled")
+
+        # BITB-290: denominator of the keyword-fallback-share SLO (one per screened message)
+        content_safety_checks_counter.add(1, {"mode": settings.content_safety_mode})
 
         start = time.monotonic()
 
