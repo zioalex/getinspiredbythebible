@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-13: BITB-310 🎯 Todo — telemetry endpoints (client-errors/client-events) can spend chat session budget via a stray session_id; move them to the IP-only limiter (BITB-298 follow-up) (#TBD)
 - 2026-11-13: BITB-298 🔍 In Review — IP-only per-scope limiter on search/feedback/contact/church, input caps, honest church User-Agent, cached /scripture/stats (#TBD)
 - 2026-11-11: BITB-309 🔍 In Review — privacy policy (11 languages) discloses OpenAI Moderation as the safety-check fallback and states OpenAI's 30-day abuse-monitoring retention; must merge before BITB-288 (#1280)
 - 2026-11-11: BITB-238 ✅ Done — status drift fixed: help-seeking/theological exemption shipped in #1249 (merged 2026-11-08) but the entry still read Todo (#1278)
@@ -246,7 +247,27 @@ Live on 2026-11-11: `GET api.voxquieta.org/health` → `403`, the same request w
 - [ ] `max_length` on every text input; `q` capped at 200
 - [ ] Honest `User-Agent` on the church proxy; `/scripture/stats` cached
 
+**Follow-ups:** BITB-310
+
 **Full Story:** [`BITB-298-guard-cost-endpoints.md`](BACKLOG_STORIES/BITB-298-guard-cost-endpoints.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-310: Telemetry Endpoints Can Spend Chat Session Budget via a Stray `session_id`
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** XS
+**Created:** 2026-11-13
+
+Follow-up to BITB-298. `/api/v1/client-errors` and `/api/v1/client-events` still use `require_rate_limit`, which charges any body `session_id` against the chat lifetime cap; `ClientErrorReport` accepts extra fields. No client sends it today — hardening.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Both routes on `require_ip_rate_limit` (scope `telemetry`, new setting, 60/min)
+- [ ] Telemetry posts with a chat `session_id` never consume chat budget (regression test)
+
+**Full Story:** [`BITB-310-telemetry-ip-only-limiter.md`](BACKLOG_STORIES/BITB-310-telemetry-ip-only-limiter.md)
 
 ---
 

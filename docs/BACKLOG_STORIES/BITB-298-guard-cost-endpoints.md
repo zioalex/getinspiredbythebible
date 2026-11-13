@@ -127,3 +127,7 @@ a chat turn. This story adds a separate, IP-only limiter instead.
 ## Related
 
 BITB-297, BITB-301, BITB-302, July audit S2, O5.
+
+## Follow-ups
+
+- BITB-310 — telemetry endpoints can still spend chat session budget via a stray `session_id` (verification finding 3).
