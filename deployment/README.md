@@ -885,6 +885,16 @@ logic) still applies. Bypass is fail-closed: if a secret is unset, the matching 
    `settings.monitor_probe_secret` / `settings.smoke_probe_secret` (`api/config.py`). No manual Azure
    Key Vault step is needed (unlike the Telegram bot token).
 
+### OpenAI Moderation key (`OPENAI_API_KEY`, BITB-288)
+
+Not a probe secret, but provisioned the same out-of-band way (so rotating it never replaces the
+backend app): repo secret `OPENAI_API_KEY` -> `TF_VAR_openai_api_key` (`azure-deploy.yml`) ->
+`openai_api_key` (`deployment/variables.tf`, gates the `openai-api-key` ACA secret + `OPENAI_API_KEY`
+env `secretRef`) -> real value set by the *Populate out-of-band secrets in backend Container App*
+step. Optional: unset = content-safety OpenAI Moderation failover disabled. It sends user message
+text to OpenAI's Moderation endpoint, so confirm OpenAI data retention is acceptable first. Setup
+and verification: `docs/HOW-TO-ENABLE-CONTENT-SAFETY.md` -> *Production wiring*.
+
 ### Verifying Setup
 
 ```bash
