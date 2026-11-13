@@ -272,6 +272,25 @@ variable "monitor_probe_secret" {
   sensitive   = true
 }
 
+variable "openai_api_key" {
+  description = <<-EOT
+    OpenAI API key used by content safety's OpenAI Moderation (Stage 2 in
+    keyword_only/hybrid modes and the ml_only failover when Llama Guard is
+    down, BITB-272 / BITB-288). Repo secret OPENAI_API_KEY. Leave empty to
+    disable: no secret, no env var, zero behaviour change.
+
+    Same BITB-067 gap #6 pattern as monitor_probe_secret: this variable only
+    gates whether the ACA `secret` block exists (for_each) — it is NOT the
+    live value on the backend Container App. The real value is provisioned
+    out-of-band, post-apply, by the "Populate out-of-band secrets" step in
+    azure-deploy.yml (az containerapp secret set), so rotating the key never
+    forces a backend app replacement.
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "smoke_probe_secret" {
   description = <<-EOT
     Separate, rotatable secret for the browser smoke test (BITB-064). Same
