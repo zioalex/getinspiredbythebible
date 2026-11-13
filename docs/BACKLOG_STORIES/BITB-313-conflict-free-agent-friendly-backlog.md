@@ -182,9 +182,196 @@ retrieval, edit reliability, prompt-injection exposure, …):
   `refs/story-ids/NNN` claim is a possible follow-up.
 - Rewriting `docs/WIP/**` historical notes.
 
-## Open questions (to confirm before Plan)
+## Resolved questions (owner, 2026-11-13)
 
-1. Ranking within a priority: optional `rank` field seeded from today's order
-   (recommended), or rank by id only?
-2. Cutover for the PRs open at merge time: the cutover PR author fixes them, or each owner
-   rebases?
+1. **Ranking:** optional `rank` field, seeded by the migration from today's order inside
+   each priority section (10, 20, 30, …). Re-prioritising = one-line edit.
+2. **Cutover:** the BITB-313 author resolves every PR still open at cutover (moves its
+   `BACKLOG.md` edits into story front matter and pushes).
+3. Spec approved; proceed to Plan → Build → Verify.
+
+## Plan (Opus, 2026-11-13)
+
+### Facts found while planning (on `origin/main` @ 2a8b257d)
+
+- `docs/BACKLOG.md` has 285 `### … BITB-NNN` index headings (283 distinct ids). BITB-220
+  appears 3× in the Done section, which is duplicated history.
+- 14 index entries have **no story file**: BITB-000 … BITB-013.
+- 24 story files have no index entry (the BITB-111 exempt list).
+- `docs/DONE/` holds 60 BITB story files plus non-story notes (no `BITB-NNN-` prefix),
+  which are ignored. BITB-147 has 2 companion files under one id (the allowlist in
+  `check_backlog_story_ids.py`).
+- ~20 free-text status variants exist in story files (`✅ Merged`, `🔄 In progress — PR
+  #1272`, `📋 Backlog`, `Todo`, `✅ Done — PR #1226, merged 2026-10-28`, …).
+  `BITB-133` has no `**Status:**` line.
+- Sections of `BACKLOG.md`: Changelog, Legend, Retrospectives, P0, P1, P2, P3, Done (Recent
+  Completions), Icebox, Notes.
+
+### Front-matter schema (fixed key order; one key per line)
+
+```yaml
+---
+id: BITB-NNN                 # required, must equal the filename prefix
+status: todo                 # required: todo|in-progress|in-review|blocked|done|cancelled
+priority: P1                 # required: P0|P1|P2|P3|icebox
+size: M                      # optional: XS|S|M|L|XL
+rank: 10                     # optional int; sort key inside a priority
+created: 2026-11-13          # optional ISO date
+prs: [1292]                  # optional inline list of ints
+follow_ups: [BITB-314]       # optional inline list of ids
+depends_on: []               # optional inline list of ids
+supersedes: free text        # optional single-line string
+---
+```
+
+The title is the file's first `# ` H1 (strip a leading `BITB-NNN:`). There is no `title`
+key, because it would trip markdownlint MD025.
+
+### Changes per file
+
+1. **`scripts/backlog.py`** (new, stdlib only, Python 3.12, `from __future__ import
+   annotations`, typed, Black/Ruff clean):
+   - Minimal front-matter parser and writer for exactly the schema above: scalars, inline
+     `[a, b]` lists, `#` comments are not allowed in story files. Writer emits keys in the
+     fixed order and omits optional keys that are empty, except `prs: []` (drop that too).
+   - Loads stories from `docs/BACKLOG_STORIES/*.md` and `docs/DONE/*.md` (filename
+     `BITB-\d+-…`). Companion-file allowlist carried over from `check_backlog_story_ids.py`
+     (BITB-147 pair). A story without front matter is a `check` error.
+   - Subcommands (argparse):
+     - `list`: filters `--status a,b`, `--priority`, `--size`, `--grep` (case-insensitive
+       over id+title), and `--all`. The default view is not done/cancelled. Formats:
+       `compact` (default) prints `BITB-313  P1  L   todo         #1292  Title`, with the
+       title truncated to 90 chars; also `md` and `json`. Sort: priority order
+       P0,P1,P2,P3,icebox; then rank (missing rank sorts last); then numeric id.
+     - `show ID [--full]`: path, then front matter, then title. `--full` prints the whole
+       file.
+     - `changelog [--ref origin/main|HEAD] [--since YYYY-MM-DD] [--limit N]`: runs
+       `git log --first-parent --format=%cs%x09%s <ref>` and keeps subjects containing
+       `BITB-\d+`. It emits `- DATE: BITB-NNN[, BITB-MMM] — subject`. The ref falls back
+       to `HEAD` when `origin/main` is missing.
+     - `check`: schema/enums, filename id == `id`, unique ids (allowlist), refs in
+       `follow_ups`/`depends_on` exist, no bold
+       `**Status:**|**Priority:**|**Size:**|**Created:**` line left in the header block.
+       It prints `path: problem — fix hint`, exits 1 on any error and prints an `OK: N
+       stories` summary.
+     - `render`: full markdown index grouped by priority, then In Review / In Progress /
+       Todo / Blocked, then a Done section; one table row per story. Output is
+       deterministic.
+     - `next-id`: highest id across both dirs + 1 (local tree only; the doc says to also
+       run the BITB-235 open-PR check).
+2. **`scripts/migrate_backlog_frontmatter.py`** (new, one-off, kept with tests):
+   - Parses `BACKLOG.md` index entries: section, heading emoji, `**Status/Priority/Size/
+     Created:**`, and position inside the section (for `rank` = 10, 20, …, per P0–P3
+     section only).
+   - Parses each story file's header block (text before the first `## `).
+   - Merge rule: story file wins; the index fills gaps. `priority` comes from the file's
+     Priority line, else the index line, else the index section (Icebox → `icebox`). Done
+     section entries without a priority get `P3`, and this is reported.
+   - Status normalization map: 🎯/Todo/📋 Backlog → todo; 🚧/🔄 In progress → in-progress;
+     🔍/🔄 In Review → in-review; ✅ Done/Merged/Complete → done; ❌ → cancelled; ⏸/Blocked
+     → blocked. An unknown value aborts with the file named.
+   - `#\d+` found in the status text is added to `prs`. Any remaining free text after the
+     status word (e.g. "merged 2026-10-28") is kept as a `**Status note:** …` line so no
+     information is lost.
+   - Removes the four bold lines from the header block, inserts front matter at the top,
+     and leaves everything else byte-identical.
+   - Index-only entries (BITB-000…013) become new files
+     `docs/DONE/BITB-0NN-<slug-from-title>.md` (or `BACKLOG_STORIES/` if not done), with
+     front matter plus the index entry body.
+   - Duplicate index headings (BITB-220) are merged; the first occurrence wins, and this is
+     reported.
+   - `--dry-run` prints a report: counts, every conflict between file and index values,
+     every defaulted field. Must be idempotent: a second run is a no-op.
+3. **Run the migration** and commit the result (all story files + new BITB-000…013 files).
+   Re-run to prove idempotence.
+4. **`docs/backlog/`** (new):
+   - `CHANGELOG-archive.md`: the old changelog section verbatim, with a one-paragraph
+     header saying it is frozen and pointing to `make backlog-changelog`.
+   - `LEGEND.md`: the legend, rewritten for the new enums.
+   - `RETROSPECTIVES.md`: verbatim.
+   - `NOTES.md`: the Notes section verbatim.
+5. **`docs/BACKLOG.md`** becomes a ≤ 80-line stub covering:
+   - what moved where;
+   - `make backlog` examples (what's open in P1, find by text, show one story,
+     changelog);
+   - how to create, complete and cancel a story (edit front matter only; the changelog
+     is the commit subject);
+   - the CI guard and the `backlog-stub-edit` label exemption.
+6. **Makefile**: `backlog` (`ARGS=` pass-through, default `list`), `backlog-changelog`,
+   `backlog-check`, all with `##` help. Add `backlog-check` to `make test`'s prerequisites
+   only if that is cheap; otherwise add it to CI only.
+7. **CI**:
+   - **`test_update.yml`**: replace the BITB-111 and BITB-153 guard steps with one step
+     `python3 scripts/backlog.py check`.
+   - **New `.github/workflows/backlog.yml`**, with `permissions: contents: read` and these
+     jobs:
+     - (a) `pull_request` job `backlog-check`, path-filtered on stories, scripts and the
+       workflow: runs `backlog.py check` and `pytest scripts/test_backlog.py
+       scripts/test_migrate_backlog_frontmatter.py`.
+     - (b) `pull_request` job `backlog-stub-guard`, not path-filtered so it always runs:
+       fails if `git diff --name-only origin/$BASE...HEAD` contains `docs/BACKLOG.md`,
+       unless the PR title contains `BITB-313` or the PR has the label
+       `backlog-stub-edit`. Both come from the event payload, so no token is needed. The
+       `::error` message tells the author to edit story front matter instead.
+     - (c) `push` to `main` (paths: stories/DONE): runs `backlog.py render` and appends it
+       to `$GITHUB_STEP_SUMMARY`, plus `backlog.py changelog --limit 50`. Checkout uses
+       `fetch-depth: 0`. No write anywhere.
+   - **`story-id-check.yml`**: unchanged.
+8. **Delete** `scripts/check_backlog_status_sync.py`, `scripts/check_backlog_story_ids.py`
+   and `scripts/test_check_backlog_story_ids.py`. Their still-relevant rules (unique ids,
+   companion allowlist) live in `backlog.py check`, and tests are ported into
+   `scripts/test_backlog.py`.
+9. **Tests**:
+   - **`scripts/test_backlog.py`**:
+     - parser/writer round-trip;
+     - every `check` error class;
+     - list filters, sort and truncation;
+     - changelog from a temp git repo;
+     - render determinism.
+   - **Context budgets** (asserted against the real repo tree):
+     - open-items compact list ≤ 12 KB;
+     - `show` ≤ 1 KB.
+   - **Conflict simulation**: temp git repo. Base has 3 stories. Branch A adds story X
+     and flips story 1's status; branch B adds story Y and flips story 2's status. Assert
+     `git merge-tree --write-tree` (git ≥ 2.38) reports no conflict in both orders.
+   - **`scripts/test_migrate_backlog_frontmatter.py`**:
+     - fixture BACKLOG.md and story files covering each status variant;
+     - PR extraction and status note;
+     - rank seeding;
+     - index-only entry creation;
+     - duplicate heading;
+     - idempotence.
+10. **Docs and prompts**:
+    - **`AGENTS.md`**:
+      - rewrite *Backlog Hygiene* bullets 2–6 (new story = one file with front matter;
+        complete = `status: done` + `prs`; cancel = `status: cancelled` + reason line;
+        changelog = conventional commit subject with BITB id; follow-ups unchanged;
+        discovery via `make backlog`);
+      - keep the BITB-235 ID allocation bullets but replace "`docs/BACKLOG.md`
+        changelog/summary lines" in the collision paragraph with front matter;
+      - add `scripts/backlog.py` to the repo-layout or testing notes.
+    - **`.claude/commands/plan-build-verify.md`**: lines 38 and 78.
+    - **`.opencode/agents/orchestrator.md`**: the allowlist line (keep `docs/BACKLOG.md`
+      out; stories and DONE stay), plus a "query the backlog with `make backlog`, never
+      read docs/BACKLOG.md whole" note.
+    - **`scripts/generate-opencode-config.py`**: line 188 table row, then regenerate
+      `opencode.json` with the generator and run `scripts/test_generate_opencode_config.py`.
+    - **`docs/ROADMAP.md`**: repoint links.
+    - **BITB-287 story**: note "requirement 1 superseded by BITB-313 (GitHub ignores merge
+      drivers)".
+    - Repo-wide `grep -rn "BACKLOG.md"`: fix live instructions; leave `docs/WIP/**`,
+      `docs/audits/**`, archived stories and `frontend/` comments alone.
+
+### Verification
+
+- `python3 scripts/backlog.py check` green;
+  `pytest scripts/test_backlog.py scripts/test_migrate_backlog_frontmatter.py
+  scripts/test_check_story_ids.py scripts/test_generate_opencode_config.py` green.
+- `black --check -l 100`, `ruff check` (repo config) and `mypy` on the new scripts.
+- markdownlint on `docs/BACKLOG.md`, `docs/backlog/*.md` and a sample of migrated stories.
+  Front matter must not break MD041/MD025 under the repo's `.markdownlint*` config; if
+  it does, adjust the config with `front_matter_title: ""`.
+- Spot-check 10 migrated stories (mixed statuses, DONE, index-only) against the old
+  index.
+- `make test-opencode-config-live` cannot run in the sandbox (no opencode binary); the PR's
+  `opencode-ci.yml` is the gate.
