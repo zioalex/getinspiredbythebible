@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-13
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-13: BITB-298 🔍 In Review — IP-only per-scope limiter on search/feedback/contact/church, input caps, honest church User-Agent, cached /scripture/stats (#TBD)
 - 2026-11-11: BITB-309 🔍 In Review — privacy policy (11 languages) discloses OpenAI Moderation as the safety-check fallback and states OpenAI's 30-day abuse-monitoring retention; must merge before BITB-288 (#1280)
 - 2026-11-11: BITB-238 ✅ Done — status drift fixed: help-seeking/theological exemption shipped in #1249 (merged 2026-11-08) but the entry still read Todo (#1278)
 - 2026-11-11: BITB-239 ✅ Done — status drift fixed: it/fr/pt directed-harm recall shipped in #1261 (merged 2026-11-10); follow-up BITB-281 stays open (#1278)
@@ -230,9 +231,9 @@ Live on 2026-11-11: `GET api.voxquieta.org/health` → `403`, the same request w
 
 ---
 
-### 🎯 BITB-298: Rate-Limit Search, Feedback and Church Endpoints; Bound Their Inputs
+### 🔍 BITB-298: Rate-Limit Search, Feedback and Church Endpoints; Bound Their Inputs
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P0
 **Size:** S
 **Created:** 2026-11-11

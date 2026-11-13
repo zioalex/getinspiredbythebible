@@ -1,6 +1,6 @@
 # BITB-298: Rate-Limit Search, Feedback and Church Endpoints; Bound Their Inputs
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P0
 **Size:** S
 **Created:** 2026-11-11
@@ -98,6 +98,16 @@ a chat turn. This story adds a separate, IP-only limiter instead.
 - `/scripture/stats` hits the database once for two calls within the cache window.
 - Church proxy sends the honest `User-Agent` and no `Origin`/`Referer` (assert on the
   mocked outbound request).
+
+## Implementation notes
+
+- `model_used` is capped at 100 and `reason` at 40 (not 128): they match the widths of the
+  `feedback.model_used` / `feedback.reason` columns, so a longer value would be a database
+  error (500) instead of a clean 422. No web or Android form sets a `maxLength` on the
+  comment or contact message, so the story's caps stand.
+- `/api/v1/client-events` and `/client-errors` bodies carry no `session_id`; they stay on
+  `require_rate_limit` (pinned by a test).
+- `/scripture/search` already embeds through `CachingEmbeddingProvider` (the factory wraps it).
 
 ## Acceptance criteria
 

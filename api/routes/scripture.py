@@ -2,13 +2,14 @@
 Scripture API routes - Bible data and search endpoints.
 """
 
-import asyncio
 import re
+import time
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
+from config import settings
 from providers import EmbeddingProviderDep
 from scripture import (
     DbSession,
@@ -25,6 +26,7 @@ from utils.metrics import (
     scripture_search_counter,
     scripture_verses_returned,
 )
+from utils.security import require_ip_rate_limit
 
 logger = get_logger("routes.scripture")
 router = APIRouter(prefix="/scripture", tags=["scripture"])
@@ -128,7 +130,7 @@ async def get_verse(
     repo = ScriptureRepository(db)
     try:
         result = await repo.get_verse(book, chapter, verse, translation=translation)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         scripture_fetch_errors_counter.add(1, {"reason": "timeout", "endpoint": "verse"})
         logger.error(
             "verse_query_timeout",
@@ -185,7 +187,7 @@ async def get_chapter(
     repo = ScriptureRepository(db)
     try:
         verses = await repo.get_chapter_verses(book, chapter, translation=translation)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         scripture_fetch_errors_counter.add(1, {"reason": "timeout", "endpoint": "chapter"})
         logger.error(
             "chapter_query_timeout",
@@ -279,11 +281,14 @@ async def get_verse_range(
 # ==================== Search ====================
 
 
-@router.get("/search", response_model=SearchResults)
+_search_rate_limit = require_ip_rate_limit("search", lambda: settings.rate_limit_search_per_minute)
+
+
+@router.get("/search", response_model=SearchResults, dependencies=[Depends(_search_rate_limit)])
 async def search_scripture(
     db: DbSession,
     embedding: EmbeddingProviderDep,
-    q: str = Query(..., min_length=2, description="Search query"),
+    q: str = Query(..., min_length=2, max_length=200, description="Search query"),
     max_verses: int = Query(5, ge=1, le=20),
     max_passages: int = Query(2, ge=0, le=5),
     translation: str | None = Query(None, description="Translation code (e.g., 'kjv', 'ita1927')"),
@@ -311,11 +316,11 @@ async def search_scripture(
     return results
 
 
-@router.get("/search/text")
+@router.get("/search/text", dependencies=[Depends(_search_rate_limit)])
 async def search_text(
     db: DbSession,
     embedding: EmbeddingProviderDep,
-    q: str = Query(..., min_length=2, description="Text to search"),
+    q: str = Query(..., min_length=2, max_length=200, description="Text to search"),
     limit: int = Query(20, ge=1, le=100),
 ):
     """
@@ -332,8 +337,24 @@ async def search_text(
 # ==================== Stats ====================
 
 
+_STATS_TTL_SECONDS = 300.0
+_stats_cache: tuple[float, dict] | None = None
+
+
+def reset_stats_cache() -> None:
+    """Test hook: drop the cached /scripture/stats payload."""
+    global _stats_cache
+    _stats_cache = None
+
+
 @router.get("/stats")
 async def get_stats(db: DbSession):
-    """Get database statistics."""
+    """Get database statistics (cached in-process for 5 minutes, BITB-298)."""
+    global _stats_cache
+    now = time.monotonic()
+    if _stats_cache is not None and now - _stats_cache[0] < _STATS_TTL_SECONDS:
+        return _stats_cache[1]
     repo = ScriptureRepository(db)
-    return await repo.get_stats()
+    stats = await repo.get_stats()
+    _stats_cache = (now, stats)
+    return stats

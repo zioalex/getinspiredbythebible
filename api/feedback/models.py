@@ -3,10 +3,10 @@ Feedback models - Pydantic for API and SQLAlchemy for database.
 """
 
 from datetime import date, datetime
-from typing import Literal, Optional
+from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 from sqlalchemy import Boolean, Date, DateTime, Float, Index, Integer, String, Text
 
 # Aliased for the same reason as api/scripture/models.py: `text` is a plausible
@@ -20,8 +20,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 class Base(DeclarativeBase):
     """Base class for all SQLAlchemy models."""
 
-    pass
-
 
 # ==================== Pydantic Models (API) ====================
 
@@ -31,17 +29,25 @@ class FeedbackRequest(BaseModel):
 
     model_config = ConfigDict(protected_namespaces=())
 
-    message_id: str = Field(..., description="Unique ID of the chat message")
+    message_id: str = Field(..., max_length=128, description="Unique ID of the chat message")
     rating: Literal["positive", "negative"] = Field(..., description="Rating: positive or negative")
-    comment: str | None = Field(None, description="Optional user comment about the response")
-    user_message: str = Field(..., description="The user's original question")
-    assistant_response: str = Field(..., description="The AI's response text")
-    verses_cited: list[str] | None = Field(None, description="Array of verse references used")
-    model_used: str | None = Field(None, description="LLM model that generated the response")
+    comment: str | None = Field(
+        None, max_length=2000, description="Optional user comment about the response"
+    )
+    user_message: str = Field(..., max_length=2000, description="The user's original question")
+    assistant_response: str = Field(..., max_length=20000, description="The AI's response text")
+    verses_cited: list[Annotated[str, StringConstraints(max_length=100)]] | None = Field(
+        None, max_length=50, description="Array of verse references used"
+    )
+    # 100 = width of feedback.model_used (String(100)); a longer value would be a DB error
+    model_used: str | None = Field(
+        None, max_length=100, description="LLM model that generated the response"
+    )
     response_time_ms: int | None = Field(None, description="Response generation time in ms")
-    session_id: str | None = Field(None, description="Optional session identifier")
+    session_id: str | None = Field(None, max_length=128, description="Optional session identifier")
+    # 40 = width of feedback.reason (String(40)); a longer value would be a DB error
     reason: str | None = Field(
-        None, description="Optional category of what went wrong (negative feedback)"
+        None, max_length=40, description="Optional category of what went wrong (negative feedback)"
     )
 
 
@@ -61,9 +67,11 @@ class ContactRequest(BaseModel):
     subject: Literal["spiritual", "bug", "feature", "feedback", "other"] = Field(
         ..., description="Subject category"
     )
-    message: str = Field(..., min_length=1, description="The user's message")
-    session_id: str | None = Field(None, description="Optional session identifier")
-    user_agent: str | None = Field(None, description="Browser/device info for bug reports")
+    message: str = Field(..., min_length=1, max_length=5000, description="The user's message")
+    session_id: str | None = Field(None, max_length=128, description="Optional session identifier")
+    user_agent: str | None = Field(
+        None, max_length=500, description="Browser/device info for bug reports"
+    )
 
 
 class ContactResponse(BaseModel):
@@ -93,15 +101,15 @@ class Feedback(Base):
         DateTime(timezone=True), default=datetime.utcnow, server_default=sql_text("now()")
     )
     message_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True))
-    session_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     rating: Mapped[str] = mapped_column(String(10))  # 'positive' or 'negative'
-    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    user_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    assistant_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    verses_cited: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
-    model_used: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    response_time_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    reason: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    assistant_response: Mapped[str | None] = mapped_column(Text, nullable=True)
+    verses_cited: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    model_used: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    response_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     def __repr__(self) -> str:
         return f"<Feedback(id={self.id}, rating='{self.rating}', message_id='{self.message_id}')>"
@@ -118,13 +126,13 @@ class ContactSubmission(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.utcnow, server_default=sql_text("now()")
     )
-    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     subject: Mapped[str] = mapped_column(
         String(50)
     )  # 'spiritual', 'bug', 'feature', 'feedback', 'other'
     message: Mapped[str] = mapped_column(Text)
-    session_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), default="new", server_default=sql_text("'new'")
     )  # 'new', 'read', 'replied', 'resolved'
@@ -157,12 +165,12 @@ class BlockedMessageSample(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     stage: Mapped[str] = mapped_column(String(40))
-    categories: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
-    severity: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    language: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    categories: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    severity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    language: Mapped[str | None] = mapped_column(String(10), nullable=True)
     message_text: Mapped[str] = mapped_column(Text)
     message_sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    session_id_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    session_id_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     hit_count: Mapped[int] = mapped_column(Integer, default=1)
     reviewed: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -232,13 +240,13 @@ class RetrievalMissSample(Base):
     topics: Mapped[list] = mapped_column(JSONB)
     expansion_terms: Mapped[list] = mapped_column(JSONB)
     top_refs: Mapped[list] = mapped_column(JSONB)
-    top_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    threshold: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    top_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    threshold: Mapped[float | None] = mapped_column(Float, nullable=True)
     cited_outside_pool: Mapped[list] = mapped_column(JSONB)
     retrieval_mode: Mapped[str] = mapped_column(String(24))
     embedding_provider: Mapped[str] = mapped_column(String(32))
     embedding_model: Mapped[str] = mapped_column(String(100))
-    session_id_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    session_id_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     signature_sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     hit_count: Mapped[int] = mapped_column(Integer, default=1, server_default=sql_text("1"))
 

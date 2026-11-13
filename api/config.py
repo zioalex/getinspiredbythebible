@@ -257,6 +257,12 @@ class Settings(BaseSettings):
     rate_limit_session_ttl_seconds: int = (
         3600  # Retain a session's lifetime counter for this long after its last request
     )
+    # BITB-298: IP-only per-scope limits (requests per IP per minute) for endpoints that cost
+    # money or call third parties. Independent of the chat limits above.
+    rate_limit_search_per_minute: int = 30
+    rate_limit_feedback_per_minute: int = 20
+    rate_limit_contact_per_minute: int = 3
+    rate_limit_church_per_minute: int = 6
     content_filter_enabled: bool = True
     content_filter_block_profanity: bool = True
     content_filter_block_spam: bool = True
@@ -687,7 +693,7 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
