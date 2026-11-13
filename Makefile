@@ -1,7 +1,7 @@
 # Every target except the two env-file rules (.env.local, .env.dev) is phony: none of them
 # produces a file of its own name, so a stray file called `test` or `lint` must never make
 # them silently "up to date". scripts/test_make_targets.py (make test-makefile) enforces this.
-.PHONY: help venv install-hooks setup-dev lint format type-check security install-deps \
+.PHONY: backlog backlog-changelog backlog-check help venv install-hooks setup-dev lint format type-check security install-deps \
 	test-backend test-frontend test check-all pre-commit alembic-roundtrip db-upgrade \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean \
 	android-security-check \
@@ -197,7 +197,16 @@ test-frontend: ## Run frontend tests
 	@cd frontend && npm run build
 	@echo "$(GREEN)✓ Frontend tests complete$(NC)"
 
-test: test-backend test-frontend ## Run all tests
+test: backlog-check test-backend test-frontend ## Run all tests
+
+backlog: ## Query the story backlog offline (BITB-313): make backlog ARGS="list --priority P0,P1" (default: list)
+	@$(SCRIPT_PYTHON) scripts/backlog.py $(or $(ARGS),list)
+
+backlog-changelog: ## Changelog derived from git history (BITB-313): make backlog-changelog ARGS="--limit 20"
+	@$(SCRIPT_PYTHON) scripts/backlog.py changelog $(ARGS)
+
+backlog-check: ## Validate every story file's front matter (BITB-313)
+	@$(SCRIPT_PYTHON) scripts/backlog.py check
 
 test-makefile: ## Audit the Makefile itself: unit tests + doc freshness (no docker/cloud/network)
 	@$(SCRIPT_PYTHON) -m unittest scripts.test_make_targets -v
