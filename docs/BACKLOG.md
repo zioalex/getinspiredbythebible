@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-13
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-13: BITB-313 opened — conflict-free, agent-friendly backlog: story-file front matter is the single source of truth, BACKLOG.md becomes a stub, `make backlog` query + changelog derived from git; supersedes BITB-287 req. 1 (merge driver ignored by GitHub)
 - 2026-11-11: BITB-293 opened — 11-language safety golden set runner for a single moderation classifier (OpenAI Moderation first), follow-up of BITB-288 AC 2 (#1280)
 - 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#1280)
 - 2026-11-11: BITB-309 ✅ Done — privacy policy OpenAI disclosure merged before BITB-288; story moved to docs/DONE (#1287)
@@ -426,6 +427,25 @@ positives on Bible queries. This unblocks it.
 ---
 
 ## P1 - High Priority (Next Sprint)
+
+### 🎯 BITB-313: Conflict-Free, Agent-Friendly Backlog — Story Files Are the Single Source of Truth
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** L
+**Created:** 2026-11-13
+
+Every merge re-conflicts every open PR on this file (7 of 7 on 2026-11-13), GitHub ignores merge drivers, and the file is ~110k tokens — too big for free/local agent models. Story front matter becomes the only status copy; this file becomes a stub; `make backlog` gives a compact filtered view; the changelog is derived from commit subjects. No bot token writes to `main`.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Front matter on every story; `make backlog-check` green; BACKLOG.md stub; history archived
+- [ ] Two-branch conflict-simulation test merges with zero conflicts; agent context budgets asserted
+- [ ] CI read-only: check + guard against BACKLOG.md edits + job-summary render; AGENTS.md / agent prompts updated
+
+**Full Story:** [`BITB-313-conflict-free-agent-friendly-backlog.md`](BACKLOG_STORIES/BITB-313-conflict-free-agent-friendly-backlog.md)
+
+---
 
 ### 🎯 BITB-299: Share Image — Arabic Returns 503, Hindi Is Mis-Shaped
 
