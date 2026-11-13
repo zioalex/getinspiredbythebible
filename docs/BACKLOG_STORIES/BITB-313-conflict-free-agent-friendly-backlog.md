@@ -224,7 +224,7 @@ supersedes: free text        # optional single-line string
 ---
 ```
 
-The title is the file's first `# ` H1 (strip a leading `BITB-NNN:`). There is no `title`
+The title is the file's first level-1 heading (strip a leading `BITB-NNN:`). There is no `title`
 key, because it would trip markdownlint MD025.
 
 ### Changes per file
@@ -263,7 +263,7 @@ key, because it would trip markdownlint MD025.
    - Parses `BACKLOG.md` index entries: section, heading emoji, `**Status/Priority/Size/
      Created:**`, and position inside the section (for `rank` = 10, 20, …, per P0–P3
      section only).
-   - Parses each story file's header block (text before the first `## `).
+   - Parses each story file's header block (text before the first level-2 heading).
    - Merge rule: story file wins; the index fills gaps. `priority` comes from the file's
      Priority line, else the index line, else the index section (Icebox → `icebox`). Done
      section entries without a priority get `P3`, and this is reported.
