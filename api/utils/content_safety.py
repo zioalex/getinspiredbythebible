@@ -7,8 +7,12 @@ Implements a multi-stage content safety pipeline:
 2. OpenAI Moderation API (~100-150ms, FREE) — context-aware, used in keyword_only and hybrid modes
    OR Llama Guard 3 via OpenRouter (~200-300ms) — used in ml_only mode. In ml_only, when Llama
    Guard (primary + secondary) fails or is unconfigured, OpenAI Moderation is the failover
-   (BITB-272); the context-blind keyword fallback only runs when every ML classifier failed.
-3. Azure Content Safety API (optional, ~200ms) — additional layer for hybrid mode only
+   (BITB-272); the ordered chain CONTENT_SAFETY_ML_FAILOVER_CHAIN (default
+   ``openai_moderation``, optionally ``openai_moderation,azure``) can add Azure Content Safety
+   as a further ML hop (BITB-292). The context-blind keyword fallback only runs when every
+   configured ML classifier failed.
+3. Azure Content Safety API (optional, ~200ms) — additional layer in hybrid mode, and an
+   opt-in ordered failover hop in ml_only mode (BITB-292)
 
 CRITICAL DESIGN PRINCIPLE:
 This is a spiritual guidance app. People seeking help for self-harm, addiction,
@@ -34,7 +38,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-from config import settings
+from config import parse_ml_failover_chain, settings
 from providers.llama_guard import LlamaGuardResponseError
 from utils.circuit_breaker import CircuitOpenError
 from utils.logging_config import get_logger
@@ -107,9 +111,38 @@ def classify_failure_class(e: BaseException) -> str:
     return "other"
 
 
+_chain_warning_logged = False
+
+
+def _ml_failover_chain() -> list[str]:
+    """The configured ordered failover chain; the default chain if unset/invalid.
+
+    Real ``Settings`` validates at startup, so the invalid branch only triggers for odd test
+    doubles; it logs one warning instead of swallowing silently.
+    """
+    global _chain_warning_logged
+    raw = getattr(settings, "content_safety_ml_failover_chain", None)
+    if isinstance(raw, str):
+        try:
+            return parse_ml_failover_chain(raw)
+        except ValueError as e:
+            if not _chain_warning_logged:
+                _chain_warning_logged = True
+                logger.warning("Invalid CONTENT_SAFETY_ML_FAILOVER_CHAIN, using default: %s", e)
+    return ["openai_moderation"]
+
+
+def _azure_settings_complete() -> bool:
+    return bool(
+        settings.azure_content_safety_enabled
+        and settings.azure_content_safety_endpoint
+        and settings.azure_content_safety_key
+    )
+
+
 def log_failover_config_warning() -> None:
-    """Log one startup warning when ml_only has no ML failover (BITB-272), so a config gap is
-    visible at boot rather than discovered per request."""
+    """Log startup warnings when ml_only has no (or a partly broken) ML failover (BITB-272,
+    BITB-292), so a config gap is visible at boot rather than discovered per request."""
     if settings.content_safety_mode != "ml_only":
         return
     if not settings.content_safety_ml_failover_enabled:
@@ -118,10 +151,22 @@ def log_failover_config_warning() -> None:
             "(CONTENT_SAFETY_ML_FAILOVER_ENABLED=false); a Llama Guard outage goes straight "
             "to the keyword fallback"
         )
-    elif not settings.openai_api_key:
+        return
+    chain = _ml_failover_chain()
+    if "azure" in chain and not _azure_settings_complete():
         logger.warning(
-            "Content safety ml_only: no OPENAI_API_KEY, so there is no ML failover; a Llama "
-            "Guard outage goes straight to the keyword fallback"
+            "Content safety ml_only: 'azure' is in CONTENT_SAFETY_ML_FAILOVER_CHAIN but "
+            "AZURE_CONTENT_SAFETY_ENABLED/ENDPOINT/KEY are incomplete; the Azure hop will be "
+            "skipped"
+        )
+    openai_ok = "openai_moderation" in chain and bool(settings.openai_api_key)
+    azure_ok = "azure" in chain and _azure_settings_complete()
+    if not (openai_ok or azure_ok):
+        logger.warning(
+            "Content safety ml_only: no configured ML failover hop (chain=%s; OPENAI_API_KEY "
+            "or Azure Content Safety settings missing), so there is no ML failover; a Llama "
+            "Guard outage goes straight to the keyword fallback",
+            ",".join(chain) or "empty",
         )
 
 
@@ -167,13 +212,16 @@ class ContentSafetyService:
     2. Stage 2 — depends on mode:
        keyword_only: OpenAI Moderation API (free, ~100-150ms) — context-aware, no false positives.
        ml_only:      Llama Guard 3 via OpenRouter (~200-300ms) — context-aware, free tier.
-                     On failure/unconfigured: OpenAI Moderation (failover, BITB-272), then
-                     the keyword fallback only if every ML classifier failed.
+                     On failure/unconfigured: the ordered failover chain
+                     (CONTENT_SAFETY_ML_FAILOVER_CHAIN: OpenAI Moderation, optionally then
+                     Azure Content Safety; BITB-272/BITB-292), skipping unconfigured hops, then
+                     the keyword fallback only if every configured ML classifier failed.
        hybrid:       OpenAI Moderation API (same as keyword_only Stage 2).
        Falls back to full keyword filter on API failure.
 
-    3. Azure Content Safety (optional, ~200ms) — hybrid mode only:
-       Additional layer after Stage 2. Requires Azure Content Safety resource.
+    3. Azure Content Safety (optional, ~200ms):
+       hybrid mode: additional layer after Stage 2. ml_only mode: opt-in failover hop in
+       the chain above. Requires an Azure Content Safety resource.
     """
 
     def __init__(self):
@@ -201,6 +249,7 @@ class ContentSafetyService:
                         endpoint=settings.azure_content_safety_endpoint,
                         key=settings.azure_content_safety_key,
                         threshold=settings.azure_content_safety_threshold,
+                        timeout=settings.azure_content_safety_timeout,
                     )
                     logger.info("Azure Content Safety provider initialized")
                 except Exception as e:
@@ -574,35 +623,49 @@ class ContentSafetyService:
     async def _ml_failover(
         self, text: str, language: str, start: float, reason: str, failure_class: str
     ) -> ContentSafetyCheckResult:
-        """Llama Guard failed/unconfigured: try OpenAI Moderation before the keyword fallback.
+        """Llama Guard failed/unconfigured: walk the ordered ML failover chain (BITB-292).
 
-        ml_only only (this is called from the Llama Guard stage, which keyword_only/hybrid never
-        reach). ``content_safety.fallback_total`` is incremented ONLY when the keyword fallback
+        Hops come from ``CONTENT_SAFETY_ML_FAILOVER_CHAIN`` (default ``openai_moderation``);
+        unconfigured hops are skipped silently, the first hop that decides wins, and the keyword
+        fallback runs only when every configured classifier failed. ml_only only (this is called
+        from the Llama Guard stage, which keyword_only/hybrid never reach).
+        ``content_safety.fallback_total`` is incremented ONLY when the keyword fallback
         actually runs, so the fallback-rate alert measures degraded decisions, not blips that
-        the failover absorbed.
+        the failover absorbed. Its ``failover`` label is ``disabled`` (master switch off),
+        ``unconfigured`` (no configured hop) or ``<last attempted hop>_failed``.
         """
-        if not settings.content_safety_ml_failover_enabled:
-            failover = "disabled"
-        elif not settings.openai_api_key:
+        failover = "disabled"
+        if settings.content_safety_ml_failover_enabled:
             failover = "unconfigured"
-        else:
-            result, error = await self._try_openai_moderation(text, language, start)
-            labels = {
-                "from_stage": "llama_guard",
-                "to_stage": "openai_moderation",
-                "reason": reason,
-                "failure_class": failure_class,
-            }
-            if result is not None:
-                content_safety_failover_counter.add(1, {**labels, "outcome": "decided"})
-                result.reason = f"{result.reason} (failover)"
-                return result
-            content_safety_failover_counter.add(1, {**labels, "outcome": "failed"})
-            logger.warning(
-                "OpenAI Moderation failover failed (%s); falling back to keyword filter",
-                type(error).__name__ if error else "provider_unavailable",
-            )
-            failover = "openai_moderation_failed"
+            from_stage = "llama_guard"
+            for stage in _ml_failover_chain():
+                if stage == "openai_moderation":
+                    if not settings.openai_api_key:
+                        continue
+                    result, error = await self._try_openai_moderation(text, language, start)
+                    # Key set but provider could not be built: an attempted, failed hop.
+                else:
+                    result, error = await self._try_azure(text, language, start)
+                    if result is None and error is None:
+                        continue  # Azure not configured: skip silently
+                labels = {
+                    "from_stage": from_stage,
+                    "to_stage": stage,
+                    "reason": reason,
+                    "failure_class": failure_class,
+                }
+                if result is not None:
+                    content_safety_failover_counter.add(1, {**labels, "outcome": "decided"})
+                    result.reason = f"{result.reason} (failover)"
+                    return result
+                content_safety_failover_counter.add(1, {**labels, "outcome": "failed"})
+                logger.warning(
+                    "ML failover hop %s failed (%s)",
+                    stage,
+                    type(error).__name__ if error else "provider_unavailable",
+                )
+                from_stage = stage
+                failover = f"{stage}_failed"
         content_safety_fallback_counter.add(
             1,
             {
@@ -613,6 +676,47 @@ class ContentSafetyService:
             },
         )
         return await self._keyword_fallback(text, language, start)
+
+    async def _try_azure(
+        self, text: str, language: str, start: float
+    ) -> tuple[ContentSafetyCheckResult | None, Exception | None]:
+        """Run Azure Content Safety; return ``(result, None)`` or ``(None, error)``.
+
+        ``(None, None)`` means the provider is unconfigured. Never falls back itself, so the
+        hybrid Stage 3 and the ml_only failover chain can decide what a failure means.
+        """
+        provider = self._get_azure_provider()
+        if not provider:
+            return None, None
+        try:
+            result = await provider.analyze_text(text, language)
+        except Exception as e:
+            return None, e
+        total_ms = (time.monotonic() - start) * 1000
+
+        text_hash = hashlib.sha256(text.encode()).hexdigest()[:16]
+        logger.info(
+            "Azure Content Safety check complete",
+            extra={
+                "text_hash": text_hash,
+                "language": language,
+                "allowed": result.allowed,
+                "reason": result.reason,
+                "is_help_seeking": result.is_help_seeking,
+                "duration_ms": f"{total_ms:.1f}",
+            },
+        )
+        return (
+            ContentSafetyCheckResult(
+                allowed=result.allowed,
+                reason=result.reason,
+                categories=result.categories,
+                is_help_seeking=result.is_help_seeking,
+                compassionate_response_needed=result.compassionate_response_needed,
+                check_duration_ms=total_ms,
+            ),
+            None,
+        )
 
     async def _try_openai_moderation(
         self, text: str, language: str, start: float
@@ -739,28 +843,17 @@ class ContentSafetyService:
 
         # Stage 3: Azure Content Safety (hybrid mode only, additional layer)
         if settings.content_safety_mode == "hybrid":
-            azure_provider = self._get_azure_provider()
-            if azure_provider:
-                try:
-                    azure_result = await azure_provider.analyze_text(text, language)
-                    total_ms = (time.monotonic() - start) * 1000
-
-                    return ContentSafetyCheckResult(
-                        allowed=azure_result.allowed,
-                        reason=azure_result.reason,
-                        categories=azure_result.categories,
-                        is_help_seeking=azure_result.is_help_seeking,
-                        compassionate_response_needed=azure_result.compassionate_response_needed,
-                        check_duration_ms=total_ms,
-                    )
-                except Exception as e:
-                    reason = type(e).__name__.lower()
-                    content_safety_fallback_counter.add(1, {"stage": "azure", "reason": reason})
-                    logger.warning(
-                        "Azure Content Safety API unavailable, falling back to keyword filter: %s",
-                        e,
-                    )
-                    return await self._keyword_fallback(text, language, start)
+            azure_result, azure_error = await self._try_azure(text, language, start)
+            if azure_result is not None:
+                return azure_result
+            if azure_error is not None:
+                reason = type(azure_error).__name__.lower()
+                content_safety_fallback_counter.add(1, {"stage": "azure", "reason": reason})
+                logger.warning(
+                    "Azure Content Safety API unavailable, falling back to keyword filter: %s",
+                    azure_error,
+                )
+                return await self._keyword_fallback(text, language, start)
 
         # Default: allow (Stage 1 didn't block, Stage 2 allowed or unavailable)
         total_ms = (time.monotonic() - start) * 1000
