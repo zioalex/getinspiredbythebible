@@ -12,7 +12,8 @@ claiming a result.
 
 1. Create a minimal iOS 17+ Xcode app containing a `WKWebView`, local HTML that renders Cloudflare's
    widget, a `WKScriptMessageHandler` token bridge, and a `URLSession` POST path.
-2. On a physical iPhone, fresh-install the app and obtain the production site key from `/config`.
+2. On a physical iPhone, fresh-install the app and obtain the production site key from `https://api.voxquieta.org/config`
+   (the backend host — `voxquieta.org/config` is the frontend and returns a 307 to `/en/config`).
 3. Obtain an actual token and verify that a POST carries it as `X-Turnstile-Token`.
 4. Verify that the attached token is consumed after one request and is not reused.
 5. Force a 403 with a stale token; verify widget reset, a fresh token, and exactly one retry.
