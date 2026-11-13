@@ -1,9 +1,14 @@
+---
+id: BITB-092
+status: done
+priority: P1
+size: S
+rank: 1180
+created: 2026-08-09
+---
+
 # BITB-092: Fix Dev Stack `db-init` Migration Failure and Embedding Config Drift
 
-**Status:** ✅ Done
-**Priority:** P1
-**Size:** S
-**Created:** 2026-08-09
 **Completed:** 2026-08-09 (follow-up permission fix also completed 2026-08-09)
 
 ## User Story

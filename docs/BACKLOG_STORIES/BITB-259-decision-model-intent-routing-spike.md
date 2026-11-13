@@ -1,9 +1,15 @@
+---
+id: BITB-259
+status: todo
+priority: P2
+size: M
+rank: 200
+created: 2026-10-29
+---
+
 # BITB-259: Spike — Decision Model (Clef / Jev) for Intent Routing and Topic Detection
 
-**Status:** 🎯 Todo (spec confirmed 2026-10-29)
-**Priority:** P2
-**Size:** M
-**Created:** 2026-10-29
+**Status note:** (spec confirmed 2026-10-29)
 **Type:** Spike (offline evaluation + shadow mode; no routing change)
 
 ## User story

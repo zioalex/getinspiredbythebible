@@ -1,9 +1,13 @@
-# BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not a Generic "Failed to Send")
+---
+id: BITB-052
+status: done
+priority: P3
+size: S
+rank: 180
+created: 2026-06-16
+---
 
-**Status:** ✅ Done
-**Priority:** P3
-**Size:** S (< 2 hrs)
-**Created:** 2026-06-16
+# BITB-052: Web Contact Form Should Show an Email-Specific Error on a 422 (Not a Generic "Failed to Send")
 
 ## User Story
 

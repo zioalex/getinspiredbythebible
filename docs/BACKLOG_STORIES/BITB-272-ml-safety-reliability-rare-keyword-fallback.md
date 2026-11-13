@@ -1,9 +1,15 @@
+---
+id: BITB-272
+status: in-progress
+priority: P1
+size: L
+rank: 130
+created: 2026-11-04
+---
+
 # BITB-272: Make ML Content-Safety Classification Reliable So the Keyword Fallback Is Rare
 
-**Status:** 🚧 In Progress (slice 1 done 2026-11-10)
-**Priority:** P1
-**Size:** L
-**Created:** 2026-11-04
+**Status note:** (slice 1 done 2026-11-10)
 **Prompted by:** BITB-257 (PR #1241). The owner chose the fail-safe keyword fallback (option A),
 which deliberately blocks some Bible-narrative questions while ML moderation is down. That
 trade-off is only acceptable if the fallback runs rarely.

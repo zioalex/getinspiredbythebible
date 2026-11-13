@@ -1,6 +1,15 @@
+---
+id: BITB-027
+status: done
+priority: P1
+size: M
+rank: 840
+created: 2026-05-10
+---
+
 # BITB-027: Android Chat-First Navigation with History Drawer
 
-**Status:** ✅ Done (chat-first NavHost, DataStore-backed resume, ModalNavigationDrawer with conversation list + Settings link, + New chat top-right icon added 2026-05-25; resolveResumeConversationId unit tests added)
+**Status note:** (chat-first NavHost, DataStore-backed resume, ModalNavigationDrawer with conversation list + Settings link, + New chat top-right icon added 2026-05-25; resolveResumeConversationId unit tests added)
 
 ## User Story
 

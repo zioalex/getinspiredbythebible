@@ -1,9 +1,16 @@
+---
+id: BITB-018
+status: in-review
+priority: P1
+size: L
+rank: 670
+created: 2026-02-24
+---
+
 # BITB-018: Query Understanding & Context Quality (Phase 1 Quick Wins)
 
-**Priority:** P1 (High)
-**Size:** L original — *implementation is done; remaining work is validation + rollout (S–M)*
-**Status:** 🟡 Code Complete — Pending Validation & Rollout (feature flags OFF in prod)
-**Created:** 2026-02-24
+**Status note:** Code Complete — Pending Validation & Rollout (feature flags OFF in prod)
+**Size note:** original — *implementation is done; remaining work is validation + rollout (S–M)*
 **Reviewed:** 2026-06-07
 
 ---

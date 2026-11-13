@@ -1,11 +1,17 @@
+---
+id: BITB-105
+status: in-progress
+priority: P1
+size: M
+rank: 1020
+created: 2026-08-21
+---
+
 # BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
 
-**Status:** 🚧 In Progress — implementation shipped; AC5 (production rows observed) pending the first
-post-merge deploy, see "Post-merge verification" below
-**Priority:** P1 — without this, BITB-044 changes nothing in production; the feature stays the exact
-silent no-op that story was written to fix
-**Size:** M (mostly pipeline wiring, plus one drift check)
-**Created:** 2026-08-21
+**Status note:** implementation shipped; AC5 (production rows observed) pending the first post-merge deploy, see "Post-merge verification" below
+**Priority note:** without this, BITB-044 changes nothing in production; the feature stays the exact silent no-op that story was written to fix
+**Size note:** (mostly pipeline wiring, plus one drift check)
 **Prompted by:** PR #970 (BITB-044), which ships `scripts/populate_verse_topics.py` as a manual,
 on-demand script with a runbook and no automation
 

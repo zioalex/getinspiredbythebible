@@ -1,6 +1,13 @@
+---
+id: BITB-134
+status: done
+priority: P3
+prs: [577]
+---
+
 # BITB-134: Skip Irrelevant CI Pipelines on Doc-Only / Story-Only Changes
 
-**Status:** ✅ Done (test_update.yml already has path filters added in PR #577 on 2026-05-17; verified 2026-05-24)
+**Status note:** (test_update.yml already has path filters added in PR #577 on 2026-05-17; verified 2026-05-24)
 
 ## User Story
 

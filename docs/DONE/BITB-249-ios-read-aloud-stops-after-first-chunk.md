@@ -1,9 +1,16 @@
+---
+id: BITB-249
+status: done
+priority: P1
+size: S
+rank: 740
+created: 2026-10-27
+prs: [1226]
+---
+
 # BITB-249: Read Aloud Stops After the First Chunk on iPhone (Web)
 
-**Status:** ✅ Done — PR #1226, merged 2026-10-28
-**Priority:** P1
-**Size:** S
-**Created:** 2026-10-27
+**Status note:** PR #1226, merged 2026-10-28
 **Prompted by:** owner report 2026-10-27 — "on iPhone/Firefox the voice reading starts but stops after the
 second sentence. I tried in different languages. Same problem. Only 2 sentences are read." Then: "sometimes one sentence, sometimes 2 sentences", which is exactly
 one chunk (a chunk holds one long sentence or two short ones).

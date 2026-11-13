@@ -1,9 +1,15 @@
+---
+id: BITB-254
+status: in-progress
+priority: P1
+size: M
+rank: 250
+created: 2026-10-28
+---
+
 # BITB-254: Follow-Up Chips Stop Appearing After a Few Turns (Web + Android)
 
-**Status:** 🚧 In Progress
-**Priority:** P1
-**Size:** M (backend + web + Android)
-**Created:** 2026-10-28
+**Size note:** (backend + web + Android)
 **Parent:** BITB-080 (suggested follow-up questions), BITB-149 (Android chips)
 
 ## Bug Report

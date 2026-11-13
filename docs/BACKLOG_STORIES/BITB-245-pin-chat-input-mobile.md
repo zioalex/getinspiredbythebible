@@ -1,9 +1,16 @@
+---
+id: BITB-245
+status: in-review
+priority: P1
+size: M
+rank: 280
+created: 2026-10-27
+prs: [1225]
+---
+
 # BITB-245: Pin the Chat Input to the Bottom of the Screen on Mobile
 
-**Status:** 🔄 In Review (PR #1225)
-**Priority:** P1
-**Size:** M
-**Created:** 2026-10-27
+**Status note:** (PR #1225)
 **Type:** Enhancement (mobile UX, web frontend)
 **GitHub Issue:** #1224 (filed at the owner's request for tester feedback)
 

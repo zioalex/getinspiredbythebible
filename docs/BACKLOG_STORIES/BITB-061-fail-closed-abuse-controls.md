@@ -1,9 +1,17 @@
+---
+id: BITB-061
+status: done
+priority: P1
+size: M
+rank: 650
+created: 2026-07-03
+---
+
 # BITB-061: Make the Abuse-Control Stack Fail Closed (Turnstile, Rate Limits, Content Safety)
 
-**Status:** ✅ Done — Turnstile, rate-limiter, and content-safety phases all complete
-**Priority:** P1 (High) — 2026-07 adversarial audit E2 + S3 + O2 (all HIGH); every layer of bot/abuse/safety protection currently fails open, silently
-**Size:** M (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
-**Created:** 2026-07-03
+**Status note:** Turnstile, rate-limiter, and content-safety phases all complete
+**Priority note:** (High) — 2026-07 adversarial audit E2 + S3 + O2 (all HIGH); every layer of bot/abuse/safety protection currently fails open, silently
+**Size note:** (three coordinated changes: Turnstile policy, shared rate-limit store, safety defaults/metrics)
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — E2, S3, O2
 
 ## User Story

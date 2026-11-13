@@ -1,17 +1,17 @@
+---
+id: BITB-101
+status: done
+priority: P1
+size: M
+rank: 1090
+created: 2026-08-21
+---
+
 # BITB-101: The Nightly Prod-Read Path Holds Admin Credentials and Nothing Enforces "Read-Only"
 
-**Status:** ✅ Done — implementation shipped; role created; the operator created the `search-eval`
-environment and set `SEARCH_EVAL_DB_PASSWORD`. Two post-delivery defects then had to be fixed before
-Route A could run at all (see *Post-delivery defect* and *Second post-delivery defect* below).
-`eval-prod` is **live-verified green** against the real production database as `search_eval_ro` —
-[run 33259347514](https://github.com/zioalex/getinspiredbythebible/actions/runs/33259347514):
-116 queries scored, **1089 verses retrieved**, 0 query errors, 0 false positives. That is this
-story's completion signal. The remaining open item is the operator's own write-rehearsal against a
-restored copy.
-**Priority:** P1 — a recurring, unattended, ungated path into the production database holding the
-Postgres admin role
-**Size:** M (a Terraform-provisioned role + grants + secret plumbing + a workflow swap + one guard test)
-**Created:** 2026-08-21
+**Status note:** implementation shipped; role created; the operator created the `search-eval` environment and set `SEARCH_EVAL_DB_PASSWORD`. Two post-delivery defects then had to be fixed before Route A could run at all (see *Post-delivery defect* and *Second post-delivery defect* below). `eval-prod` is **live-verified green** against the real production database as `search_eval_ro` — [run 33259347514](https://github.com/zioalex/getinspiredbythebible/actions/runs/33259347514): 116 queries scored, **1089 verses retrieved**, 0 query errors, 0 false positives. That is this story's completion signal. The remaining open item is the operator's own write-rehearsal against a restored copy.
+**Priority note:** a recurring, unattended, ungated path into the production database holding the Postgres admin role
+**Size note:** (a Terraform-provisioned role + grants + secret plumbing + a workflow swap + one guard test)
 **Prompted by:** PR #968 (BITB-139 P4a), which introduces the first automated recurring prod-database
 access path in this repo that is not a deploy
 

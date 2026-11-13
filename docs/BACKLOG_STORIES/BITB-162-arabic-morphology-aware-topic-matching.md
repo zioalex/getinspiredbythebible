@@ -1,11 +1,17 @@
+---
+id: BITB-162
+status: todo
+priority: P3
+size: M
+rank: 1070
+created: 2026-09-18
+---
+
 # BITB-162: Arabic Morphology-Aware Topic Matching
 
-**Status:** 🎯 Todo
+**Priority note:** recall improvement on an already-shipped, already-safe feature
+**Size note:** (a clitic/affix-aware matcher plus re-validation is more than a keyword edit, less than a full morphological analyzer)
 **Renumbered:** 2026-09-21 from BITB-156 — ID collision with the Android session-limit story (#1083), which claimed BITB-156 first
-**Priority:** P3 — recall improvement on an already-shipped, already-safe feature
-**Size:** M (a clitic/affix-aware matcher plus re-validation is more than a keyword edit, less
-than a full morphological analyzer)
-**Created:** 2026-09-18
 **Prompted by:** BITB-106, which denylisted four Arabic keywords (`حب`, `أمل`, `يأس`, `عفو`, `قلق`)
 rather than fix the underlying matching mechanism
 

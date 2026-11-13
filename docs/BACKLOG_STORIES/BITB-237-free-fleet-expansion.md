@@ -1,9 +1,15 @@
+---
+id: BITB-237
+status: todo
+priority: P2
+size: M
+rank: 220
+created: 2026-10-24
+---
+
 # BITB-237: Free-Fleet Expansion — Pre-Gate Verifier for Nemotron, Family-Matched Tier-1 Failovers
 
-**Priority:** P2 (Medium)
-**Status:** 🎯 Todo (blocked by PR #1202 merge — same files)
-**Size:** M
-**Created:** 2026-10-24
+**Status note:** (blocked by PR #1202 merge — same files)
 
 ---
 

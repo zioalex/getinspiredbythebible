@@ -1,9 +1,16 @@
+---
+id: BITB-037
+status: done
+priority: P1
+size: M
+created: 2026-05-30
+prs: [650]
+---
+
 # BITB-037: Verse Citation Panel Reliability
 
-**Priority:** P1 (High)
-**Status:** ✅ Done — range fix merged; backend-driven `cited_verses` + `mergeVerses` merged (PR #650 + follow-ups)
-**Size:** M (range fix: S/done · backend-driven cited verses: M)
-**Created:** 2026-05-30
+**Status note:** range fix merged; backend-driven `cited_verses` + `mergeVerses` merged (PR #650 + follow-ups)
+**Size note:** (range fix: S/done · backend-driven cited verses: M)
 
 ---
 

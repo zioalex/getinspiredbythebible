@@ -1,10 +1,17 @@
+---
+id: BITB-059
+status: in-progress
+priority: P1
+size: L
+rank: 930
+created: 2026-07-03
+---
+
 # BITB-059: Unify the Verse-Reference Parser — One Spec, Three Generated Artifacts
 
-**Status:** 🚧 In Progress — Phase 1 (book-name map, Android leg) and Phase 2 (book-name map,
-web leg + registry reconciliation) shipped; see Scope Notes. Phase 3 (regex grammar) remains.
-**Priority:** P1 (High) — top-ranked finding of the 2026-07 adversarial audit (A1, CRITICAL); recurring cross-platform drift already shipping user-visible bugs
-**Size:** L (spec + generator + migration of three call sites; the existing giant test suites become the safety net)
-**Created:** 2026-07-03
+**Status note:** Phase 1 (book-name map, Android leg) and Phase 2 (book-name map, web leg + registry reconciliation) shipped; see Scope Notes. Phase 3 (regex grammar) remains.
+**Priority note:** (High) — top-ranked finding of the 2026-07 adversarial audit (A1, CRITICAL); recurring cross-platform drift already shipping user-visible bugs
+**Size note:** (spec + generator + migration of three call sites; the existing giant test suites become the safety net)
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — A1 (also E13, D8)
 
 ## Scope Note (Phase 2)

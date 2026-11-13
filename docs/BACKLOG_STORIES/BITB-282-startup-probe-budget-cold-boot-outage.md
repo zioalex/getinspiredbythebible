@@ -1,9 +1,16 @@
+---
+id: BITB-282
+status: in-progress
+priority: P1
+size: M
+rank: 90
+created: 2026-11-09
+prs: [1272]
+---
+
 # BITB-282: Startup-Probe Budget Too Tight for Cold Boots — 2026-11-09 Agent Outage (Slow Boot + Transient Network Dip = Kill Loop)
 
-**Status:** 🔄 In progress — PR #1272 (constraint documented + upstream issue drafted; the probe budget itself is not fixable from this repo — it is hardcoded in the kubeopencode controller)
-**Priority:** P1
-**Size:** M
-**Created:** 2026-11-09
+**Status note:** PR #1272 (constraint documented + upstream issue drafted; the probe budget itself is not fixable from this repo — it is hardcoded in the kubeopencode controller)
 **Incident:** 2026-11-09 ~09:10–09:56 UTC (KubeOpenCode rollout outage)
 **Sibling stories:** BITB-283 (missing agent manifests + rollback anchors), BITB-284 (controller re-render behavior)
 

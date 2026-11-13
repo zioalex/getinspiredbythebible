@@ -1,9 +1,15 @@
+---
+id: BITB-146
+status: todo
+priority: P2
+size: M
+created: 2026-07-19
+---
+
 # BITB-146: Add Menge-Bibel and Make It the German Default
 
-**Status:** 🎯 Todo
-**Priority:** P2 (Medium) — translation quality/familiarity for the German audience
-**Size:** M (2-3 days — new markup conversion pipeline, not a simple getBible pull)
-**Created:** 2026-07-19
+**Priority note:** (Medium) — translation quality/familiarity for the German audience
+**Size note:** (2-3 days — new markup conversion pipeline, not a simple getBible pull)
 **Source:** Product idea — swap in a more highly-regarded German translation than Luther 1912
 
 ## User Story

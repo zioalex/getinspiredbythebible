@@ -1,10 +1,17 @@
+---
+id: BITB-139
+status: in-progress
+priority: P1
+size: L
+rank: 690
+created: 2026-06-16
+---
+
 # BITB-139: Search Retrieval-Evaluation Harness (golden set + scorer)
 
-**Status:** 🚧 In Progress (P0–P3 + P4a landed; P4b todo)
-**Priority:** P1 (High) — without it we cannot tell whether the now-enabled query
-expansion / hybrid search actually improve retrieval
-**Size:** L (3–5 days, delivered in 5 small PRs)
-**Created:** 2026-06-16
+**Status note:** (P0–P3 + P4a landed; P4b todo)
+**Priority note:** (High) — without it we cannot tell whether the now-enabled query expansion / hybrid search actually improve retrieval
+**Size note:** (3–5 days, delivered in 5 small PRs)
 **Parent:** BITB-043 (Validate & Enable Phase-1 Search)
 
 ## User Story

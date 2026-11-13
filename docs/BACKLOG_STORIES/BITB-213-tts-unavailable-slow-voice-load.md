@@ -1,9 +1,14 @@
+---
+id: BITB-213
+status: todo
+priority: P3
+size: S
+rank: 660
+created: 2026-10-22
+---
+
 # BITB-213: `tts_unavailable` Over-Counted When the Browser Loads Voices Slowly (Web)
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-22
 **Follow-up of:** BITB-210 (PR #1190); the behaviour predates it (BITB-119)
 
 ## Problem

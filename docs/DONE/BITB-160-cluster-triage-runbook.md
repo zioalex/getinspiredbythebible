@@ -1,6 +1,17 @@
+---
+id: BITB-160
+status: done
+priority: P2
+size: S
+rank: 550
+created: 2026-09-19
+prs: [1091]
+---
+
 # BITB-160: Cluster triage collector and runbook
 
-**Status:** 🎯 Todo | **Priority:** P2 | **Size:** S | **Date:** 2026-09-19
+**Status note:** (PR #1091 merged 2026-09-22)
+**Status note:** story header previously read: Todo
 **Renumbered:** 2026-09-21 from BITB-156 — ID collision with the Android session-limit story (#1083), which claimed BITB-156 first
 
 ## Problem

@@ -1,9 +1,16 @@
+---
+id: BITB-276
+status: todo
+priority: P3
+size: M
+rank: 10
+created: 2026-11-08
+---
+
 # BITB-276: Strings Platform — Evaluate Tolgee vs Weblate for the 3-Format Sync
 
-**Status:** 🎯 Todo — gated: file when translation churn makes manual sync painful (the 11-locale, 3-client matrix is the trigger)
-**Priority:** P3
-**Size:** M (evaluation)
-**Created:** 2026-11-08
+**Status note:** gated: file when translation churn makes manual sync painful (the 11-locale, 3-client matrix is the trigger)
+**Size note:** (evaluation)
 **Follow-up to:** BITB-260 (its strings-sync candidate)
 
 ## User Story

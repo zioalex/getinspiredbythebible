@@ -1,9 +1,15 @@
+---
+id: BITB-124
+status: todo
+priority: P2
+size: S
+rank: 470
+created: 2026-09-12
+---
+
 # BITB-124: Parallel Subagent Dispatch Silently Drops Tasks
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S (< 4 hrs to characterise; fix size unknown — may be upstream)
-**Created:** 2026-09-12
+**Size note:** (< 4 hrs to characterise; fix size unknown — may be upstream)
 **Related:** BITB-123 (agent graph), PR #1042
 
 ---

@@ -1,9 +1,14 @@
+---
+id: BITB-265
+status: in-review
+priority: P1
+size: S
+rank: 220
+created: 2026-11-03
+---
+
 # BITB-265: Query Expansion Logs the User's Message and the Expanded Query
 
-**Status:** 🔍 In Review
-**Priority:** P1
-**Size:** S
-**Created:** 2026-11-03
 **Found by:** BITB-256 verification
 
 ## Problem (verified in code, 2026-11-03)

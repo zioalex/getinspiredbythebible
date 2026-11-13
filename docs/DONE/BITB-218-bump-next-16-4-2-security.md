@@ -1,9 +1,16 @@
+---
+id: BITB-218
+status: done
+priority: P0
+size: XS
+created: 2026-10-23
+prs: [1195]
+---
+
 # BITB-218: Bump Next.js to 16.4.2 for Critical RCE Advisories
 
-**Status:** ✅ Done — PR #1195, merged 2026-10-23
-**Priority:** P0 (critical security advisories; blocks every frontend PR's audit gate)
-**Size:** XS
-**Created:** 2026-10-23
+**Status note:** PR #1195, merged 2026-10-23
+**Priority note:** (critical security advisories; blocks every frontend PR's audit gate)
 
 **As a** maintainer, **I want** the frontend on a Next.js release with no high/critical advisories,
 **so that** production is not exposed and the `Security & Dependency Check` job is green on every PR.

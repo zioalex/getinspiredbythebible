@@ -1,6 +1,17 @@
+---
+id: BITB-159
+status: done
+priority: P1
+size: S
+rank: 540
+created: 2026-09-19
+prs: [1091]
+---
+
 # BITB-159: In-cluster CoreDNS watchdog with failure-time diagnostics
 
-**Status:** 🎯 Todo | **Priority:** P1 | **Size:** S | **Date:** 2026-09-19
+**Status note:** (PR #1091 merged 2026-09-22)
+**Status note:** story header previously read: Todo
 **Renumbered:** 2026-09-21 from BITB-155 — ID collision with the OpenRouter model refresh story (#1081), which claimed BITB-155 first
 
 ## Problem

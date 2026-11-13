@@ -1,9 +1,14 @@
+---
+id: BITB-209
+status: todo
+priority: P3
+size: S
+rank: 620
+created: 2026-10-22
+---
+
 # BITB-209: Web Resume Watchdog Can Replay a Chunk When the Voice Emits No Events
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-22
 **Follow-up of:** BITB-205 (PR #1188)
 
 ## Problem

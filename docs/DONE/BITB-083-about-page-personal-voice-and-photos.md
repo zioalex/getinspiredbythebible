@@ -1,9 +1,17 @@
+---
+id: BITB-083
+status: done
+priority: P2
+size: M
+rank: 1050
+created: 2026-07-27
+prs: [947]
+---
+
 # BITB-083: About Page — Personal Voice + Screenshots from the Origin Story
 
-**Status:** ✅ Done (PR #947 merged 2026-07-29)
-**Priority:** P2
-**Size:** M (~1 day, mostly copywriting + asset sourcing, ×11 locales)
-**Created:** 2026-07-27
+**Status note:** (PR #947 merged 2026-07-29)
+**Size note:** (~1 day, mostly copywriting + asset sourcing, ×11 locales)
 **Source:** Maintainer feedback after BITB-076/BITB-077 shipped (#939): *"it looks like a feature
 description. I want people to feel my motivation and feeling. Make it personal — add screenshots
 or renderings from the original post."*

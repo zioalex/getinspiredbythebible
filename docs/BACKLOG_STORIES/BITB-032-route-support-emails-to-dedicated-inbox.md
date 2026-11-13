@@ -1,6 +1,12 @@
+---
+id: BITB-032
+status: done
+priority: P3
+---
+
 # BITB-032: Route Support/Diagnostic Emails to `support@voxquieta.org`
 
-**Status:** ✅ Done — code change merged; activate by provisioning `support@voxquieta.org` mailbox and applying Terraform.
+**Status note:** code change merged; activate by provisioning `support@voxquieta.org` mailbox and applying Terraform.
 
 ## User Story
 

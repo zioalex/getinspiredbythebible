@@ -1,6 +1,15 @@
+---
+id: BITB-028
+status: done
+priority: P3
+size: XS
+rank: 200
+created: 2026-05-10
+---
+
 # BITB-028: Simplify Church Finder Headers (Banner + Bottom Sheet)
 
-**Status:** ✅ Done (all acceptance criteria checked; ChurchFinderBottomSheet.kt has X close button, ChurchFinderBanner.kt uses Icons.Default.Close; verified 2026-05-25)
+**Status note:** (all acceptance criteria checked; ChurchFinderBottomSheet.kt has X close button, ChurchFinderBanner.kt uses Icons.Default.Close; verified 2026-05-25)
 
 ## User Story
 

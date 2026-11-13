@@ -1,9 +1,15 @@
+---
+id: BITB-278
+status: in-progress
+priority: P2
+size: S
+rank: 60
+created: 2026-11-08
+---
+
 # BITB-278: Enable Follow-Up Chips on Android + Match Web Chip Colors
 
-**Status:** 🚧 In Progress
-**Priority:** P2
-**Size:** S (Android only)
-**Created:** 2026-11-08
+**Size note:** (Android only)
 **Parent:** BITB-080 (suggested follow-up questions), BITB-149 (Android chips), BITB-254 (echo-back fix)
 
 ## Bug Report / Round Goal

@@ -1,9 +1,15 @@
+---
+id: BITB-256
+status: in-progress
+priority: P1
+size: M
+rank: 240
+created: 2026-10-28
+---
+
 # BITB-256: RAG Retrieval-Miss Insights — Privacy-Safe Logging of Weak or Failed Retrieval
 
-**Status:** 🚧 In Progress (build started 2026-11-03)
-**Priority:** P1
-**Size:** M
-**Created:** 2026-10-28
+**Status note:** (build started 2026-11-03)
 **Prompted by:** owner request 2026-10-28: "Log RAG retrieval miss to have insights how to improve the
 context and RAG."
 

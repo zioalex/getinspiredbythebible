@@ -1,9 +1,17 @@
+---
+id: BITB-100
+status: done
+priority: P2
+size: M
+rank: 1110
+created: 2026-08-19
+---
+
 # BITB-100: Make the Migration-Safety Rules Enforceable, Not Aspirational
 
-**Status:** ✅ Done (2026-08-25)
-**Priority:** P2 (P1 items live in BITB-097; this covers what remains after it)
-**Size:** S–M
-**Created:** 2026-08-19
+**Status note:** (2026-08-25)
+**Priority note:** (P1 items live in BITB-097; this covers what remains after it)
+**Size note:** S–M
 **Source:** `docs/RETROSPECTIVES/2026-08-17-tsvector-migration-outage.md`
 
 **What shipped:** a new "Locking & scale (Alembic revisions)" section in

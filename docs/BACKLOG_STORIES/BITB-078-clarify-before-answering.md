@@ -1,9 +1,16 @@
+---
+id: BITB-078
+status: in-progress
+priority: P2
+size: M
+rank: 1060
+created: 2026-07-25
+---
+
 # BITB-078: Ask Before Answering — Clarify a Vague Request Instead of Guessing
 
-**Status:** 🚧 In Progress — backend slice shipped, see "Delivered / Deferred" below
-**Priority:** P2
-**Size:** M (1–2 days, prompt work + eval)
-**Created:** 2026-07-25
+**Status note:** backend slice shipped, see "Delivered / Deferred" below
+**Size note:** (1–2 days, prompt work + eval)
 
 ## Delivered / Deferred (this pass)
 

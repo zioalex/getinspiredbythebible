@@ -1,15 +1,17 @@
+---
+id: BITB-111
+status: done
+priority: P2
+size: M
+rank: 1000
+created: 2026-08-22
+---
+
 # BITB-111: Fifteen Story IDs Refer to More Than One Story
 
-**Status:** ✅ Done — all 16 collisions resolved (19 renumbers + 2 duplicate deletions), BITB-059
-given a `docs/BACKLOG.md` entry, cross-references updated, and the CI guard
-(`scripts/check_backlog_story_ids.py`) added and passing. A follow-up fix round corrected the
-BITB-018 disposition (the companion analysis+resolution pair it was wrongly still sharing an ID
-with is now BITB-147) and added the BITB-132 / BITB-142 entries `docs/BACKLOG.md` was missing. See
-the Renumbering Log below.
-**Priority:** P2 — a tracking defect that has already caused one near-miss and costs time on every
-dedup pass
-**Size:** M (mechanical, but every rename touches cross-references)
-**Created:** 2026-08-22
+**Status note:** all 16 collisions resolved (19 renumbers + 2 duplicate deletions), BITB-059 given a `docs/BACKLOG.md` entry, cross-references updated, and the CI guard (`scripts/check_backlog_story_ids.py`) added and passing. A follow-up fix round corrected the BITB-018 disposition (the companion analysis+resolution pair it was wrongly still sharing an ID with is now BITB-147) and added the BITB-132 / BITB-142 entries `docs/BACKLOG.md` was missing. See the Renumbering Log below.
+**Priority note:** a tracking defect that has already caused one near-miss and costs time on every dedup pass
+**Size note:** (mechanical, but every rename touches cross-references)
 **Prompted by:** the STEP 6 hygiene pass, and the BITB-092 collision caught in PR #969 hours before
 it would have merged
 

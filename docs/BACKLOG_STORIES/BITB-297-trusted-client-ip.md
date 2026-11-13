@@ -1,9 +1,15 @@
+---
+id: BITB-297
+status: in-review
+priority: P0
+size: M
+rank: 20
+created: 2026-11-11
+---
+
 # BITB-297: Trusted Client IP — Close the Local-Only Bypass and Stop Keying Limits on a Forged Header
 
-**Status:** 🔍 In Review — built and independently verified; owner production checks pending
-**Priority:** P0
-**Size:** M
-**Created:** 2026-11-11
+**Status note:** built and independently verified; owner production checks pending
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows R1, R2, R3, P5.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 1.
 **Commit:** `fix(api): derive the client IP from trusted proxies only (BITB-297)`

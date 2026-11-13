@@ -1,9 +1,15 @@
+---
+id: BITB-224
+status: in-progress
+priority: P1
+size: S
+rank: 290
+created: 2026-10-23
+---
+
 # BITB-224: Availability Web Tests Are Silently Disabled in Production — Verify, Decide, Codify
 
-**Status:** 🚧 In Progress (PR pending; production verification is owner-only)
-**Priority:** P1
-**Size:** S
-**Created:** 2026-10-23
+**Status note:** (PR pending; production verification is owner-only)
 **Parent:** BITB-150 (Phase 0 discovery — monitoring-integrity finding, not a cost lever)
 
 ## User Story

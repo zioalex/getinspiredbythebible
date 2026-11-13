@@ -1,8 +1,12 @@
-# BITB-177: Bump Next.js to clear npm-audit CI gate
+---
+id: BITB-177
+status: in-review
+priority: P3
+size: XS
+created: 2026-10-09
+---
 
-**Status:** In review
-**Size:** XS
-**Created:** 2026-10-09
+# BITB-177: Bump Next.js to clear npm-audit CI gate
 
 **As a** maintainer, **I want** the frontend `Security & Dependency Check` job green,
 **so that** every PR is not blocked by new high advisories.

@@ -1,9 +1,15 @@
+---
+id: BITB-090
+status: done
+priority: P2
+size: S
+rank: 1130
+created: 2026-07-31
+---
+
 # BITB-090: Remove `init_db()` / `create_all()` Once Alembic Owns the Schema
 
-**Status:** ✅ Done (2026-09-04)
-**Priority:** P2
-**Size:** S
-**Created:** 2026-07-31
+**Status note:** (2026-09-04)
 **Depends on:** BITB-089 — **hard** dependency. Doing this first removes the only thing creating
 the schema, and nothing has replaced it yet.
 

@@ -1,9 +1,16 @@
+---
+id: BITB-169
+status: in-progress
+priority: P2
+size: M
+rank: 1170
+created: 2026-09-30
+prs: [1123]
+---
+
 # BITB-169: Reliable Orchestrator↔Subagent Comms — Task-Reliability Plugin + Registry
 
-**Status:** 🚧 In Progress (PR #1123, opened 2026-09-30)
-**Priority:** P2
-**Size:** M
-**Created:** 2026-09-30
+**Status note:** (PR #1123, opened 2026-09-30)
 **Found by:** Live delegation-fault diagnosis, 2026-09-30 (see *Why This Exists*); runbook
 first aid already codified in the orchestrator definition (PR #1121)
 

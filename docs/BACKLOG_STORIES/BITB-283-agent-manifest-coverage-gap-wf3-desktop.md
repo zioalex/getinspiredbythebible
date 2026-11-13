@@ -1,9 +1,15 @@
+---
+id: BITB-283
+status: in-progress
+priority: P2
+size: S
+rank: 90
+created: 2026-11-09
+---
+
 # BITB-283: desktop Agent Manifest Unverified and Unpinned; wf3 Live-Spec Verification; KubeOpenCode Manifest Home Ruled `k8s/` (Owner Correction)
 
-**Status:** 🔄 In progress — wf2/wf3 verified converged (owner kubectl diff, 2026-11-09) and the desktop manifest promoted with its pin (BITB-285 PR); remaining: the owner's desktop wake-or-delete decision (+ the BITB-282 upstream filings)
-**Priority:** P2
-**Size:** S
-**Created:** 2026-11-09
+**Status note:** wf2/wf3 verified converged (owner kubectl diff, 2026-11-09) and the desktop manifest promoted with its pin (BITB-285 PR); remaining: the owner's desktop wake-or-delete decision (+ the BITB-282 upstream filings)
 **Incident:** 2026-11-09 ~09:10–09:56 UTC (the outage that exposed the gap)
 **Sibling stories:** BITB-282 (probe budget), BITB-284 (controller ownership), BITB-285 (folder sunset — filed from this story's correction)
 

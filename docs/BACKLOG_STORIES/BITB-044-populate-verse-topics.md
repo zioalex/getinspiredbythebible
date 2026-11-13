@@ -1,10 +1,16 @@
+---
+id: BITB-044
+status: in-progress
+priority: P2
+size: M
+rank: 910
+created: 2026-06-07
+---
+
 # BITB-044: Populate `verse_topics` to Activate Topic Boosting
 
-**Status:** 🚧 In Progress — keyword-based population shipped; LLM tagging,
-golden-set tuning, and prod enablement remain (see "Delivered / Remaining" below)
-**Priority:** P2 (Medium) — unblocks the third Phase-1 lever; currently a silent no-op
-**Size:** M (1-2 days)
-**Created:** 2026-06-07
+**Status note:** keyword-based population shipped; LLM tagging, golden-set tuning, and prod enablement remain (see "Delivered / Remaining" below)
+**Priority note:** (Medium) — unblocks the third Phase-1 lever; currently a silent no-op
 
 ## User Story
 

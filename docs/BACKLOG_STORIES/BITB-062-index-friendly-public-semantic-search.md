@@ -1,15 +1,20 @@
+---
+id: BITB-062
+status: done
+priority: P1
+size: M
+rank: 640
+created: 2026-07-03
+---
+
 # BITB-062: Route Public Semantic Search Through the Index-Friendly Candidate-Pool Pattern
 
-**Status:** ✅ Done (2026-08-18) — candidate-pool CTE, topics index, FTS rewrite, and the
-persisted tsvector all shipped. The last two deferred items closed differently than planned:
-the tsvector lives in the `verse_tsv` **side table**, not a `verses.text_tsv` generated column
-(that form caused the 2026-08-17 outage — see BITB-096), and `search_verses_text` was
+**Status note:** (2026-08-18) — candidate-pool CTE, topics index, FTS rewrite, and the persisted tsvector all shipped. The last two deferred items closed differently than planned: the tsvector lives in the `verse_tsv` **side table**, not a `verses.text_tsv` generated column (that form caused the 2026-08-17 outage — see BITB-096), and `search_verses_text` was
+**Priority note:** (High) — 2026-07 adversarial audit S2 (HIGH); public unauthenticated endpoint full-scans the production database
+**Size note:** (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
 **deliberately not switched**, because the expression index `idx_verses_fts_simple` already
 stores the computed tsvectors and measured faster than the join (0.105 ms vs 0.144 ms over
 403,856 rows). That index is therefore kept, and BITB-095 Phase 2 is cancelled.
-**Priority:** P1 (High) — 2026-07 adversarial audit S2 (HIGH); public unauthenticated endpoint full-scans the production database
-**Size:** M (rewrite three query functions onto the existing CTE pattern + one missing index + FTS column)
-**Created:** 2026-07-03
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — S2 (context: S5, S7)
 
 ## Scope Note

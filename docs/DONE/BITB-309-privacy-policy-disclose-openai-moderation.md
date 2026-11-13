@@ -1,9 +1,17 @@
+---
+id: BITB-309
+status: done
+priority: P1
+size: S
+rank: 140
+created: 2026-11-11
+prs: [1287]
+---
+
 # BITB-309: Privacy Policy — Disclose OpenAI Moderation and State Provider Retention Honestly
 
-**Status:** ✅ Done — PR #1287, merged 2026-11-11
-**Priority:** P1 (blocks merging BITB-288 / PR #1280)
-**Size:** S
-**Created:** 2026-11-11
+**Status note:** PR #1287, merged 2026-11-11
+**Priority note:** (blocks merging BITB-288 / PR #1280)
 **Prompted by:** BITB-288 owner step "confirm OpenAI's data retention is acceptable".
 
 ## Problem

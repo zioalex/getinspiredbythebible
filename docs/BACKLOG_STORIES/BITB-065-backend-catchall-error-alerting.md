@@ -1,10 +1,18 @@
+---
+id: BITB-065
+status: done
+priority: P1
+size: S
+rank: 600
+created: 2026-07-05
+prs: [824]
+---
+
 # BITB-065: Backend Catch-All Error Alerting — HTTP 5xx, Unhandled & ASGI-Layer Exceptions
 
-**Status:** ✅ Done (delivered on the PR #824 branch)
-**Priority:** P1 (High) — a total outage produced no alert because no rule watched the most basic
-failure signal: a backend 5xx.
-**Size:** S (three Terraform scheduled-query alerts)
-**Created:** 2026-07-05
+**Status note:** (delivered on the PR #824 branch)
+**Priority note:** (High) — a total outage produced no alert because no rule watched the most basic failure signal: a backend 5xx.
+**Size note:** (three Terraform scheduled-query alerts)
 **Incident ref:** the 2026-07-05 `_IncludedRouter` 500 (HTTP 500 on every CORS preflight) — see BITB-064.
 
 ## User Story

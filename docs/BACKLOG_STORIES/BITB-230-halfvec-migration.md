@@ -1,9 +1,15 @@
+---
+id: BITB-230
+status: todo
+priority: P2
+size: L
+rank: 310
+created: 2026-10-23
+---
+
 # BITB-230: Halve the Vector Footprint — `verses.embedding` to `halfvec(1536)`
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** L (migration-shaped: staged column add, backfill, parallel indexes, recall gate, cutover)
-**Created:** 2026-10-23
+**Size note:** (migration-shaped: staged column add, backfill, parallel indexes, recall gate, cutover)
 **Parent:** BITB-150 (Phase 0 follow-up — Part B lever 3; the story BITB-150 explicitly said must stand alone)
 
 ## User Story

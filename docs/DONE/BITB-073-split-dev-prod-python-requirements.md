@@ -1,9 +1,16 @@
+---
+id: BITB-073
+status: done
+priority: P3
+size: S
+rank: 160
+created: 2026-07-20
+prs: [928]
+---
+
 # BITB-073: Split Dev/Prod Python Requirements (Stop Shipping pytest in the Prod Image)
 
-**Status:** ✅ Done (PR #928 merged 2026-07-23)
-**Priority:** P3
-**Size:** S (< 4 hrs)
-**Created:** 2026-07-20
+**Status note:** (PR #928 merged 2026-07-23)
 **Completed:** 2026-07-23
 
 **As a** maintainer, **I want** test-only Python dependencies out of

@@ -1,19 +1,19 @@
 ---
 id: BITB-313
-status: todo
+status: in-review
 priority: P1
 size: L
 created: 2026-11-13
-prs: []
+prs: [1292]
 follow_ups: []
 supersedes: BITB-287 requirement 1 (BACKLOG.md union merge driver)
 ---
 
 # BITB-313: Conflict-Free, Agent-Friendly Backlog — Story Files Are the Single Source of Truth
 
-> This story's own header is written in the **proposed** front-matter format, as a worked
-> example. Until the migration lands, the BITB-111/153 checks still read the bold
-> `**Status:**` lines of every other story.
+> This story's own header was the first file written in the new front-matter format; the
+> migration (`scripts/migrate_backlog_frontmatter.py`) has since converted every other story
+> and left this one untouched.
 
 ## User story
 

@@ -1,11 +1,19 @@
+---
+id: BITB-067
+status: done
+priority: P1
+size: M
+rank: 620
+created: 2026-07-07
+prs: [848, 845, 896, 967]
+---
+
 # BITB-067: Deploy & Smoke-Monitor Reliability — Gaps From the 2026-07-07 False-Alarm Incident
 
-**Status:** 🚧 In Progress (gaps #1–#5 shipped — #1 in PR #848, #2/#3/#4 in PR #845, #5 auto cert re-bind in the post-deploy HTTPS check; #6 open — Terraform/Azure infra work)
-**Priority:** P1 (High) — the monitoring we just added (BITB-064/065/066) produced a false "production
-down" alert while the site was healthy, and a routine deploy silently broke origin TLS. These gaps
-erode trust in the alerts and can turn a no-op deploy into an outage.
-**Size:** M (several small, independent hardening items)
-**Created:** 2026-07-07
+**Status note:** all 6 gaps shipped (gap #1 in PR #848, gaps #2/#3/#4 in PR #845, gap #6 in PR #896, gap #5 in PR #967 merged 2026-08-21). PR #967's own description flagged that this backlog entry was never updated for gap #6's completion; corrected here in the same pass that caught it.
+**Status note:** story header previously read: In Progress (gaps #1–#5 shipped — #1 in PR #848, #2/#3/#4 in PR #845, #5 auto cert re-bind in the post-deploy HTTPS check; #6 open — Terraform/Azure infra work)
+**Priority note:** (High) — the monitoring we just added (BITB-064/065/066) produced a false "production down" alert while the site was healthy, and a routine deploy silently broke origin TLS. These gaps erode trust in the alerts and can turn a no-op deploy into an outage.
+**Size note:** (several small, independent hardening items)
 **Incident ref:** After PR #839 merged, the hourly `prod-browser-smoke` job failed for hours
 (`getByTestId('assistant-message') — element(s) not found`) while chat worked fine for users; a
 follow-up deploy then failed the post-deploy health check with

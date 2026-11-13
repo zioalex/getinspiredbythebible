@@ -1,9 +1,15 @@
+---
+id: BITB-025
+status: done
+priority: P3
+size: M
+rank: 210
+created: 2026-04-03
+---
+
 # BITB-025: Traditional→Simplified Chinese Conversion Layer for Verse Parsing
 
-**Status:** ✅ Done — Backend + web shipped here; Android fast-follow shipped by BITB-110
-**Priority:** P3
-**Size:** M (1-2 days)
-**Created:** 2026-04-03
+**Status note:** Backend + web shipped here; Android fast-follow shipped by BITB-110
 
 **Note (ID collision, resolved by BITB-111):** this ID number was also used by the unrelated,
 already-Done orphan story, renumbered to

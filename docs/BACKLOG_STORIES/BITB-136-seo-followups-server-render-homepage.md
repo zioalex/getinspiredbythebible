@@ -1,6 +1,18 @@
+---
+id: BITB-136
+status: in-progress
+priority: P1
+size: M
+rank: 940
+created: 2026-05-29
+prs: [657]
+---
+
 # BITB-136: SEO Follow-ups — Server-Render Homepage, JSON-LD, OG Image
 
-**Status:** 🚧 In Progress — homepage server-renders hero text (PR #657); `/en` word count no longer thin; favicon.ico shipped. JSON-LD + OG image landing now; sitemap→Search Console submission remains a manual operator action.
+**Status note:** homepage server-renders hero text (PR #657); `/en` word count no longer thin; favicon.ico shipped. JSON-LD + OG image landing now; sitemap→Search Console submission remains a manual operator action.
+**Priority note:** for task 1 (server-render homepage); P3 for tasks 2–4
+**Size note:** (server-render homepage needs care at the client/server boundary; rest are small)
 
 ## User Story
 

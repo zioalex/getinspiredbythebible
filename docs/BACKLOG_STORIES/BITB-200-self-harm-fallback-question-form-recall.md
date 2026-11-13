@@ -1,8 +1,15 @@
+---
+id: BITB-200
+status: in-review
+priority: P2
+size: S
+rank: 430
+created: 2026-10-14
+---
+
 # BITB-200: Self-Harm Fallback — Question-Form and Edge Recall Gaps (hi/zh)
 
-**Status:** 🔍 In Review (PR pending)
-**Size:** S
-**Created:** 2026-10-14
+**Status note:** (PR pending)
 
 Follow-up to BITB-186. Guards added there to avoid Bible-study false positives suppress some
 genuine crisis phrasings:

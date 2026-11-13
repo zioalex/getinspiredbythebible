@@ -1,9 +1,14 @@
+---
+id: BITB-264
+status: todo
+priority: P2
+size: M
+rank: 230
+created: 2026-11-03
+---
+
 # BITB-264: Topic Detection Coverage for ru, zh, hi and ko
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** M
-**Created:** 2026-11-03
 **Found by:** BITB-256 verification
 
 ## Problem (verified in code, 2026-11-03)

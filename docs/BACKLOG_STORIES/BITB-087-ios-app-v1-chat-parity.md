@@ -1,9 +1,17 @@
+---
+id: BITB-087
+status: blocked
+priority: P3
+size: XL
+rank: 250
+created: 2026-07-29
+depends_on: [BITB-085]
+---
+
 # BITB-087: iOS App v1 — Provisional SwiftUI Chat Parity, TestFlight-Ready
 
-**Status:** ⏸️ Gated Later / Platform Expansion; unscheduled. Blocked on BITB-085 closure, an observed Turnstile probe pass, and hard prerequisites BITB-086 and BITB-109.
-**Priority:** P3
-**Size:** Provisional XL (4–6 implementation weeks after all gates; excludes BITB-088 and App Review)
-**Created:** 2026-07-29
+**Status note:** Gated Later / Platform Expansion; unscheduled. Blocked on BITB-085 closure, an observed Turnstile probe pass, and hard prerequisites BITB-086 and BITB-109.
+**Size note:** (4–6 implementation weeks after all gates; excludes BITB-088 and App Review)
 **Part of:** the iOS delivery plan — Stage 4 of BITB-084 → BITB-085 → BITB-086 → BITB-109 → **BITB-087** → BITB-088.
 
 ## User Story

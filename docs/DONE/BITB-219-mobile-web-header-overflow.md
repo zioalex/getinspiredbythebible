@@ -1,9 +1,17 @@
+---
+id: BITB-219
+status: done
+priority: P1
+size: S
+rank: 570
+created: 2026-10-22
+prs: [1191]
+---
+
 # BITB-219: Mobile Web Header Overflows — Bible Selector and New Chat Pushed Off-Screen
 
-**Status:** ✅ Done — PR #1191, merged 2026-10-23
-**Priority:** P1 (user-visible, every mobile web session)
-**Size:** S
-**Created:** 2026-10-22
+**Status note:** PR #1191, merged 2026-10-23
+**Priority note:** (user-visible, every mobile web session)
 **Type:** Bug
 
 ## Bug Report

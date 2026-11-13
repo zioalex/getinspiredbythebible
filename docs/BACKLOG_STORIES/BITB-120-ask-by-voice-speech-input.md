@@ -1,10 +1,16 @@
+---
+id: BITB-120
+status: todo
+priority: P2
+size: L
+rank: 790
+created: 2026-09-04
+---
+
 # BITB-120: Ask by Voice — Speak the Question Instead of Typing It (Web + Android)
 
-**Status:** 🎯 Todo
-**Priority:** P2 — new capability; heavier legal and store footprint than BITB-119, so sequence it
-after that one even though the two were requested together
-**Size:** L (M on web, M–L on Android because of the runtime permission and Play Data Safety work)
-**Created:** 2026-09-04
+**Priority note:** new capability; heavier legal and store footprint than BITB-119, so sequence it after that one even though the two were requested together
+**Size note:** (M on web, M–L on Android because of the runtime permission and Play Data Safety work)
 **Prompted by:** product request — "input the user question via voice". The other half, speaking the
 answer, is BITB-119. The stories share remote rollout/configuration and locale work but remain split
 because microphone input has an independent permission, third-party audio data flow, store/legal

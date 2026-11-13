@@ -1,9 +1,16 @@
+---
+id: BITB-273
+status: in-progress
+priority: P2
+size: S
+rank: 150
+created: 2026-11-08
+prs: [1255]
+---
+
 # BITB-273: parity-ci oasdiff Job — Workspace-Relative Spec Paths for the Container Action
 
-**Status:** 🚧 In Progress — PR #1255
-**Priority:** P2
-**Size:** S
-**Created:** 2026-11-08
+**Status note:** PR #1255
 **Follow-up to:** BITB-261 (the oasdiff job landed in PR #1253)
 
 ## Bug Report

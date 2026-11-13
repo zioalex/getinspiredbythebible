@@ -1,9 +1,17 @@
+---
+id: BITB-054
+status: done
+priority: P2
+size: M
+rank: 720
+created: 2026-06-19
+prs: [803]
+---
+
 # BITB-054: Per-Translation Data Observability + Honest Handling of Unresolvable Citations
 
-**Status:** ✅ Done (PR #803)
-**Priority:** P2 (Medium) — correctness/observability; prevents silent ungrounded scripture
-**Size:** M (1-2 days)
-**Created:** 2026-06-19
+**Status note:** (PR #803)
+**Priority note:** (Medium) — correctness/observability; prevents silent ungrounded scripture
 **Parent / related:** verse grounding (`api/chat/verse_grounding.py`), `scripts/load_bible.py`
 
 ## Delivered

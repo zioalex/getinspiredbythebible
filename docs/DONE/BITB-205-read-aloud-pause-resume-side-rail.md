@@ -1,9 +1,16 @@
+---
+id: BITB-205
+status: done
+priority: P2
+size: M
+rank: 580
+created: 2026-10-21
+prs: [1188]
+---
+
 # BITB-205: Read Aloud — Pause/Resume and a Sticky Side Rail for Answer Actions (Web + Android)
 
-**Status:** ✅ Done — PR #1188, merged 2026-10-22
-**Priority:** P2
-**Size:** M
-**Created:** 2026-10-21
+**Status note:** PR #1188, merged 2026-10-22
 **Prompted by:** product-owner feedback on v1.57.0 — "the voice reading is working! The play should be
 stoppable and start again where it stopped. Instead of having the copy, play and share button at the
 bottom of the message it should be a moving pane on the right side that stays always in focus. On the

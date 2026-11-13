@@ -1,8 +1,13 @@
-# BITB-198: Keyword Fallback Has No Native Violence Patterns for ru/zh/hi/ko
+---
+id: BITB-198
+status: in-review
+priority: P1
+size: M
+rank: 390
+created: 2026-10-13
+---
 
-**Status:** 🔍 In Review
-**Size:** M
-**Created:** 2026-10-13
+# BITB-198: Keyword Fallback Has No Native Violence Patterns for ru/zh/hi/ko
 
 ## Problem
 

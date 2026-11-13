@@ -1,9 +1,17 @@
+---
+id: BITB-231
+status: todo
+priority: P2
+size: S
+rank: 320
+created: 2026-10-23
+depends_on: [BITB-230]
+---
+
 # BITB-231: Right-Size the Server B2s → B1ms — Gated on halfvec's RAM Proof
 
-**Status:** 🎯 Todo (blocked by BITB-230)
-**Priority:** P2
-**Size:** S (one Terraform change + observation) — the analysis is the work
-**Created:** 2026-10-23
+**Status note:** (blocked by BITB-230)
+**Size note:** (one Terraform change + observation) — the analysis is the work
 **Parent:** BITB-150 (Phase 0 follow-up — Part B lever 2, deliberately last)
 
 ## User Story

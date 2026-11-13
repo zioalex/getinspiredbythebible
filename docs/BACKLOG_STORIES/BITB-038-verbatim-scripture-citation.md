@@ -1,9 +1,14 @@
+---
+id: BITB-038
+status: done
+priority: P1
+size: S
+rank: 740
+created: 2026-06-04
+---
+
 # BITB-038: Quote Scripture Verbatim — Never Paraphrase a Cited Verse
 
-**Status:** ✅ Done
-**Size:** S (< 4 hours)
-**Priority:** P1
-**Created:** 2026-06-04
 **Completed:** 2026-06-09
 
 ## Problem

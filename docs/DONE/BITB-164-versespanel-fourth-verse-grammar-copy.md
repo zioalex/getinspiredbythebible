@@ -1,9 +1,16 @@
+---
+id: BITB-164
+status: done
+priority: P3
+size: S
+rank: 100
+created: 2026-09-26
+prs: [1117]
+---
+
 # BITB-164: `VersesPanel.kt` Is a Fourth, Already-Drifted Copy of the Verse-Reference Grammar
 
-**Status:** ✅ Done (PR #1117, 2026-09-30)
-**Priority:** P3
-**Size:** S
-**Created:** 2026-09-26
+**Status note:** (PR #1117, 2026-09-30)
 **Found by:** BITB-113's Verify stage, while confirming that story's grammar-unification refactor
 covered every hand-written copy of the verse-reference grammar.
 

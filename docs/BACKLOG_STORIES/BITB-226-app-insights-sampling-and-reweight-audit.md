@@ -1,9 +1,16 @@
+---
+id: BITB-226
+status: todo
+priority: P2
+size: M
+rank: 270
+created: 2026-10-23
+---
+
 # BITB-226: App Insights Sampling — Only After the Percentile-Reweighting Audit
 
-**Status:** 🎯 Todo (gated — do not implement before the audit passes)
-**Priority:** P2
-**Size:** M (audit first, then a small code change)
-**Created:** 2026-10-23
+**Status note:** (gated — do not implement before the audit passes)
+**Size note:** (audit first, then a small code change)
 **Parent:** BITB-150 (Phase 0 follow-up — Part A lever, accepted-but-deferred)
 
 ## User Story

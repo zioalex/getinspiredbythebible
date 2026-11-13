@@ -1,8 +1,17 @@
+---
+id: BITB-185
+status: done
+priority: P1
+size: M
+rank: 420
+created: 2026-10-10
+prs: [1166]
+---
+
 # BITB-185: Self-Harm Fallback — Script-Agnostic Matching and Precedence
 
-**Status:** ✅ Done — PR #1166 merged 2026-10-13
-**Size:** M (re-scoped 2026-10-13: second-opinion classifier)
-**Created:** 2026-10-10
+**Status note:** PR #1166 merged 2026-10-13
+**Size note:** (re-scoped 2026-10-13: second-opinion classifier)
 
 **As a** user in crisis, **I want** the keyword fallback to recognise my message regardless
 of detected language or phrasing, **so that** I get the compassionate response.

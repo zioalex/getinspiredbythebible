@@ -1,9 +1,15 @@
+---
+id: BITB-117
+status: done
+priority: P3
+size: S
+rank: 960
+created: 2026-09-02
+---
+
 # BITB-117: Bound the Remaining Unbounded Android Alt-1 Numbered-Prefix Groups
 
-**Status:** ✅ Done
-**Priority:** P3 — no active incident, but the same ReDoS *shape* BITB-108/BITB-114 closed elsewhere
-**Size:** S
-**Created:** 2026-09-02
+**Priority note:** no active incident, but the same ReDoS *shape* BITB-108/BITB-114 closed elsewhere
 **Found by:** BITB-114 (Android connector-group ReDoS fix), flagged as residual rather than folded in
 
 ## The Finding

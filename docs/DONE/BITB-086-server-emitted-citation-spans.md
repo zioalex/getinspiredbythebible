@@ -1,13 +1,18 @@
+---
+id: BITB-086
+status: done
+priority: P2
+size: L
+rank: 1120
+created: 2026-07-29
+prs: [985, 1055]
+---
+
 # BITB-086: Server-Emitted Citation Spans — Let a Client Linkify Verses Without Its Own Regex
 
-**Status:** ✅ Done (completed via BITB-109, 2026-10-28) — backend contract shipped in PR #985
-(2026-08-22); the two deferred client-side acceptance criteria (web reference consumer +
-corrupt-span degradation) were completed by BITB-109 (PR #1055, merged 2026-09-18). Story closed
-and moved to `docs/DONE/` by this PR (this PR's number is unknown at authoring time, so it is
-referenced here rather than guessed).
-**Priority:** P2 (raise to P1 if BITB-087 is scheduled — it is a hard prerequisite)
-**Size:** L (backend contract + web reference consumer + cross-language corpus)
-**Created:** 2026-07-29
+**Status note:** (completed via BITB-109, 2026-10-28) — backend contract shipped in PR #985 (2026-08-22); the two deferred client-side acceptance criteria (web reference consumer + corrupt-span degradation) were completed by BITB-109 (PR #1055, merged 2026-09-18). Story closed and moved to `docs/DONE/` by this PR (this PR's number is unknown at authoring time, so it is referenced here rather than guessed).
+**Priority note:** (raise to P1 if BITB-087 is scheduled — it is a hard prerequisite)
+**Size note:** (backend contract + web reference consumer + cross-language corpus)
 **Part of:** the iOS delivery plan — Stage 2 of BITB-084 → BITB-085 → **BITB-086** → BITB-109 → BITB-087 → BITB-088.
 **Unblocks:** BITB-087 (a native iOS client that ships **no** verse regex of its own).
 

@@ -1,9 +1,16 @@
+---
+id: BITB-236
+status: done
+priority: P2
+size: M
+rank: 230
+created: 2026-10-24
+prs: [1202]
+---
+
 # BITB-236: Agent Model Matrix 2.0 — Paid Primaries (GLM-5.3 Workhorse + DeepSeek-V3.2-Exp Skeptic)
 
-**Priority:** P2 (Medium)
-**Status:** ✅ Done (PR #1202)
-**Size:** M
-**Created:** 2026-10-24
+**Status note:** (PR #1202)
 **Completed:** 2026-10-24
 
 ---

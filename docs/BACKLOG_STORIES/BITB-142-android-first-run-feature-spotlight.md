@@ -1,10 +1,17 @@
+---
+id: BITB-142
+status: in-progress
+priority: P2
+size: M
+rank: 1140
+created: 2026-06-17
+---
+
 # BITB-142: First-Run Feature Spotlight / Coach-Marks (Android)
 
-**Status:** 🚧 In Progress
+**Priority note:** (Medium) — discoverability of core features
+**Size note:** (1-2 days incl. localization)
 **PR:** #1192 (branch feature/bitb-054-android-tour)
-**Priority:** P2 (Medium) — discoverability of core features
-**Size:** M (1-2 days incl. localization)
-**Created:** 2026-06-17
 **Source:** Product request — "introduce main features on first launch, especially the left
 sliding panel, which seems undiscovered/unused"
 

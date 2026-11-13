@@ -1,9 +1,16 @@
+---
+id: BITB-072
+status: done
+priority: P3
+size: S
+rank: 150
+created: 2026-07-20
+prs: [916]
+---
+
 # BITB-072: Repo Hygiene & Build Quick Wins (360° Review Compartments)
 
-**Status:** ✅ Done (PR #916, 2026-07-20)
-**Priority:** P3
-**Size:** S (< 4 hrs)
-**Created:** 2026-07-20
+**Status note:** (PR #916, 2026-07-20)
 
 **As a** maintainer, **I want** the low-risk optimizations surfaced by the
 2026-07-20 360° review shipped as small, independent commits, **so that** the

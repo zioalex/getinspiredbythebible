@@ -1,9 +1,17 @@
+---
+id: BITB-074
+status: done
+priority: P2
+size: M
+rank: 1010
+created: 2026-07-21
+prs: [1084]
+---
+
 # BITB-074: "Support Us" Funding Entry Points (Web, Android, GitHub)
 
-**Status:** ✅ Done (PR #1084 merged 2026-09-22)
-**Priority:** P2
-**Size:** M (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
-**Created:** 2026-07-21
+**Status note:** (PR #1084 merged 2026-09-22)
+**Size note:** (4–8 hrs, excluding manual Ko-fi/GitHub Sponsors account setup)
 **Completed:** 2026-09-22
 
 **What shipped:** `.github/FUNDING.yml`, a "Support us" external link in the web Footer (both the

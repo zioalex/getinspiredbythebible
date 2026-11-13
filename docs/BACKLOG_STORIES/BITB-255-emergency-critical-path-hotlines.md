@@ -1,9 +1,15 @@
+---
+id: BITB-255
+status: in-review
+priority: P0
+size: L
+rank: 40
+created: 2026-10-28
+---
+
 # BITB-255: Emergency Critical Path — Deterministic Hotline Card for Threats to Self or Others
 
-**Status:** 🔍 In Review — verified (3 verify rounds) 2026-10-29
-**Priority:** P0
-**Size:** L
-**Created:** 2026-10-28
+**Status note:** verified (3 verify rounds) 2026-10-29
 **Prompted by:** owner request 2026-10-28: "Add a critical path evaluation to directly pass emergency
 hotlines and contact." Supersedes the never-filed "BITB-019 Crisis Response Flow" idea from
 `docs/WIP/SESSION-2026-02-24-content-safety-and-query-improvements.md`. That ID was later reused for

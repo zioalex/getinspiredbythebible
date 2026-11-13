@@ -1,12 +1,18 @@
+---
+id: BITB-053
+status: done
+priority: P2
+size: M
+rank: 710
+created: 2026-06-19
+---
+
 # BITB-053: Ground Unquoted / Paraphrased Verse Citations
 
-**Status:** ✅ Done (code) — shipped in **detect-only** mode; the text-editing
-"append" behaviour is enabled separately, data permitting
+**Status note:** (code) — shipped in **detect-only** mode; the text-editing "append" behaviour is enabled separately, data permitting
+**Priority note:** (Medium) — scripture fidelity; closes the largest remaining grounding gap
 **Rollout:** [`docs/HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md`](../HOW-TO-ROLLOUT-PARAPHRASE-GROUNDING.md)
 — measure the detection rate + sampled precision for ~2 weeks, then decide
-**Priority:** P2 (Medium) — scripture fidelity; closes the largest remaining grounding gap
-**Size:** M (1-2 days)
-**Created:** 2026-06-19
 **Parent / related:** verse grounding (`api/chat/verse_grounding.py`), BITB-038 (verbatim quoting)
 
 ## User Story

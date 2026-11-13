@@ -1,9 +1,15 @@
+---
+id: BITB-041
+status: done
+priority: P1
+size: M
+rank: 760
+created: 2026-06-04
+---
+
 # BITB-041: Verse Detail Never Loads — Add Timeout, Error/Retry, and Monitoring
 
-**Status:** ✅ Done
-**Priority:** P1 (High) — broken feature with no error path and a monitoring blind spot
-**Size:** M (1-2 days)
-**Created:** 2026-06-04
+**Priority note:** (High) — broken feature with no error path and a monitoring blind spot
 
 ## User Story
 

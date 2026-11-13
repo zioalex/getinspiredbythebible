@@ -1,9 +1,14 @@
+---
+id: BITB-216
+status: todo
+priority: P3
+size: S
+rank: 690
+created: 2026-10-22
+---
+
 # BITB-216: Watch for a Visible "Verses Cited" List Being Read Aloud (Web + Android)
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-22
 **Follow-up of:** BITB-211 (PR #1190)
 
 ## Problem

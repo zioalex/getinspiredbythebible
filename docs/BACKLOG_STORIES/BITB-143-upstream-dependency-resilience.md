@@ -1,11 +1,16 @@
+---
+id: BITB-143
+status: in-progress
+priority: P1
+size: L
+created: 2026-06-30
+---
+
 # BITB-143: Upstream Dependency Resilience — Bounded, Self-Healing, Observable DB + Inference Calls
 
-**Status:** 🚧 In progress (Phases 1 & 2 — readiness fix, DB bounding, probe alert, embedding
-resilience/cache, generalized DB retry — implemented; infra (Phase 3) + observability-of-the-
-observability (Phase 4) = follow-up, need owner sign-off)
-**Priority:** P1 (High) — production availability; caused a multi-week readiness incident with real user impact
-**Size:** M–L (Phases 1 & 2 done; infra follow-up ~2-3 days incl. sign-off)
-**Created:** 2026-06-30
+**Status note:** (Phases 1 & 2 — readiness fix, DB bounding, probe alert, embedding resilience/cache, generalized DB retry — implemented; infra (Phase 3) + observability-of-the- observability (Phase 4) = follow-up, need owner sign-off)
+**Priority note:** (High) — production availability; caused a multi-week readiness incident with real user impact
+**Size note:** M–L (Phases 1 & 2 done; infra follow-up ~2-3 days incl. sign-off)
 
 ## User Story
 

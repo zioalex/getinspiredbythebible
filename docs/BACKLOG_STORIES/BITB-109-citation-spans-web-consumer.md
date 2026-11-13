@@ -1,10 +1,15 @@
+---
+id: BITB-109
+status: done
+priority: P2
+size: M
+rank: 980
+created: 2026-08-22
+---
+
 # BITB-109: Make the Citation-Span Contract Real — a Client That Consumes It
 
-**Status:** ✅ Done
-**Priority:** P2 — until a client consumes `citations`, the backend contract is shipped but unused,
-and its correctness is only asserted by its own tests
-**Size:** M
-**Created:** 2026-08-22
+**Priority note:** until a client consumes `citations`, the backend contract is shipped but unused, and its correctness is only asserted by its own tests
 **Prompted by:** PR #985 (BITB-086), which ships the backend half and defers both client-side
 acceptance criteria
 **Unblocks:** BITB-087; this is a hard prerequisite for starting the iOS client.

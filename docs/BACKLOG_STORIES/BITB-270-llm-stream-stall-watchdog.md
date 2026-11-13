@@ -1,9 +1,15 @@
+---
+id: BITB-270
+status: in-progress
+priority: P2
+size: M
+rank: 130
+created: 2026-11-08
+---
+
 # BITB-270: LLM Stream-Stall Watchdog — Silent Provider Stream Freezes Are Not Covered by Error-Driven Fallback
 
-**Status:** 🔄 In progress — implementation + proofs done, PR pending review
-**Priority:** P2
-**Size:** M
-**Created:** 2026-11-08
+**Status note:** implementation + proofs done, PR pending review
 **Follow-up to:** BITB-269 (deferred as out-of-scope item 1)
 
 ## User Story
