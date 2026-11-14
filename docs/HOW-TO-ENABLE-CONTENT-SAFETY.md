@@ -83,8 +83,18 @@ in clear text by this service. Confirm this meets your data-retention bar before
   `failed`), `reason`, `failure_class`.
 - `content_safety.fallback_total` is incremented **only when the keyword fallback actually
   runs**; labels `stage`, `reason`, `failure_class`, `failover` (`openai_moderation_failed` |
-  `unconfigured` | `disabled`). The `content_safety_fallback_rate` alert sums this counter, so
-  failures absorbed by the failover no longer trigger it.
+  `unconfigured` | `disabled`). Failures absorbed by the failover are not counted.
+- `content_safety.checks_total` (label `mode`) is incremented once per message screened by
+  `ContentSafetyService.check()` while content safety is enabled. It is the denominator of the
+  keyword-fallback-share SLO (BITB-290): `fallback_total / checks_total`, target at most 0.5 %
+  over 7 days.
+- Alerts: `content_safety_fallback_burn_fast` (Sev2, 14.4x budget over 1 h and 5 min) and
+  `content_safety_fallback_burn_slow` (Sev3, 6x budget over 6 h and 30 min), each with a
+  minimum of 3 fallbacks to ignore low-traffic noise. They replace the old any-fallback
+  `content_safety_fallback_rate` alert. Change the target with the Terraform variable
+  `content_safety_fallback_slo_target` (default `0.005`) and apply.
+- The performance workbook has a *Content Safety* section: share tile, fallbacks by
+  stage/reason/failure class/failover, share per hour, and failover outcomes.
 - `llama_guard.fallback_total` keeps counting every Llama Guard failure, now with `failure_class`.
 - `failure_class` values: `timeout`, `rate_limited`, `server_error`, `auth`, `malformed`,
   `breaker_open`, `network`, `other`.
@@ -140,6 +150,56 @@ Alternatively set `CONTENT_SAFETY_ML_FAILOVER_ENABLED=false`.
 
 The live 11-language golden-set run of `omni-moderation-latest` is still open: the existing
 golden-set runner (`scripts/run_golden_set.py`) drives the chat API, not a moderation classifier.
+
+### Ordered failover chain: adding Azure Content Safety (BITB-292)
+
+`CONTENT_SAFETY_ML_FAILOVER_CHAIN` is a comma-separated, ordered list of failover hops used in
+`ml_only` after Llama Guard fails. Allowed entries: `openai_moderation`, `azure`. Whitespace and
+case are ignored, duplicates are dropped (first wins), an unknown entry stops the API at
+startup, and an empty value means the default (`openai_moderation`) -- to turn the failover off
+use `CONTENT_SAFETY_ML_FAILOVER_ENABLED=false`. `CONTENT_SAFETY_ML_FAILOVER_ENABLED` stays the master switch.
+
+```bash
+# Default (unchanged behaviour): OpenAI Moderation only
+CONTENT_SAFETY_ML_FAILOVER_CHAIN=openai_moderation
+
+# Llama Guard -> OpenAI Moderation -> Azure Content Safety -> keyword fallback
+CONTENT_SAFETY_ML_FAILOVER_CHAIN=openai_moderation,azure
+AZURE_CONTENT_SAFETY_ENABLED=true
+AZURE_CONTENT_SAFETY_ENDPOINT=https://<your-resource>.cognitiveservices.azure.com/
+AZURE_CONTENT_SAFETY_KEY=<key>
+```
+
+Rules:
+
+- A hop is **configured** when `openai_moderation` has `OPENAI_API_KEY`, or `azure` has
+  `AZURE_CONTENT_SAFETY_ENABLED=true` plus endpoint and key. Unconfigured hops are skipped
+  silently (the API logs a startup warning if `azure` is listed but its settings are incomplete,
+  or if no hop is configured at all).
+- `AZURE_CONTENT_SAFETY_TIMEOUT` (default `3` seconds) bounds each Azure call; a timeout counts
+  as a failed hop. Severe self-harm-only text (no violence/hate) is treated as help-seeking by
+  Azure: allowed with the compassionate response, never blocked.
+- The first hop that returns a decision wins; later hops are not called.
+- The keyword fallback runs **only when every configured hop failed**.
+- Metrics: one `content_safety.failover_total` increment per attempted hop, labels
+  `from_stage` (`llama_guard` for the first hop, then the previously attempted hop), `to_stage`
+  (`openai_moderation` | `azure`), `outcome` (`decided` | `failed`), plus the original Llama
+  Guard `reason` and `failure_class`. `content_safety.fallback_total` `failover` label is
+  `disabled`, `unconfigured`, or `<last attempted hop>_failed` (so the default chain still emits
+  `openai_moderation_failed`; `openai_moderation,azure` emits `azure_failed`).
+
+**Cost:** Azure AI Content Safety is billed per text record. As of 2025 the free F0 tier
+includes 5,000 text records per month and the S0 standard tier is roughly $0.38 per 1,000 text
+records (check the current Azure pricing page before relying on these numbers). In this chain
+Azure is only called when both Llama Guard and OpenAI Moderation fail for a message, so expected
+volume is small outside a double outage.
+
+**Data retention / privacy:** the Azure hop sends the user message text to your Azure Content
+Safety resource. Per Microsoft's Azure AI Content Safety data privacy documentation, input text
+is processed to return results and is not used to train the models, and is handled in the
+region of your resource; Microsoft may state different retention for abuse monitoring or
+preview features. Verify the current terms for your region and subscription before enabling.
+This service never logs the message text, only a short hash.
 
 ---
 

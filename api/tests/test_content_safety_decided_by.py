@@ -132,6 +132,22 @@ async def test_keyword_fallback_when_both_ml_fail(monkeypatch):
     assert result.allowed is False
 
 
+async def test_failover_chain_azure_hop_is_attributed(monkeypatch):
+    """BITB-291 x BITB-292: an Azure failover hop reports decided_by=azure and failover=True."""
+    _settings(
+        monkeypatch,
+        azure_content_safety_enabled=True,
+        content_safety_ml_failover_chain="openai_moderation,azure",
+    )
+    lg = _provider(error=httpx.ReadTimeout("down"))
+    mod = _provider(error=httpx.ReadTimeout("down"))
+    azure = _provider(ContentSafetyResult(allowed=False, reason="azure_violence"))
+    service = _service(monkeypatch, lg=lg, moderation=mod, azure=azure)
+    result = await service.check(DEFAULT_UNSAFE, "en")
+    assert (result.decided_by, result.failover, result.allowed) == ("azure", True, False)
+    assert result.reason.endswith("(failover)")
+
+
 async def test_keyword_fallback_when_failover_disabled(monkeypatch):
     _settings(monkeypatch, content_safety_ml_failover_enabled=False)
     lg = _provider(error=httpx.ReadTimeout("down"))
