@@ -410,3 +410,131 @@ def test_bitb239_die_to_sin_and_tightening_negatives_allowed(flt, service, langu
     assert "directed_harm" not in (result.reason or "")
     stage1 = service._check_stage1_keywords(text, language, time.monotonic())
     assert stage1 is None or stage1.allowed is True
+
+
+# ---------------------------------------------------------------------------
+# BITB-266: "killing yourself" / "kys" / "you should" taunts
+# ---------------------------------------------------------------------------
+
+BITB266_BLOCKED = [
+    "I hope you're thinking about killing yourself",
+    "Start thinking about killing yourself",
+    "Just start thinking about killing yourself.",
+    "Keep thinking about killing yourself",
+    "Is it a sin? You should, loser.",
+    "You should just do it, idiot",
+    "Thinking about suicide? You should.",
+    "Want to kill yourself? You should just do it!",
+    "Thinking about killing yourself? Go ahead, you should.",
+    "kys",
+    "Just kys lol",
+    "Please kill urself",
+    "kill urself loser",
+    "u should just do it, loser",
+    "hope ur thinking about killing urself",
+    "I wish you were killing yourself right now",
+    "hope u are killing yourself",
+    "I hope that you kill yourself soon",
+    "I hope you're thinking about killing urself",
+    # fullwidth / wrapped variants still hit the same English clauses
+    "（Start thinking about killing yourself）",
+    "「kys」",
+    "John 3:16 is nonsense. Start thinking about killing yourself.",
+]
+
+BITB266_CLEAN = [
+    # negated / supportive wishes
+    "I hope you never think about killing yourself",
+    "I hope you're not thinking about killing yourself",
+    "I wish you wouldn't stop and consider killing yourself",
+    "I hope you don't ever think about killing yourself",
+    # BITB-266 verifier findings: grief letters, caring wishes, pastoral / narrative context,
+    # overwork idiom, hotline wording, verbs that double as insults
+    "My best friend died by suicide. I wish you had told me you were thinking about killing yourself",
+    "Writing a letter to my late brother: I wish you had come to me instead of killing yourself.",
+    "I wish you had reached out before killing yourself, Dad. Will God forgive him?",
+    "I hope you choose life instead of killing yourself - what verse can I send my friend?",
+    "I hope you talk to someone instead of killing yourself",
+    "My grandmother is dying. Should I visit? You should.",
+    "Should I pray for my dying father? Yes. You should.",
+    "The pastor said we must die to self. You should do it!",
+    "Jesus had to die for us. You should.",
+    "Judas killed himself. You should.",
+    "Keep thinking about killing yourself? Call 988.",
+    "keep on killing yourself working 80 hours? rest is biblical",
+    "Go on killing yourself for approval? Jesus offers rest.",
+    "stop killing urself over it",
+    "you're killing urself with worry, read Matthew 6",
+    "you should trash the idols in your heart",
+    "you should freak out less",
+    "You should go ahead, idiot-proof guide to the Psalms",
+    # second verifier round
+    'I texted my friend: "If you are thinking about suicide, please call 988. You should."',
+    "If you're having thoughts of killing yourself, please talk to someone. You should.",
+    "Feeling better off dead is a lie from the enemy. Talk to someone. You should.",
+    "My brother committed suicide. Should I go to the funeral? You should.",
+    "Is suicide unforgivable? My priest says no. Should I believe him? You should.",
+    "Suicide prevention month is here. Have you signed up to volunteer? You should!",
+    "Keep killing yourself at that job and you'll have nothing left.",
+    "Just keep killing yourself with work and you'll burn out.",
+    "Try killing yourself less with overtime.",
+    "Consider killing yourself to sin, as Paul says in Romans 6.",
+    "Then start killing yourself to sin daily.",
+    "I hope you're killing yourself laughing at this sermon",
+    "I hope you're killing yourself slowly with that diet lol",
+    "Consider killing yourself to the old self (Col 3:5)",
+    "So consider killing yourself dead to sin",
+    # caring / explanatory wishes
+    "I hope you realize killing yourself would devastate your family",
+    "I wish you knew how killing yourself hurts the people who love you",
+    "I hope you understand killing yourself is never God's answer",
+    "I hope you see that killing yourself leaves pain behind",
+    "I wish you'd let someone help before killing yourself crosses your mind",
+    # clause-start rule
+    "If you start thinking about killing yourself, call someone",
+    "When you keep thinking about killing yourself, please talk to a pastor",
+    # help-seeking frames (BITB-238) and close relatives
+    "Is it a sin to think about killing yourself?",
+    "Is it a sin to kill yourself?",
+    "How do I stop wanting to kill yourself",
+    # benign "you should"
+    "If God is calling you to serve, you should do it.",
+    "You should do it with joy",
+    "Is it a sin to die? You should ask your pastor.",
+    "You should read Psalm 23 daily",
+    # unrelated tokens
+    "The kyson family reads Romans together",
+    "Jesus said you should love your neighbor",
+]
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+@pytest.mark.parametrize("text", BITB266_BLOCKED)
+def test_bitb266_taunts_blocked(flt, service, language, text):
+    found = flt.find_directed_harm_violation(normalize_text(text), preferred=language)
+    assert found is not None and found[0] == "directed_harm"
+    blocked, confidence, vtype, _pattern = flt.check_multilingual(text, language)
+    assert (blocked, confidence, vtype) == (True, "high", "directed_harm")
+    result = _fallback(service, text, language)
+    assert result.allowed is False
+    assert "directed_harm" in result.reason
+    stage1 = service._check_stage1_keywords(text, language, time.monotonic())
+    assert stage1 is not None and stage1.allowed is False
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+@pytest.mark.parametrize("text", BITB266_CLEAN)
+def test_bitb266_benign_not_directed_harm(flt, service, language, text):
+    assert flt.find_directed_harm(normalize_text(text)) is None
+    result = _fallback(service, text, language)
+    assert "directed_harm" not in (result.reason or "")
+    stage1 = service._check_stage1_keywords(text, language, time.monotonic())
+    assert stage1 is None or "directed_harm" not in (stage1.reason or "")
+
+
+def test_bitb266_patterns_stay_linear_on_whitespace_runs(flt):
+    """Verifier found `\\s*,?\\s*` backtracking quadratically (10k chars took ~12s)."""
+    for text in ("you should" + " " * 10_000 + "x", "hope you " * 1_000, "you should , " * 800):
+        started = time.monotonic()
+        flt.check_multilingual(text, "en")
+        assert time.monotonic() - started < 1.0
