@@ -25,6 +25,11 @@ do not add entries to this file.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-14: BITB-315 opened — probe the ML content-safety path in more than one language (CJK, RTL, Devanagari), BITB-291 follow-up
+- 2026-11-14: BITB-314 opened — exclude synthetic ml-safety-path probe checks from the BITB-290 fallback-share SLO, BITB-291 follow-up
+- 2026-11-11: BITB-294 opened — provision Azure Content Safety in prod + enable the openai_moderation,azure chain (BITB-292 follow-up)
+- 2026-11-11: BITB-292 🔍 In Review — ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN, e.g. openai_moderation,azure): Azure Content Safety tried after OpenAI Moderation, keyword fallback only when every configured classifier failed, per-hop failover_total labels
+- 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
 - 2026-11-13: BITB-313 opened — conflict-free, agent-friendly backlog: story-file front matter is the single source of truth, BACKLOG.md becomes a stub, `make backlog` query + changelog derived from git; supersedes BITB-287 req. 1 (merge driver ignored by GitHub)
 - 2026-11-11: BITB-293 opened — 11-language safety golden set runner for a single moderation classifier (OpenAI Moderation first), follow-up of BITB-288 AC 2 (#1280)
 - 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#1280)

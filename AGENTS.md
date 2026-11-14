@@ -547,13 +547,33 @@ avoid stale entries accumulating in `.git/worktrees/`.
   story). Nothing else to update. Open the PR immediately (it is the id claim, see below).
 - **When completing a story:** edit its front matter only: `status: done` and `prs: [N]`. The
   file stays where it is; no index entry to update, no file to move.
-- **When a story's PR merges, file follow-up stories for every point it did not fix.** Go through the
-  story and the PR description — known gaps (xfails, pinned limitations), open questions, deferred
-  decisions, "watch this" notes — and give each one its own `BITB-NNN` story file, checked against
-  the code so the problem statement is accurate. List the new IDs in the completed story's
-  `follow_ups` front matter and in a *Follow-ups* section of its body. Owner-only steps (e.g. a live
-  run against production) stay as unticked acceptance criteria on the original story instead of
-  becoming stories. Example: BITB-178 → BITB-179/180/181.
+- **File follow-up stories when the PR is opened, not when it merges.** Before you open (or
+  materially update) a story's PR, go through the story, the diff and the PR description: known
+  gaps (xfails, pinned limitations), open questions, deferred decisions, "watch this" notes,
+  anything worded as "later" / "follow-up" / "out of scope for now". Give each one its own
+  `BITB-NNN` story file, checked against the code so the problem statement
+  is accurate, **in the same PR** (allocate IDs per the rule below). The PR description's
+  *Follow-ups* section lists those IDs. Never write "follow-ups to file at merge": merge-time
+  filing depends on someone remembering, and a different session usually does the merge
+  (observed 2026-11-14: PR #1279 listed two "to file at merge" follow-ups that existed nowhere
+  else; they became BITB-314/315 only when the owner asked). List the new IDs in the story's `follow_ups`
+  front matter and in a *Follow-ups* section of its body. Re-check at merge for anything new from review.
+  Owner-only steps (e.g. a live run against production) stay as unticked acceptance criteria on
+  the original story instead of becoming stories, and follow the owner-action rule below.
+  Example: BITB-178 → BITB-179/180/181.
+- **Tell the owner about owner-only actions as soon as you know of them.** When work needs the
+  owner to act before it can run or be switched on (add a secret or API key, `terraform apply`,
+  provision a resource, run a `workflow_dispatch`, choose an SLO target, approve a store
+  listing), do all three:
+  1. Tell the user in chat **in the same turn you discover it**, in a separate "⚠️ Owner action
+     needed" list with the exact step (secret name and where it goes, command, workflow name).
+     Do not wait for the end-of-task summary, and do not bury it in prose.
+  2. Put the same list at the **top** of the PR description under `## ⚠️ Owner action required`
+     (write "None" when there is nothing), including steps that only apply after deploy.
+  3. Keep each step as an unticked `Owner step:` acceptance criterion on the story.
+
+  If a feature ships switched off until the owner acts, say so in all three places. Owner steps
+  are not follow-up stories: they stay on the story that needs them.
 - **When cancelling a story:** `status: cancelled` plus a one-line reason under the heading.
 - **The changelog is the commit history.** The squash-merge subject (conventional commit with the
   `BITB-NNN` id and `(#PR)`) is the changelog entry; `make backlog-changelog` derives the list
