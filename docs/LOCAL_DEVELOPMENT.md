@@ -201,8 +201,8 @@ Link-preview images are static PNGs, one per locale, at `frontend/public/og/<loc
 (1200x630), referenced by `pageMetadata` as `og:image` / `twitter:image` (BITB-299). They are
 pre-rendered with real Chromium because `next/og` cannot shape Arabic or Devanagari.
 
-- Regenerate: `cd frontend && npm run og:generate`. If Playwright's browser is not installed,
-  point at any Chromium: `OG_CHROMIUM_PATH=/path/to/chrome npm run og:generate`.
+- Regenerate: `cd frontend && npm ci && npx playwright install chromium && npm run og:generate`.
+  If you already have a Chromium and do not want Playwright's, point at it instead: `OG_CHROMIUM_PATH=/path/to/chrome npm run og:generate`.
 - When: whenever `Metadata.title` / `Metadata.description` change in any
   `frontend/messages/<locale>.json`. `src/test/og-images.test.ts` compares the hashes in
   `public/og/manifest.json` and fails with "run `npm run og:generate`" when they are stale.

@@ -82,9 +82,9 @@ The same `503` URL is what `og:image` and `twitter:image` point to on every Arab
 ## Acceptance criteria
 
 - [ ] `curl -o /dev/null -w "%{http_code}" https://voxquieta.org/og/ar.png` → `200` after deploy (**owner step**)
-- [ ] No request-time image rendering remains (`grep -rn "next/og" frontend/src` is empty)
-- [ ] Changing any `Metadata.description` without regenerating fails the unit tests
-- [ ] Arabic and Hindi images verified by eye, screenshots in the PR
+- [x] No request-time image rendering remains (`grep -rn "next/og" frontend/src` is empty)
+- [x] Changing any `Metadata.description` without regenerating fails the unit tests
+- [x] Arabic and Hindi images verified by eye, screenshots in the PR
 
 ## Out of scope
 
