@@ -1,6 +1,6 @@
 # BITB-299: Share Image — Arabic Returns 503, Hindi Is Mis-Shaped
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P1
 **Size:** S
 **Created:** 2026-11-11
@@ -95,3 +95,19 @@ The same `503` URL is what `og:image` and `twitter:image` point to on every Arab
 ## Related
 
 BITB-136 (introduced the generated image), BITB-300, BITB-301, BITB-302.
+
+## Build notes
+
+- **Font deviation from decision 3.** Fonts are not committed under `scripts/og-fonts/`.
+  Noto Sans SC/KR are many MB each and the `check-added-large-files` hook caps files at
+  1000 KB. Instead the generator loads `400.css`/`700.css` from exact-pinned
+  `@fontsource/noto-sans`, `-arabic`, `-devanagari`, `-sc`, `-kr` devDependencies (rewritten
+  to `file://` URLs), so output still never depends on system fonts. The OFL licences ship
+  inside those packages.
+- `OG_CHROMIUM_PATH` overrides the Chromium binary when Playwright's matching browser is not
+  installed (sandboxes).
+- `pageMetadata` takes a required `ogImageAlt`; callers get it from `getOgImageAlt(locale)`
+  (`src/lib/ogImage.ts`, server-only) = localized `"<Metadata.title> — <Metadata.description>"`.
+- Added explicit line-heights in the template so the title/tagline sit at the same position in
+  every locale despite per-script font metrics.
+- Arabic (RTL, joined) and Hindi (`श्व`, `प्रे` single clusters) verified by eye.

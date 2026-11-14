@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowLeft, Github, Mail, BookOpen, Heart } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+import { getOgImageAlt } from "@/lib/ogImage";
 import { pageMetadata } from "@/lib/seo";
 import { donateUrl } from "@/lib/donateUrl";
 
@@ -28,6 +29,7 @@ export async function generateMetadata({
     path: "/about",
     title: t("metaTitle"),
     description: t("metaDescription"),
+    ogImageAlt: await getOgImageAlt(locale),
   });
 }
 

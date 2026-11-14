@@ -194,3 +194,17 @@ cd frontend && npm run dev
   `GET /health/ready`, full diagnostics `GET /health` (localhost only).
 - **Sanity checks** — `make functional-test` (main stack) or
   `make functional-test-dev` (dev stack).
+
+## Share (Open Graph) images
+
+Link-preview images are static PNGs, one per locale, at `frontend/public/og/<locale>.png`
+(1200x630), referenced by `pageMetadata` as `og:image` / `twitter:image` (BITB-299). They are
+pre-rendered with real Chromium because `next/og` cannot shape Arabic or Devanagari.
+
+- Regenerate: `cd frontend && npm run og:generate`. If Playwright's browser is not installed,
+  point at any Chromium: `OG_CHROMIUM_PATH=/path/to/chrome npm run og:generate`.
+- When: whenever `Metadata.title` / `Metadata.description` change in any
+  `frontend/messages/<locale>.json`. `src/test/og-images.test.ts` compares the hashes in
+  `public/og/manifest.json` and fails with "run `npm run og:generate`" when they are stale.
+- Fonts come from the `@fontsource/noto-sans*` devDependencies (SIL OFL; licences ship in the
+  packages), not from system fonts, so output is reproducible.

@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getLegalDocContent, getLegalDocDate } from "@/lib/legalDocs";
 import { routing } from "@/i18n/routing";
+import { getOgImageAlt } from "@/lib/ogImage";
 import { pageMetadata } from "@/lib/seo";
 
 export function generateStaticParams() {
@@ -23,6 +24,7 @@ export async function generateMetadata({
     path: "/privacy",
     title: t("privacyTitle"),
     description: t("privacyDescription"),
+    ogImageAlt: await getOgImageAlt(locale),
   });
 }
 
