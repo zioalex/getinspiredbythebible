@@ -486,6 +486,91 @@
           }
         ]
       }
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "\ud83d\udee1\ufe0f Content Safety (BITB-290)",
+        "expandable": true,
+        "expanded": true,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Content Safety (BITB-290)\n\nSLO: the keyword-fallback share of screened messages should stay at or below the target (default **0.5 %** over 7 days; terraform variable `content_safety_fallback_slo_target`, owner to confirm).\n\n- **Share** = `content_safety.fallback_total` / `content_safety.checks_total` (one check per screened message while content safety is enabled; fallback counts only keyword-fallback decisions, BITB-272).\n- **Alerts**: `content_safety_fallback_burn_fast` (Sev2: 14.4x budget over 1 h and 5 min) and `content_safety_fallback_burn_slow` (Sev3: 6x budget over 6 h and 30 min). They replace the BITB-223 any-fallback alert.\n- **ML failover outcomes**: when Llama Guard fails in ml_only mode, OpenAI Moderation is tried first. `decided` means the failover absorbed the failure (no keyword fallback); `failed` means both ML classifiers failed and the keyword filter decided."
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let slo = 0.005;\ncustomMetrics\n| where timestamp > {timeRange:start}\n| where name in (\"content_safety.checks_total\", \"content_safety.fallback_total\")\n| summarize Fallbacks = sumif(value, name == \"content_safety.fallback_total\"), Checks = sumif(value, name == \"content_safety.checks_total\")\n| project [\"Checks\"] = toint(Checks), [\"Keyword fallbacks\"] = toint(Fallbacks), [\"Fallback share %\"] = iff(Checks > 0, round(Fallbacks * 100.0 / Checks, 3), 0.0), [\"SLO target %\"] = slo * 100.0",
+              "size": 4,
+              "title": "Keyword-fallback share of checked messages",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true
+              }
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"content_safety.fallback_total\"\n| extend Stage = tostring(customDimensions[\"stage\"]), Reason = tostring(customDimensions[\"reason\"]), FailureClass = tostring(customDimensions[\"failure_class\"]), Failover = tostring(customDimensions[\"failover\"])\n| summarize Fallbacks = toint(sum(value)) by Stage, Reason, FailureClass, Failover\n| order by Fallbacks desc\n| project [\"Stage\"] = Stage, [\"Reason\"] = Reason, [\"Failure class\"] = FailureClass, [\"Failover\"] = Failover, [\"Fallbacks\"] = Fallbacks",
+              "size": 0,
+              "title": "Keyword fallbacks by stage / reason / failure class / failover",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table"
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name in (\"content_safety.checks_total\", \"content_safety.fallback_total\")\n| summarize Fallbacks = sumif(value, name == \"content_safety.fallback_total\"), Checks = sumif(value, name == \"content_safety.checks_total\") by bin(timestamp, 1h)\n| extend [\"Fallback share %\"] = iff(Checks > 0, round(Fallbacks * 100.0 / Checks, 3), 0.0)\n| project timestamp, [\"Fallback share %\"]\n| order by timestamp asc",
+              "size": 0,
+              "title": "Keyword-fallback share per hour (1 h bins)",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "timechart"
+            }
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "customMetrics\n| where timestamp > {timeRange:start}\n| where name == \"content_safety.failover_total\"\n| extend Outcome = tostring(customDimensions[\"outcome\"]), FromStage = tostring(customDimensions[\"from_stage\"]), ToStage = tostring(customDimensions[\"to_stage\"])\n| summarize Count = toint(sum(value)) by Outcome, FromStage, ToStage\n| order by Count desc\n| project [\"Outcome\"] = Outcome, [\"From stage\"] = FromStage, [\"To stage\"] = ToStage, [\"Count\"] = Count",
+              "size": 0,
+              "title": "ML failover outcomes",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "timeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.insights/components",
+              "visualization": "table"
+            }
+          }
+        ]
+      }
     }
   ],
   "styleSettings": {},

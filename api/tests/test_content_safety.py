@@ -1263,3 +1263,76 @@ def test_log_failover_config_warning(monkeypatch, caplog, mode, flag, key, expec
     ]
     assert bool(warned) is expect_warning
     assert len(warned) <= 1
+
+
+# ---------------------------------------------------------------------------
+# BITB-290: content_safety.checks_total — denominator of the keyword-fallback-share SLO
+# ---------------------------------------------------------------------------
+
+_BENIGN_BY_LANG = {
+    "en": "What does the Bible say about hope?",
+    "it": "Cosa dice la Bibbia sulla speranza?",
+    "de": "Was sagt die Bibel über Hoffnung?",
+    "es": "¿Qué dice la Biblia sobre la esperanza?",
+    "fr": "Que dit la Bible sur l'espérance ?",
+    "pt": "O que a Bíblia diz sobre a esperança?",
+    "ar": "ماذا يقول الكتاب المقدس عن الرجاء؟",
+    "ru": "Что Библия говорит о надежде?",
+    "zh": "圣经对盼望有什么教导？",
+    "hi": "आशा के बारे में बाइबल क्या कहती है?",
+    "ko": "성경은 소망에 대해 무엇이라고 말합니까?",
+}
+
+
+async def test_checks_counter_not_incremented_when_disabled(safety_service_disabled):
+    with patch("utils.content_safety.content_safety_checks_counter") as checks:
+        result = await safety_service_disabled.check("hello", "en")
+    assert result.reason == "disabled"
+    checks.add.assert_not_called()
+
+
+async def test_checks_counter_incremented_once_on_stage1_keyword_block(safety_service_enabled):
+    with patch("utils.content_safety.content_safety_checks_counter") as checks:
+        result = await safety_service_enabled.check("Go kill yourself", "en")
+    assert result.allowed is False
+    checks.add.assert_called_once_with(1, {"mode": "ml_only"})
+
+
+@pytest.mark.parametrize("lang", list(_BENIGN_BY_LANG))
+async def test_checks_counter_incremented_once_on_clean_allow_all_languages(
+    safety_service_enabled, lang
+):
+    with (
+        patch("utils.content_safety.content_safety_checks_counter") as checks,
+        patch("utils.content_safety.content_safety_fallback_counter") as fallback,
+    ):
+        result = await safety_service_enabled.check(_BENIGN_BY_LANG[lang], lang)
+    assert result.allowed is True
+    checks.add.assert_called_once_with(1, {"mode": "ml_only"})
+    fallback.add.assert_not_called()
+
+
+async def test_checks_counter_carries_configured_mode(monkeypatch):
+    service, _, _ = _failover_service(monkeypatch, content_safety_mode="keyword_only")
+    _fake_moderation_http(monkeypatch)
+    with patch("utils.content_safety.content_safety_checks_counter") as checks:
+        await service.check("Why did Cain kill Abel?", "en")
+    checks.add.assert_called_once_with(1, {"mode": "keyword_only"})
+
+
+@pytest.mark.parametrize("lang", list(_BENIGN_BY_LANG))
+async def test_keyword_fallback_counts_in_numerator_and_denominator_once(monkeypatch, lang):
+    service, _, _ = _failover_service(monkeypatch, lg_error=_http_status_error(503))
+    _fake_moderation_http(monkeypatch, error=httpx.ReadTimeout("moderation down"))
+    keyword = AsyncMock(return_value=_content_safety_check_result_stub())
+    monkeypatch.setattr(service, "_keyword_fallback", keyword)
+
+    with (
+        patch("utils.content_safety.content_safety_checks_counter") as checks,
+        patch("utils.content_safety.content_safety_fallback_counter") as fallback,
+    ):
+        await service.check(_BENIGN_BY_LANG[lang], lang)
+
+    keyword.assert_awaited_once()
+    checks.add.assert_called_once_with(1, {"mode": "ml_only"})
+    assert fallback.add.call_count == 1

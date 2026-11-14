@@ -23,6 +23,9 @@ Prioritized list of user stories and features for Vox Quieta.
 - 2026-11-11: BITB-295 renumbered from BITB-293 (293/294 claimed by open PR #1280) (#1283)
 - 2026-11-11: BITB-295 opened — directed-harm reported speech ("she said 'kys' to me"), obfuscated kys and context-free death wishes (BITB-266 follow-up) (#1283)
 - 2026-11-11: BITB-266 🔍 In Review — English directed-harm table blocks "killing yourself"/kys/"you should" taunts in Stage 1 and the keyword fallback, help-seeking frames stay allowed (#1283)
+- 2026-11-11: BITB-294 opened — provision Azure Content Safety in prod + enable the openai_moderation,azure chain (BITB-292 follow-up)
+- 2026-11-11: BITB-292 🔍 In Review — ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN, e.g. openai_moderation,azure): Azure Content Safety tried after OpenAI Moderation, keyword fallback only when every configured classifier failed, per-hop failover_total labels
+- 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
 - 2026-11-11: BITB-293 opened — 11-language safety golden set runner for a single moderation classifier (OpenAI Moderation first), follow-up of BITB-288 AC 2 (#1280)
 - 2026-11-11: BITB-288 🔍 In Review — OPENAI_API_KEY wired into the backend Container App out-of-band (BITB-067 pattern), failover enabled in prod once the owner adds the secret (#1280)
 - 2026-11-11: BITB-309 ✅ Done — privacy policy OpenAI disclosure merged before BITB-288; story moved to docs/DONE (#1287)
@@ -726,9 +729,9 @@ BITB-272 req. 3 and 4: primary 3 s / secondary 5 s timeouts come from a 2026-07 
 
 ---
 
-### 🎯 BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
+### 🔍 BITB-290: Fallback-Share SLO Tile and Burn-Rate Alert Replace the Any-Fallback Alert
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (2026-11-11)
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-10
@@ -737,9 +740,10 @@ BITB-272 req. 5: `content_safety_fallback_rate` fired 99 times in 30 days (BITB-
 
 **Acceptance Criteria (summary):**
 
-- [ ] Dashboard tile: keyword-fallback share of checked messages by `stage`, `reason`, `failure_class`, `failover`
-- [ ] Multi-window burn-rate alert in Terraform replaces the any-fallback alert; coordinate with BITB-223 so alerts are not duplicated
-- [ ] Companion tile for `content_safety.failover_total` (failover absorbed vs failed)
+- [x] Dashboard tile: keyword-fallback share of checked messages by `stage`, `reason`, `failure_class`, `failover`
+- [x] Multi-window burn-rate alerts in Terraform (`content_safety_fallback_burn_fast`/`_slow`) replace the any-fallback alert; coordinate with BITB-223 so alerts are not duplicated
+- [x] Companion tile for `content_safety.failover_total` (failover absorbed vs failed)
+- [ ] Owner steps: confirm the SLO target; `terraform apply`
 
 **Full Story:** [`BITB-290-content-safety-fallback-share-slo-alert.md`](BACKLOG_STORIES/BITB-290-content-safety-fallback-share-slo-alert.md)
 
@@ -764,9 +768,9 @@ BITB-272 req. 6: an outage of Llama Guard or the failover is currently found onl
 
 ---
 
-### 🎯 BITB-292: Azure Content Safety as an Ordered Second ML Failover
+### 🔍 BITB-292: Azure Content Safety as an Ordered Second ML Failover
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-10
@@ -775,9 +779,11 @@ BITB-272 slice 1 fails over only to OpenAI Moderation. If both OpenRouter and Op
 
 **Acceptance Criteria (summary):**
 
-- [ ] Configurable ordered failover list for `ml_only` (e.g. `openai_moderation,azure`), default unchanged
-- [ ] Azure is tried only after OpenAI Moderation fails; keyword fallback only when every configured classifier failed; unit + integration tests across the 11 languages
-- [ ] Metrics reuse `content_safety.failover_total` with a `to_stage` label per hop
+- [x] Configurable ordered failover list for `ml_only` (e.g. `openai_moderation,azure`), default unchanged
+- [x] Azure is tried only after OpenAI Moderation fails; keyword fallback only when every configured classifier failed; unit + integration tests across the 11 languages
+- [x] Metrics reuse `content_safety.failover_total` with a `to_stage` label per hop
+
+**Follow-ups:** BITB-294 (prod provisioning + chain enablement)
 
 **Full Story:** [`BITB-292-azure-content-safety-second-failover.md`](BACKLOG_STORIES/BITB-292-azure-content-safety-second-failover.md)
 
@@ -799,6 +805,25 @@ Follow-up to BITB-288 (#1280): the only golden-set harness drives the chat API, 
 - [ ] Manual `workflow_dispatch` run; owner records `omni-moderation-latest` results in BITB-288
 
 **Full Story:** [`BITB-293-moderation-classifier-golden-set.md`](BACKLOG_STORIES/BITB-293-moderation-classifier-golden-set.md)
+
+---
+
+### 🎯 BITB-294: Provision Azure Content Safety in Production and Enable the `openai_moderation,azure` Chain
+
+**Status:** 🎯 Todo
+**Priority:** P1
+**Size:** M
+**Created:** 2026-11-11
+
+BITB-292 ships the Azure failover hop in code, but Terraform provisions no Content Safety resource and wires none of the Azure/chain env vars, so prod always skips the hop (BITB-288-shaped gap).
+
+**Acceptance Criteria (summary):**
+
+- [ ] Terraform Content Safety resource + endpoint/key/timeout/chain env wiring
+- [ ] Golden-set check of Azure verdicts across 11 languages (self-harm-only → help-seeking)
+- [ ] Owner step: apply + verify a forced double outage takes the Azure hop
+
+**Full Story:** [`BITB-294-provision-azure-content-safety-prod-chain.md`](BACKLOG_STORIES/BITB-294-provision-azure-content-safety-prod-chain.md)
 
 ---
 

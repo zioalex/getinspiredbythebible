@@ -44,10 +44,12 @@ class AzureContentSafetyProvider:
     Falls back gracefully if SDK not installed or API unavailable.
     """
 
-    def __init__(self, endpoint: str, key: str, threshold: int = 4):
+    def __init__(self, endpoint: str, key: str, threshold: int = 4, timeout: float = 3.0):
         self.endpoint = endpoint
         self.key = key
         self.threshold = threshold
+        # BITB-292: bound the SDK call so a slow Azure cannot stall a request during an outage
+        self.timeout = float(timeout) if isinstance(timeout, (int, float)) else 3.0
         self._client: Optional["ContentSafetyClient"] = None
         self._sdk_available = False
         self._init_client()
@@ -95,7 +97,10 @@ class AzureContentSafetyProvider:
             # Run sync SDK call in thread pool (SDK is synchronous)
             loop = asyncio.get_event_loop()
             request = AnalyzeTextOptions(text=text[:1000])  # API limit
-            response = await loop.run_in_executor(None, self._client.analyze_text, request)
+            response = await asyncio.wait_for(
+                loop.run_in_executor(None, self._client.analyze_text, request),
+                timeout=self.timeout,
+            )
 
             # Extract severity scores (0-6 scale)
             hate_severity = (
@@ -141,12 +146,15 @@ class AzureContentSafetyProvider:
             max_severity = max(categories.values())
 
             # CRITICAL: Distinguish help-seeking from harmful intent
-            # Help-seeking = self-harm signal but NO violence/hate directed at others
+            # Help-seeking = self-harm signal but NO violence/hate directed at others.
+            # BITB-292: self-harm severity is deliberately NOT capped by the threshold -- a
+            # severe self-harm-only message is a cry for help and must get the compassionate
+            # path, never a block. Sexual content at/above the threshold still blocks.
             is_help_seeking = (
                 self_harm_severity > 0
                 and violence_severity == 0
                 and hate_severity == 0
-                and self_harm_severity < self.threshold
+                and sexual_severity < self.threshold
             )
 
             # Determine if allowed
