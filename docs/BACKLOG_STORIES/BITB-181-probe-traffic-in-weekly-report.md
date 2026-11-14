@@ -1,9 +1,14 @@
+---
+id: BITB-181
+status: todo
+priority: P3
+size: S
+rank: 70
+created: 2026-10-10
+---
+
 # BITB-181: Keep Probe Sessions (Hourly Browser Smoke) Out of the Weekly Report
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-10
 **Prompted by:** BITB-178 open question (rev. 2) — does probe traffic, including the new weekly
 `golden-set-live.yml` run, inflate the weekly usage report?
 

@@ -1,9 +1,15 @@
+---
+id: BITB-275
+status: todo
+priority: P3
+size: M
+rank: 20
+created: 2026-11-08
+---
+
 # BITB-275: Schemathesis Conformance Fuzzing — Evaluate and Decide
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S/M (spike + decision)
-**Created:** 2026-11-08
+**Migration note (2026-11-13, size):** S/M (spike + decision)
 **Follow-up to:** BITB-261 (named in its Out of Scope)
 
 ## User Story

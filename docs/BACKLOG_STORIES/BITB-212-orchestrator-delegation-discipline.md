@@ -1,9 +1,14 @@
+---
+id: BITB-212
+status: done
+priority: P2
+size: S
+rank: 1220
+created: 2026-10-22
+---
+
 # BITB-212: Orchestrator Delegation Discipline — Never Edit Application Code Directly
 
-**Status:** ✅ Done
-**Priority:** P2
-**Size:** S
-**Created:** 2026-10-22
 **Completed:** 2026-10-23 (PR #1193)
 **Found by:** Live session-death diagnosis on BITB-054 / PR #1192, 2026-10-22
 

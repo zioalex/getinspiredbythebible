@@ -1,9 +1,17 @@
+---
+id: BITB-076
+status: done
+priority: P2
+size: M
+rank: 1020
+created: 2026-07-25
+prs: [939]
+---
+
 # BITB-076: "About" Page — Why Vox Quieta Exists
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** M (1–2 days, mostly copywriting + 11 locales)
-**Created:** 2026-07-25
+**Migration note (2026-11-13, status):** (PR #939 merged 2026-07-27)
+**Migration note (2026-11-13, size):** (1–2 days, mostly copywriting + 11 locales)
 
 ## User Story
 

@@ -1,9 +1,16 @@
+---
+id: BITB-075
+status: done
+priority: P1
+size: S
+rank: 860
+created: 2026-07-25
+prs: [944]
+---
+
 # BITB-075: Raise the Chat Message Limit to 500 Characters (and Make It a Single Source of Truth)
 
-**Status:** 🎯 Todo
-**Priority:** P1
-**Size:** S (< 4 hrs)
-**Created:** 2026-07-25
+**Migration note (2026-11-13, status):** (PR #944 merged 2026-07-29)
 
 ## User Story
 

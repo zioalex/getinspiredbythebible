@@ -1,9 +1,13 @@
+---
+id: BITB-114
+status: done
+priority: P2
+size: S
+created: 2026-08-31
+---
+
 # BITB-114: Close the Same ReDoS Gap on Android (`ChatMessageItem.kt` / `VersesPanel.kt`)
 
-**Status:** ✅ Done
-**Priority:** P2
-**Size:** S
-**Created:** 2026-08-31
 **Found by:** independent Verify pass on BITB-108 (the web-side fix for the same issue)
 
 ## The Finding

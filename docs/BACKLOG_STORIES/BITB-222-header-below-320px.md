@@ -1,9 +1,13 @@
+---
+id: BITB-222
+status: todo
+priority: P3
+size: XS
+created: 2026-10-23
+---
+
 # BITB-222: Header Layout Below 320px Is Unguarded
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** XS
-**Created:** 2026-10-23
 **Type:** Bug (edge case)
 **Follow-up of:** BITB-219 (PR #1191)
 

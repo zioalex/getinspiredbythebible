@@ -1,9 +1,16 @@
+---
+id: BITB-085
+status: in-progress
+priority: P2
+size: M
+rank: 1110
+created: 2026-07-29
+---
+
 # BITB-085: Decide the iOS Delivery Approach — Decision Record + Apple Prerequisites
 
-**Status:** 🚧 In Progress (SwiftUI recommendation provisional; Turnstile device proof not executed)
-**Priority:** P2
-**Size:** S–M (1 day of analysis + the account/tooling setup it unblocks)
-**Created:** 2026-07-29
+**Migration note (2026-11-13, status):** (SwiftUI recommendation provisional; Turnstile device proof not executed)
+**Migration note (2026-11-13, size):** S–M (1 day of analysis + the account/tooling setup it unblocks)
 **Part of:** the iOS delivery plan — Stage 1 of BITB-084 → **BITB-085** → BITB-086 → BITB-109 → BITB-087 → BITB-088.
 **Gates:** BITB-087 and BITB-088 must not start before this closes.
 
@@ -178,7 +185,7 @@ The remaining rows below are maintainer-owned Apple/account items and stay open:
       obtained (or provably not obtainable) — not by reading documentation.
 - [ ] `docs/ROADMAP.md:219` and `docs/ARCHITECTURE.md:926` are corrected to point at this decision
       record, so the repo stops carrying three contradictory iOS strategies.
-- [ ] BITB-087's size/scope in `docs/BACKLOG.md` is revised to match the chosen option, rather than
+- [ ] BITB-087's size/scope (story front matter and body) is revised to match the chosen option, rather than
       left at the placeholder estimate.
 - [ ] A `docs/ios/app-store-compliance.md` stub exists, modelled on
       `docs/android/play-console-compliance.md`, ready for BITB-088 to fill in.

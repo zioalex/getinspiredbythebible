@@ -1,9 +1,14 @@
+---
+id: BITB-116
+status: todo
+priority: P2
+size: S
+created: 2026-09-01
+---
+
 # BITB-116: Decide `topic_boosting_enabled` From the BITB-104 A/B Numbers
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S (reading a report and flipping a flag — the numbers are the work, not the code)
-**Created:** 2026-09-01
+**Migration note (2026-11-13, size):** (reading a report and flipping a flag — the numbers are the work, not the code)
 **Prompted by:** BITB-104, which builds the harness this decision needs but cannot run it here
 
 ## User Story

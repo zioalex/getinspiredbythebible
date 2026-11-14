@@ -1,6 +1,12 @@
+---
+id: BITB-131
+status: done
+priority: P3
+---
+
 # BITB-131: Fix Contact Form Turnstile Token Expiry
 
-**Status:** ✅ Done (turnstile.tsx has expired-callback nulling token + auto-refresh + retry/backoff + awaitToken; verified 2026-05-24)
+**Migration note (2026-11-13, status):** (turnstile.tsx has expired-callback nulling token + auto-refresh + retry/backoff + awaitToken; verified 2026-05-24)
 
 ## User Story
 

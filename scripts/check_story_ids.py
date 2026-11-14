@@ -4,7 +4,7 @@
 `AGENTS.md` (*Backlog Hygiene*) says story IDs are sequential: take the highest `BITB-NNN` on
 `main` and add one. That only sees `main`, so two PRs opened concurrently pick the same number
 (BITB-235: the header story was renumbered 206 → 212 → 213 → 219 in two days; PRs #1203 and
-#1215 both claimed BITB-241 on 2026-10-26). `scripts/check_backlog_story_ids.py` (BITB-111)
+#1215 both claimed BITB-241 on 2026-10-26). `scripts/backlog.py check` (BITB-313, formerly BITB-111)
 only guards the *merged* tree, so it notices a collision only after the second PR lands. This
 check catches it before merge, on the PR itself.
 
@@ -69,7 +69,7 @@ _ID_DIGITS_RE = re.compile(r"\d+")
 _AGENTS_RULE = (
     'Per AGENTS.md -> Backlog Hygiene ("Story IDs are sequential"): the FIRST claimant keeps '
     "the ID — the later PR renumbers its story before merging (rename the story file and "
-    "update every docs/BACKLOG.md reference in that PR). If you opened first, say so in the "
+    "update the `id:` front matter and every other reference in that PR). If you opened first, say so in the "
     "other PR and have *it* renumber; do not just retry CI hoping it went away."
 )
 

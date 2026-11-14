@@ -1,9 +1,16 @@
+---
+id: BITB-144
+status: todo
+priority: P2
+size: M
+created: 2026-07-11
+---
+
 # BITB-144: Per-Language Model Fallback Chain
 
-**Status:** 📋 Backlog
-**Priority:** P2 (Medium) — quality follow-up to the qwen-endpoint override-resilience fix
-**Size:** S–M (config schema change + override routing + language util + tests)
-**Created:** 2026-07-11
+**Migration note (2026-11-13, status):** Backlog
+**Migration note (2026-11-13, priority):** (Medium) — quality follow-up to the qwen-endpoint override-resilience fix
+**Migration note (2026-11-13, size):** S–M (config schema change + override routing + language util + tests)
 **Follow-up to:** override-resilience fix on `claude/qwen-endpoint-error-wbypd2`
 (`api/providers/openrouter.py` — overrides now flow through `_get_model_and_extra_body`
 with a fallback array; commit `56f58d6`)

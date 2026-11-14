@@ -1,8 +1,15 @@
+---
+id: BITB-186
+status: done
+priority: P2
+size: S
+created: 2026-10-11
+prs: [1169]
+---
+
 # BITB-186: Self-Harm Keyword Fallback — Cover Missed Crisis Phrasings and Negations
 
-**Status:** ✅ Done — PR #1169 merged 2026-10-14 (native-speaker review AC left open)
-**Size:** S
-**Created:** 2026-10-11
+**Migration note (2026-11-13, status):** PR #1169 merged 2026-10-14 (native-speaker review AC left open)
 
 **As a** user in crisis writing in Chinese, Korean, Russian or Hindi, **I want** common
 phrasings of distress to be recognised by the keyword fallback, **so that** I get the

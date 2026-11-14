@@ -1,9 +1,15 @@
+---
+id: BITB-055
+status: done
+priority: P2
+size: M
+rank: 820
+created: 2026-06-20
+---
+
 # BITB-055: Scripture/Chat Pipeline Observability — Fail Loud, Not Silent
 
-**Status:** ✅ Done
-**Priority:** P2 (Medium) — reliability/observability hardening after a silent 2-week outage
-**Size:** M (1-2 days)
-**Created:** 2026-06-20
+**Migration note (2026-11-13, priority):** (Medium) — reliability/observability hardening after a silent 2-week outage
 
 ## User Story
 

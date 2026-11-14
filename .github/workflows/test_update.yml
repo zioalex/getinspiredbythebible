@@ -92,13 +92,9 @@ jobs:
           fi
           echo "Guard passed: enable_application_insights is not disabled in terraform.tfvars"
 
-      - name: Guard — backlog story IDs are unique and cross-referenced (BITB-111)
+      - name: Guard — backlog story front matter is valid, ids unique (BITB-111/BITB-313)
         run: |
-          python3 scripts/check_backlog_story_ids.py
-
-      - name: Guard — backlog index status stays in sync with story files (BITB-153)
-        run: |
-          python3 scripts/check_backlog_status_sync.py
+          python3 scripts/backlog.py check
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v7

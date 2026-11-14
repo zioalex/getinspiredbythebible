@@ -1,9 +1,16 @@
+---
+id: BITB-089
+status: done
+priority: P1
+size: M
+rank: 890
+created: 2026-07-31
+---
+
 # BITB-089: Deploy Alembic Migrations from CI — Make the Framework Actually Load-Bearing
 
-**Status:** ✅ Done (2026-08-15)
-**Priority:** P1
-**Size:** M (one-time operator step + workflow wiring)
-**Created:** 2026-07-31
+**Migration note (2026-11-13, status):** (2026-08-15)
+**Migration note (2026-11-13, size):** (one-time operator step + workflow wiring)
 **Depends on:** BITB-004 (Alembic framework, PR #948) — merged but **inert** until this story ships.
 **Unblocks:** BITB-090 (removing `create_all()`).
 

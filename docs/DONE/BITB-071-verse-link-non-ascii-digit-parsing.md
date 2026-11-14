@@ -1,10 +1,17 @@
+---
+id: BITB-071
+status: done
+priority: P1
+size: S
+rank: 570
+created: 2026-07-17
+prs: [893]
+---
+
 # BITB-071: Verse Link Click Sends NaN Chapter for Non-ASCII (Devanagari/Eastern Arabic) Digits
 
-**Status:** ✅ Done (PR #893 merged 2026-07-17)
-**Priority:** P1 (High) — breaks the core "click a cited verse" flow for every Hindi
-response and any Arabic response that uses native Eastern Arabic numerals.
-**Size:** S (< 4 hrs)
-**Created:** 2026-07-17
+**Migration note (2026-11-13, status):** (PR #893 merged 2026-07-17)
+**Migration note (2026-11-13, priority):** (High) — breaks the core "click a cited verse" flow for every Hindi response and any Arabic response that uses native Eastern Arabic numerals.
 **Completed:** 2026-07-17
 
 ## User Story

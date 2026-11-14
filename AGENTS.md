@@ -190,6 +190,7 @@ k8s/                  Home-cluster KubeOpenCode deployment — THE canonical
 deployment/           Terraform configs for Azure — ONLY Terraform (the old
                         kubeopencode/ subfolder is an obsolete stub, BITB-285)
 scripts/              DB init, embedding generation, migrations, env validation
+                        scripts/backlog.py = offline story queries (`make backlog`, BITB-313)
 data/                 Bible data files
 docs/                 Project documentation
 ```
@@ -526,20 +527,37 @@ avoid stale entries accumulating in `.git/worktrees/`.
   **not** use GitHub Issues for backlog/story tracking. Never create a
   GitHub Issue to capture a story, requirement, or follow-up — record it in
   the backlog files described below instead.
-- `docs/BACKLOG.md` is the canonical prioritized list. `docs/BACKLOG_STORIES/` holds the detailed story files.
-- **When creating a new story:** create the full story file in `docs/BACKLOG_STORIES/BITB-<NNN>-<slug>.md` *and* add a summary entry (status, size, date, one-liner, acceptance criteria, link to full story) in `docs/BACKLOG.md` under the correct priority section.
-- **When completing a story:** update its status to `✅ Done` in `docs/BACKLOG.md`, add the PR number and completion date, and move the full story file to `docs/DONE/` if the folder exists.
+- **Story files are the single source of truth (BITB-313).** Every story file in
+  `docs/BACKLOG_STORIES/` (and the older ones in `docs/DONE/`) starts with a YAML front-matter
+  block: `id`, `status` (`todo | in-progress | in-review | blocked | done | cancelled`),
+  `priority` (`P0..P3 | icebox`), `size` (`XS..XL`), optional `rank`, `created`, `prs`,
+  `follow_ups`, `depends_on`, `supersedes` — one key per line, fixed order, schema in
+  `docs/backlog/LEGEND.md`. The title is the single `# BITB-NNN: Title` heading.
+  `docs/BACKLOG.md` is a ~50-line stub that **feature PRs never edit** (the `backlog-stub-guard`
+  CI job fails any PR that touches it); there is no hand-written index and no hand-written changelog.
+- **Find stories with `make backlog`, never by reading a big file.** `make backlog ARGS="list"`
+  (open stories, one line each, ≤ 12 KB), `ARGS="list --priority P0,P1 --grep chat"`,
+  `ARGS="show BITB-NNN"` (path + front matter; add `--full`), `make backlog-changelog`,
+  `make backlog-check` (validates all front matter; also run by `make test` and CI). Then open
+  only the one story file you need. Edit a status with a single-line change, e.g.
+  `status: todo` → `status: in-progress`. Offline, stdlib-only: `python3 scripts/backlog.py --help`.
+- **Migration notes** (`**Migration note (2026-11-13, …):**`) are frozen 2026-11-13 context, not live state. When you change `status`/`priority`, update or delete the note.
+- **When creating a new story:** create **one file**,
+  `docs/BACKLOG_STORIES/BITB-<NNN>-<slug>.md`, with the front matter above (start from any recent
+  story). Nothing else to update. Open the PR immediately (it is the id claim, see below).
+- **When completing a story:** edit its front matter only: `status: done` and `prs: [N]`. The
+  file stays where it is; no index entry to update, no file to move.
 - **File follow-up stories when the PR is opened, not when it merges.** Before you open (or
   materially update) a story's PR, go through the story, the diff and the PR description: known
   gaps (xfails, pinned limitations), open questions, deferred decisions, "watch this" notes,
   anything worded as "later" / "follow-up" / "out of scope for now". Give each one its own
-  `BITB-NNN` story (full file + backlog entry), checked against the code so the problem statement
+  `BITB-NNN` story file, checked against the code so the problem statement
   is accurate, **in the same PR** (allocate IDs per the rule below). The PR description's
   *Follow-ups* section lists those IDs. Never write "follow-ups to file at merge": merge-time
   filing depends on someone remembering, and a different session usually does the merge
   (observed 2026-11-14: PR #1279 listed two "to file at merge" follow-ups that existed nowhere
-  else; they became BITB-314/315 only when the owner asked). List the new IDs in a *Follow-ups*
-  section of the story and in its backlog entry. Re-check at merge for anything new from review.
+  else; they became BITB-314/315 only when the owner asked). List the new IDs in the story's `follow_ups`
+  front matter and in a *Follow-ups* section of its body. Re-check at merge for anything new from review.
   Owner-only steps (e.g. a live run against production) stay as unticked acceptance criteria on
   the original story instead of becoming stories, and follow the owner-action rule below.
   Example: BITB-178 → BITB-179/180/181.
@@ -556,15 +574,11 @@ avoid stale entries accumulating in `.git/worktrees/`.
 
   If a feature ships switched off until the owner acts, say so in all three places. Owner steps
   are not follow-up stories: they stay on the story that needs them.
-- **When cancelling a story:** mark it `❌ Cancelled` in `docs/BACKLOG.md` with a short reason.
-- **Changelog entries are append-only, one per line.** When you touch
-  `docs/BACKLOG.md`, add a *single new line* to the `## Changelog` section at
-  the top: `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#PR)`, and
-  update the `**Last Updated:**` date. **Never edit, reword, or reorder
-  existing entries** — a status change (e.g. story done) gets its own new line.
-  The previous format (one giant narrative line that every PR rewrote) made
-  this file conflict on nearly every PR; one-entry-per-line keeps each PR's
-  change on its own line so git merges cleanly.
+- **When cancelling a story:** `status: cancelled` plus a one-line reason under the heading.
+- **The changelog is the commit history.** The squash-merge subject (conventional commit with the
+  `BITB-NNN` id and `(#PR)`) is the changelog entry; `make backlog-changelog` derives the list
+  from `git log`. Do not add changelog lines anywhere. The pre-BITB-313 hand-written changelog is
+  frozen in `docs/backlog/CHANGELOG-archive.md`.
 - **Story IDs are sequential — allocate across `main` *and* open PRs (BITB-235).** Before
   creating a new story:
   1. `git fetch origin` and check `docs/BACKLOG_STORIES/` on **`origin/main`** — never just
@@ -578,10 +592,9 @@ avoid stale entries accumulating in `.git/worktrees/`.
   4. **The claim is the open PR.** A story holds its ID only once its PR exists — push the
      story branch and open the PR immediately; never let a numbered story sit on a local
      branch.
-- **If a collision is discovered later:** the earlier claimant (earliest PR/changelog date)
+- **If a collision is discovered later:** the earlier claimant (earliest PR)
   keeps the ID; the later PR renumbers *before* merge — `git mv` the story file, fix its
-  title, rewrite your own *unmerged* changelog/summary lines in `docs/BACKLOG.md` **and** add
-  a new changelog line recording the renumber (citing the winner PR), and update **every
+  title and `id:` front matter, and update **every
   in-repo `BITB-NNN` reference** (repo-wide grep, as with file renames — see Documentation
   Completeness). Commit subjects keep their historical IDs; never rewrite pushed history.
   Worked examples: 206→219, 214→218, 223..233, 236/237→239/240, 241→243. The allocation rule is

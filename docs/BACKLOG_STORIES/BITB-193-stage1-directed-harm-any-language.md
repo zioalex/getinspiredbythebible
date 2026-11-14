@@ -1,8 +1,12 @@
-# BITB-193: Stage-1 Directed-Harm Check Is Limited to the Detected Language
+---
+id: BITB-193
+status: in-review
+priority: P2
+size: S
+created: 2026-10-13
+---
 
-**Status:** 🔍 In Review
-**Size:** S
-**Created:** 2026-10-13
+# BITB-193: Stage-1 Directed-Harm Check Is Limited to the Detected Language
 
 **As a** moderator of the chat, **I want** directed harm blocked in any language regardless of the detected language, **so that** mis-detected or non-Latin threats are not passed to the model.
 

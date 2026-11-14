@@ -1,9 +1,13 @@
+---
+id: BITB-315
+status: todo
+priority: P2
+size: S
+created: 2026-11-14
+---
+
 # BITB-315: Probe the ML Content-Safety Path in More Than One Language
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S
-**Created:** 2026-11-14
 **Prompted by:** BITB-291 (PR #1279), follow-up 2 in its PR description.
 
 ## Problem

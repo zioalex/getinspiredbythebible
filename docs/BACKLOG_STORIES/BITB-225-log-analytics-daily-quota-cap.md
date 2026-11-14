@@ -1,9 +1,14 @@
+---
+id: BITB-225
+status: todo
+priority: P2
+size: S
+rank: 260
+created: 2026-10-23
+---
+
 # BITB-225: Log Analytics Daily Ingestion Cap as Bounded-Downside Insurance
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S
-**Created:** 2026-10-23
 **Parent:** BITB-150 (Phase 0 follow-up — Part A lever, deferred-to-insurance)
 
 ## User Story

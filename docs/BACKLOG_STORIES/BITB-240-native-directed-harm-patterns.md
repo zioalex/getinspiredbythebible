@@ -1,9 +1,12 @@
-# BITB-240: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
+---
+id: BITB-240
+status: todo
+priority: P3
+size: M
+created: 2026-10-24
+---
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** M
-**Created:** 2026-10-24
+# BITB-240: Native Directed-Harm Patterns for ar/ru/zh/hi/ko
 
 ## Problem
 

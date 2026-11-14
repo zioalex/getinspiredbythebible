@@ -1,9 +1,15 @@
+---
+id: BITB-016
+status: done
+priority: P0
+size: S
+created: 2026-03-04
+prs: [227]
+---
+
 # BITB-016: Fix Migration Scripts SSL Connection Error
 
-**Priority:** P0 (Critical/Blocker)
-**Status:** ✅ Done (PR #227 merged 2026-03-04)
-**Size:** S (< 1 hour)
-**Created:** 2026-03-04
+**Migration note (2026-11-13, status):** (PR #227 merged 2026-03-04)
 **Completed:** 2026-03-04
 
 > **Superseded (production `sslmode` value) by BITB-099 (2026-09-09):** this

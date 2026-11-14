@@ -1,0 +1,142 @@
+---
+name: Backlog
+
+# BITB-313: story files (front matter) are the single source of truth for the backlog;
+# docs/BACKLOG.md is a stable stub that feature PRs never edit. Read-only on purpose: the
+# GITHUB_TOKEN carries `contents: read`, nothing here writes to any branch and no bot commits.
+#
+#   backlog-check       validate every story's front matter + run the backlog tooling tests
+#   backlog-stub-guard  fail a PR whose diff touches docs/BACKLOG.md (always runs)
+#   backlog-summary     on main, publish the rendered index to the job summary (no commit)
+
+"on":
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited]
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/BACKLOG_STORIES/**"
+      - "docs/DONE/**"
+      - "scripts/backlog.py"
+      - ".github/workflows/backlog.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backlog-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect backlog-related changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - name: Checkout PR head with full history
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Does the PR touch stories, backlog scripts or this workflow?
+        id: filter
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          if git diff --no-renames --name-only "origin/${BASE_BRANCH}...HEAD" \
+            | grep -E '^(docs/BACKLOG_STORIES/|docs/DONE/|scripts/(test_)?(backlog|migrate_backlog_frontmatter)|\.github/workflows/backlog\.yml)'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  backlog-check:
+    name: Backlog Front-Matter Check (BITB-313)
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Validate every story's front matter
+        run: python3 scripts/backlog.py check
+
+      - name: Backlog tooling tests
+        run: |
+          pip install pytest==9.2.0
+          python -m pytest scripts/test_backlog.py scripts/test_migrate_backlog_frontmatter.py -v
+
+  backlog-stub-guard:
+    name: BACKLOG.md Stub Guard (BITB-313)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR head with full history
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Fail if the PR edits docs/BACKLOG.md
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          git fetch origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+          if ! git diff --no-renames --name-only "origin/${BASE_BRANCH}...HEAD" | grep -qx 'docs/BACKLOG.md'; then
+            echo "docs/BACKLOG.md is untouched."
+            exit 0
+          fi
+          # The cutover PR itself (#1292) rewrites the file; the exemption is inert after it merges.
+          if [[ "${PR_NUMBER}" == "1292" ]]; then
+            echo "Exempt: the BITB-313 cutover PR (#1292) may edit docs/BACKLOG.md."
+            exit 0
+          fi
+          if grep -q '"backlog-stub-edit"' <<<"${PR_LABELS}"; then
+            echo "Exempt: PR carries the backlog-stub-edit label."
+            exit 0
+          fi
+          echo "::error file=docs/BACKLOG.md::docs/BACKLOG.md is a stable stub and must not be edited by feature PRs (BITB-313). Put status, priority, size and PR numbers in the story's front matter (docs/BACKLOG_STORIES/BITB-NNN-*.md) and drop your docs/BACKLOG.md hunk. The changelog is derived from your commit subject. Run 'make backlog' to query stories. Maintainers can exempt a PR with the 'backlog-stub-edit' label."
+          exit 1
+
+  backlog-summary:
+    name: Publish Backlog Index to Job Summary (BITB-313)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Validate, then render the index and recent changelog (no commit)
+        run: |
+          python3 scripts/backlog.py check
+          {
+            python3 scripts/backlog.py render
+            echo
+            echo "## Recent changelog"
+            echo
+            python3 scripts/backlog.py changelog --ref HEAD --limit 50
+          } >> "$GITHUB_STEP_SUMMARY"

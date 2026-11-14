@@ -1,9 +1,13 @@
+---
+id: BITB-314
+status: todo
+priority: P2
+size: S
+created: 2026-11-14
+---
+
 # BITB-314: Exclude Synthetic ML-Safety Probe Checks From the Content-Safety SLO Metrics
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S
-**Created:** 2026-11-14
 **Prompted by:** BITB-291 (PR #1279), follow-up 1 in its PR description.
 
 ## Problem

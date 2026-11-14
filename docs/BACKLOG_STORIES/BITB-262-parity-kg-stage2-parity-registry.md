@@ -1,9 +1,16 @@
+---
+id: BITB-262
+status: in-progress
+priority: P2
+size: L
+rank: 180
+created: 2026-10-30
+prs: [1258]
+---
+
 # BITB-262: Parity KG Stage 2 — Capability × Client Parity Registry
 
-**Status:** 🚧 In Progress (PR #1258)
-**Priority:** P2
-**Size:** L
-**Created:** 2026-10-30
+**Migration note (2026-11-13, status):** (PR #1258)
 **Part of:** BITB-260 — Stage 2 of 3 (registry layer)
 
 ## User Story

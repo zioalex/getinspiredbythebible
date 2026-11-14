@@ -1,9 +1,16 @@
+---
+id: BITB-096
+status: done
+priority: P1
+size: M
+rank: 1150
+created: 2026-08-17
+---
+
 # BITB-096: Persist the Verse Tsvector in a `verse_tsv` Side Table
 
-**Status:** ✅ Done (2026-08-18) — applied in production, backfilled and verified; query switch landed
-**Priority:** P1 (unblocks BITB-095, and removes a migration that will take production down if anyone runs it)
-**Size:** M
-**Created:** 2026-08-17
+**Migration note (2026-11-13, status):** (2026-08-18) — applied in production, backfilled and verified; query switch landed
+**Migration note (2026-11-13, priority):** (unblocks BITB-095, and removes a migration that will take production down if anyone runs it)
 **Supersedes:** the generated-column form of `r0004` (BITB-062 / PR #955)
 
 ## User Story

@@ -1,9 +1,14 @@
+---
+id: BITB-303
+status: todo
+priority: P2
+size: M
+rank: 20
+created: 2026-11-11
+---
+
 # BITB-303: Verse of the Day — Page, Dated Archive and Feed
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** M
-**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows S3, S9.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 4. **After BITB-301** (reuses its fetch helpers and chat prefill).
 **Commit:** `feat(frontend): verse of the day page, archive and feed (BITB-303)`
@@ -18,7 +23,7 @@ a question.
 
 Nothing on the site changes from day to day: every sitemap entry carries the same build
 timestamp, and the tagline "Get inspired daily by God's Word" is not backed by anything
-daily. The Icebox has had "Daily Devotional Notifications" (`docs/BACKLOG.md:7609`) with
+daily. The Icebox has had "Daily Devotional Notifications" (now in `docs/backlog/NOTES.md`, Icebox) with
 no web surface to point a notification at.
 
 ## Decisions already made

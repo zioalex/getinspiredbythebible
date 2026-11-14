@@ -1,9 +1,14 @@
+---
+id: BITB-294
+status: todo
+priority: P1
+size: M
+rank: 200
+created: 2026-11-11
+---
+
 # BITB-294: Provision Azure Content Safety in Production and Enable the `openai_moderation,azure` Chain
 
-**Status:** 🎯 Todo
-**Priority:** P1
-**Size:** M
-**Created:** 2026-11-11
 **Prompted by:** BITB-292 (code-only: the ordered ML failover chain ships, but production has nothing to fail over to).
 
 ## Problem
