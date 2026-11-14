@@ -233,6 +233,17 @@ variables:
     description: Maximum chat message length
     default: "500"
 
+  MAX_HISTORY_MESSAGE_LENGTH:
+    required_in: none
+    description:
+      Max characters kept per client-supplied conversation_history entry; longer entries are truncated (BITB-296)
+    default: "8000"
+
+  MAX_REQUEST_BODY_BYTES:
+    required_in: none
+    description: Max request body size in bytes; larger requests get HTTP 413 before parsing (BITB-296)
+    default: "1048576"
+
   ENVIRONMENT:
     required_in: remote
     description: Deployment environment name

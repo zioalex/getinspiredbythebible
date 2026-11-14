@@ -39,6 +39,7 @@ from pydantic import BaseModel, ConfigDict, Field  # noqa: E402
 
 from config import settings  # noqa: E402
 from middleware.access_audit import AccessAuditMiddleware  # noqa: E402
+from middleware.body_size_limit import BodySizeLimitMiddleware  # noqa: E402
 from middleware.correlation_id import CorrelationIDMiddleware  # noqa: E402
 from providers import ProviderError, get_embedding_provider, get_llm_provider  # noqa: E402
 from routes import (  # noqa: E402
@@ -367,6 +368,13 @@ if _appinsights_initialized:
         logger.info("FastAPI request tracing instrumented")
     except Exception as e:
         logger.warning("Failed to instrument FastAPI app: %s", e)
+
+# Request body size guard (BITB-296). Added BEFORE CORS = innermost of the user middlewares.
+# None of CORS / CorrelationID / AccessAudit reads the request body, so an oversized body is
+# still rejected before anything parses it, while the 413 keeps its CORS headers (a browser
+# can read it instead of seeing an opaque network error), its X-Request-ID and an
+# access-audit record.
+app.add_middleware(BodySizeLimitMiddleware)
 
 # CORS middleware for frontend
 app.add_middleware(

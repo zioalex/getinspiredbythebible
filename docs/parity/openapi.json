@@ -540,6 +540,10 @@
             "title": "Follow Ups"
           },
           "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
             "title": "Role",
             "type": "string"
           }
