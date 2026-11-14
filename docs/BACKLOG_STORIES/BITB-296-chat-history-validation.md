@@ -1,6 +1,6 @@
 # BITB-296: Validate and Bound Client-Supplied Chat History
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P0
 **Size:** S
 **Created:** 2026-11-11
@@ -77,7 +77,7 @@ the fix must not start rejecting long, honest conversations.
 | `api/chat/service.py` | Requirements 1–4 on `ConversationMessage` / `ChatRequest` |
 | `api/config.py` | `max_history_message_length`, `max_request_body_bytes` |
 | `api/middleware/` | New `body_size_limit.py` (pure ASGI) |
-| `api/main.py` | Register the middleware (outermost, before CORS handling of the body) |
+| `api/main.py` | Register the middleware (see *Implementation notes* — innermost, not outermost) |
 | `scripts/env-manifest.yaml` | Two new variables |
 | `api/tests/` | New `test_chat_history_validation.py`, `test_body_size_limit.py` |
 
@@ -107,6 +107,28 @@ the fix must not start rejecting long, honest conversations.
 - [ ] Web and Android chats of 30+ turns still work (covered by a test that sends 60
       entries and gets `200`)
 - [ ] New settings are in `scripts/env-manifest.yaml`
+
+## Implementation notes (2026-11-12)
+
+- **The body guard is registered innermost, not outermost.** CORS, correlation-ID and
+  access-audit middleware only read headers, so the body is still rejected before anything
+  parses it — and the `413` keeps its CORS headers (a browser can read it instead of
+  seeing an opaque network error) and its `X-Request-ID`.
+- **`follow_ups` is bounded at 5 items × 200 characters, not at the sanitizer's 120.**
+  `sanitize_follow_ups` *drops* a chip longer than 120 characters; truncating to 120 would
+  turn a dropped chip into an accepted one.
+- **`len(request.conversation_history)` is now at most `max_conversation_history`.** The
+  `history_count` / `session_message_count` log fields are capped accordingly; the
+  clarification check only needs zero versus non-zero.
+- **A bad role in an entry that is trimmed away is not rejected** — it never reaches the
+  model. A bad role inside the kept window is a `422`.
+- **The web client now sends only the last 20 history messages** (`recentHistory` in
+  `frontend/src/lib/api.ts`), as Android already did (`takeLast(20)`). Independent
+  verification found that the web client sent the whole thread, so a very long honest
+  conversation (roughly 170–250 exchanges of multi-byte text) would pass 1 MiB and then
+  get a `413` on every turn. The backend reads at most the last 10, so nothing is lost.
+- The web client shows its generic error for a `413` (not a misleading one), so no `413`
+  branch was added. Android is unchanged.
 
 ## Out of scope
 

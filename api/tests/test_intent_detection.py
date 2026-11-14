@@ -464,6 +464,7 @@ class TestChatNeedsClarificationFlow:
         mock_settings.llm_max_tokens = 1024
         mock_settings.max_context_verses = 10
         mock_settings.max_conversation_history = 10
+        mock_settings.max_history_message_length = 8000  # BITB-296
         mock_settings.query_expansion_enabled = False
         mock_settings.require_scripture_grounding = False
 

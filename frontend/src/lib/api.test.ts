@@ -15,6 +15,8 @@ import {
   submitFeedback,
   submitContactForm,
   streamMessage,
+  recentHistory,
+  MAX_HISTORY_MESSAGES_SENT,
   getCrisisResources,
   ColdStartError,
   StreamTimeoutError,
@@ -22,6 +24,7 @@ import {
   InvalidContactEmailError,
   VerificationError,
   type ChatResponse,
+  type Message,
   type ScriptureContext,
   type Verse,
   type HealthStatus,
@@ -1347,5 +1350,73 @@ describe("getCrisisResources (BITB-255)", () => {
     await expect(
       getCrisisResources("US", "en", "threat_to_others"),
     ).rejects.toThrow("API error: 429");
+  });
+});
+
+describe("history sent with a chat request is bounded (BITB-296)", () => {
+  // A long thread in each script: multi-byte text is what reaches the 1 MiB
+  // body limit first, so the cap must hold for every language we ship.
+  const SAMPLES: Record<string, string> = {
+    en: "For God so loved the world (John 3:16)",
+    it: "Il Signore è il mio pastore [Salmo 23:1]",
+    de: "Denn also hat Gott die Welt geliebt (Johannes 3,16)",
+    es: "¿Qué dice Juan 3:16?",
+    fr: "Car Dieu a tant aimé le monde (Jean 3:16)",
+    pt: "Porque Deus amou o mundo (João 3:16)",
+    ar: "لأنه هكذا أحب الله العالم (يوحنا 3:16)",
+    ru: "Ибо так возлюбил Бог мир (От Иоанна 3:16)",
+    zh: "「神爱世人」（约翰福音3：16）",
+    hi: "क्योंकि परमेश्वर ने जगत से ऐसा प्रेम रखा (यूहन्ना 3:16)",
+    ko: "하나님이 세상을 이처럼 사랑하사 (요한복음 3:16)",
+  };
+
+  function thread(text: string, length: number): Message[] {
+    return Array.from({ length }, (_, i) => ({
+      role: i % 2 === 0 ? ("user" as const) : ("assistant" as const),
+      content: `${text} #${i}`,
+      ...(i % 2 === 1 ? { follow_ups: ["a?", "b?"] } : {}),
+    }));
+  }
+
+  function lastBody(): { conversation_history: Message[] } {
+    const calls = (global.fetch as any).mock.calls;
+    return JSON.parse(calls[calls.length - 1][1].body);
+  }
+
+  it("returns a short history unchanged", () => {
+    const history = thread("hi", MAX_HISTORY_MESSAGES_SENT);
+    expect(recentHistory(history)).toBe(history);
+    expect(recentHistory([])).toEqual([]);
+  });
+
+  it.each(Object.entries(SAMPLES))(
+    "streamMessage sends only the most recent messages (%s)",
+    async (_lang, text) => {
+      const history = thread(text, 501);
+      (global.fetch as any).mockResolvedValueOnce(
+        streamResponseFromChunks(["data: [DONE]\n\n"]),
+      );
+      for await (const _ of streamMessage("hi", history)) {
+        void _;
+      }
+      const sent = lastBody().conversation_history;
+      expect(sent).toEqual(history.slice(-MAX_HISTORY_MESSAGES_SENT));
+      expect(sent[sent.length - 1].content).toBe(`${text} #500`);
+      // The caller's array is not mutated.
+      expect(history).toHaveLength(501);
+    },
+  );
+
+  it("sendMessage sends only the most recent messages", async () => {
+    const history = thread(SAMPLES.zh, 300);
+    (global.fetch as any).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ message: "ok" }),
+    });
+    await sendMessage("hi", history);
+    expect(lastBody().conversation_history).toEqual(
+      history.slice(-MAX_HISTORY_MESSAGES_SENT),
+    );
   });
 });

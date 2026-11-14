@@ -195,6 +195,10 @@ All inputs are validated before processing.
 |------------|-------|---------------|
 | Max length | 500 chars | `MAX_MESSAGE_LENGTH` |
 | Min length | 1 char | Hardcoded |
+| History entries kept | Last 10 (older ones dropped before validation) | `MAX_CONVERSATION_HISTORY` |
+| History entry max length | 8000 chars (longer entries are truncated, not rejected) | `MAX_HISTORY_MESSAGE_LENGTH` |
+| History entry roles | `user` or `assistant` only (anything else is rejected with `422`) | Hardcoded |
+| Request body max | 1 MiB (larger requests get `413` `request_too_large`) | `MAX_REQUEST_BODY_BYTES` |
 | Session ID format | Alphanumeric + `-_` | Regex pattern |
 | Session ID max length | 64 chars | Hardcoded |
 
@@ -248,6 +252,8 @@ CONTENT_FILTER_MAX_URLS=0
 
 # Input Limits
 MAX_MESSAGE_LENGTH=500
+MAX_HISTORY_MESSAGE_LENGTH=8000
+MAX_REQUEST_BODY_BYTES=1048576
 
 # CORS
 CORS_ORIGINS=https://custom-domain.com

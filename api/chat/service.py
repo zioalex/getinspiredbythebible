@@ -11,7 +11,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
-from typing import AsyncIterator
+from typing import Any, AsyncIterator, Literal
 
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -123,15 +123,46 @@ PASTORAL_TONE_INTENTS = frozenset({"COMFORT", "GUIDANCE"})
 _is_disconnection_error = is_disconnection_error
 
 
+# BITB-296: bounds for the untrusted ``follow_ups`` echo on a history entry. Deliberately
+# looser than ``chat.follow_ups._MAX_FOLLOW_UP_LEN`` (120): ``sanitize_follow_ups`` DROPS
+# items longer than 120, so truncating to 120 here would turn an over-long (previously
+# dropped) chip into an accepted one. Truncating to 200 keeps over-long items > 120 and
+# therefore still dropped by the sanitizer.
+_MAX_HISTORY_FOLLOW_UPS = 5
+_MAX_HISTORY_FOLLOW_UP_CHARS = 200
+
+
 class ConversationMessage(BaseModel):
     """A message in the conversation."""
 
-    role: str  # 'user' or 'assistant'
+    # BITB-296: only the two roles a client can legitimately replay. Anything else
+    # (system/tool/"User"/"") would be forwarded to the LLM as a forged turn -> 422.
+    role: Literal["user", "assistant"]
     content: str
     # BITB-254: the chips shown under this assistant message, echoed back by the
     # client so the server can re-attach the FOLLOWUPS trailer to history. Untrusted
     # input -- re-sanitized in _build_messages. Optional: old clients omit it.
     follow_ups: list[str] | None = None
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def _truncate_content(cls, v: Any) -> Any:
+        """Truncate over-long history content (BITB-296); non-str still fails validation."""
+        if isinstance(v, str):
+            # Read at call time so tests/ops overrides apply. str slicing is by code point.
+            return v[: max(settings.max_history_message_length, 0)]
+        return v
+
+    @field_validator("follow_ups", mode="before")
+    @classmethod
+    def _bound_follow_ups(cls, v: Any) -> Any:
+        """Drop extra chips and truncate over-long ones (BITB-296); non-list is rejected."""
+        if isinstance(v, list):
+            return [
+                item[:_MAX_HISTORY_FOLLOW_UP_CHARS] if isinstance(item, str) else item
+                for item in v[:_MAX_HISTORY_FOLLOW_UPS]
+            ]
+        return v
 
 
 class ChatRequest(BaseModel):
@@ -156,6 +187,22 @@ class ChatRequest(BaseModel):
     region: str | None = None
     region_override: bool = False  # True when the user picked `region` in the crisis card
     supports_crisis_card: bool = False  # Client renders `crisis_resources`; skip markdown fallback
+
+    @field_validator("conversation_history", mode="before")
+    @classmethod
+    def _trim_history(cls, v: Any) -> Any:
+        """Keep only the last ``max_conversation_history`` entries BEFORE entry validation.
+
+        BITB-296: only that tail ever reaches the LLM (see ``_build_messages``), so
+        trimming first makes a 5,000-entry request cost nothing. Consequences: an invalid
+        role in a trimmed-away entry is not rejected (it never reaches the LLM); an invalid
+        role inside the kept window is a 422; ``len(request.conversation_history)`` is now
+        capped at the setting (only used as 0 vs >0 by clarification, plus log fields).
+        """
+        if isinstance(v, list):
+            keep = settings.max_conversation_history
+            return v[-keep:] if keep > 0 else []
+        return v
 
     @field_validator("region", mode="before")
     @classmethod

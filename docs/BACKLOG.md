@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-12
 
 ## Changelog
 
@@ -20,6 +20,7 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-12: BITB-296 🔍 In Review — history roles limited to user/assistant (422), history trimmed to the last 10 entries and each entry truncated to 8000 characters, pure-ASGI 1 MiB body guard answers 413 without buffering SSE (#1289)
 - 2026-11-11: BITB-294 opened — provision Azure Content Safety in prod + enable the openai_moderation,azure chain (BITB-292 follow-up)
 - 2026-11-11: BITB-292 🔍 In Review — ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN, e.g. openai_moderation,azure): Azure Content Safety tried after OpenAI Moderation, keyword fallback only when every configured classifier failed, per-hop failover_total labels
 - 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
@@ -197,9 +198,9 @@ re-litigating a settled rule.
 
 ## P0 - Critical (Ship Now)
 
-### 🎯 BITB-296: Validate and Bound Client-Supplied Chat History
+### 🔍 BITB-296: Validate and Bound Client-Supplied Chat History
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review (PR #1289)
 **Priority:** P0
 **Size:** S
 **Created:** 2026-11-11
