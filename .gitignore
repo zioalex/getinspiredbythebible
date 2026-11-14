@@ -155,3 +155,6 @@ backups/
 # On KubeOpenCode the repo is checked out at $WORKSPACE_DIR, so worktrees land
 # inside the working tree; this keeps them out of git status and git clean.
 worktrees/
+
+# BITB-304: CI-only sparse checkout of .python-version (see auto-update-prs.yml)
+.pyver/

@@ -67,18 +67,16 @@ def test_claude_with_api_key_passes():
     assert settings.anthropic_api_key == "sk-ant-test123"  # pragma: allowlist secret
 
 
-def test_openai_requires_api_key():
-    """Test that llm_provider=openai requires openai_api_key."""
+def test_openai_llm_provider_rejected():
+    """llm_provider=openai has no implementation, so it must fail at start-up (BITB-304)."""
     with pytest.raises(ValidationError) as exc_info:
         Settings(
             _env_file=None,
             database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
             llm_provider="openai",
-            openai_api_key=None,
+            openai_api_key="sk-test",  # pragma: allowlist secret
         )
-    error_msg = str(exc_info.value)
-    assert "openai_api_key is required when llm_provider=openai" in error_msg
-    assert "OPENAI_API_KEY" in error_msg
+    assert "llm_provider" in str(exc_info.value)
 
 
 def test_openrouter_requires_api_key():

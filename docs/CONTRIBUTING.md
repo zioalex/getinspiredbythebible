@@ -21,6 +21,28 @@ will run (or, for `docs/parity/`, `parity-ci.yml`: its hard stale-artifact gate 
 export-script tests and the warn-only breaking-change report via the official
 `oasdiff/oasdiff-action` — see `docs/parity/README.md`).
 
+### Scheduled workflows (BITB-304)
+
+Two workflows run on a schedule (and by hand via *Run workflow*), never on pull requests:
+
+| Workflow                        | Schedule                         | What it does |
+| ------------------------------- | -------------------------------- | ------------ |
+| `model-existence-probe.yml`     | Mondays 06:17 UTC                | Runs `scripts/check_configured_models.py`: every model ID configured in `api/config.py`, `api/providers/llama_guard.py`, `api/providers/claude.py` and `deployment/variables.tf` must exist in OpenRouter's public `/api/v1/models` list; the Claude default is checked against Anthropic's `/v1/models` only when the optional `ANTHROPIC_API_KEY` secret is set (otherwise reported as skipped). No completion calls. Exit 1 = ID missing (a model was retired: fix the config), exit 2 = network/HTTP error (re-run). |
+| `dependency-majors-report.yml`  | 1 Jan/Apr/Jul/Oct, 07:23 UTC     | Runs `scripts/report_dependency_majors.py`: writes a table of direct dependencies in `api/requirements.txt` and `frontend/package.json` whose latest major is ahead to the job summary. Report only, never fails on "behind", no GitHub Issue: file follow-up stories from it. Dependabot keeps ignoring majors. |
+
+Run either locally: `python3 scripts/check_configured_models.py` (set `ANTHROPIC_API_KEY` to include
+the Claude check) or `python3 scripts/report_dependency_majors.py`. Their tests are
+`scripts/test_check_configured_models.py` and `scripts/test_report_dependency_majors.py`.
+
+### Python version (BITB-304)
+
+The backend's Python minor version lives in one place, `.python-version` (currently `3.14`).
+`api/Dockerfile` must use the same `FROM python:X.Y-slim` tag (enforced by
+`api/tests/test_runtime_alignment.py`), every workflow reads it with
+`python-version-file: ".python-version"`, and the Black/Ruff/MyPy targets in `api/pyproject.toml`
+match it. To bump Python, change `.python-version`, the Dockerfile and the `pyproject.toml`
+targets together.
+
 ### Story-ID duplicate-claim check (BITB-235)
 
 `story-id-check.yml` fails a PR that adds a `docs/BACKLOG_STORIES/BITB-NNN-*.md`

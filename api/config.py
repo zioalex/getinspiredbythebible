@@ -102,7 +102,7 @@ class Settings(BaseSettings):
     debug: bool = False  # Set DEBUG=true in .env for development
 
     # LLM Configuration
-    llm_provider: Literal["ollama", "claude", "openai", "openrouter"] = "ollama"
+    llm_provider: Literal["ollama", "claude", "openrouter"] = "ollama"
     llm_model: str = "llama3:8b"
     llm_temperature: float = 0.7
     llm_max_tokens: int = 1024
@@ -611,11 +611,6 @@ class Settings(BaseSettings):
             raise ValueError(
                 "anthropic_api_key is required when llm_provider=claude. "
                 "Set ANTHROPIC_API_KEY environment variable."
-            )
-        if self.llm_provider == "openai" and self.openai_api_key is None:
-            raise ValueError(
-                "openai_api_key is required when llm_provider=openai. "
-                "Set OPENAI_API_KEY environment variable."
             )
         if self.llm_provider == "openrouter" and self.openrouter_api_key is None:
             raise ValueError(

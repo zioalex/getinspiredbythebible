@@ -2,13 +2,13 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-13
 
 ## Changelog
 
 > **Convention (enforced since 2026-10-22): one entry per line, newest first, append-only.**
 >
-> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#PR)`
+> `- YYYY-MM-DD: BITB-NNN <status> — <one-line summary> (#1291)`
 >
 > - Add your entry **directly below this blockquote**, at the top of the list.
 > - **Never edit, reword, or reorder existing entries** — a status change gets a
@@ -20,6 +20,9 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-13: BITB-304 🔍 In Review — one Python version (3.14, `.python-version`) for CI and Dockerfile with a divergence test; Claude works with only an API key (current Sonnet default, no Ollama name); `openai` LLM provider rejected at start-up; weekly model-existence probe + quarterly dependency-majors report; follow-ups BITB-311, BITB-312 opened (#1291)
+- 2026-11-13: BITB-312 opened — opencode agent prompts still say "Python 3.12" (BITB-304 follow-up)
+- 2026-11-13: BITB-311 opened — Docker Compose always sets LLM_MODEL, so LLM_PROVIDER=claude gets an Ollama model name (BITB-304 follow-up)
 - 2026-11-11: BITB-294 opened — provision Azure Content Safety in prod + enable the openai_moderation,azure chain (BITB-292 follow-up)
 - 2026-11-11: BITB-292 🔍 In Review — ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN, e.g. openai_moderation,azure): Azure Content Safety tried after OpenAI Moderation, keyword fallback only when every configured classifier failed, per-hop failover_total labels
 - 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
@@ -506,9 +509,10 @@ The live sitemap has 66 URLs and none contains scripture, so people searching fo
 
 ---
 
-### 🎯 BITB-304: Align the Python Runtime, Fix the Claude Model Configuration, Probe Configured Models
+### 🔍 BITB-304: Align the Python Runtime, Fix the Claude Model Configuration, Probe Configured Models
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review — PR #1291; owner step: confirm the first `model-existence-probe` run is green
+**Follow-ups:** BITB-311 (Compose LLM_MODEL default), BITB-312 (opencode prompt text)
 **Priority:** P1
 **Size:** S
 **Created:** 2026-11-11
@@ -3904,6 +3908,24 @@ attributed to Android or broadly backfilled.
 
 ## P2 - Medium Priority (Backlog)
 
+### 🎯 BITB-311: Docker Compose Always Sets LLM_MODEL, So `LLM_PROVIDER=claude` Gets an Ollama Model Name
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** XS
+**Created:** 2026-11-13
+
+BITB-304 follow-up: the factory forwards `LLM_MODEL` to Claude only when it is explicitly set, but every Compose file injects a default (`mistral:7b` or an OpenRouter slug), so `LLM_PROVIDER=claude` under Compose still sends a non-Claude model.
+
+**Acceptance Criteria (summary):**
+
+- [ ] `LLM_PROVIDER=claude` under `make docker-up` uses the Claude default model
+- [ ] The local Ollama stack keeps its default model
+
+**Full Story:** [`BITB-311-compose-llm-model-provider-default.md`](BACKLOG_STORIES/BITB-311-compose-llm-model-provider-default.md)
+
+---
+
 ### 🎯 BITB-308: Lock the Backend Origin to Cloudflare (No Direct Container Apps Access)
 
 **Status:** 🎯 Todo
@@ -7026,6 +7048,24 @@ of self-fixing.
 ---
 
 ## P3 - Low Priority (Future)
+
+### 🎯 BITB-312: opencode Agent Prompts Still Say "Python 3.12"
+
+**Status:** 🎯 Todo
+**Priority:** P3
+**Size:** XS
+**Created:** 2026-11-13
+
+BITB-304 follow-up: the generated opencode prompt text still says "Python 3.12". It was left unchanged so BITB-304 stayed outside the live-config gate.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Prompt text derived from `.python-version` (or updated) and `opencode.json` regenerated
+- [ ] Live-config gate green
+
+**Full Story:** [`BITB-312-opencode-prompt-python-version.md`](BACKLOG_STORIES/BITB-312-opencode-prompt-python-version.md)
+
+---
 
 ### 🎯 BITB-276: Strings Platform — Evaluate Tolgee vs Weblate for the 3-Format Sync
 
