@@ -5,6 +5,7 @@ Feedback API routes - Endpoints for feedback and contact form submissions.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from feedback import FeedbackRepository
 from feedback.models import (
     ContactRequest,
@@ -16,6 +17,7 @@ from scripture import get_db_session
 from utils.email_service import email_service
 from utils.logging_config import get_logger
 from utils.metrics import contact_form_counter, feedback_counter
+from utils.security import require_ip_rate_limit
 from utils.turnstile import require_turnstile
 
 logger = get_logger(__name__)
@@ -30,7 +32,14 @@ async def get_feedback_repository(
     return FeedbackRepository(db)
 
 
-@router.post("", response_model=FeedbackResponse, dependencies=[Depends(require_turnstile)])
+@router.post(
+    "",
+    response_model=FeedbackResponse,
+    dependencies=[
+        Depends(require_ip_rate_limit("feedback", lambda: settings.rate_limit_feedback_per_minute)),
+        Depends(require_turnstile),
+    ],
+)
 async def submit_feedback(
     request: FeedbackRequest,
     repo: FeedbackRepository = Depends(get_feedback_repository),
@@ -107,7 +116,14 @@ async def submit_feedback(
         ) from e
 
 
-@router.post("/contact", response_model=ContactResponse, dependencies=[Depends(require_turnstile)])
+@router.post(
+    "/contact",
+    response_model=ContactResponse,
+    dependencies=[
+        Depends(require_ip_rate_limit("contact", lambda: settings.rate_limit_contact_per_minute)),
+        Depends(require_turnstile),
+    ],
+)
 async def submit_contact(
     request: ContactRequest,
     repo: FeedbackRepository = Depends(get_feedback_repository),

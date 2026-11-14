@@ -11,6 +11,7 @@ Provides:
 import hashlib
 import re
 import unicodedata
+from collections.abc import Callable
 from enum import Enum
 from typing import Annotated
 
@@ -22,7 +23,7 @@ from . import translation_registry as tr
 from .client_ip import resolve_client_ip
 from .logging_config import get_logger
 from .monitor_probe import is_monitor_probe
-from .rate_limiter import get_rate_limiter
+from .rate_limiter import get_rate_limiter, get_scoped_rate_limiter
 
 logger = get_logger(__name__)
 
@@ -250,6 +251,47 @@ async def require_rate_limit(request: Request) -> None:
         )
 
 
+def require_ip_rate_limit(scope: str, per_minute: Callable[[], int] | int):
+    """
+    Build a FastAPI dependency enforcing an IP-only, per-scope rate limit (BITB-298).
+
+    Unlike ``require_rate_limit`` it never reads ``session_id``, so a feedback/contact/search
+    request can never consume a chat session's lifetime cap. The bucket key is namespaced by
+    ``scope`` so it is independent of chat and of every other scope. ``per_minute`` may be a
+    callable (e.g. ``lambda: settings.x``) so the setting is read per request.
+    """
+
+    async def _dependency(request: Request) -> None:
+        if not settings.rate_limit_enabled:
+            return
+
+        if is_monitor_probe(request):
+            logger.info(
+                "Monitor probe — bypassing rate limit",
+                extra={"path": request.url.path, "scope": scope},
+            )
+            return
+
+        limit = per_minute() if callable(per_minute) else per_minute
+        ip_address = get_client_ip(request)
+
+        rate_limiter = get_scoped_rate_limiter(scope, limit)
+        allowed, reason = await rate_limiter.check_rate_limit(f"{scope}:{ip_address}")
+
+        if not allowed:
+            log_security_violation(
+                violation_type=ViolationType.RATE_LIMIT_IP,
+                ip_address=ip_address,
+                details=f"{scope}: {reason}",
+            )
+            raise HTTPException(
+                status_code=429,
+                detail={"error": "Rate limit exceeded", "retry_after": 60},
+            )
+
+    return _dependency
+
+
 # Cosmetic violations that must never pre-empt the crisis path (BITB-255).
 _CRISIS_BYPASS_VIOLATIONS = frozenset({ViolationType.PROFANITY, ViolationType.REPEATED_CHARS})
 
@@ -434,6 +476,58 @@ _DH_PT_DIE_TO = (
     r"(?!\s+(?:para|em|com|ao|no|à)\s+(?:o\s+|a\s+)?"
     r"(?:pecado|cristo|jesus|mundo|carne|si\s+mesm|voc[êe]\s+mesm|ti\s+mesm))"
 )
+
+# BITB-266: English directed-harm taunts the original three-phrase table missed. All run under
+# every language code (BITB-193). These are deliberately NARROW: grief letters ("I wish you had
+# told me you were thinking about killing yourself"), caring wishes ("I hope you choose life
+# instead of killing yourself"), the overwork idiom ("stop killing urself over it") and
+# hotline wording ("Keep thinking about killing yourself? Call 988.") must stay allowed.
+_DH_YOU = r"(?:you|u)"
+_DH_YOURSELF = r"(?:yourself|urself|ur\s+self|yoself|yo\s+self)"
+# Slang imperative only ("kill urself"); "killing urself" alone is the overwork idiom.
+_DH_SLANG_KILL = r"\bkill\s+(?:urself|ur\s+self|yoself|yo\s+self)\b"
+_DH_KYS = r"\bkys\b"
+# The wish verb must lead DIRECTLY into the act: "I hope you're thinking about killing
+# yourself", "I wish you were killing yourself". No free gap, so "I hope you find peace instead
+# of killing yourself" / "I wish you had come to me before killing yourself" never match.
+_DH_WISH_TAUNT = (
+    r"\b(?:hope|wish)\s+(?:that\s+)?" + _DH_YOU + r"(?:'re|re|r|\s+are|\s+were|\s+r)?\s+"
+    r"(?:(?:thinking|think)\s+about\s+|considering\s+|consider\s+|going\s+to\s+|gonna\s+|"
+    r"start\s+|try\s+|end\s+up\s+)?kill(?:ing)?\s+" + _DH_YOURSELF + r"\b(?!\s+(?:laughing|slowly))"
+)
+# Imperative at a clause start; a question mark later in the clause (hotline / rhetorical
+# wording) exempts it, and so do the overwork / mortification idioms ("keep killing yourself at
+# that job", "consider killing yourself to sin"). Own clause-start (no `\n` inside `\s*`) so
+# newline runs stay linear.
+_DH_IMP_START = r"(?:^|[.!;:][ \t]*|\n[ \t]*|[¡¿][ \t]*)"
+_DH_IMPERATIVE_TAUNT = (
+    _DH_IMP_START
+    + "[(\\[（「“\"']*"
+    + r"(?:(?:just|so|then|now|go)\s+)?(?:start|keep|try|consider)\s+"
+    + r"(?:thinking\s+about\s+)?killing\s+(?:yourself|urself)\b(?![^.!\n]*\?)"
+    + r"(?!\s+(?:with|at|over|for|from|trying|working|less|daily|laughing|slowly|dead|"
+    r"to\s+(?:sin|self|the\s+(?:flesh|world|old))))"
+)
+# "you should, loser". `(?:\s*,\s*|\s+)` (not `\s*,?\s*`) keeps it linear on whitespace runs;
+# insults that double as ordinary verbs (trash, freak, clown) are left out.
+_DH_SHOULD_INSULT = (
+    r"\b" + _DH_YOU + r"\s+should(?:\s+(?:just|really))?"
+    r"(?:\s+(?:do\s+it|go\s+(?:ahead|for\s+it)|go))?"
+    r"(?:\s*,\s*|\s+)(?:you\s+)?(?:loser|idiot|moron|scum|retard\w*|bitch|coward|pathetic)"
+    r"(?![\w-])"
+)
+# Bare "You should." / "You should just do it!" only counts as the DIRECT answer to a
+# second-person self-harm question ("Thinking about suicide? You should.", "Want to kill
+# yourself? Go ahead, you should."). No gap across sentences, so caring advice ("If you are
+# thinking about suicide, please call 988. You should."), grief ("My brother committed
+# suicide. Should I go? You should.") and narrative stay allowed.
+_DH_SHOULD_DEATH_CTX = (
+    r"\b(?:thinking\s+about|considering|want(?:ing)?\s+to|going\s+to|planning\s+(?:on|to))\s+"
+    r"(?:suicide|kill(?:ing)?\s+" + _DH_YOURSELF + r"|end(?:ing)?\s+your\s+life)"
+    r"\s*\?\s*(?:go\s+ahead\s*[,.!]?\s*)?" + _DH_YOU + r"\s+should(?:\s+just)?"
+    r"(?:\s+(?:do\s+it|go\s+ahead|go\s+for\s+it))?(?=\s*(?:[!.]|$))"
+)
+
 
 # BITB-238: English help-seeking / theological exemptions for the directed-harm table.
 # The English patterns ("kill yourself", "go die", "you should die") run under every language
@@ -1826,6 +1920,13 @@ class MultiLanguageContentFilter:
             r"\bi\s+will\s+kill\s+you\b",
             r"\bi\s+want\s+to\s+kill\s+you\b",
             r"\bgo\s+fuck\s+yourself\b",
+            # BITB-266
+            _DH_SLANG_KILL,
+            _DH_KYS,
+            _DH_WISH_TAUNT,
+            _DH_IMPERATIVE_TAUNT,
+            _DH_SHOULD_INSULT,
+            _DH_SHOULD_DEATH_CTX,
         ],
         "it": [
             r"\bvattene a fanculo\b",
