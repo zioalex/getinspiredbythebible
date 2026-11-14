@@ -400,6 +400,89 @@ az postgres flexible-server delete -g "$PG_RG" -n "$NEW_SERVER" --yes   # if you
 
 ---
 
+## Restore drill
+
+A backup nobody has restored is a hope, not a backup (BITB-305). The drill is a **recorded,
+timed exercise** — not automation: restore the server to a point in time, compare row counts with
+production, delete the temporary server, and add a row to the [Drill log](#drill-log). Do it once
+now, then after any change to the backup settings and at least once a year.
+
+It reuses [Scenario E](#scenario-e--rehearse-in-azure-no-local-disk) commands and the
+[verification checklist](#verification-checklist). The restored server is billed until deleted, so
+the last step is not optional.
+
+```bash
+# 0. Variables (see Preparation above) and a stopwatch
+export PG_RG="bible-app-rg"
+export PG_SERVER="bible-app-db-<suffix>"
+export PG_DB="<db_name>"
+export COPY="${PG_SERVER}-drill-$(date +%Y%m%d)"
+make db-backup-info                      # note earliestRestoreDate
+export RESTORE_POINT="$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"   # UTC, inside the window
+START=$(date +%s)
+
+# 1. Point-in-time restore into a temporary server (10-30 min on Burstable)
+make db-restore-new-server NEW_SERVER="$COPY" RESTORE_POINT="$RESTORE_POINT"
+# Equivalent raw command:
+#   az postgres flexible-server restore -g "$PG_RG" --name "$COPY" \
+#     --source-server "$PG_SERVER" --restore-time "$RESTORE_POINT"
+echo "minutes to restore: $(( ($(date +%s) - START) / 60 ))"        # -> Drill log
+
+# 2. Reach the copy (own firewall, own FQDN, same admin password)
+make az-pg-add-ip SERVER="$COPY"
+export DATABASE_URL="$(make -s db-server-url SERVER="$COPY")"
+export PGPASSWORD='<the production admin password>'
+make db-restore-verify                   # extensions, indexes valid, migrations
+```
+
+Compare exact row counts on the copy and on production (run the same statement against both
+`DATABASE_URL`s; `n_live_tup` is only an estimate, so use `count(*)`). Rows written after
+`RESTORE_POINT` legitimately differ on the live tables (`sessions`, `feedback`,
+`contact_submissions`, `rate_limit_hits`); the scripture tables must match exactly.
+
+```sql
+SELECT 'translations' AS t, count(*) FROM translations
+UNION ALL SELECT 'books', count(*) FROM books
+UNION ALL SELECT 'chapters', count(*) FROM chapters
+UNION ALL SELECT 'verses', count(*) FROM verses
+UNION ALL SELECT 'passages', count(*) FROM passages
+UNION ALL SELECT 'topics', count(*) FROM topics
+UNION ALL SELECT 'feedback', count(*) FROM feedback
+UNION ALL SELECT 'contact_submissions', count(*) FROM contact_submissions
+UNION ALL SELECT 'sessions', count(*) FROM sessions
+ORDER BY 1;
+```
+
+Then tear down and record:
+
+```bash
+make db-delete-server SERVER="$COPY"
+make az-pg-remove-ip RULE="$COPY" SERVER="$COPY"
+az postgres flexible-server list -g "$PG_RG" -o table      # confirm the copy is gone
+```
+
+### Drill log
+
+Add one row per drill. "Row counts matched" = scripture tables identical, live tables within the
+expected drift.
+
+| Date | Restore point (UTC) | Minutes to restore | Row counts matched | Performed by |
+| ---- | ------------------- | ------------------ | ------------------ | ------------ |
+|      |                     |                    |                    |              |
+
+### Geo-redundant backup (decision, BITB-305)
+
+`geo_redundant_backup_enabled` is `false` today. Per the Azure documentation, geo-redundant backup
+can only be chosen **when the Flexible Server is created**; it cannot be switched on for an
+existing server, and in Terraform changing the argument forces a new server. Enabling it would
+therefore mean building a new server and migrating — out of scope for BITB-305, which makes no
+backup changes in Terraform. It needs a follow-up decision from the owner (accept the
+single-region risk, or plan a new geo-redundant server together with the private-networking work
+in BITB-005). Until then, [Scenario D](#scenario-d--take-a-portable-logical-backup) is the only
+off-region copy.
+
+---
+
 ## Gotchas
 
 | Symptom                                          | Cause                                                                 |
