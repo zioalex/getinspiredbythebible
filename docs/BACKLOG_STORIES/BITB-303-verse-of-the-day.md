@@ -23,7 +23,7 @@ a question.
 
 Nothing on the site changes from day to day: every sitemap entry carries the same build
 timestamp, and the tagline "Get inspired daily by God's Word" is not backed by anything
-daily. The Icebox has had "Daily Devotional Notifications" (`docs/BACKLOG.md:7609`) with
+daily. The Icebox has had "Daily Devotional Notifications" (now in `docs/backlog/NOTES.md`, Icebox) with
 no web surface to point a notification at.
 
 ## Decisions already made

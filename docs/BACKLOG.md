@@ -46,5 +46,5 @@ Then open the one story file you need; never read the whole backlog.
 ## CI guard
 
 The `backlog-stub-guard` job fails any PR whose diff touches `docs/BACKLOG.md`: move the change
-into the story's front matter instead. Exemptions: PR title containing `BITB-313` (the cutover)
-or the `backlog-stub-edit` label. No workflow has write permission and no bot commits.
+into the story's front matter instead. Exemptions: the cutover PR (#1292, matched by PR number) or the
+`backlog-stub-edit` label — use the label to change this stub. No workflow has write permission and no bot commits.

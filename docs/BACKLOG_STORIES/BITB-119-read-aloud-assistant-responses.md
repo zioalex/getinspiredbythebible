@@ -311,7 +311,7 @@ shared normalization/chunking spec so web and Android cannot drift (the BITB-059
 
 ### Backlog / commit
 
-- `docs/BACKLOG.md` entry → 🚧 In Progress (→ ✅ Done with PR number once merged), `Last Updated`.
+- Story front matter → `status: in-progress` (→ `done` with `prs: [N]` once merged).
 - Single commit type `feat:` (user-visible) so release-please puts it in CHANGELOG → both What's
   New surfaces (which are generated from CHANGELOG, not hand-edited).
 

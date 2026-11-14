@@ -5,6 +5,7 @@ priority: P1
 size: M
 rank: 170
 created: 2026-11-10
+follow_ups: [BITB-314, BITB-315]
 ---
 
 # BITB-291: Synthetic Probe of the ML Content-Safety Path in prod-monitor

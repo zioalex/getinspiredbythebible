@@ -50,7 +50,8 @@ trend item) remain.
 1. Rewrite `docs/ROADMAP.md` (decision 1). Keep the Vision section; correct anything in
    it that is no longer true (the Android app is published — check
    `frontend/src/app/sitemap.ts`'s comment and the `/app` page before stating it).
-2. Before moving anything, read `scripts/check_backlog_story_ids.py` in full. It
+2. ~~Superseded by BITB-313 (requirements 2–4 and 6): there is no index to archive any more.~~
+   Before moving anything, read `scripts/check_backlog_story_ids.py` in full. It
    requires every file in `docs/BACKLOG_STORIES/` to have a heading in
    `docs/BACKLOG.md`. A `✅ Done` entry whose story file is still in
    `docs/BACKLOG_STORIES/` must have its file moved to `docs/DONE/` in the same commit
@@ -69,7 +70,7 @@ trend item) remain.
    push to `main` fails and the fallback PR is never merged; or the commit step sees no
    diff. Fix the cause, or if the fix needs a repository setting, document it under
    Owner steps. Run `make audit-metrics` locally and commit the fresh snapshot.
-6. Run `python scripts/check_backlog_story_ids.py` and the backend test that wraps it.
+6. Run `make backlog-check` (the old `scripts/check_backlog_story_ids.py` was retired by BITB-313).
 
 ## Tests
 
@@ -81,11 +82,9 @@ line-count proof are sufficient; no separate verifier session is needed.
 ## Acceptance criteria
 
 - [ ] `docs/ROADMAP.md` "Last Updated" is current and "Now" lists the wave-1 stories
-- [ ] `docs/BACKLOG.md` contains no `✅ Done` or `❌ Cancelled` story entries outside the
-      changelog; target under 3,500 lines
-- [ ] `docs/BACKLOG_DONE.md` contains every moved entry verbatim
-- [ ] `scripts/check_backlog_story_ids.py` passes
-- [ ] No broken in-repo links to moved entries
+- [x] ~~`docs/BACKLOG.md` archive (requirements 2–4)~~ — superseded: BITB-313 replaced the index
+      with a stub and archived its history under `docs/backlog/` (#1292)
+- [ ] `make backlog-check` passes
 - [ ] `docs/audits/metrics/report.md` shows a snapshot dated on or after the merge, or
       the blocker is documented with an owner step
 - [ ] **Owner step:** read the new roadmap and correct the order if it does not match

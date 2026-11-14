@@ -5,7 +5,7 @@ priority: P1
 size: L
 created: 2026-11-13
 prs: [1292]
-follow_ups: []
+follow_ups: [BITB-316]
 supersedes: BITB-287 requirement 1 (BACKLOG.md union merge driver)
 ---
 
@@ -98,7 +98,8 @@ retrieval, edit reliability, prompt-injection exposure, …):
    - `backlog-check` job on PRs touching `docs/BACKLOG_STORIES/**` or `docs/DONE/**` runs
      `backlog.py check`.
    - Guard: a PR whose diff modifies `docs/BACKLOG.md` fails, with a message pointing to
-     the story front matter. Exemption: PRs whose title contains `BITB-313` (the cutover).
+     the story front matter. Exemption: the cutover PR #1292 (by PR number) or the `backlog-stub-edit` label
+     (see *Implementation notes and deviations*).
    - On push to `main`: the job writes `backlog.py render` to the **Actions job summary**
      (human-readable index), with no commit.
 6. **One-off migration script** (committed, with tests). It reads every story file's bold
@@ -183,6 +184,12 @@ retrieval, edit reliability, prompt-injection exposure, …):
 - Changing story ID allocation (BITB-235). Hardening it with an atomic
   `refs/story-ids/NNN` claim is a possible follow-up.
 - Rewriting `docs/WIP/**` historical notes.
+
+## Follow-ups
+
+- **BITB-316**: backlog tool hardening. Bounded default `list` (12 KB budget headroom), clearer
+  `check` errors (CRLF, second H1, all field errors at once), `changelog --since` validation,
+  and removing the cutover PR-number exemption after the merge.
 
 ## Resolved questions (owner, 2026-11-13)
 
@@ -333,7 +340,7 @@ key, because it would trip markdownlint MD025.
        scripts/test_migrate_backlog_frontmatter.py`.
      - (b) `pull_request` job `backlog-stub-guard`, not path-filtered so it always runs:
        fails if `git diff --name-only origin/$BASE...HEAD` contains `docs/BACKLOG.md`,
-       unless the PR title contains `BITB-313` or the PR has the label
+       unless the PR number is 1292 (the cutover; originally planned as a title match) or the PR has the label
        `backlog-stub-edit`. Both come from the event payload, so no token is needed. The
        `::error` message tells the author to edit story front matter instead.
      - (c) `push` to `main` (paths: stories/DONE): runs `backlog.py render` and appends it

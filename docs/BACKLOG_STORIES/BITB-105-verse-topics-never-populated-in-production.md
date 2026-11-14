@@ -102,7 +102,7 @@ explicitly open and verify it on the first post-merge deploy:
    must be `ok`, at roughly 18.3% / 12.3%.
 3. Independent confirmation: `SELECT COUNT(*) FROM verse_topics;` against production, plus the
    per-translation query in `docs/HOW-TO-POPULATE-VERSE-TOPICS.md`.
-4. Only then tick AC5 and set this story to Done here and in `docs/BACKLOG.md`.
+4. Only then tick AC5 and set this story's front matter to `status: done`.
 
 ## Verification
 

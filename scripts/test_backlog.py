@@ -339,15 +339,20 @@ def _open_stories_with_long_titles(count: int) -> list[backlog.Story]:
     ]
 
 
+def test_budget_line_cap_matches_the_nfr() -> None:
+    # NFR (BITB-313): 165 open lines x 73 B + newlines stay under 12 KB.
+    assert backlog.MAX_LINE_BYTES == 73
+
+
 def test_budget_every_compact_line_is_short_on_real_tree() -> None:
     stories = backlog.filter_stories(backlog.load_all(_REPO_ROOT), show_all=True)
     for line in backlog.format_compact(stories).splitlines():
-        assert len(line.encode("utf-8")) <= 80, line
+        assert len(line.encode("utf-8")) <= backlog.MAX_LINE_BYTES, line
 
 
 def test_budget_every_compact_line_is_short_with_maximum_titles() -> None:
     for line in backlog.format_compact(_open_stories_with_long_titles(5)).splitlines():
-        assert len(line.encode("utf-8")) <= 80, line
+        assert len(line.encode("utf-8")) <= backlog.MAX_LINE_BYTES, line
 
 
 def test_budget_165_open_stories_fit_in_12kb() -> None:
