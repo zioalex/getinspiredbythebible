@@ -1,13 +1,15 @@
 ---
 id: BITB-243
-status: in-progress
+status: done
 priority: P1
 size: M
-rank: 250
+rank: 260
+prs: [1215]
 ---
 
 # BITB-243: Fast pre-commit commit stage (move slow hooks to pre-push/manual)
 
+**Migration note (2026-11-13, status):** (#1215, merged 2026-10-30)
 **Opened:** 2026-10-26
 **Owner:** infra-engineer (build), verifier (verify)
 
