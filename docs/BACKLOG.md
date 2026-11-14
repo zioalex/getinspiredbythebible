@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-14
 
 ## Changelog
 
@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-14: BITB-315 opened — probe the ML content-safety path in more than one language (CJK, RTL, Devanagari), BITB-291 follow-up
+- 2026-11-14: BITB-314 opened — exclude synthetic ml-safety-path probe checks from the BITB-290 fallback-share SLO, BITB-291 follow-up
 - 2026-11-11: BITB-294 opened — provision Azure Content Safety in prod + enable the openai_moderation,azure chain (BITB-292 follow-up)
 - 2026-11-11: BITB-292 🔍 In Review — ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN, e.g. openai_moderation,azure): Azure Content Safety tried after OpenAI Moderation, keyword fallback only when every configured classifier failed, per-hop failover_total labels
 - 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
@@ -3903,6 +3905,44 @@ attributed to Android or broadly backfilled.
 ---
 
 ## P2 - Medium Priority (Backlog)
+
+### 🎯 BITB-314: Exclude Synthetic ML-Safety Probe Checks From the Content-Safety SLO Metrics
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-14
+
+BITB-291 follow-up: the `ml-safety-path` probe adds ~576 real checks a day to `content_safety.checks_total` / `fallback_total`, skewing BITB-290's fallback-share SLO and double-alerting when the ML path is down.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Probe checks are marked synthetic (label or skipped increments); real traffic unaffected
+- [ ] BITB-290 SLO, burn-rate alerts and tiles exclude synthetic checks
+- [ ] Tests across the 11 languages; documented; owner `terraform apply`
+
+**Full Story:** [`BITB-314-exclude-synthetic-safety-checks-from-slo.md`](BACKLOG_STORIES/BITB-314-exclude-synthetic-safety-checks-from-slo.md)
+
+---
+
+### 🎯 BITB-315: Probe the ML Content-Safety Path in More Than One Language
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** S
+**Created:** 2026-11-14
+
+BITB-291 follow-up: the probe uses `en` only, so a classifier outage or over-blocking limited to CJK, Arabic or Devanagari stays green.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Probe script evaluates several (language, benign, unsafe) probes; failures name the language
+- [ ] Covers en + CJK + ar + hi (rotation across all 11 allowed); benign probes pass Stage 1 (tested)
+- [ ] Tests; extra volume counted as synthetic (BITB-314)
+
+**Full Story:** [`BITB-315-multilingual-ml-safety-probe.md`](BACKLOG_STORIES/BITB-315-multilingual-ml-safety-probe.md)
+
+---
 
 ### 🎯 BITB-308: Lock the Backend Origin to Cloudflare (No Direct Container Apps Access)
 
