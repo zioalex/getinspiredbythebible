@@ -1,11 +1,16 @@
+---
+id: BITB-081
+status: done
+priority: P1
+size: S
+rank: 880
+created: 2026-07-25
+prs: [957]
+---
+
 # BITB-081: Android — Tapping an Example Question Must Always Send It on the First Tap
 
-**Status:** ✅ Done (PR #957, merged 2026-08-21) — status marker was left stale; corrected 2026-08-28.
-`onExamplePromptTapped` in `ChatScreen` drops the Turnstile-readiness gate, covered by
-`ExamplePromptTapTest` and `WelcomeBannerComposeTest`.
-**Priority:** P1
-**Size:** S (< 4 hrs)
-**Created:** 2026-07-25
+**Migration note (2026-11-13, status):** (PR #957, merged 2026-08-21) — status marker was left stale; corrected 2026-08-28. `onExamplePromptTapped` in `ChatScreen` drops the Turnstile-readiness gate, covered by `ExamplePromptTapTest` and `WelcomeBannerComposeTest`.
 
 ## User Story
 

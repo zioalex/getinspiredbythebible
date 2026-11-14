@@ -1,9 +1,15 @@
+---
+id: BITB-223
+status: in-progress
+priority: P2
+size: M
+rank: 250
+created: 2026-10-23
+---
+
 # BITB-223: Alert-Rule Rationalization — Actionability Over Inventory
 
-**Status:** 🚧 In Progress
-**Priority:** P2
-**Size:** M (one PR: classification matrix + Terraform changes + threshold retunes)
-**Created:** 2026-10-23
+**Migration note (2026-11-13, size):** (one PR: classification matrix + Terraform changes + threshold retunes)
 **Parent:** BITB-150 (Phase 0 follow-up — accepted lever, Part A)
 **Evidence base:** `cost-evidence-20261023-121757` (30-day firing history + 3-month meter data)
 

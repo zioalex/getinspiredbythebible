@@ -1,9 +1,16 @@
+---
+id: BITB-305
+status: in-review
+priority: P1
+size: M
+rank: 60
+created: 2026-11-11
+prs: [1294]
+---
+
 # BITB-305: Secrets-Expiry Inventory and Check, Database Restore Drill, Retirement Dates on Record
 
-**Status:** 🔍 In Review — builder part done; owner steps pending
-**Priority:** P1
-**Size:** M
-**Created:** 2026-11-11
+**Migration note (2026-11-13, status):** builder part done; owner steps pending
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows R12, R17, D7, D8 and §7.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), any wave.
 **Commit:** `ci: secrets-expiry check and inventory; restore-drill record (BITB-305)`

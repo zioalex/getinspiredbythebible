@@ -1,9 +1,17 @@
+---
+id: BITB-088
+status: todo
+priority: P3
+size: L
+rank: 260
+created: 2026-07-29
+depends_on: [BITB-087]
+---
+
 # BITB-088: iOS Release Pipeline & App Store Compliance — From TestFlight to the Store
 
-**Status:** 🎯 Todo (blocked on BITB-087)
-**Priority:** P3
-**Size:** L (3–5 days, plus App Review latency outside our control)
-**Created:** 2026-07-29
+**Migration note (2026-11-13, status):** (blocked on BITB-087)
+**Migration note (2026-11-13, size):** (3–5 days, plus App Review latency outside our control)
 **Part of:** the iOS delivery plan — Stage 5 of BITB-084 → BITB-085 → BITB-086 → BITB-109 → BITB-087 → **BITB-088**.
 
 ## User Story

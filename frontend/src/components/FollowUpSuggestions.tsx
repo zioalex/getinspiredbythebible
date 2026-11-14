@@ -4,7 +4,7 @@
  * BITB-080: one-tap follow-up question chips rendered under the LATEST
  * assistant message only. Deliberately generic ({ suggestions, onSelect,
  * disabled, label }) so BITB-078's clarifying-question chip UI (deferred at
- * the time this shipped -- see docs/BACKLOG.md) can reuse this same component
+ * the time this shipped -- see docs/BACKLOG_STORIES/BITB-078-clarify-before-answering.md) can reuse this same component
  * rather than a second one.
  */
 interface FollowUpSuggestionsProps {
