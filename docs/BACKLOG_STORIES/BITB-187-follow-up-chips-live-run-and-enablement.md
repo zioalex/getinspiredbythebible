@@ -1,9 +1,14 @@
+---
+id: BITB-187
+status: todo
+priority: P2
+size: S
+rank: 410
+created: 2026-10-11
+---
+
 # BITB-187: Live-Run the Follow-Up Chip Set Against a Real LLM, Then Decide on Enabling Chips
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S
-**Created:** 2026-10-11
 **Prompted by:** BITB-182 follow-up — the golden set and runner were only smoke-tested with a faked model.
 
 ## User Story

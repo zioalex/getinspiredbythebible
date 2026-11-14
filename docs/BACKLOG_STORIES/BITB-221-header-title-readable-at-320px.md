@@ -1,9 +1,13 @@
+---
+id: BITB-221
+status: todo
+priority: P3
+size: XS
+created: 2026-10-23
+---
+
 # BITB-221: Header Brand Title Unreadable at 320px
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** XS
-**Created:** 2026-10-23
 **Type:** Bug (cosmetic)
 **Follow-up of:** BITB-219 (PR #1191)
 

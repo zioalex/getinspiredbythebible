@@ -1,9 +1,13 @@
+---
+id: BITB-206
+status: todo
+priority: P3
+size: S
+created: 2026-10-22
+---
+
 # BITB-206: Android Side Rail Trails One Frame Behind During a Fast Fling
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-22
 **Follow-up of:** BITB-205 (PR #1188)
 
 ## Problem

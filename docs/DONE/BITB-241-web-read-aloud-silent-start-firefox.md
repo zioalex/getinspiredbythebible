@@ -1,9 +1,15 @@
+---
+id: BITB-241
+status: done
+priority: P1
+size: S
+created: 2026-10-24
+prs: [1203]
+---
+
 # BITB-241: Web Read Aloud Shows "Pause" but Plays Nothing on Linux Firefox
 
-**Status:** ✅ Done — PR #1203, merged 2026-10-27
-**Priority:** P1
-**Size:** S
-**Created:** 2026-10-24
+**Migration note (2026-11-13, status):** PR #1203, merged 2026-10-27
 **Prompted by:** bug report 2026-10-24 — "The voice over doesn't work on web/linux/firefox. The play button is
 displayed and if I press it, it shows me the pause one but no audio is produced. … Nothing is played and no
 network activity." Then: "On android/firefox it works properly" — so the app code path works and the failure is specific to Linux Firefox's speech-dispatcher backend.

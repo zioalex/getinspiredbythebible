@@ -1,9 +1,13 @@
+---
+id: BITB-214
+status: todo
+priority: P3
+size: S
+created: 2026-10-22
+---
+
 # BITB-214: Show the Privacy Note When Online Voices Are Enabled From the Menu (Web)
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-22
 **Follow-up of:** BITB-210 (PR #1190)
 
 ## Problem

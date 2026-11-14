@@ -1,9 +1,14 @@
+---
+id: BITB-168
+status: in-progress
+priority: P2
+size: M
+rank: 1160
+created: 2026-09-30
+---
+
 # BITB-168: Surface the Support-Us Entry Points Without Nagging (Web + Android)
 
-**Status:** 🚧 In Progress
-**Priority:** P2
-**Size:** M
-**Created:** 2026-09-30
 **Found by:** Product-owner feedback (2026-09-30: "the Support us link at the bottom is very
 hidden in the web version") + BITB-074's own deferred fast-follow note
 

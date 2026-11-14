@@ -1,9 +1,15 @@
+---
+id: BITB-269
+status: in-progress
+priority: P1
+size: M
+rank: 100
+created: 2026-11-08
+---
+
 # BITB-269: Subagent `question`-Tool Deadlock — 9.5h Orchestrator Hang, Unsupervised Detached Children
 
-**Status:** 🔄 In progress — mitigations implemented in the same PR; runtime hardening below
-**Priority:** P1
-**Size:** M
-**Created:** 2026-11-08
+**Migration note (2026-11-13, status):** mitigations implemented in the same PR; runtime hardening below
 **Incident:** 2026-11-07, 23:02→08:36 UTC (9h34m orchestrator hang)
 
 ## Bug Report (the incident, reconstructed from the runtime log)

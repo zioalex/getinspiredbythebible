@@ -1,10 +1,17 @@
+---
+id: BITB-060
+status: done
+priority: P0
+size: S
+created: 2026-07-03
+prs: [814]
+---
+
 # BITB-060: Stop the Email Service from Freezing the Event Loop
 
-**Status:** ✅ Done (PR #814 merged 2026-07-04) — status marker was left stale after merge; corrected
-during a BITB-062 backlog dedup pass
-**Priority:** P0 (Critical) — 2026-07 adversarial audit S1 (CRITICAL); one feedback/contact submission can stall every concurrent chat on a replica
-**Size:** S (core fix is ~3 lines; guard rail + test add ~half a day)
-**Created:** 2026-07-03
+**Migration note (2026-11-13, status):** (PR #814 merged 2026-07-04) — status marker was left stale after merge; corrected during a BITB-062 backlog dedup pass
+**Migration note (2026-11-13, priority):** (Critical) — 2026-07 adversarial audit S1 (CRITICAL); one feedback/contact submission can stall every concurrent chat on a replica
+**Migration note (2026-11-13, size):** (core fix is ~3 lines; guard rail + test add ~half a day)
 **Audit ref:** `docs/audits/2026-07-adversarial-audit.md` — S1
 
 ## User Story
