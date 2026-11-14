@@ -70,10 +70,26 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           fetch-depth: 0
 
+      # BITB-304: this job checks out a ref other than the workflow's own commit (main, a release
+      # branch, or an older DEPLOY_SHA on rollback), which may predate .python-version. Read the
+      # version from the workflow commit instead, so the file always exists.
+      - name: Fetch .python-version from the workflow commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .pyver
+          sparse-checkout: .python-version
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version-file: ".python-version"
+          python-version-file: ".pyver/.python-version"
+
+      # The lint-fix step below runs `git add -A`; never let the version checkout ride along.
+      - name: Remove the .python-version checkout
+        run: rm -rf .pyver
 
       - name: Set up Node.js
         uses: actions/setup-node@v7

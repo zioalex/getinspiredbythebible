@@ -37,6 +37,29 @@ def test_workflows_read_python_version_from_file():
     )
 
 
+def test_jobs_checking_out_another_ref_read_python_version_from_workflow_commit():
+    """A job that checks out main, a release branch or an older DEPLOY_SHA may land on a commit
+    without .python-version (the 2026-11-13 auto-update-prs failure). Such jobs must read the
+    version from the workflow commit's sparse checkout at .pyver/ instead."""
+    yaml = pytest.importorskip("yaml")
+    offenders = []
+    for wf in sorted((REPO_ROOT / ".github" / "workflows").glob("*.yml")):
+        jobs = (yaml.safe_load(wf.read_text()) or {}).get("jobs") or {}
+        for job_name, job in jobs.items():
+            other_ref = False
+            for step in job.get("steps") or []:
+                uses = step.get("uses") or ""
+                with_ = step.get("with") or {}
+                if uses.startswith("actions/checkout") and "path" not in with_:
+                    other_ref = "ref" in with_
+                if uses.startswith("actions/setup-python") and other_ref:
+                    if with_.get("python-version-file") != ".pyver/.python-version":
+                        offenders.append(f"{wf.name}:{job_name}")
+    assert not offenders, "read .pyver/.python-version (see auto-update-prs.yml):\n" + "\n".join(
+        offenders
+    )
+
+
 def test_pyproject_tool_targets_match_python_version():
     major_minor = (REPO_ROOT / ".python-version").read_text().strip()
     compact = major_minor.replace(".", "")
