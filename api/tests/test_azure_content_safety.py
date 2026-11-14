@@ -196,3 +196,72 @@ async def test_sdk_unavailable_raises_error():
 
     with pytest.raises(RuntimeError, match="Azure Content Safety SDK not available"):
         await provider.analyze_text("test", "en")
+
+
+_SDK_MODULES = {
+    "azure": MagicMock(),
+    "azure.ai": MagicMock(),
+    "azure.ai.contentsafety": MagicMock(),
+    "azure.ai.contentsafety.models": MagicMock(),
+    "azure.core": MagicMock(),
+    "azure.core.credentials": MagicMock(),
+}
+
+
+def _provider_with(hate=0, self_harm=0, sexual=0, violence=0, **kwargs):
+    from providers.azure_content_safety import AzureContentSafetyProvider
+
+    with patch.dict("sys.modules", _SDK_MODULES):
+        provider = AzureContentSafetyProvider(
+            "https://test.cognitiveservices.azure.com/", "test-key", threshold=4, **kwargs
+        )
+    response = MagicMock()
+    response.categories_analysis = [
+        MagicMock(severity=v) for v in (hate, self_harm, sexual, violence)
+    ]
+    for cat in response.categories_analysis:
+        del cat.category
+    provider._client = MagicMock()
+    provider._client.analyze_text = MagicMock(return_value=response)
+    provider._sdk_available = True
+    return provider
+
+
+async def test_severe_self_harm_only_is_help_seeking_not_blocked():
+    """BITB-292: self_harm >= threshold with no violence/hate must not be blocked."""
+    with patch.dict("sys.modules", _SDK_MODULES):
+        result = await _provider_with(self_harm=6).analyze_text("I want to die", "en")
+    assert result.allowed is True
+    assert result.reason == "help_seeking_detected"
+    assert result.is_help_seeking and result.compassionate_response_needed
+
+
+async def test_severe_self_harm_with_violence_blocked():
+    with patch.dict("sys.modules", _SDK_MODULES):
+        result = await _provider_with(self_harm=6, violence=4).analyze_text("x", "en")
+    assert result.allowed is False
+    assert result.reason == "harmful_intent_detected"
+    assert not result.compassionate_response_needed
+
+
+async def test_severe_self_harm_with_severe_sexual_blocked():
+    with patch.dict("sys.modules", _SDK_MODULES):
+        result = await _provider_with(self_harm=6, sexual=6).analyze_text("x", "en")
+    assert result.allowed is False
+    assert not result.is_help_seeking
+
+
+async def test_sdk_call_times_out():
+    import time
+
+    provider = _provider_with(self_harm=2, timeout=0.05)
+    provider._client.analyze_text = lambda request: time.sleep(0.5)
+    with patch.dict("sys.modules", _SDK_MODULES), pytest.raises(TimeoutError):
+        await provider.analyze_text("x", "en")
+
+
+def test_timeout_defaults_and_setting():
+    from config import Settings
+
+    assert _provider_with().timeout == 3.0
+    assert Settings().azure_content_safety_timeout == 3

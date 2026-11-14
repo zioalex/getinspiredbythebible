@@ -174,6 +174,18 @@ variables:
       In ml_only mode, fail over to OpenAI Moderation (needs OPENAI_API_KEY) when Llama Guard fails, before the keyword fallback (BITB-272)
     default: "true"
 
+  CONTENT_SAFETY_ML_FAILOVER_CHAIN:
+    required_in: none
+    description:
+      Ordered, comma-separated ml_only failover hops tried after Llama Guard fails - openai_moderation (needs OPENAI_API_KEY) and/or azure (needs AZURE_CONTENT_SAFETY_ENABLED/ENDPOINT/KEY); unconfigured hops are skipped, unknown entries fail at startup, empty = default (BITB-292)
+    default: "openai_moderation"
+
+  AZURE_CONTENT_SAFETY_TIMEOUT:
+    required_in: none
+    description:
+      Seconds before an Azure Content Safety SDK call is abandoned (counts as a failed hop in the ml_only failover chain) (BITB-292)
+    default: "3"
+
   CONTENT_SAFETY_SECOND_OPINION_ENABLED:
     required_in: none
     description:

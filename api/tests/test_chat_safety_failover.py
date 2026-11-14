@@ -234,3 +234,105 @@ async def test_stream_failover_outcomes_during_outage(failover_env, language):
     assert events[0]["resources"]["kind"] == "self_harm"
     selfharm.llm.chat_stream.assert_called()
     failover_env.assert_not_awaited()
+
+
+# --------------------------------------------------------------------------- BITB-292: Azure hop
+
+
+@pytest.fixture
+def azure_failover_env(monkeypatch):
+    """Llama Guard AND OpenAI Moderation down; chain openai_moderation,azure; Azure decides."""
+    monkeypatch.setattr(
+        "utils.content_safety.settings",
+        MagicMock(
+            content_safety_enabled=True,
+            content_safety_mode="ml_only",
+            azure_content_safety_enabled=True,
+            azure_content_safety_endpoint="https://x.cognitiveservices.azure.com/",
+            azure_content_safety_key="az-key",  # pragma: allowlist secret
+            openai_api_key="test-key",  # pragma: allowlist secret
+            openrouter_api_key="or-key",  # pragma: allowlist secret
+            content_safety_ml_failover_enabled=True,
+            content_safety_ml_failover_chain="openai_moderation,azure",
+            content_safety_second_opinion_enabled=False,
+            openai_moderation_threshold=0.5,
+            openai_moderation_timeout=3,
+        ),
+    )
+    safety = ContentSafetyService()
+    lg = MagicMock()
+    lg.analyze_text = AsyncMock(side_effect=httpx.ReadTimeout("openrouter down"))
+    monkeypatch.setattr(safety, "_get_llama_guard_provider", lambda: lg)
+    keyword = AsyncMock(side_effect=AssertionError("keyword fallback must not run"))
+    monkeypatch.setattr(safety, "_keyword_fallback", keyword)
+
+    from providers.azure_content_safety import ContentSafetyResult
+
+    verdicts = {
+        text: ContentSafetyResult(allowed=False, reason="violence") for text in THREAT.values()
+    }
+    for text in SELF_HARM.values():
+        verdicts[text] = ContentSafetyResult(
+            allowed=True,
+            reason="help_seeking_detected",
+            is_help_seeking=True,
+            compassionate_response_needed=True,
+        )
+
+    async def _analyze(text, language="en"):
+        return verdicts.get(text, ContentSafetyResult(allowed=True))
+
+    azure = MagicMock()
+    azure.analyze_text = AsyncMock(side_effect=_analyze)
+    monkeypatch.setattr(safety, "_get_azure_provider", lambda: azure)
+
+    class _DownClient:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def post(self, url, headers=None, json=None):
+            raise httpx.ReadTimeout("openai down")
+
+    monkeypatch.setattr("providers.openai_moderation.httpx.AsyncClient", _DownClient)
+    with patch("chat.service.get_content_safety_service", return_value=safety):
+        yield keyword, azure
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("language", LANGS)
+async def test_chat_azure_hop_during_double_outage(azure_failover_env, language):
+    keyword, azure = azure_failover_env
+
+    narrative = _service()
+    with _patched(narrative):
+        response = await narrative.chat(
+            ChatRequest(message=NARRATIVE[language], language=language), client_country="US"
+        )
+    assert response.provider != "content_safety"
+    narrative.llm.chat.assert_called()
+
+    threat = _service()
+    with _patched(threat):
+        response = await threat.chat(
+            ChatRequest(message=THREAT[language], language=language), client_country="US"
+        )
+    assert response.provider == "content_safety"
+    assert response.crisis_resources["kind"] == "threat_to_others"
+
+    selfharm = _service()
+    with _patched(selfharm):
+        response = await selfharm.chat(
+            ChatRequest(message=SELF_HARM[language], language=language), client_country="US"
+        )
+    assert response.provider != "content_safety"
+    assert response.crisis_resources["kind"] == "self_harm"
+
+    assert azure.analyze_text.await_count >= 3
+    azure.analyze_text.assert_any_await(THREAT[language], language)
+    keyword.assert_not_awaited()
