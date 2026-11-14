@@ -1,6 +1,6 @@
 # BITB-305: Secrets-Expiry Inventory and Check, Database Restore Drill, Retirement Dates on Record
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review — builder part done; owner steps pending
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-11
@@ -99,11 +99,28 @@ the committed workflows.
 
 ## Acceptance criteria
 
-- [ ] Every secret used by a workflow or injected by Terraform has an inventory entry
-- [ ] The weekly check exists and fails 21 days before any recorded expiry
-- [ ] No secret value, prefix or hash appears in the repository or in workflow logs
-- [ ] The restore-drill procedure and log table exist
-- [ ] Owner steps above are listed and left for the owner
+- [x] Every secret used by a workflow or injected by Terraform has an inventory entry
+- [x] The weekly check exists and fails 21 days before any recorded expiry
+- [x] No secret value, prefix or hash appears in the repository or in workflow logs
+- [x] The restore-drill procedure and log table exist
+- [x] Owner steps above are listed and left for the owner
+
+## Implementation (builder part)
+
+- `docs/secrets-inventory.yaml`: one entry per `secrets.NAME` in the workflows (except
+  `GITHUB_TOKEN`, which GitHub mints per run), plus `TF_VAR_CLAUDE_API_KEY` for the one
+  sensitive Terraform variable no workflow secret feeds; all `expires: unknown`,
+  `owner: unknown`.
+- `scripts/check_secrets_inventory.py` and `scripts/test_check_secrets_inventory.py`: schema,
+  expiry (21 days inclusive: 21 fails, 22 passes), `--completeness`, `--live-header`.
+- `.github/workflows/secrets-expiry-check.yml`: weekly + dispatch (expiry, live PAT headers,
+  `--allow-unknown` until the owner fills the dates); path-filtered PR job runs unit tests,
+  schema and completeness only.
+- `docs/DATES_TO_WATCH.md`: retirement and end-of-life dates (first two `unknown`).
+- `docs/HOW-TO-BACKUP-RESTORE-DATABASE.md`: "Restore drill", empty "Drill log", and decision 5:
+  geo-redundant backup can only be set when a Flexible Server is created (changing it forces a
+  new server), so it is not proposed here; it needs a follow-up decision from the owner.
+- `docs/RELEASE_PROCESS.md`: PAT section links the inventory and workflow.
 
 ## Out of scope
 

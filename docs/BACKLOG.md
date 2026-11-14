@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-14
 
 ## Changelog
 
@@ -19,6 +19,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   are two trivial lines instead of a 2000-character paragraph.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
+
+- 2026-11-14: BITB-305 🔍 In Review — secrets inventory (names/dates only) + weekly expiry check with live PAT header check, PR completeness gate, restore-drill procedure and log, dates to watch
 
 - 2026-11-11: BITB-294 opened — provision Azure Content Safety in prod + enable the openai_moderation,azure chain (BITB-292 follow-up)
 - 2026-11-11: BITB-292 🔍 In Review — ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN, e.g. openai_moderation,azure): Azure Content Safety tried after OpenAI Moderation, keyword fallback only when every configured classifier failed, per-hop failover_total labels
@@ -525,9 +527,9 @@ Production runs Python 3.14 while every CI job and tool targets 3.12. `LLM_PROVI
 
 ---
 
-### 🎯 BITB-305: Secrets-Expiry Inventory and Check, Database Restore Drill, Retirement Dates on Record
+### 🔍 BITB-305: Secrets-Expiry Inventory and Check, Database Restore Drill, Retirement Dates on Record
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review — builder part done; owner steps pending
 **Priority:** P1
 **Size:** M
 **Created:** 2026-11-11
@@ -536,8 +538,8 @@ No expiry date or owner is recorded for any credential (the release PAT has a on
 
 **Acceptance Criteria (summary):**
 
-- [ ] `docs/secrets-inventory.yaml` (names and dates only) + weekly check failing 21 days before expiry, with a live header check for GitHub PATs
-- [ ] Restore-drill procedure and log table
+- [x] `docs/secrets-inventory.yaml` (names and dates only) + weekly check failing 21 days before expiry, with a live header check for GitHub PATs
+- [x] Restore-drill procedure and log table
 - [ ] Owner fills dates, runs the drill, confirms the budget alert, names a second admin or accepts the risk
 
 **Full Story:** [`BITB-305-secrets-inventory-and-restore-drill.md`](BACKLOG_STORIES/BITB-305-secrets-inventory-and-restore-drill.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
