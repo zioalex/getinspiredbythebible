@@ -1,9 +1,15 @@
+---
+id: BITB-140
+status: in-progress
+priority: P2
+size: M
+created: 2026-06-16
+---
+
 # BITB-140: Audit & Close Bible Reference-Normalization Gaps
 
-**Status:** 🚧 In Progress (partial — aliases + case/diacritic-insensitive normalization + per-language coverage matrix done; versification offsets deferred)
-**Priority:** P2 (Medium) — correctness/robustness; benefits the whole app, not just the eval
-**Size:** M (1-2 days)
-**Created:** 2026-06-16
+**Migration note (2026-11-13, status):** (partial — aliases + case/diacritic-insensitive normalization + per-language coverage matrix done; versification offsets deferred)
+**Migration note (2026-11-13, priority):** (Medium) — correctness/robustness; benefits the whole app, not just the eval
 **Parent / related:** BITB-139 (retrieval-eval harness)
 
 ## User Story

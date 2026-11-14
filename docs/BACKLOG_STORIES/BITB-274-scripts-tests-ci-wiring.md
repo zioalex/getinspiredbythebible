@@ -1,9 +1,14 @@
+---
+id: BITB-274
+status: todo
+priority: P2
+size: S
+rank: 80
+created: 2026-11-08
+---
+
 # BITB-274: Wire All scripts/test_*.py Into CI — One Job, Not One-off Wiring
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S
-**Created:** 2026-11-08
 **Follow-up to:** BITB-261 (its verifier found the pattern gap: scripts tests are wired into CI one-by-one, so a new one can silently ship unexecuted)
 
 ## User Story

@@ -185,7 +185,7 @@ REPO_LAYOUT = """\
 | `deployment/` | Terraform configs for Azure, KubeOpenCode manifests |
 | `scripts/` | DB init, embedding generation, migrations, env validation |
 | `data/` | Bible data files |
-| `docs/` | Documentation, `BACKLOG.md`, `BACKLOG_STORIES/` |
+| `docs/` | Documentation, `BACKLOG_STORIES/` (story front matter = backlog; query with `make backlog`) |
 
 Never invent or assume a path. If you need a directory that is not listed
 above, verify it exists before relying on it."""

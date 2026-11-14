@@ -1,6 +1,12 @@
+---
+id: BITB-033
+status: done
+priority: P3
+---
+
 # BITB-033: Android — Rename Post-Send "Cancel" Button to "Done"
 
-**Status:** ✅ Done (DiagnosticReportBottomSheet.kt:120 and ContactFormBottomSheet.kt:141 already use R.string.action_done; verified 2026-05-24)
+**Migration note (2026-11-13, status):** (DiagnosticReportBottomSheet.kt:120 and ContactFormBottomSheet.kt:141 already use R.string.action_done; verified 2026-05-24)
 
 ## User Story
 

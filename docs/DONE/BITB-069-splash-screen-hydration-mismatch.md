@@ -1,12 +1,17 @@
+---
+id: BITB-069
+status: done
+priority: P2
+size: S
+rank: 810
+created: 2026-07-16
+prs: [917]
+---
+
 # BITB-069: Splash-Screen Cookie Check Causes SSR/CSR Hydration Mismatch
 
-**Status:** ✅ Done (PR #917, pending merge)
-**Priority:** P2 (Medium) — cosmetic/console-only today (React recovers by regenerating the tree
-client-side), but it's a real SSR/CSR divergence, not just noise, and the failure mode gets worse
-if anything downstream ever depends on first-paint DOM matching (e.g. a future analytics/observer
-hook, or stricter React versions that hard-fail instead of patching over mismatches).
-**Size:** S (< 4 hrs)
-**Created:** 2026-07-16
+**Migration note (2026-11-13, status):** (PR #917, pending merge)
+**Migration note (2026-11-13, priority):** (Medium) — cosmetic/console-only today (React recovers by regenerating the tree client-side), but it's a real SSR/CSR divergence, not just noise, and the failure mode gets worse if anything downstream ever depends on first-paint DOM matching (e.g. a future analytics/observer hook, or stricter React versions that hard-fail instead of patching over mismatches).
 
 ## User Story
 

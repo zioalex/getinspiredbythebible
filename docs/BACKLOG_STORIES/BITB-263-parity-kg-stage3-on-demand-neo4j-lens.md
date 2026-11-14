@@ -1,9 +1,16 @@
+---
+id: BITB-263
+status: todo
+priority: P2
+size: M
+rank: 190
+created: 2026-10-30
+depends_on: [BITB-262]
+---
+
 # BITB-263: Parity KG Stage 3 — On-Demand Local Neo4j Lens
 
-**Status:** 🎯 Todo — gated on BITB-262 landing (it imports stage 2's `graph.json`)
-**Priority:** P2
-**Size:** M
-**Created:** 2026-10-30
+**Migration note (2026-11-13, status):** gated on BITB-262 landing (it imports stage 2's `graph.json`)
 **Part of:** BITB-260 — Stage 3 of 3 (serving layer)
 
 ## User Story

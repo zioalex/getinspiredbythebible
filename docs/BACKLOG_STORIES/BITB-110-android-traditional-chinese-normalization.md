@@ -1,16 +1,15 @@
+---
+id: BITB-110
+status: done
+priority: P2
+size: S
+created: 2026-08-22
+---
+
 # BITB-110: Android Still Cannot Read Traditional Chinese Verse References
 
-**Status:** ✅ Done — Traditional Chinese book names now resolve on Android via a ported 29-char
-table + a Simplified shadow-copy retry, mirroring the web's `linkifyVerses.ts` technique. Hand-
-ported (not generated — BITB-108/113's regex-grammar generator does not yet cover script-class
-alternations), with a parity-ledger row naming the source. `VerseCorpusParityTest.kt` and Android's
-Gradle/AGP toolchain could not be executed in this sandbox (no network access to the Google Maven
-plugin repo) — verified by static reasoning and by mirroring the already-passing web/backend
-behaviour instead of a live green CI run; see the PR/session notes for the exact gap.
-**Priority:** P2 — a user-visible gap for Traditional-script readers on Android, on a feature web and
-the API will already have
-**Size:** S
-**Created:** 2026-08-22
+**Migration note (2026-11-13, status):** Traditional Chinese book names now resolve on Android via a ported 29-char table + a Simplified shadow-copy retry, mirroring the web's `linkifyVerses.ts` technique. Hand- ported (not generated — BITB-108/113's regex-grammar generator does not yet cover script-class alternations), with a parity-ledger row naming the source. `VerseCorpusParityTest.kt` and Android's Gradle/AGP toolchain could not be executed in this sandbox (no network access to the Google Maven plugin repo) — verified by static reasoning and by mirroring the already-passing web/backend behaviour instead of a live green CI run; see the PR/session notes for the exact gap.
+**Migration note (2026-11-13, priority):** a user-visible gap for Traditional-script readers on Android, on a feature web and the API will already have
 **Prompted by:** PR #982 (BITB-025), whose Android acceptance criterion is an explicit fast-follow
 
 ## User Story

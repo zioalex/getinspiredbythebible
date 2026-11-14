@@ -1,11 +1,17 @@
+---
+id: BITB-105
+status: in-progress
+priority: P1
+size: M
+rank: 1010
+created: 2026-08-21
+---
+
 # BITB-105: `verse_topics` Is Still Empty in Production — Nothing Runs the Population Script
 
-**Status:** 🚧 In Progress — implementation shipped; AC5 (production rows observed) pending the first
-post-merge deploy, see "Post-merge verification" below
-**Priority:** P1 — without this, BITB-044 changes nothing in production; the feature stays the exact
-silent no-op that story was written to fix
-**Size:** M (mostly pipeline wiring, plus one drift check)
-**Created:** 2026-08-21
+**Migration note (2026-11-13, status):** implementation shipped; AC5 (production rows observed) pending the first post-merge deploy, see "Post-merge verification" below
+**Migration note (2026-11-13, priority):** without this, BITB-044 changes nothing in production; the feature stays the exact silent no-op that story was written to fix
+**Migration note (2026-11-13, size):** (mostly pipeline wiring, plus one drift check)
 **Prompted by:** PR #970 (BITB-044), which ships `scripts/populate_verse_topics.py` as a manual,
 on-demand script with a runbook and no automation
 
@@ -96,7 +102,7 @@ explicitly open and verify it on the first post-merge deploy:
    must be `ok`, at roughly 18.3% / 12.3%.
 3. Independent confirmation: `SELECT COUNT(*) FROM verse_topics;` against production, plus the
    per-translation query in `docs/HOW-TO-POPULATE-VERSE-TOPICS.md`.
-4. Only then tick AC5 and set this story to Done here and in `docs/BACKLOG.md`.
+4. Only then tick AC5 and set this story's front matter to `status: done`.
 
 ## Verification
 

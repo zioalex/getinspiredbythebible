@@ -1,8 +1,17 @@
+---
+id: BITB-118
+status: in-progress
+priority: P2
+size: M
+rank: 800
+created: 2026-09-04
+---
+
 # BITB-118: Make the Session Message Limit Flexible (Users Say 10 Is Too Few)
 
-**Status:** 🚧 Partially Shipped — backend + web slice below; Android port and the
-instrumentation/IP-cap work are tracked separately in
-[BITB-156](BITB-156-android-server-driven-session-limit-and-instrumentation.md)
+**Migration note (2026-11-13, status):** Partially Shipped — backend + web slice below; Android port and the instrumentation/IP-cap work are tracked separately in [BITB-156](BITB-156-android-server-driven-session-limit-and-instrumentation.md)
+**Migration note (2026-11-13, priority):** real user complaints, but the current limit is soft (users *can* continue), so nobody is fully blocked
+**Migration note (2026-11-13, size):** (1–2 days: backend config + web + Android + i18n across 11 locales)
 
 **Shipped (this PR):** `GET /config` now publishes `chat.session_max_requests`; the 429 body's
 `detail` carries the numeric `limit`; web's `sessionLimitMessage` interpolates `{max}` instead of a
@@ -15,13 +24,6 @@ non-destructive, it does not itself raise the number.
 `error_session_limit` in 11 `values-*/strings.xml`), the privacy-reviewed instrumentation this
 story's own "measure before choosing the number" section calls for, the trusted-ingress /
 shared-NAT analysis and any per-IP daily cap, and the Postgres idle-purge-horizon work.
-
-**Priority:** P2 — real user complaints, but the current limit is soft (users *can* continue),
-so nobody is fully blocked
-
-**Size:** M (1–2 days: backend config + web + Android + i18n across 11 locales)
-
-**Created:** 2026-09-04
 
 **Prompted by:** user feedback that ten interactions per session are too few for people who want
 to keep exploring

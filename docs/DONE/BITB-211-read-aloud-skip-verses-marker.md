@@ -1,9 +1,15 @@
+---
+id: BITB-211
+status: done
+priority: P1
+size: S
+created: 2026-10-22
+prs: [1190]
+---
+
 # BITB-211: Read Aloud Reads the Hidden Verse List at the End of an Answer (Web + Android)
 
-**Status:** ✅ Done — PR #1190, merged 2026-10-22
-**Priority:** P1
-**Size:** S
-**Created:** 2026-10-22
+**Migration note (2026-11-13, status):** PR #1190, merged 2026-10-22
 **Prompted by:** product-owner feedback 2026-10-22 — "The reading should exclude the verse list at the end
 of the message in both platforms."
 
