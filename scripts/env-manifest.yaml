@@ -161,6 +161,26 @@ variables:
     description: Max requests per IP per minute
     default: "20"
 
+  RATE_LIMIT_SEARCH_PER_MINUTE:
+    required_in: none
+    description: Max GET /scripture/search and /scripture/search/text requests per IP per minute, independent of the chat limits (BITB-298)
+    default: "30"
+
+  RATE_LIMIT_FEEDBACK_PER_MINUTE:
+    required_in: none
+    description: Max POST /feedback requests per IP per minute, independent of the chat limits (BITB-298)
+    default: "20"
+
+  RATE_LIMIT_CONTACT_PER_MINUTE:
+    required_in: none
+    description: Max POST /feedback/contact requests per IP per minute, independent of the chat limits (BITB-298)
+    default: "3"
+
+  RATE_LIMIT_CHURCH_PER_MINUTE:
+    required_in: none
+    description: Max POST /church/search requests per IP per minute, independent of the chat limits (BITB-298)
+    default: "6"
+
   CONTENT_FILTER_ENABLED:
     required_in: remote
     description: Enable content filtering

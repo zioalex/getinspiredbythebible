@@ -348,6 +348,7 @@
         "description": "Request model for church search.",
         "properties": {
           "location": {
+            "maxLength": 200,
             "title": "Location",
             "type": "string"
           }
@@ -444,6 +445,7 @@
           },
           "message": {
             "description": "The user's message",
+            "maxLength": 5000,
             "minLength": 1,
             "title": "Message",
             "type": "string"
@@ -451,6 +453,7 @@
           "session_id": {
             "anyOf": [
               {
+                "maxLength": 128,
                 "type": "string"
               },
               {
@@ -475,6 +478,7 @@
           "user_agent": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -600,12 +604,14 @@
         "properties": {
           "assistant_response": {
             "description": "The AI's response text",
+            "maxLength": 20000,
             "title": "Assistant Response",
             "type": "string"
           },
           "comment": {
             "anyOf": [
               {
+                "maxLength": 2000,
                 "type": "string"
               },
               {
@@ -617,12 +623,14 @@
           },
           "message_id": {
             "description": "Unique ID of the chat message",
+            "maxLength": 128,
             "title": "Message Id",
             "type": "string"
           },
           "model_used": {
             "anyOf": [
               {
+                "maxLength": 100,
                 "type": "string"
               },
               {
@@ -644,6 +652,7 @@
           "reason": {
             "anyOf": [
               {
+                "maxLength": 40,
                 "type": "string"
               },
               {
@@ -668,6 +677,7 @@
           "session_id": {
             "anyOf": [
               {
+                "maxLength": 128,
                 "type": "string"
               },
               {
@@ -679,6 +689,7 @@
           },
           "user_message": {
             "description": "The user's original question",
+            "maxLength": 2000,
             "title": "User Message",
             "type": "string"
           },
@@ -686,8 +697,10 @@
             "anyOf": [
               {
                 "items": {
+                  "maxLength": 100,
                   "type": "string"
                 },
+                "maxItems": 50,
                 "type": "array"
               },
               {
@@ -1519,6 +1532,7 @@
             "required": true,
             "schema": {
               "description": "Search query",
+              "maxLength": 200,
               "minLength": 2,
               "title": "Q",
               "type": "string"
@@ -1607,6 +1621,7 @@
             "required": true,
             "schema": {
               "description": "Text to search",
+              "maxLength": 200,
               "minLength": 2,
               "title": "Q",
               "type": "string"
@@ -1653,7 +1668,7 @@
     },
     "/api/v1/scripture/stats": {
       "get": {
-        "description": "Get database statistics.",
+        "description": "Get database statistics (cached in-process for 5 minutes, BITB-298).",
         "operationId": "get_stats_api_v1_scripture_stats_get",
         "responses": {
           "200": {

@@ -2,7 +2,7 @@
 
 Prioritized list of user stories and features for Vox Quieta.
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-13
 
 ## Changelog
 
@@ -20,6 +20,8 @@ Prioritized list of user stories and features for Vox Quieta.
 >   - History before 2026-09-22 is preserved in git history (this section was
 >   condensed once, at the 2026-10-22 restructuring).
 
+- 2026-11-13: BITB-310 🎯 Todo — telemetry endpoints (client-errors/client-events) can spend chat session budget via a stray session_id; move them to the IP-only limiter (BITB-298 follow-up) (#1290)
+- 2026-11-13: BITB-298 🔍 In Review — IP-only per-scope limiter on search/feedback/contact/church, input caps, honest church User-Agent, cached /scripture/stats (#1290)
 - 2026-11-11: BITB-294 opened — provision Azure Content Safety in prod + enable the openai_moderation,azure chain (BITB-292 follow-up)
 - 2026-11-11: BITB-292 🔍 In Review — ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN, e.g. openai_moderation,azure): Azure Content Safety tried after OpenAI Moderation, keyword fallback only when every configured classifier failed, per-hop failover_total labels
 - 2026-11-11: BITB-290 🔍 In Review — keyword-fallback share SLO (content_safety.checks_total denominator), workbook tiles, multi-window burn-rate alerts replace the any-fallback alert
@@ -236,9 +238,9 @@ Live on 2026-11-11: `GET api.voxquieta.org/health` → `403`, the same request w
 
 ---
 
-### 🎯 BITB-298: Rate-Limit Search, Feedback and Church Endpoints; Bound Their Inputs
+### 🔍 BITB-298: Rate-Limit Search, Feedback and Church Endpoints; Bound Their Inputs
 
-**Status:** 🎯 Todo
+**Status:** 🔍 In Review
 **Priority:** P0
 **Size:** S
 **Created:** 2026-11-11
@@ -251,7 +253,27 @@ Live on 2026-11-11: `GET api.voxquieta.org/health` → `403`, the same request w
 - [ ] `max_length` on every text input; `q` capped at 200
 - [ ] Honest `User-Agent` on the church proxy; `/scripture/stats` cached
 
+**Follow-ups:** BITB-310
+
 **Full Story:** [`BITB-298-guard-cost-endpoints.md`](BACKLOG_STORIES/BITB-298-guard-cost-endpoints.md) · **Plan:** [`2026-11-11-improvement-plan.md`](audits/2026-11-11-improvement-plan.md)
+
+---
+
+### 🎯 BITB-310: Telemetry Endpoints Can Spend Chat Session Budget via a Stray `session_id`
+
+**Status:** 🎯 Todo
+**Priority:** P2
+**Size:** XS
+**Created:** 2026-11-13
+
+Follow-up to BITB-298. `/api/v1/client-errors` and `/api/v1/client-events` still use `require_rate_limit`, which charges any body `session_id` against the chat lifetime cap; `ClientErrorReport` accepts extra fields. No client sends it today — hardening.
+
+**Acceptance Criteria (summary):**
+
+- [ ] Both routes on `require_ip_rate_limit` (scope `telemetry`, new setting, 60/min)
+- [ ] Telemetry posts with a chat `session_id` never consume chat budget (regression test)
+
+**Full Story:** [`BITB-310-telemetry-ip-only-limiter.md`](BACKLOG_STORIES/BITB-310-telemetry-ip-only-limiter.md)
 
 ---
 

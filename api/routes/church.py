@@ -9,10 +9,12 @@ from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from config import settings
 from utils.logging_config import get_logger
 from utils.metrics import church_search_counter
+from utils.security import require_ip_rate_limit
 from utils.turnstile import require_turnstile
 
 logger = get_logger(__name__)
@@ -23,7 +25,7 @@ router = APIRouter(prefix="/church", tags=["church"])
 class ChurchSearchRequest(BaseModel):
     """Request model for church search."""
 
-    location: str
+    location: str = Field(..., max_length=200)
 
 
 class Church(BaseModel):
@@ -48,7 +50,12 @@ class ChurchSearchResponse(BaseModel):
 
 
 @router.post(
-    "/search", response_model=ChurchSearchResponse, dependencies=[Depends(require_turnstile)]
+    "/search",
+    response_model=ChurchSearchResponse,
+    dependencies=[
+        Depends(require_ip_rate_limit("church", lambda: settings.rate_limit_church_per_minute)),
+        Depends(require_turnstile),
+    ],
 )
 async def search_churches(request: ChurchSearchRequest) -> ChurchSearchResponse:
     """
@@ -72,13 +79,10 @@ async def search_churches(request: ChurchSearchRequest) -> ChurchSearchResponse:
     api_url = "https://disciplestoday.org/wp-json/cfc/v1/search"
     request_body = {"location": location}
 
-    # Headers to appear as a legitimate browser request
+    # Identify ourselves honestly (BITB-298): no forged browser User-Agent/Origin/Referer.
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Origin": "https://disciplestoday.org",
-        "Referer": "https://disciplestoday.org/",
+        "User-Agent": f"VoxQuieta/{settings.app_version} (+https://voxquieta.org)",
+        "Accept": "application/json",
     }
 
     try:

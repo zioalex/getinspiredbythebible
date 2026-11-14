@@ -394,7 +394,29 @@ def get_rate_limiter() -> RateLimiter:
     return _rate_limiter
 
 
+# BITB-298: one IP-only limiter per scope (search, feedback, contact, church, ...). Each has its
+# own per-minute cap and its own store, and callers prefix the key with the scope, so a scope's
+# bucket can never be shared with chat (`ip:<ip>`) or with another scope.
+_scoped_rate_limiters: dict[tuple[str, int], RateLimiter] = {}
+
+
+def get_scoped_rate_limiter(scope: str, per_minute: int) -> RateLimiter:
+    """Get or create the IP-only limiter for ``scope`` with a ``per_minute`` cap."""
+    key = (scope, per_minute)
+    limiter = _scoped_rate_limiters.get(key)
+    if limiter is None:
+        from config import settings
+
+        limiter = RateLimiter(
+            requests_per_minute=per_minute,
+            backend=settings.rate_limit_backend,
+        )
+        _scoped_rate_limiters[key] = limiter
+    return limiter
+
+
 def reset_rate_limiter() -> None:
-    """Test hook: clear the singleton so the next get_rate_limiter() call re-reads config."""
+    """Test hook: clear the singletons so the next get_rate_limiter() call re-reads config."""
     global _rate_limiter
     _rate_limiter = None
+    _scoped_rate_limiters.clear()
