@@ -1,11 +1,16 @@
+---
+id: BITB-058
+status: done
+priority: P1
+size: S
+rank: 850
+created: 2026-07-01
+---
+
 # BITB-058: Android — "What's New" Bottom Sheet on First Launch After Update
 
-**Status:** ✅ Done — story-file marker was left stale (docs/BACKLOG.md already had it as Done);
-corrected 2026-08-28. `WhatsNewBottomSheet.kt` + `shouldShowWhatsNew` version-code gate are wired
-into `MainActivity.kt`, covered by `WhatsNewTest` and `ChangelogEntryTest`.
-**Priority:** P1 (High) — users miss new features after silent auto-updates
-**Size:** S (< 1 day)
-**Created:** 2026-07-01
+**Migration note (2026-11-13, status):** story-file marker was left stale (docs/BACKLOG.md already had it as Done); corrected 2026-08-28. `WhatsNewBottomSheet.kt` + `shouldShowWhatsNew` version-code gate are wired into `MainActivity.kt`, covered by `WhatsNewTest` and `ChangelogEntryTest`.
+**Migration note (2026-11-13, priority):** (High) — users miss new features after silent auto-updates
 **Source:** BITB-031 deferred out-of-scope item; product initiative
 
 ## User Story

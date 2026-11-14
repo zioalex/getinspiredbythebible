@@ -1,11 +1,17 @@
+---
+id: BITB-104
+status: done
+priority: P1
+size: M
+rank: 1030
+created: 2026-08-21
+---
+
 # BITB-104: Un-stub the `topic_boosted` Eval Config
 
-**Status:** ✅ Done — the harness applies real boosting and validates every topic-bearing
-translation; live A/B numbers, the factor-sweep curve, and the `topic_boosting_enabled` decision
-are owned separately by **BITB-116** (they require prod DB + Azure credentials)
-**Priority:** P1 — the payoff step; until this runs, topic boosting has never been measured even once
-**Size:** S–M (the code change is small; the judgement about enabling is the work)
-**Created:** 2026-08-21
+**Migration note (2026-11-13, status):** the harness applies real boosting and validates every topic-bearing translation; live A/B numbers, the factor-sweep curve, and the `topic_boosting_enabled` decision are owned separately by **BITB-116** (they require prod DB + Azure credentials)
+**Migration note (2026-11-13, priority):** the payoff step; until this runs, topic boosting has never been measured even once
+**Migration note (2026-11-13, size):** S–M (the code change is small; the judgement about enabling is the work)
 **Prompted by:** PR #970 (BITB-044), which deliberately does not tune `topic_boost_factor` or flip
 `topic_boosting_enabled`
 

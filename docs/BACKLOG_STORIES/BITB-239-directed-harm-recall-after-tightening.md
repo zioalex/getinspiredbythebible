@@ -1,9 +1,15 @@
+---
+id: BITB-239
+status: done
+priority: P2
+size: S
+created: 2026-10-24
+prs: [1261]
+---
+
 # BITB-239: Directed-Harm Recall Lost by the BITB-193 Pattern Tightening (it/fr/pt)
 
-**Status:** ✅ Done — PR #1261, 2026-11-10
-**Priority:** P2
-**Size:** S
-**Created:** 2026-10-24
+**Migration note (2026-11-13, status):** PR #1261, 2026-11-10
 
 ## Problem
 

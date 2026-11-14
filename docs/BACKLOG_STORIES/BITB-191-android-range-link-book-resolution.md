@@ -1,9 +1,14 @@
+---
+id: BITB-191
+status: todo
+priority: P3
+size: XS
+rank: 50
+created: 2026-10-12
+---
+
 # BITB-191: Android Range Links Skip the Cited-Verse Book Fallback
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** XS
-**Created:** 2026-10-12
 **Prompted by:** BITB-179 follow-up — noted by the builder and confirmed by the verifier.
 
 ## Bug Report

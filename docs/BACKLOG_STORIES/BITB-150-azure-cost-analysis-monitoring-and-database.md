@@ -1,9 +1,16 @@
+---
+id: BITB-150
+status: todo
+priority: P2
+size: M
+rank: 1150
+created: 2026-09-12
+---
+
 # BITB-150: Where the Azure Bill Goes — Monitoring (~25%) and Postgres (~50%)
 
-**Status:** 🎯 Todo
-**Priority:** P2 — three quarters of the bill sits in two line items nobody has attributed
-**Size:** M (the analysis is the deliverable; each fix it authorises is its own small story)
-**Created:** 2026-09-12
+**Migration note (2026-11-13, priority):** three quarters of the bill sits in two line items nobody has attributed
+**Migration note (2026-11-13, size):** (the analysis is the deliverable; each fix it authorises is its own small story)
 **Prompted by:** Owner's spend review — "monitoring is ~25% of the cost, the DB is ~50%"
 
 ## User Story

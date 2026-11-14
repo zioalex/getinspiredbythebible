@@ -1,9 +1,15 @@
+---
+id: BITB-298
+status: in-review
+priority: P0
+size: S
+rank: 30
+created: 2026-11-11
+prs: [1290]
+---
+
 # BITB-298: Rate-Limit Search, Feedback and Church Endpoints; Bound Their Inputs
 
-**Status:** 🔍 In Review
-**Priority:** P0
-**Size:** S
-**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows R7–R10, R13.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 1. **Merge after BITB-297.**
 **Commit:** `fix(api): rate-limit search, feedback and church endpoints (BITB-298)`

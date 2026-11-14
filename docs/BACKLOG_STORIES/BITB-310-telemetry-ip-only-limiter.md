@@ -1,9 +1,13 @@
+---
+id: BITB-310
+status: todo
+priority: P2
+size: XS
+created: 2026-11-13
+---
+
 # BITB-310: Telemetry Endpoints Can Spend Chat Session Budget via a Stray `session_id`
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** XS
-**Created:** 2026-11-13
 **Prompted by:** BITB-298 verification (finding 3).
 
 ## Problem

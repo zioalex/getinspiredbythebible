@@ -1,12 +1,15 @@
+---
+id: BITB-108
+status: in-progress
+priority: P2
+size: L
+created: 2026-08-22
+---
+
 # BITB-108: Verse-Parser Phase 3 — One Regex Grammar, and Prove It Can't Be Attacked
 
-**Status:** 🚧 In Progress — ReDoS safety (AC1–2 below) closed **on web only**; grammar-unification
-ACs split to [BITB-113](BITB-113-verse-parser-grammar-unification.md); the identical finding on
-Android split to [BITB-114](BITB-114-android-verse-parser-redos.md)
-**Priority:** P2 — the book-name half of BITB-059 is solved; the regex-grammar half still costs a
-three-platform repair for every citation fix, and carries an unbenchmarked ReDoS surface
-**Size:** L
-**Created:** 2026-08-22
+**Migration note (2026-11-13, status):** ReDoS safety (AC1–2 below) closed **on web only**; grammar-unification ACs split to [BITB-113](BITB-113-verse-parser-grammar-unification.md); the identical finding on Android split to [BITB-114](BITB-114-android-verse-parser-redos.md)
+**Migration note (2026-11-13, priority):** the book-name half of BITB-059 is solved; the regex-grammar half still costs a three-platform repair for every citation fix, and carries an unbenchmarked ReDoS surface
 **Prompted by:** PR #983 (BITB-059), which ships Phases 1–2 and labels the rest "Phase 3"
 
 ## Resolution of the ReDoS half (2026-08-31)

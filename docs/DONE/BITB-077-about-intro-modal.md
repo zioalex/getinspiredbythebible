@@ -1,9 +1,17 @@
+---
+id: BITB-077
+status: done
+priority: P2
+size: S
+rank: 1030
+created: 2026-07-25
+prs: [939]
+---
+
 # BITB-077: "Why Vox Quieta" Intro Modal — Once for Everyone Now, New Visitors Afterwards
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S (< 4 hrs, after BITB-076)
-**Created:** 2026-07-25
+**Migration note (2026-11-13, status):** (PR #939 merged 2026-07-27)
+**Migration note (2026-11-13, size):** (< 4 hrs, after BITB-076)
 
 ## User Story
 
