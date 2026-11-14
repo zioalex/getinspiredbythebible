@@ -11,6 +11,7 @@ Provides:
 import hashlib
 import re
 import unicodedata
+from collections.abc import Callable
 from enum import Enum
 from typing import Annotated
 
@@ -22,7 +23,7 @@ from . import translation_registry as tr
 from .client_ip import resolve_client_ip
 from .logging_config import get_logger
 from .monitor_probe import is_monitor_probe
-from .rate_limiter import get_rate_limiter
+from .rate_limiter import get_rate_limiter, get_scoped_rate_limiter
 
 logger = get_logger(__name__)
 
@@ -248,6 +249,47 @@ async def require_rate_limit(request: Request) -> None:
             status_code=429,
             detail={"error": "Rate limit exceeded", "retry_after": 60},
         )
+
+
+def require_ip_rate_limit(scope: str, per_minute: Callable[[], int] | int):
+    """
+    Build a FastAPI dependency enforcing an IP-only, per-scope rate limit (BITB-298).
+
+    Unlike ``require_rate_limit`` it never reads ``session_id``, so a feedback/contact/search
+    request can never consume a chat session's lifetime cap. The bucket key is namespaced by
+    ``scope`` so it is independent of chat and of every other scope. ``per_minute`` may be a
+    callable (e.g. ``lambda: settings.x``) so the setting is read per request.
+    """
+
+    async def _dependency(request: Request) -> None:
+        if not settings.rate_limit_enabled:
+            return
+
+        if is_monitor_probe(request):
+            logger.info(
+                "Monitor probe — bypassing rate limit",
+                extra={"path": request.url.path, "scope": scope},
+            )
+            return
+
+        limit = per_minute() if callable(per_minute) else per_minute
+        ip_address = get_client_ip(request)
+
+        rate_limiter = get_scoped_rate_limiter(scope, limit)
+        allowed, reason = await rate_limiter.check_rate_limit(f"{scope}:{ip_address}")
+
+        if not allowed:
+            log_security_violation(
+                violation_type=ViolationType.RATE_LIMIT_IP,
+                ip_address=ip_address,
+                details=f"{scope}: {reason}",
+            )
+            raise HTTPException(
+                status_code=429,
+                detail={"error": "Rate limit exceeded", "retry_after": 60},
+            )
+
+    return _dependency
 
 
 # Cosmetic violations that must never pre-empt the crisis path (BITB-255).

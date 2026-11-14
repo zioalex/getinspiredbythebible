@@ -1,10 +1,11 @@
 ---
 id: BITB-298
-status: todo
+status: in-review
 priority: P0
 size: S
 rank: 30
 created: 2026-11-11
+prs: [1290]
 ---
 
 # BITB-298: Rate-Limit Search, Feedback and Church Endpoints; Bound Their Inputs
@@ -104,6 +105,16 @@ a chat turn. This story adds a separate, IP-only limiter instead.
 - Church proxy sends the honest `User-Agent` and no `Origin`/`Referer` (assert on the
   mocked outbound request).
 
+## Implementation notes
+
+- `model_used` is capped at 100 and `reason` at 40 (not 128): they match the widths of the
+  `feedback.model_used` / `feedback.reason` columns, so a longer value would be a database
+  error (500) instead of a clean 422. No web or Android form sets a `maxLength` on the
+  comment or contact message, so the story's caps stand.
+- `/api/v1/client-events` and `/client-errors` bodies carry no `session_id`; they stay on
+  `require_rate_limit` (pinned by a test).
+- `/scripture/search` already embeds through `CachingEmbeddingProvider` (the factory wraps it).
+
 ## Acceptance criteria
 
 - [ ] Route guard dump shows a limiter on all five routes
@@ -122,3 +133,7 @@ a chat turn. This story adds a separate, IP-only limiter instead.
 ## Related
 
 BITB-297, BITB-301, BITB-302, July audit S2, O5.
+
+## Follow-ups
+
+- BITB-310 — telemetry endpoints can still spend chat session budget via a stray `session_id` (verification finding 3).
