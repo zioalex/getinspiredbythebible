@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { getOgImageAlt } from "@/lib/ogImage";
 import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
@@ -18,6 +19,7 @@ export async function generateMetadata({
     path: "/changelog",
     title: t("title"),
     description: t("description"),
+    ogImageAlt: await getOgImageAlt(locale),
   });
 }
 

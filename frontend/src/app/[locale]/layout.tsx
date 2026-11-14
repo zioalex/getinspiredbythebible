@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { hasLocale } from "next-intl";
 import { routing } from "@/i18n/routing";
+import { getOgImageAlt } from "@/lib/ogImage";
 import { pageMetadata, buildJsonLd, SITE_NAME } from "@/lib/seo";
 import { Providers } from "./providers";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -33,6 +34,7 @@ export async function generateMetadata({
       path: "",
       title: homeTitle,
       description: t("description"),
+      ogImageAlt: await getOgImageAlt(locale),
     }),
     // Child pages set a plain title string and inherit this template, e.g.
     // "Privacy Policy · Vox Quieta". The home page renders `default`.
