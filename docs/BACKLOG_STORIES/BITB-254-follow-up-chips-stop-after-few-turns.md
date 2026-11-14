@@ -1,9 +1,15 @@
+---
+id: BITB-254
+status: in-progress
+priority: P1
+size: M
+rank: 240
+created: 2026-10-28
+---
+
 # BITB-254: Follow-Up Chips Stop Appearing After a Few Turns (Web + Android)
 
-**Status:** 🚧 In Progress
-**Priority:** P1
-**Size:** M (backend + web + Android)
-**Created:** 2026-10-28
+**Migration note (2026-11-13, size):** (backend + web + Android)
 **Parent:** BITB-080 (suggested follow-up questions), BITB-149 (Android chips)
 
 ## Bug Report
@@ -121,7 +127,7 @@ Both platforms are affected, so the cause is on the backend / in the prompt, not
 | `frontend/src/**/*.test.ts(x)` | Test that the next `streamMessage` call's history carries `follow_ups`. |
 | Android `domain/models/Message.kt`, `data/remote/models/ConversationMessageDto` + `ChatMapper.kt`, `ChatViewModel.kt` | Field, DTO, mapping, saving on the message. |
 | Android `app/src/test/...` | Mapper serialization + ViewModel test (flag on and off). |
-| `docs/BACKLOG.md` | Entry + changelog line. |
+| this story's front matter | `status` / `prs` (changelog = commit subject, BITB-313). |
 
 ## Known limitations
 

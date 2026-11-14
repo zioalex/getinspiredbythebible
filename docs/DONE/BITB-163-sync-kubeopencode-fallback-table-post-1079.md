@@ -1,9 +1,17 @@
+---
+id: BITB-163
+status: done
+priority: P3
+size: XS
+created: 2026-09-25
+prs: [1079]
+---
+
 # BITB-163: Sync KubeOpenCode Fallback Table Once PR #1079 Merges
 
-**Status:** ✅ Done (PR pending, 2026-10-07; PR #1079 merged 2026-09-29)
-**Priority:** P3 — doc-only drift, no functional impact
-**Size:** XS (single table edit in one Markdown file)
-**Created:** 2026-09-25
+**Migration note (2026-11-13, status):** (PR pending, 2026-10-07; PR #1079 merged 2026-09-29)
+**Migration note (2026-11-13, priority):** doc-only drift, no functional impact
+**Migration note (2026-11-13, size):** (single table edit in one Markdown file)
 **Related:** BITB-158 (KubeOpenCode dev image — this follow-up was filed during that story's v2
 build), PR #1079 (Ultra → Super-Free + GPT-OSS-120B fallback swap, not yet merged as of this
 writing)

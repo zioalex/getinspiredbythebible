@@ -1,9 +1,17 @@
+---
+id: BITB-148
+status: cancelled
+priority: P3
+size: S
+rank: 140
+created: 2026-09-13
+---
+
 # BITB-148: The Backlog-ID Guard Can't Tell Two Same-Numbered Headings Apart
 
-**Status:** 🎯 Todo
-**Priority:** P3 — a narrow, disclosed gap in a guard that otherwise works; not blocking
-**Size:** S
-**Created:** 2026-09-13
+**Cancelled (2026-11-13):** guard retired by BITB-313 (check_backlog_story_ids.py deleted).
+
+**Migration note (2026-11-13, priority):** a narrow, disclosed gap in a guard that otherwise works; not blocking
 **Prompted by:** PR #1068 (BITB-111), during the adversarial verify pass on the new
 `scripts/check_backlog_story_ids.py` guard
 
