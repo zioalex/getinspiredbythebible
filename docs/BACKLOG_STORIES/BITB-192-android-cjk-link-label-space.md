@@ -1,9 +1,14 @@
+---
+id: BITB-192
+status: todo
+priority: P3
+size: XS
+rank: 60
+created: 2026-10-12
+---
+
 # BITB-192: Android Link Labels Insert a Space Between a CJK Book Name and the Chapter
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** XS
-**Created:** 2026-10-12
 **Prompted by:** BITB-179 follow-up — verifier nit, pre-existing behaviour.
 
 ## Bug Report

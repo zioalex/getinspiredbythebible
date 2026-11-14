@@ -1,9 +1,16 @@
+---
+id: BITB-189
+status: done
+priority: P2
+size: S
+rank: 360
+created: 2026-10-12
+prs: [1250]
+---
+
 # BITB-189: Backend Misses a Citation Directly After a Closing Bracket (`「…」约翰福音3:16`)
 
-**Status:** ✅ Done (2026-11-05, PR #1250)
-**Priority:** P2
-**Size:** S
-**Created:** 2026-10-12
+**Migration note (2026-11-13, status):** (2026-11-05, PR #1250)
 **Prompted by:** BITB-179 follow-up — found while writing the fullwidth grounding test (the test had
 to insert a space after `」`).
 

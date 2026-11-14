@@ -1,9 +1,16 @@
+---
+id: BITB-080
+status: done
+priority: P2
+size: M
+rank: 1070
+created: 2026-07-25
+---
+
 # BITB-080: Suggested Follow-Up Questions as One-Tap Buttons Under Each Answer
 
-**Status:** ✅ Done (backend + web) — see "Delivered / Deferred" below; Android is **BITB-149**
-**Priority:** P2
-**Size:** M (1–2 days, backend + web + Android)
-**Created:** 2026-07-25
+**Migration note (2026-11-13, status):** (backend + web) — see "Delivered / Deferred" below; Android is **BITB-149**
+**Migration note (2026-11-13, size):** (1–2 days, backend + web + Android)
 
 ## Delivered / Deferred (this pass)
 

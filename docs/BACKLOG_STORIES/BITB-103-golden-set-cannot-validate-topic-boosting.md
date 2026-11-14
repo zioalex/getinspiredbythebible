@@ -1,10 +1,16 @@
+---
+id: BITB-103
+status: done
+priority: P1
+size: M
+rank: 1020
+created: 2026-08-21
+---
+
 # BITB-103: The Golden Set Cannot Validate Topic Boosting
 
-**Status:** ✅ Done
-**Priority:** P1 — blocks BITB-044's three remaining acceptance criteria; without it, "did topic
-boosting help?" is not a question the harness can answer
-**Size:** M (golden-set authoring, not code)
-**Created:** 2026-08-21
+**Migration note (2026-11-13, priority):** blocks BITB-044's three remaining acceptance criteria; without it, "did topic boosting help?" is not a question the harness can answer
+**Migration note (2026-11-13, size):** (golden-set authoring, not code)
 **Prompted by:** PR #970 (BITB-044), whose remaining ACs all say "validate against the BITB-043
 golden set" — the golden set cannot currently carry that weight
 

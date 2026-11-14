@@ -1,9 +1,13 @@
+---
+id: BITB-295
+status: todo
+priority: P3
+size: S
+created: 2026-11-11
+---
+
 # BITB-295: Directed Harm — Reported Speech, Obfuscated "kys" and Context-Free Death Wishes
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-11-11
 **Follow-up of:** BITB-266 (verifier findings on #1283)
 
 ## Problem

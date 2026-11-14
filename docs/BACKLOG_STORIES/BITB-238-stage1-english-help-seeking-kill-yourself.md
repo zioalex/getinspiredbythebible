@@ -1,9 +1,15 @@
+---
+id: BITB-238
+status: done
+priority: P2
+size: S
+created: 2026-10-24
+prs: [1249]
+---
+
 # BITB-238: Stage 1 Blocks English "Kill Yourself" Help-Seeking and Theological Questions in Every UI Language
 
-**Status:** ✅ Done — PR #1249, 2026-11-08
-**Priority:** P2
-**Size:** S
-**Created:** 2026-10-24
+**Migration note (2026-11-13, status):** PR #1249, 2026-11-08
 
 ## Problem
 

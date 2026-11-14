@@ -1,8 +1,12 @@
-# BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
+---
+id: BITB-194
+status: todo
+priority: P2
+size: S
+created: 2026-10-13
+---
 
-**Status:** 🎯 Todo
-**Size:** S
-**Created:** 2026-10-13
+# BITB-194: Fallback Violence Regex Blocks Bible-Narrative Questions
 
 **As a** Bible-study user, **I want** questions about biblical battles and deaths answered even when ML moderation is down, **so that** an outage does not make the app refuse core content.
 

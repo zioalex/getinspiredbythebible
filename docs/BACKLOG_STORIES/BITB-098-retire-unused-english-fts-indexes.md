@@ -1,9 +1,15 @@
+---
+id: BITB-098
+status: todo
+priority: P3
+size: S
+created: 2026-08-18
+---
+
 # BITB-098: Retire the Two English FTS Indexes Nothing Queries
 
-**Status:** 🎯 Todo
-**Priority:** P3 — pure waste, but bounded and not urgent
-**Size:** S (one revision; the care is in the evidence and the lock, not the code)
-**Created:** 2026-08-18
+**Migration note (2026-11-13, priority):** pure waste, but bounded and not urgent
+**Migration note (2026-11-13, size):** (one revision; the care is in the evidence and the lock, not the code)
 **Prompted by:** BITB-095's adjacent finding, confirmed while closing BITB-096
 
 ## User Story

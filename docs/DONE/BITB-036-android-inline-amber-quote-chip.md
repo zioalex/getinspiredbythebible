@@ -1,6 +1,16 @@
+---
+id: BITB-036
+status: done
+priority: P2
+size: M
+rank: 930
+created: 2026-05-26
+prs: [637]
+---
+
 # BITB-036: Android Inline Amber Chip for Quoted Scripture — Web Parity
 
-**Status:** 🔄 In PR (PR #637 — 2026-05-29)
+**Migration note (2026-11-13, status):** (PR #637 merged 2026-05-29)
 
 ## User Story
 

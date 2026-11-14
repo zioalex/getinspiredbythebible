@@ -1,9 +1,16 @@
+---
+id: BITB-277
+status: todo
+priority: P2
+size: L
+rank: 70
+created: 2026-11-08
+depends_on: [BITB-262]
+---
+
 # BITB-277: Parity KG Stage 4 — Application Code-Structure Layer
 
-**Status:** 🎯 Todo — gated on BITB-262 landing (needs the registry schema + graph.json format)
-**Priority:** P2
-**Size:** L
-**Created:** 2026-11-08
+**Migration note (2026-11-13, status):** gated on BITB-262 landing (needs the registry schema + graph.json format)
 **Part of:** BITB-260 — Stage 4 (promoted from "gated candidate" 2026-11-08: the owner's requirement
 for an application knowledge graph to improve development is the demonstrated query need)
 
