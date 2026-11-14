@@ -1,9 +1,14 @@
+---
+id: BITB-174
+status: done
+priority: P1
+size: S
+rank: 460
+created: 2026-10-03
+---
+
 # BITB-174: Android Tablet — Chat Messages Don't Fill the Available Width
 
-**Status:** ✅ Done
-**Priority:** P1
-**Size:** S
-**Created:** 2026-10-03
 **Completed:** 2026-10-04
 **PR:** #1129
 **Type:** Bug (Android)

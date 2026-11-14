@@ -1,9 +1,15 @@
+---
+id: BITB-234
+status: todo
+priority: P2
+size: M
+rank: 240
+created: 2026-10-23
+---
+
 # BITB-234: Second-Tenant Rehearsal Environment — Spend the $50 Credit on Migrations, Not on Splitting Production
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** M (Terraform for a minimal rehearsal stack + teardown discipline + cost guard)
-**Created:** 2026-10-23
+**Migration note (2026-11-13, size):** (Terraform for a minimal rehearsal stack + teardown discipline + cost guard)
 **Parent:** BITB-150 (Phase 0 follow-up — new-tenant opportunity, evidence-based scope)
 
 ## User Story

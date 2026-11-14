@@ -1,9 +1,15 @@
+---
+id: BITB-210
+status: done
+priority: P1
+size: M
+created: 2026-10-22
+prs: [1190]
+---
+
 # BITB-210: Read Aloud — Explain a Missing Voice and Offer Online Voices per Device (Web)
 
-**Status:** ✅ Done — PR #1190, merged 2026-10-22
-**Priority:** P1
-**Size:** M
-**Created:** 2026-10-22
+**Migration note (2026-11-13, status):** PR #1190, merged 2026-10-22
 **Prompted by:** bug report 2026-10-22 — "I cannot see the voice button in the web version although 1.57.0 is
 deployed. The option flag is selected in the menu though." (Linux desktop Firefox; then "I tested also in Chrome and I don't see it either" — Linux desktop Chrome). The production `TTS_ENABLED` flag is on (Terraform default, and the Android app shows Listen against the same server).
 

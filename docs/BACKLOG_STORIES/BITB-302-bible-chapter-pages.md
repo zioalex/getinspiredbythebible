@@ -1,9 +1,14 @@
+---
+id: BITB-302
+status: todo
+priority: P1
+size: L
+rank: 40
+created: 2026-11-11
+---
+
 # BITB-302: Server-Rendered Bible Chapter Pages (Verses Addressable by Anchor)
 
-**Status:** 🎯 Todo
-**Priority:** P1
-**Size:** L
-**Created:** 2026-11-11
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) row S3.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 3. **After BITB-300.**
 **Commit:** `feat(frontend): server-rendered Bible chapter pages (BITB-302)`

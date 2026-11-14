@@ -1,9 +1,15 @@
+---
+id: BITB-094
+status: in-progress
+priority: P2
+size: M
+created: 2026-08-15
+---
+
 # BITB-094: Audit Column Types Against Production — the Blind Spot `alembic check` Cannot See
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** S–M (an audit; unknown remediation until it runs)
-**Created:** 2026-08-15
+**Migration note (2026-11-13, status):** tooling built, static pass and dynamic pass (against a fresh migrated database) both done; the authoritative run against a real production restore is still outstanding
+**Migration note (2026-11-13, size):** S–M (an audit; unknown remediation until it runs)
 **Depends on:** BITB-093 (structural reconciliation) — done.
 
 ## User Story

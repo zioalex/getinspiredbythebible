@@ -311,7 +311,7 @@ See `docs/TECHNICAL_DEBT.md` for full list. Key items:
 ## How This Roadmap Is Maintained
 
 1. **Product Owner** updates this roadmap monthly
-2. **Backlog** (`docs/BACKLOG.md`) contains detailed user stories
+2. **Backlog** (story files in `docs/BACKLOG_STORIES/`; query with `make backlog`, see `docs/BACKLOG.md`) contains detailed user stories
 3. **Technical Debt** (`docs/TECHNICAL_DEBT.md`) tracks engineering improvements
 4. **Tasks** (`docs/TASKS.md`) contains tactical to-do items
 5. **WIP Tracking** (`docs/WIP/`) tracks active PR work

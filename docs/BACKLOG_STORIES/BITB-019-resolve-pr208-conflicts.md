@@ -1,9 +1,14 @@
+---
+id: BITB-019
+status: done
+priority: P1
+size: S
+created: 2026-03-04
+---
+
 # BITB-019: Resolve Merge Conflicts in PR #208 (Content Safety)
 
-**Priority:** P1 (High - Blocks feature deployment)
-**Status:** ✅ Done
-**Size:** S (< 1 hour)
-**Created:** 2026-03-04
+**Migration note (2026-11-13, priority):** (High - Blocks feature deployment)
 **Completed:** 2026-03-04
 
 ---

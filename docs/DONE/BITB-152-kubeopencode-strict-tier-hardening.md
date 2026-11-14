@@ -1,6 +1,16 @@
+---
+id: BITB-152
+status: done
+priority: P1
+size: M
+rank: 520
+created: 2026-09-06
+prs: [1045, 1086, 1087]
+---
+
 # BITB-152: KubeOpencode strict-tier sandbox hardening
 
-**Status:** 🎯 Todo | **Priority:** P1 | **Size:** M | **Date:** 2026-09-06
+**Migration note (2026-11-13, status):** (PR #1045 merged 2026-09-18, hardened by follow-ups #1086/#1087 on the same feature branch before it landed on main)
 
 ## Problem
 

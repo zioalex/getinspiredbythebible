@@ -1,9 +1,15 @@
+---
+id: BITB-291
+status: todo
+priority: P1
+size: M
+rank: 170
+created: 2026-11-10
+follow_ups: [BITB-314, BITB-315]
+---
+
 # BITB-291: Synthetic Probe of the ML Content-Safety Path in prod-monitor
 
-**Status:** 🎯 Todo
-**Priority:** P1
-**Size:** M
-**Created:** 2026-11-10
 **Prompted by:** BITB-272 slice 1 (ML failover to OpenAI Moderation before the keyword fallback).
 
 ## Problem

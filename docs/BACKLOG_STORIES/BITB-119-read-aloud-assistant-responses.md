@@ -1,9 +1,18 @@
+---
+id: BITB-119
+status: in-review
+priority: P2
+size: L
+rank: 510
+created: 2026-09-04
+prs: [1132]
+---
+
 # BITB-119: Read the Answer Aloud — Speak Vox Quieta's Response (Web + Android)
 
-**Status:** 🚧 In Review — PR #1132
-**Priority:** P2 — new capability, not a defect; sequence after the cost decision below is made
-**Size:** L (M per platform + a shared text-normalization layer; see Cost of Implementation)
-**Created:** 2026-09-04
+**Migration note (2026-11-13, status):** PR #1132
+**Migration note (2026-11-13, priority):** new capability, not a defect; sequence after the cost decision below is made
+**Migration note (2026-11-13, size):** (M per platform + a shared text-normalization layer; see Cost of Implementation)
 **Prompted by:** product request — "speak loudly the Vox Quieta response". Paired with BITB-120
 (voice input). They share rollout/configuration and some locale work, but remain separate because
 output and input have independent user value, platform APIs, permissions, data flows, failure modes
@@ -302,7 +311,7 @@ shared normalization/chunking spec so web and Android cannot drift (the BITB-059
 
 ### Backlog / commit
 
-- `docs/BACKLOG.md` entry → 🚧 In Progress (→ ✅ Done with PR number once merged), `Last Updated`.
+- Story front matter → `status: in-progress` (→ `done` with `prs: [N]` once merged).
 - Single commit type `feat:` (user-visible) so release-please puts it in CHANGELOG → both What's
   New surfaces (which are generated from CHANGELOG, not hand-edited).
 

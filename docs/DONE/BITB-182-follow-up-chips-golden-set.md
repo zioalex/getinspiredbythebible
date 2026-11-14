@@ -1,10 +1,17 @@
+---
+id: BITB-182
+status: done
+priority: P2
+size: M
+rank: 400
+created: 2026-10-09
+prs: [1147]
+---
+
 # BITB-182: Follow-Up Chips — Curated Golden Set, Live Runner, and Flag Plumbing
 
-**Status:** ✅ Done (PR #1147, 2026-10-11)
+**Migration note (2026-11-13, status):** (PR #1147, 2026-10-11)
 **Completed:** 2026-10-11
-**Priority:** P2
-**Size:** M
-**Created:** 2026-10-09
 **Parent refs:** BITB-080 (backend + web follow-up chips), BITB-149 (Android chips, PR #1109)
 
 ## User Story

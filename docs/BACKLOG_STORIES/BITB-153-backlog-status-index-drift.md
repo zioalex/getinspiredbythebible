@@ -1,9 +1,15 @@
+---
+id: BITB-153
+status: done
+priority: P2
+size: S
+created: 2026-09-14
+---
+
 # BITB-153: docs/BACKLOG.md Status Drifts From Finished Story Files
 
-**Status:** ✅ Done
-**Priority:** P2 — a tracking defect that wastes a full dedup pass every time it fires
-**Size:** S (mechanical fix + a CI guard)
-**Created:** 2026-09-14
+**Migration note (2026-11-13, priority):** a tracking defect that wastes a full dedup pass every time it fires
+**Migration note (2026-11-13, size):** (mechanical fix + a CI guard)
 **Prompted by:** the scheduled 2026-09-14 backlog audit, which nearly treated five already-shipped
 stories as open work because the index still said 🎯
 

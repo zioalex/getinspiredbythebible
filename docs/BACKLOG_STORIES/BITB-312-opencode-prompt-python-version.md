@@ -1,9 +1,14 @@
+---
+id: BITB-312
+status: todo
+priority: P3
+size: XS
+rank: 10
+created: 2026-11-13
+---
+
 # BITB-312: opencode Agent Prompts Still Say "Python 3.12"
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** XS
-**Created:** 2026-11-13
 **Prompted by:** BITB-304 follow-up.
 
 ## Problem

@@ -1,9 +1,16 @@
+---
+id: BITB-304
+status: in-review
+priority: P1
+size: S
+rank: 50
+created: 2026-11-11
+prs: [1291]
+---
+
 # BITB-304: Align the Python Runtime, Fix the Claude Model Configuration, Probe Configured Models
 
-**Status:** 🔍 In Review (PR #1291)
-**Priority:** P1
-**Size:** S
-**Created:** 2026-11-11
+**Migration note (2026-11-13, status):** (PR #1291)
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows D1–D6.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), wave 2.
 **Commit:** `ci(api): test on the production Python version; fix Claude model config (BITB-304)`

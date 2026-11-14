@@ -1,9 +1,16 @@
+---
+id: BITB-079
+status: done
+priority: P1
+size: S
+rank: 870
+created: 2026-07-25
+prs: [945]
+---
+
 # BITB-079: Web — the Bottom Bar Is Permanently Off Screen on the Chat Page
 
-**Status:** 🎯 Todo
-**Priority:** P1
-**Size:** S (< 4 hrs)
-**Created:** 2026-07-25
+**Migration note (2026-11-13, status):** (PR #945 merged 2026-07-29)
 
 ## User Story
 

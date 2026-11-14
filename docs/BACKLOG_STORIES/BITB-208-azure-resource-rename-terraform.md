@@ -1,9 +1,13 @@
+---
+id: BITB-208
+status: todo
+priority: P3
+size: M
+created: 2026-10-22
+---
+
 # BITB-208: Rename Azure Resources to `voxquieta-*` Through Terraform
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** M
-**Created:** 2026-10-22
 **Follow-up of:** BITB-205 (PR #1188), which reverted the broken workflow-only rename from #1183
 
 ## Problem

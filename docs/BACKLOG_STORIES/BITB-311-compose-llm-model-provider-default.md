@@ -1,9 +1,14 @@
+---
+id: BITB-311
+status: todo
+priority: P2
+size: XS
+rank: 10
+created: 2026-11-13
+---
+
 # BITB-311: Docker Compose Always Sets LLM_MODEL, So `LLM_PROVIDER=claude` Gets an Ollama Model Name
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** XS
-**Created:** 2026-11-13
 **Prompted by:** BITB-304 build (follow-up).
 
 ## Problem
