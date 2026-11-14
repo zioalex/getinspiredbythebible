@@ -11,6 +11,34 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode
 
+ML_FAILOVER_STAGES = ("openai_moderation", "azure")
+DEFAULT_ML_FAILOVER_CHAIN = ("openai_moderation",)
+
+
+def parse_ml_failover_chain(raw: str) -> list[str]:
+    """Parse CONTENT_SAFETY_ML_FAILOVER_CHAIN: trim, lowercase, de-dupe (order kept).
+
+    Raises ValueError on an unknown entry so a typo fails at startup, not mid-incident.
+    """
+    if not raw.strip():
+        # Empty (e.g. an unset Terraform/env template var) = default; disable the failover
+        # with CONTENT_SAFETY_ML_FAILOVER_ENABLED=false instead.
+        return list(DEFAULT_ML_FAILOVER_CHAIN)
+    chain: list[str] = []
+    for part in raw.split(","):
+        name = part.strip().lower()
+        if not name:
+            continue
+        if name not in ML_FAILOVER_STAGES:
+            raise ValueError(
+                f"Unknown content_safety_ml_failover_chain entry {name!r}; "
+                f"allowed: {', '.join(ML_FAILOVER_STAGES)}"
+            )
+        if name not in chain:
+            chain.append(name)
+    return chain
+
+
 IPNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 
@@ -365,6 +393,7 @@ class Settings(BaseSettings):
     azure_content_safety_endpoint: str | None = None  # Azure endpoint URL
     azure_content_safety_key: str | None = None  # Azure API key
     azure_content_safety_threshold: int = 4  # Severity 0-6, block >= threshold
+    azure_content_safety_timeout: float = 3  # Seconds per SDK call (BITB-292)
 
     # Content Safety Mode
     # Content safety pipeline mode:
@@ -422,6 +451,12 @@ class Settings(BaseSettings):
     # Llama Guard (primary + secondary, both via OpenRouter) fails or is unconfigured, BEFORE
     # the context-blind keyword fallback. No-op without OPENAI_API_KEY. ml_only only.
     content_safety_ml_failover_enabled: bool = True
+    # BITB-292: ordered ML failover chain for ml_only (comma-separated). Allowed entries:
+    # ``openai_moderation`` (needs OPENAI_API_KEY) and ``azure`` (needs
+    # AZURE_CONTENT_SAFETY_ENABLED + endpoint + key). Hops that are not configured are skipped;
+    # the keyword fallback runs only when every configured hop failed. Default = BITB-272
+    # behaviour. ``content_safety_ml_failover_enabled`` stays the master switch.
+    content_safety_ml_failover_chain: str = "openai_moderation"
 
     # Blocked-message sample capture (for filter tuning).
     # Stores a privacy-minimal record of messages the safety system blocked:
@@ -450,6 +485,17 @@ class Settings(BaseSettings):
         "mxbai-embed-large:semantic": 0.55,
         "text-embedding-3-small:semantic": 0.50,
     }
+
+    @field_validator("content_safety_ml_failover_chain")
+    @classmethod
+    def normalize_ml_failover_chain(cls, v: str) -> str:
+        """Validate + canonicalize the chain (trim, lowercase, de-dupe); unknown entry fails."""
+        return ",".join(parse_ml_failover_chain(v))
+
+    @property
+    def ml_failover_chain(self) -> list[str]:
+        """Parsed ordered ML failover chain (BITB-292)."""
+        return parse_ml_failover_chain(self.content_safety_ml_failover_chain)
 
     @field_validator("trusted_proxy_cidrs")
     @classmethod
