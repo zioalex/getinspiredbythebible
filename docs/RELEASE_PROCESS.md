@@ -136,6 +136,11 @@ as a repository secret:
 2. Click **New repository secret**.
 3. Name: `RELEASE_PLEASE_TOKEN`
 4. Value: paste the PAT.
+5. Record the PAT's expiry date (`YYYY-MM-DD`) and owner for `RELEASE_PLEASE_TOKEN` (and
+   `AUTO_UPDATE_PR_TOKEN`, which falls back to it) in
+   [`docs/secrets-inventory.yaml`](secrets-inventory.yaml). Names and dates only, never the
+   value. The weekly [Secrets Expiry Check](../.github/workflows/secrets-expiry-check.yml)
+   fails 21 days before that date and when it disagrees with GitHub's live expiry header.
 
 Once the secret is in place, every merge of a Release PR will:
 
@@ -398,6 +403,10 @@ If the release-please workflow run is red, check in this order:
    `GITHUB_TOKEN` and downstream tag-triggered jobs will not fire.
 2. **Is the PAT expired?** Fine-grained PATs have a max 1-year lifetime;
    GitHub sends an email warning ~7 days before expiry.
+   The expiry date is recorded in [`secrets-inventory.yaml`](secrets-inventory.yaml), and
+   [`secrets-expiry-check.yml`](../.github/workflows/secrets-expiry-check.yml) fails weekly
+   when it is within 21 days (it also reads the live
+   `github-authentication-token-expiration` header, so a renewal must be recorded there).
 3. **Does the PAT cover the repo?** For fine-grained tokens, the repo
    must be explicitly listed under "Repository access".
 4. **Does the PAT have all four scopes?** Contents (write), Pull
