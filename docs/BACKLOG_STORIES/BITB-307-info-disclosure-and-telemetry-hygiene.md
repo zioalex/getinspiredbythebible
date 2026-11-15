@@ -5,6 +5,7 @@ priority: P2
 size: S
 rank: 40
 created: 2026-11-11
+prs: [1297]
 follow_ups: [BITB-317, BITB-318]
 ---
 
