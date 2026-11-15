@@ -5,6 +5,7 @@ priority: P2
 size: S
 rank: 40
 created: 2026-11-11
+follow_ups: [BITB-317]
 ---
 
 # BITB-307: Trim `/config`, Stop Leaking Upstream Errors, Drop the Session Metric Label, Tighten CORS
@@ -103,3 +104,7 @@ CORS, if one does.
 ## Related
 
 July audit O4, O5; BITB-064, BITB-118, BITB-156 (Android reads limits from `/config`).
+
+## Follow-ups
+
+- BITB-317 — `/health/ready` echoes raw database exception text to anonymous callers.
