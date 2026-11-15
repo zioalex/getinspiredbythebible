@@ -16,8 +16,15 @@ def _reset_ip_rate_limiters():
     would leak between tests and trip the new limits. The /scripture/stats cache is reset too so a cached
     payload never leaks between tests.
     """
-    from routes.scripture import reset_stats_cache
-    from utils.rate_limiter import reset_rate_limiter
+    try:
+        from routes.scripture import reset_stats_cache
+        from utils.rate_limiter import reset_rate_limiter
+    except ModuleNotFoundError:
+        # BITB-319: the post-deploy smoke job (azure-deploy.yml functional-tests) installs
+        # only httpx/pytest/pydantic and runs tests/e2e + tests/functional against live URLs.
+        # Those never touch in-process limiters, and importing the app needs fastapi.
+        yield
+        return
 
     reset_rate_limiter()
     reset_stats_cache()

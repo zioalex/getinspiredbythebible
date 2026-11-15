@@ -1550,6 +1550,9 @@ jobs:
 
       - name: Run functional API tests (backend API)
         id: functional
+        # BITB-319: run even when the e2e step failed -- the two suites are independent, and
+        # skipping the backend checks hid the fact that nothing was verified on the API.
+        if: ${{ !cancelled() }}
         env:
           BACKEND_API_URL: ${{ needs.deploy.outputs.backend_url }}
         run: |
@@ -1578,7 +1581,7 @@ jobs:
           if [ "${{ steps.functional.outcome }}" == "success" ]; then
             echo "✅ All API functional tests passed" >> $GITHUB_STEP_SUMMARY
           elif [ "${{ steps.functional.outcome }}" == "skipped" ]; then
-            echo "⏭️ API tests skipped (backend URL not available)" >> $GITHUB_STEP_SUMMARY
+            echo "⏭️ API tests skipped (workflow cancelled)" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ API functional tests failed — check backend logs, consider rollback" >> $GITHUB_STEP_SUMMARY
           fi
