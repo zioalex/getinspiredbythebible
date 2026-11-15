@@ -255,9 +255,12 @@ class Settings(BaseSettings):
     production_frontend_url: str = "https://voxquieta.org"
 
     # CORS Settings
-    # Comma-separated list of allowed origins (in addition to localhost and production_frontend_url)
+    # Comma-separated list of allowed origins (in addition to production_frontend_url; localhost only if debug/cors_allow_localhost)
     # Example: "https://myapp.azurecontainerapps.io,https://example.com"
     cors_origins: str = ""
+    # Allow http://localhost / 127.0.0.1 :3000/:3001 origins (dev/CI only, BITB-307).
+    # Also implied by DEBUG=true. Must stay false in production.
+    cors_allow_localhost: bool = False
 
     # Logging
     log_level: str = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL

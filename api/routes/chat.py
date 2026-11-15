@@ -79,7 +79,7 @@ async def chat(
         chat_messages_counter.add(1)
         chat_response_time.record(elapsed_ms)
         if request.session_id:
-            chat_sessions_counter.add(1, {"session_token": request.session_id})
+            chat_sessions_counter.add(1)
 
         # Track session (fire-and-forget, errors logged internally)
         user_agent = http_request.headers.get("user-agent")
@@ -133,7 +133,7 @@ async def chat_stream(
     chat_messages_counter.add(1)
     chat_stream_counter.add(1)
     if request.session_id:
-        chat_sessions_counter.add(1, {"session_token": request.session_id})
+        chat_sessions_counter.add(1)
 
     # Session attributes (mirrors the non-streaming `chat` handler).
     user_agent = http_request.headers.get("user-agent")

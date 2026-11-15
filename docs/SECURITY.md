@@ -208,10 +208,24 @@ Cross-Origin Resource Sharing is configured to only allow trusted origins.
 
 ### Allowed Origins
 
-- `http://localhost:3000` / `http://127.0.0.1:3000` (development)
-- `http://localhost:3001` / `http://127.0.0.1:3001` (development)
 - `https://voxquieta.org` (production, configurable via `PRODUCTION_FRONTEND_URL`)
 - Additional origins via `CORS_ORIGINS` environment variable
+- `http://localhost:3000` / `:3001` and `http://127.0.0.1:3000` / `:3001` **only** when
+  `DEBUG=true` or `CORS_ALLOW_LOCALHOST=true` (local compose files and the CI
+  integration job set the latter; never set it in production) (BITB-307)
+
+Allowed methods are `GET, POST, OPTIONS`; allowed request headers are an explicit list
+(`Content-Type, Accept, Accept-Language, X-Turnstile-Token, X-Monitor-Probe-Secret,
+X-Request-ID`); credentials are not allowed (no client sends cookies; the session id
+travels in the request body).
+
+### Public config and diagnostics (BITB-307)
+
+`GET /config` publishes only what clients read (message/session limits, `tts_enabled`,
+Turnstile site key). LLM/embedding provider and model and telemetry state are served by
+`GET /api/v1/admin/config`, which requires the `X-Monitor-Probe-Secret` header. Upstream
+LLM provider failures return a generic `503` ("The AI service is temporarily
+unavailable."); the full exception is logged server-side only.
 
 ## Cloudflare Additional Protection
 
@@ -257,6 +271,7 @@ MAX_REQUEST_BODY_BYTES=1048576
 
 # CORS
 CORS_ORIGINS=https://custom-domain.com
+CORS_ALLOW_LOCALHOST=false  # true only for local dev / CI
 
 # Logging
 SECURITY_LOG_VIOLATIONS=true
