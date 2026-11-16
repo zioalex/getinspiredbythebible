@@ -238,9 +238,57 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(refs, [])
 
     def test_report_is_current(self) -> None:
+        # Build the report exactly as `--write` does (real refs, not a hardcoded []), so a
+        # failure here means "stale report", not "a doc reference is broken" -- that is
+        # test_docs_reference_only_existing_targets's job.
         dry = {n: audit.dry_run(n).returncode for n in self.targets}
-        report = audit.build_report(self.targets, self.cls, dry, [])
+        refs = audit.doc_references(
+            set(self.targets), self.cls["doc_scan_skip"], self.cls["doc_ref_ignore"]
+        )
+        report = audit.build_report(self.targets, self.cls, dry, refs)
         self.assertEqual(audit.REPORT.read_text(encoding="utf-8"), report)
+
+    def test_doc_scan_skips_generated_report_and_frozen_archive(self) -> None:
+        # Regression (BITB-325): the report quotes every bad `make <target>` it lists; scanning
+        # it re-reported those quotes, so each --write grew the list. The frozen archive
+        # changelog names targets that were planned/retired and must not be rewritten.
+        self.assertIn("docs/backlog/CHANGELOG-archive.md", self.cls["doc_scan_skip"])
+        report_rel = audit.REPORT.relative_to(ROOT).as_posix()
+        # Assembled at runtime so this file's own source does not trip the live scan.
+        ghost, real = "make" + " ghost-target", "make" + " real-target"
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            files = {
+                report_rel: f"- `docs/live.md:1` -> `{ghost}`\n",
+                "docs/backlog/CHANGELOG-archive.md": f"- shipped {ghost}\n",
+                "docs/live.md": f"Run `{ghost}` then `{real}`.\n",
+            }
+            for rel, text in files.items():
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_text(text, encoding="utf-8")
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            refs = audit.doc_references(
+                {"real-target"}, self.cls["doc_scan_skip"], [], root=root
+            )
+        self.assertEqual(refs, [("docs/live.md", 1, "ghost-target")])
+
+    def test_doc_ref_regex_ignores_templated_target_names(self) -> None:
+        # Regression (BITB-325): `make az-logs-${app#bible-app-}-query` in scripts/az-logs.sh
+        # was reported as the missing target `az-logs`.
+        mk = "make"
+        cases = {
+            f"use {mk} az-logs-${{app#bible-app-}}-query": [],
+            f"the `{mk} az-logs-*` targets": [],
+            f"{mk} test-<name>": [],
+            f"{mk} {{target}}": [],
+            f"run `{mk} -n test-makefile`": ["test-makefile"],
+            f"run {mk} golden-test.": ["golden-test"],
+            f"{mk} sure it works": ["sure"],
+        }
+        for line, expected in cases.items():
+            with self.subTest(line):
+                self.assertEqual([m.group(1) for m in audit.DOC_REF_RE.finditer(line)], expected)
 
     def test_report_ends_with_exactly_one_newline(self) -> None:
         # Regression: --write appended a second \n, which end-of-file-fixer then stripped.
@@ -547,7 +595,12 @@ class PythonTargetTests(SandboxCase):
             [("npm", ["run", "lint"]), ("npx", ["tsc", "--noEmit"]), ("npm", ["run", "build"])],
         )
         self.assertEqual(self.make("pre-commit").argv("pre-commit", "run"), [["run", "--all-files"]])
-        self.assertEqual(self.make("install-hooks").argv("pre-commit"), [["install"], ["install", "--hook-type", "commit-msg"]])
+        # BITB-243 split hooks into stages: the slow ones (mypy, bandit, eslint, ...) run at
+        # pre-push, so install-hooks must register that hook type too.
+        self.assertEqual(
+            self.make("install-hooks").argv("pre-commit"),
+            [["install"], ["install", "--hook-type", "commit-msg"], ["install", "--hook-type", "pre-push"]],
+        )
 
     def test_install_deps_installs_only_when_sentinel_import_fails(self) -> None:
         self.assertEqual(self.make("install-deps").of("pip"), [])
