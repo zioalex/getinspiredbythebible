@@ -1,6 +1,6 @@
 ---
 id: BITB-293
-status: todo
+status: in-review
 priority: P1
 size: M
 rank: 190
@@ -28,12 +28,12 @@ The same question applies to Llama Guard and to the Azure Content Safety failove
 
 ## Acceptance criteria
 
-- [ ] A versioned dataset (e.g. `api/tests/fixtures/safety_golden_set.json`) with crisis, threat and Bible-narrative cases for en, it, de, es, fr, pt, ar, ru, zh, hi, ko. Reuse the existing BITB-186/193/238/239/257 test phrasings where possible. Each case has an expected verdict (block / allow / crisis).
-- [ ] A runner script (e.g. `scripts/run_safety_golden_set.py --classifier openai_moderation|llama_guard|azure`) calls one provider directly and prints a per-language recall / false-positive table. Exit code is non-zero below configurable thresholds.
-- [ ] Offline unit tests for the runner and the dataset schema with mocked providers, parametrized across all 11 languages.
-- [ ] A `workflow_dispatch` workflow (or a mode of `golden-set-live.yml`) that runs it with repo secrets. It is never run on PRs.
+- [x] A versioned dataset (e.g. `api/tests/fixtures/safety_golden_set.json`) with crisis, threat and Bible-narrative cases for en, it, de, es, fr, pt, ar, ru, zh, hi, ko. Reuse the existing BITB-186/193/238/239/257 test phrasings where possible. Each case has an expected verdict (block / allow / crisis).
+- [x] A runner script (e.g. `scripts/run_safety_golden_set.py --classifier openai_moderation|llama_guard|azure`) calls one provider directly and prints a per-language recall / false-positive table. Exit code is non-zero below configurable thresholds.
+- [x] Offline unit tests for the runner and the dataset schema with mocked providers, parametrized across all 11 languages.
+- [x] A `workflow_dispatch` workflow (or a mode of `golden-set-live.yml`) that runs it with repo secrets. It is never run on PRs.
 - [ ] Owner step: run against `omni-moderation-latest` and record per-language results in BITB-288 and here. Decide whether the failover stays enabled for languages that fall below threshold.
-- [ ] Documented with zero-to-running steps in `docs/HOW-TO-ENABLE-CONTENT-SAFETY.md`.
+- [x] Documented with zero-to-running steps in `docs/HOW-TO-ENABLE-CONTENT-SAFETY.md`.
 
 ## Out of scope
 
