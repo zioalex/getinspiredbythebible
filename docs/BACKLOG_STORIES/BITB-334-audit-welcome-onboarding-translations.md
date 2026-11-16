@@ -54,7 +54,10 @@ All in-scope keys were read in all 11 locales on both platforms against the Engl
 | hi | Web `Welcome.description` | "धार्मिक विषयों" (religious) | "धर्मशास्त्रीय विषयों" (theological) |
 | fr, ru | `welcome_title`, `splash_motto`, web `Header.subtitle`, `Metadata.description`, motto | informal tu ("Laisse-toi", "Вдохновляйся") | formal vous ("Laissez-vous", "Вдохновляйтесь"), matching the rest of the UI |
 | zh | Web `About.introBody` | ASCII commas "," | fullwidth "，" (matches the Android string) |
-| pt | Web `Welcome.description`, chat input placeholder | European "Partilhe" mixed with Brazilian "celular/você" | Brazilian "Compartilhe" |
+
+### Follow-up item
+
+- **pt variant inconsistency:** `frontend/messages/pt.json` is mostly European Portuguese ("Partilhe", "leva") but a few strings use Brazilian forms ("celular", "você"); Android `values-pt` is Brazilian. Decide the target variant (or split pt-PT / pt-BR) in a separate story. Left unchanged here.
 
 ### Needs native-speaker review
 
