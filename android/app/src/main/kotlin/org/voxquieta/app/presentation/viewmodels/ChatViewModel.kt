@@ -1323,7 +1323,7 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(currentLocale = locale) }
         // NonCancellable (BITB-331): navigating to chat/new pops this screen's back-stack entry,
         // which may clear this ViewModel; the persist + apply must still finish. There is no
-        // application-scoped CoroutineScope in the repo yet (see BITB-331 follow-up).
+        // application-scoped CoroutineScope in the repo yet (see BITB-337).
         viewModelScope.launch {
             withContext(NonCancellable) {
                 languagePreferences.setLanguage(locale)
