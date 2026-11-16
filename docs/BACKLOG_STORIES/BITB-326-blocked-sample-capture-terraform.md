@@ -27,8 +27,8 @@ reviewed.
   step (`make az-pg-add-ip`) that made the export hang.
 
 Privacy is unchanged and already enforced by the capture code: text capped at 500 chars,
-dedup by hash, session-id hash only (no IP, user id or UA), 30-day retention with the daily
-pg_cron purge.
+dedup by hash, session-id hash only (no IP, user id or UA), retention 30 days after the
+last occurrence, with the daily pg_cron purge.
 
 ## Acceptance criteria
 
@@ -36,7 +36,7 @@ pg_cron purge.
       env mapping, production tfvars `true`, example `false`, the manifest entry, and the
       Settings default and override.
 - [x] `python3 scripts/validate-env.py` passes.
-- [ ] CI `terraform fmt -check` / `validate` green (no terraform binary in the authoring sandbox).
+- [x] CI `terraform fmt -check` / `validate` green (tf-validate on PR #1303).
 - [ ] Owner step: after the deploy, the backend Container App has
       `BLOCKED_SAMPLE_CAPTURE_ENABLED=true`
       (`az containerapp show -n bible-app-backend -g bible-app-rg --query "properties.template.containers[0].env[?name=='BLOCKED_SAMPLE_CAPTURE_ENABLED']"`).

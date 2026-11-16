@@ -38,8 +38,10 @@ These are enforced in code, not just by convention:
 - `message_text` is truncated to at most `BLOCKED_SAMPLE_MAX_CHARS` chars.
 - Identical messages are deduplicated by sha256; repeats bump `hit_count`
   instead of writing new rows, so a single user cannot be amplified.
-- Rows older than `BLOCKED_SAMPLE_RETENTION_DAYS` (default **30**) are
-  deleted on app startup.
+- Rows expire `BLOCKED_SAMPLE_RETENTION_DAYS` (default **30**) after their
+  *last* occurrence (a repeat refreshes the expiry), and are deleted by the daily
+  pg_cron purge plus a startup backstop. A message that keeps being blocked, such
+  as the prod-monitor's deliberate probe, therefore stays, with a growing `hit_count`.
 - Capture is **off by default**. Operators opt in per environment with
   `BLOCKED_SAMPLE_CAPTURE_ENABLED=true`.
 
@@ -74,7 +76,8 @@ The production Postgres firewall only admits allow-listed IPs, so a connection f
 machine hangs until it times out. Allow your IP first, and remove the rule afterwards:
 
 ```bash
-make az-pg-add-ip            # prints the rule name
+make az-pg-add-ip
+make az-pg-list-rules        # the rule is named after the server
 make az-pg-remove-ip RULE=<rule-name>
 ```
 
