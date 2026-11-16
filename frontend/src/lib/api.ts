@@ -689,9 +689,6 @@ export interface StreamChunk {
   partial?: boolean;
 }
 
-/** Longest assistant_text the finalize endpoint accepts (BITB-320). */
-export const MAX_FINALIZE_ASSISTANT_CHARS = 8000;
-
 export type FinalizeReason =
   | "eof"
   | "error_event"

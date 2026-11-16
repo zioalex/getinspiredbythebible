@@ -26,7 +26,11 @@ import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import FollowUpSuggestions from "@/components/FollowUpSuggestions";
 import CrisisResourcesCard from "@/components/CrisisResourcesCard";
 import { followUpsEnabled } from "@/lib/featureFlags";
-import { stripTrailer, FINALIZE_RETRY_DELAY_MS } from "@/lib/streamRecovery";
+import {
+  stripTrailer,
+  FINALIZE_RETRY_DELAY_MS,
+  MAX_FINALIZE_ASSISTANT_CHARS,
+} from "@/lib/streamRecovery";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
 import ContactModal from "@/components/ContactModal";
@@ -37,7 +41,6 @@ import {
   streamMessage,
   finalizeMessage,
   FinalizeReason,
-  MAX_FINALIZE_ASSISTANT_CHARS,
   Message,
   Verse,
   getChapter,

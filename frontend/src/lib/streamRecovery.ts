@@ -14,3 +14,6 @@ export function stripTrailer(text: string): string {
 
 /** Delay before the single silent finalize retry. */
 export const FINALIZE_RETRY_DELAY_MS = 1500;
+
+/** Longest assistant_text the finalize endpoint accepts. */
+export const MAX_FINALIZE_ASSISTANT_CHARS = 8000;

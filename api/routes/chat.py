@@ -48,6 +48,30 @@ def _session_language(body_language: str | None, accept_language: str | None) ->
     return None
 
 
+class _StreamProgress:
+    """What a chat stream has sent so far (BITB-320): drives disconnect logs and partial errors."""
+
+    def __init__(self) -> None:
+        self.message_id: str | None = None
+        self.content_chars = 0
+        self.completion_sent = False
+
+    def observe(self, chunk: dict) -> None:
+        chunk_type = chunk.get("type")
+        if chunk_type == "metadata":
+            self.message_id = chunk.get("message_id") or self.message_id
+        elif chunk_type == "content":
+            self.content_chars += len(chunk.get("content") or "")
+        elif chunk_type == "completion":
+            self.completion_sent = True
+
+    def error_event(self, payload: dict) -> str:
+        """SSE error frame; after content it carries ``partial`` + ``message_id`` (recovery)."""
+        if self.content_chars > 0:
+            payload = {**payload, "partial": True, "message_id": self.message_id}
+        return f"data: {json.dumps({'type': 'error', **payload})}\n\n"
+
+
 @router.post(
     "",
     response_model=ChatResponse,
@@ -150,24 +174,10 @@ async def chat_stream(
     async def generate():
         # BITB-320: track what the client has been sent so a disconnect is observable and an
         # error after content can tell the client the reply is partial (and which message).
-        message_id: str | None = None
-        content_chars = 0
-        completion_sent = False
-
-        def _error_event(payload: dict) -> str:
-            if content_chars > 0:
-                payload = {**payload, "partial": True, "message_id": message_id}
-            return f"data: {json.dumps({'type': 'error', **payload})}\n\n"
-
+        progress = _StreamProgress()
         try:
             async for chunk in service.chat_stream(request, client_country=client_country):
-                chunk_type = chunk.get("type")
-                if chunk_type == "metadata":
-                    message_id = chunk.get("message_id") or message_id
-                elif chunk_type == "content":
-                    content_chars += len(chunk.get("content") or "")
-                elif chunk_type == "completion":
-                    completion_sent = True
+                progress.observe(chunk)
                 # chunk is now a dict with 'type' field
                 # SSE format: data: {json}\n\n
                 yield f"data: {json.dumps(chunk)}\n\n"
@@ -182,18 +192,18 @@ async def chat_stream(
             logger.warning(
                 "Chat stream client disconnected before completion",
                 extra={
-                    "content_chars": content_chars,
-                    "completion_sent": completion_sent,
-                    "message_id": message_id,
+                    "content_chars": progress.content_chars,
+                    "completion_sent": progress.completion_sent,
+                    "message_id": progress.message_id,
                 },
             )
             chat_stream_client_disconnected_counter.add(
-                1, {"completion_sent": str(completion_sent).lower()}
+                1, {"completion_sent": str(progress.completion_sent).lower()}
             )
             raise
         except AllModelsExhaustedError as e:
             logger.warning("Streaming: all LLM models exhausted (%s): %s", e.reason, e)
-            yield _error_event(
+            yield progress.error_event(
                 {
                     "error": "Our AI service is temporarily busy. Please try again in a moment.",
                     "error_code": "upstream_unavailable",
@@ -202,10 +212,10 @@ async def chat_stream(
             )
         except RuntimeError as e:
             logger.exception("Chat stream runtime error: %s", str(e))
-            yield _error_event({"error": "An unexpected error occurred"})
+            yield progress.error_event({"error": "An unexpected error occurred"})
         except Exception as e:
             logger.exception("Chat stream failed: %s", str(e))
-            yield _error_event({"error": "An error occurred processing your request"})
+            yield progress.error_event({"error": "An error occurred processing your request"})
 
     return StreamingResponse(
         generate(),
