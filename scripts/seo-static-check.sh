@@ -201,6 +201,9 @@ echo -e "${BLUE}-- Headings / indexing / sitemap honesty (BITB-300) --${NC}"
 # fallback h1 used when no server hero is passed in.
 h1_bad=""
 while IFS= read -r pf; do
+  # The [...rest] catch-all only calls notFound(); the localized not-found.tsx
+  # renders the single <h1> for it, so it has no <h1> source of its own.
+  case "$pf" in */\[...rest\]/page.tsx) continue ;; esac
   n=$(grep -c "<h1[[:space:]>]" "$pf" 2>/dev/null || true)
   [ "${n:-0}" = "1" ] || h1_bad="$h1_bad ${pf#"$APP"/}(${n:-0})"
 done < <(find "$APP/[locale]" -name page.tsx -not -name '*.test.tsx' 2>/dev/null | sort)

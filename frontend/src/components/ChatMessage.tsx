@@ -238,8 +238,8 @@ export default function ChatMessage({
       <div
         className={`min-w-0 max-w-[90%] sm:max-w-[80%] rounded-2xl px-4 py-3 sm:px-5 sm:py-4 ${
           isUser
-            ? "bg-primary-600 text-white rounded-br-md"
-            : "bg-white border border-gray-200 text-gray-800 rounded-bl-md shadow-xs"
+            ? "bg-primary-600 text-white rounded-ee-md"
+            : "bg-white border border-gray-200 text-gray-800 rounded-es-md shadow-xs"
         }`}
       >
         {isUser ? (

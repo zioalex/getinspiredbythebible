@@ -1552,7 +1552,7 @@ export default function ChatIsland({
             onClick={() => setMobileVersesOpen(false)}
           />
           {/* Panel */}
-          <div className="absolute end-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl flex flex-col animate-in ltr:slide-in-from-right rtl:slide-in-from-left duration-200">
+          <div className="absolute end-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-200">
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-700">

@@ -60,8 +60,11 @@ describe("generateMetadata (home page)", () => {
       const description = md.description as string;
       const defaultTitle = (md.title as { default: string }).default;
 
-      expect(description.length).toBeGreaterThanOrEqual(120);
-      expect(description.length).toBeLessThanOrEqual(155);
+      // CJK glyphs render ~2x as wide as Latin ones, so search engines
+      // truncate zh/ko snippets by pixel width at far fewer characters.
+      const [min, max] = ["zh", "ko"].includes(locale) ? [40, 155] : [120, 155];
+      expect(description.length).toBeGreaterThanOrEqual(min);
+      expect(description.length).toBeLessThanOrEqual(max);
       expect(description).not.toBe(defaultTitle);
       expect(defaultTitle).not.toContain(description);
       // The short tagline stays in the title only.

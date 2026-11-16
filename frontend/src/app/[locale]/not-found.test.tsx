@@ -24,7 +24,7 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
-import NotFound from "./not-found";
+import NotFound, { generateMetadata } from "./not-found";
 
 describe("localized not-found page", () => {
   it.each(["ar", "zh", "hi", "ru"])(
@@ -42,6 +42,17 @@ describe("localized not-found page", () => {
       );
       expect(screen.queryByText("Page not found")).not.toBeInTheDocument();
       expect(m.title).not.toBe(catalogs.en.NotFound.title);
+    },
+  );
+
+  it.each(["ar", "zh"])(
+    "sets a localized noindex title with no inherited canonical (%s)",
+    async (locale) => {
+      activeLocale = locale;
+      const md = await generateMetadata();
+      expect(md.title).toBe(catalogs[locale].NotFound.title);
+      expect(md.robots).toEqual({ index: false, follow: false });
+      expect(md.alternates).toEqual({});
     },
   );
 
