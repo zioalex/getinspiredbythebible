@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-16
 ---
 
 # Política de Privacidade
 
 > _Esta tradução foi gerada por inteligência artificial e é fornecida apenas como conveniência. Em caso de omissão, ambiguidade ou contradição com o original em inglês, prevalece a versão em inglês, que é a canônica._
 
-Última atualização: 11 de novembro de 2026
+Última atualização: 16 de novembro de 2026
 
 ## Quem somos
 
@@ -16,7 +16,7 @@ Vox Quieta ("nós", "nos", "nosso") é um aplicativo gratuito de inspiração b�
 
 ### Dados que você fornece
 
-- **Mensagens do chat**: o texto que você digita é enviado para nossa API, que o encaminha a provedores terceirizados de serviços de IA (listados abaixo) exclusivamente para gerar uma resposta baseada nas Escrituras e verificar sua segurança. Não armazenamos suas mensagens em nossos servidores além do tempo necessário para gerar uma resposta.
+- **Mensagens do chat**: o texto que você digita é enviado para nossa API, que o encaminha a provedores terceirizados de serviços de IA (listados abaixo) exclusivamente para gerar uma resposta baseada nas Escrituras e verificar sua segurança. Não armazenamos suas mensagens em nossos servidores além do tempo necessário para gerar uma resposta, exceto mensagens bloqueadas pelo nosso sistema de segurança, que podem ser mantidas por até 30 dias, conforme descrito em "Retenção de dados".
 - **Avaliações de feedback**: avaliações opcionais de polegar para cima/para baixo que você envia sobre as respostas.
 
 ### Como suas mensagens são processadas por IA
@@ -71,7 +71,7 @@ Contamos o uso da leitura em voz alta de forma anônima, por idioma, família de
 
 ## Retenção de dados
 
-- **Mensagens do chat**: não retidas em nossos servidores.
+- **Mensagens do chat**: não retidas em nossos servidores, exceto mensagens bloqueadas pelo nosso sistema de segurança (veja abaixo).
 - **Mensagens bloqueadas pelo nosso sistema de segurança**: quando nosso
   sistema de segurança bloqueia uma mensagem, um registro com privacidade
   mínima pode ser mantido por um curto período (até 30 dias) para nos

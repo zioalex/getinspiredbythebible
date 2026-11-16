@@ -1,10 +1,10 @@
 ---
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-16
 ---
 
 # Privacy Policy
 
-Last updated: November 11, 2026
+Last updated: November 16, 2026
 
 ## Who We Are
 
@@ -17,7 +17,8 @@ Vox Quieta ("we", "us", "our") is a free Bible inspiration app. Our website is [
 - **Chat messages**: The text you type is sent to our API, which forwards it to third-party
   AI service providers (listed below) solely to generate a Scripture-based response and to
   screen it for safety. We do not store your messages on our servers beyond the time needed
-  to generate a response.
+  to generate a response, except messages blocked by our safety system, which may be kept for
+  up to 30 days as described under Data Retention.
 - **Feedback ratings**: Optional thumbs-up/thumbs-down ratings you submit on responses.
 
 ### How Your Messages Are Processed by AI
@@ -91,7 +92,7 @@ We count read-aloud use anonymously, by language, browser family and operating s
 
 ## Data Retention
 
-- **Chat messages**: Not retained on our servers.
+- **Chat messages**: Not retained on our servers, except messages blocked by our safety system (see below).
 - **Messages blocked by our safety system**: When our safety system blocks a
   message, a privacy-minimal record may be kept for a short time (up to 30
   days) so we can improve the filter. The record contains the message text

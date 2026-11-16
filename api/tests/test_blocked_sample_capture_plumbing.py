@@ -54,3 +54,15 @@ def test_code_default_is_off_and_env_turns_it_on(monkeypatch):
     assert Settings().blocked_sample_capture_enabled is False
     monkeypatch.setenv("BLOCKED_SAMPLE_CAPTURE_ENABLED", "true")
     assert Settings().blocked_sample_capture_enabled is True
+
+
+def test_privacy_policy_states_the_configured_retention():
+    """The published "up to N days" must match the retention the code enforces (BITB-326)."""
+    policy = (REPO / "frontend" / "public" / "legal" / "privacy-policy.md").read_text()
+    bullet = next(
+        b
+        for b in re.split(r"\n(?=- )", policy)
+        if b.startswith("- **Messages blocked by our safety system**")
+    )
+    days = Settings().blocked_sample_retention_days
+    assert re.search(rf"up to {days}\s+days", bullet), (days, bullet)

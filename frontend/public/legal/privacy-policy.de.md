@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-16
 ---
 
 # Datenschutzrichtlinie
 
 > _Diese Übersetzung wurde von einer KI erstellt und dient ausschließlich der Bequemlichkeit. Bei Auslassungen, Unklarheiten oder Widersprüchen zum englischen Original ist die englische Fassung verbindlich und vorrangig._
 
-Letzte Aktualisierung: 11. November 2026
+Letzte Aktualisierung: 16. November 2026
 
 ## Wer wir sind
 
@@ -16,7 +16,7 @@ Vox Quieta („wir", „uns", „unser") ist eine kostenlose App zur Bibelinspir
 
 ### Von dir bereitgestellte Daten
 
-- **Chat-Nachrichten**: Der von dir eingegebene Text wird an unsere API gesendet, die ihn ausschließlich zur Erzeugung einer auf der Heiligen Schrift basierenden Antwort und zur Sicherheitsprüfung an Dritt-KI-Dienstleister (siehe unten) weiterleitet. Wir speichern deine Nachrichten nicht länger auf unseren Servern, als es zur Generierung einer Antwort notwendig ist.
+- **Chat-Nachrichten**: Der von dir eingegebene Text wird an unsere API gesendet, die ihn ausschließlich zur Erzeugung einer auf der Heiligen Schrift basierenden Antwort und zur Sicherheitsprüfung an Dritt-KI-Dienstleister (siehe unten) weiterleitet. Wir speichern deine Nachrichten nicht länger auf unseren Servern, als es zur Generierung einer Antwort notwendig ist – ausgenommen Nachrichten, die unser Sicherheitssystem blockiert; diese können bis zu 30 Tage gespeichert werden, wie unter „Datenspeicherung“ beschrieben.
 - **Feedback-Bewertungen**: Optionale Daumen-hoch-/Daumen-runter-Bewertungen, die du für Antworten abgibst.
 
 ### Wie deine Nachrichten durch KI verarbeitet werden
@@ -71,7 +71,7 @@ Wir zählen die Nutzung der Vorlesefunktion anonym nach Sprache, Browser-Familie
 
 ## Datenspeicherung
 
-- **Chat-Nachrichten**: nicht auf unseren Servern gespeichert.
+- **Chat-Nachrichten**: nicht auf unseren Servern gespeichert, ausgenommen von unserem Sicherheitssystem blockierte Nachrichten (siehe unten).
 - **Vom Sicherheitssystem blockierte Nachrichten**: Wenn unser
   Sicherheitssystem eine Nachricht blockiert, kann ein
   datenschutzminimaler Eintrag kurzzeitig (bis zu 30 Tage) aufbewahrt

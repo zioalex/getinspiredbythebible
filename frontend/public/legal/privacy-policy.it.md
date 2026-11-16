@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-16
 ---
 
 # Informativa sulla privacy
 
 > _Questa traduzione è stata generata dall'intelligenza artificiale ed è fornita esclusivamente per comodità. In caso di omissioni, ambiguità o contraddizioni rispetto all'originale inglese, prevale la versione inglese, che resta canonica._
 
-Ultimo aggiornamento: 11 novembre 2026
+Ultimo aggiornamento: 16 novembre 2026
 
 ## Chi siamo
 
@@ -16,7 +16,7 @@ Vox Quieta ("noi", "ci", "nostro") è un'app gratuita di ispirazione biblica. Il
 
 ### Dati che fornisci tu
 
-- **Messaggi della chat**: il testo che digiti viene inviato alla nostra API, che lo inoltra a fornitori terzi di servizi di IA (elencati di seguito) esclusivamente per generare una risposta basata sulle Scritture e verificarne la sicurezza. Non conserviamo i tuoi messaggi sui nostri server oltre il tempo necessario a generare la risposta.
+- **Messaggi della chat**: il testo che digiti viene inviato alla nostra API, che lo inoltra a fornitori terzi di servizi di IA (elencati di seguito) esclusivamente per generare una risposta basata sulle Scritture e verificarne la sicurezza. Non conserviamo i tuoi messaggi sui nostri server oltre il tempo necessario a generare la risposta, salvo i messaggi bloccati dal nostro sistema di sicurezza, che possono essere conservati fino a 30 giorni come descritto in «Conservazione dei dati».
 - **Valutazioni del feedback**: le valutazioni opzionali (pollice su/pollice giù) che invii sulle risposte.
 
 ### Come i tuoi messaggi vengono elaborati dall'IA
@@ -71,7 +71,7 @@ Contiamo l'uso della lettura ad alta voce in forma anonima, per lingua, famiglia
 
 ## Conservazione dei dati
 
-- **Messaggi della chat**: non conservati sui nostri server.
+- **Messaggi della chat**: non conservati sui nostri server, salvo i messaggi bloccati dal nostro sistema di sicurezza (vedi sotto).
 - **Messaggi bloccati dal nostro sistema di sicurezza**: quando il nostro
   sistema di sicurezza blocca un messaggio, può essere conservato un record
   minimo dal punto di vista della privacy per un breve periodo (fino a 30

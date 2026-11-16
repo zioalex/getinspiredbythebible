@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-16
 ---
 
 # Política de privacidad
 
 > _Esta traducción ha sido generada por inteligencia artificial y se proporciona únicamente como cortesía. En caso de omisión, ambigüedad o contradicción con el original en inglés, prevalece la versión en inglés, que es la canónica._
 
-Última actualización: 11 de noviembre de 2026
+Última actualización: 16 de noviembre de 2026
 
 ## Quiénes somos
 
@@ -16,7 +16,7 @@ Vox Quieta ("nosotros", "nos", "nuestro") es una aplicación gratuita de inspira
 
 ### Datos que tú proporcionas
 
-- **Mensajes del chat**: el texto que escribes se envía a nuestra API, que lo reenvía a proveedores externos de servicios de IA (indicados más abajo) únicamente para generar una respuesta basada en las Escrituras y comprobar su seguridad. No almacenamos tus mensajes en nuestros servidores más allá del tiempo necesario para generar una respuesta.
+- **Mensajes del chat**: el texto que escribes se envía a nuestra API, que lo reenvía a proveedores externos de servicios de IA (indicados más abajo) únicamente para generar una respuesta basada en las Escrituras y comprobar su seguridad. No almacenamos tus mensajes en nuestros servidores más allá del tiempo necesario para generar una respuesta, salvo los mensajes bloqueados por nuestro sistema de seguridad, que pueden conservarse hasta 30 días, como se describe en «Retención de datos».
 - **Valoraciones de comentarios**: valoraciones opcionales de pulgar arriba/pulgar abajo que envías sobre las respuestas.
 
 ### Cómo la IA procesa tus mensajes
@@ -71,7 +71,7 @@ Contamos el uso de la lectura en voz alta de forma anónima, por idioma, familia
 
 ## Retención de datos
 
-- **Mensajes del chat**: no se conservan en nuestros servidores.
+- **Mensajes del chat**: no se conservan en nuestros servidores, salvo los mensajes bloqueados por nuestro sistema de seguridad (ver más abajo).
 - **Mensajes bloqueados por nuestro sistema de seguridad**: cuando nuestro
   sistema de seguridad bloquea un mensaje, puede conservarse un registro
   mínimo en cuanto a privacidad durante un breve período (hasta 30 días)

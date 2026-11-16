@@ -4,6 +4,7 @@ status: in-review
 priority: P2
 size: XS
 created: 2026-11-16
+follow_ups: [BITB-328]
 ---
 
 # BITB-326: Turn On Blocked-Message Capture in Production via Terraform
@@ -26,9 +27,22 @@ reviewed.
 - `docs/HOW-TO-EXPORT-BLOCKED-SAMPLES.md`: the Terraform switch, plus the Postgres firewall
   step (`make az-pg-add-ip`) that made the export hang.
 
-Privacy is unchanged and already enforced by the capture code: text capped at 500 chars,
-dedup by hash, session-id hash only (no IP, user id or UA), retention 30 days after the
-last occurrence, with the daily pg_cron purge.
+- **Retention fix:** a repeat of the same blocked text used to push `expires_at` another 30
+  days out, so text blocked again and again (with the *first* sender's session hash) was never
+  deleted. That broke the privacy policy's "up to 30 days". The expiry is now fixed at the first
+  capture, and a repeat only bumps `hit_count`.
+- **Privacy policy (11 languages):** two sentences said chat messages are never stored, which
+  contradicts the blocked-message bullet. Both now carve out blocked messages. `lastUpdated`
+  is now 2026-11-16.
+
+Privacy is otherwise unchanged and enforced by the capture code: text capped at 500 chars,
+dedup by hash, session-id hash only (no IP, user id or UA), 30-day retention, with an hourly
+in-app sweep and the daily pg_cron purge.
+
+## Follow-ups
+
+- BITB-328: data inventory + CI guard so the privacy policy cannot drift from what the code
+  stores.
 
 ## Acceptance criteria
 
@@ -36,6 +50,14 @@ last occurrence, with the daily pg_cron purge.
       env mapping, production tfvars `true`, example `false`, the manifest entry, and the
       Settings default and override.
 - [x] `python3 scripts/validate-env.py` passes.
+- [x] `test_blocked_samples.py`: a repeat updates only `hit_count`, never `expires_at`.
+      It fails on the old code with `{'expires_at', 'hit_count'}`.
+- [x] `legal-pages.test.tsx`: in all 11 languages, both chat-message bullets name the
+      blocked-message exception. It fails on the old policy.
+      `test_privacy_policy_states_the_configured_retention` ties the policy's "up to N days" to
+      `blocked_sample_retention_days`.
+- [ ] Owner step: review the changed policy sentences in the 10 translations (listed in PR #1303)
+      before merge.
 - [x] CI `terraform fmt -check` / `validate` green (tf-validate on PR #1303).
 - [ ] Owner step: after the deploy, the backend Container App has
       `BLOCKED_SAMPLE_CAPTURE_ENABLED=true`

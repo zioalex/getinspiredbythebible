@@ -163,3 +163,55 @@ describe("privacy policy discloses OpenAI moderation (BITB-309)", () => {
     expect(raw).not.toContain("not retained by the provider beyond");
   });
 });
+
+// BITB-326: blocked messages ARE stored (up to 30 days) once capture is on, so the two
+// "chat messages are not stored" bullets must carve them out in every language -- a
+// blanket "not stored" next to a "blocked messages are kept" bullet is a contradiction.
+describe("privacy policy carves blocked messages out of 'not stored' (BITB-326)", () => {
+  const chatLabel: Record<string, string> = {
+    en: "Chat messages",
+    it: "Messaggi della chat",
+    de: "Chat-Nachrichten",
+    es: "Mensajes del chat",
+    fr: "Messages de chat",
+    pt: "Mensagens do chat",
+    ru: "Сообщения в чате",
+    zh: "聊天消息",
+    ko: "채팅 메시지",
+    ar: "رسائل الدردشة",
+    hi: "चैट संदेश",
+  };
+  const blockedPhrase: Record<string, string> = {
+    en: "blocked by our safety system",
+    it: "bloccati dal nostro sistema di sicurezza",
+    de: "Sicherheitssystem",
+    es: "bloqueados por nuestro sistema de seguridad",
+    fr: "bloqués par notre système de sécurité",
+    pt: "bloqueadas pelo nosso sistema de segurança",
+    ru: "заблокированных нашей системой безопасности",
+    zh: "被我们的安全系统拦截",
+    ko: "안전 시스템에 의해 차단된",
+    ar: "يحظرها نظام الأمان لدينا",
+    hi: "सुरक्षा प्रणाली",
+  };
+
+  for (const locale of Object.keys(chatLabel)) {
+    const file =
+      locale === "en" ? "privacy-policy.md" : `privacy-policy.${locale}.md`;
+    const raw = readFileSync(join(legalDir, file), "utf8");
+    // A bullet runs from "- **Label**" to the next bullet or blank line.
+    const bullets = raw
+      .split(/\n(?=- |\s*\n)/)
+      .filter((b) => b.trimStart().startsWith(`- **${chatLabel[locale]}**`));
+
+    it(`${locale}: both chat-message bullets name the blocked-message exception`, () => {
+      expect(bullets).toHaveLength(2);
+      for (const b of bullets) expect(b).toContain(blockedPhrase[locale]);
+    });
+
+    it(`${locale}: has lastUpdated >= 2026-11-16`, () => {
+      const m = raw.match(/^lastUpdated:\s*(\d{4}-\d{2}-\d{2})\s*$/m);
+      expect(m![1] >= "2026-11-16").toBe(true);
+    });
+  }
+});

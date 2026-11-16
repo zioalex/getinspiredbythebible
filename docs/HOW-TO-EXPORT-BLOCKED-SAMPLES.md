@@ -39,9 +39,10 @@ These are enforced in code, not just by convention:
 - Identical messages are deduplicated by sha256; repeats bump `hit_count`
   instead of writing new rows, so a single user cannot be amplified.
 - Rows expire `BLOCKED_SAMPLE_RETENTION_DAYS` (default **30**) after their
-  *last* occurrence (a repeat refreshes the expiry), and are deleted by the daily
-  pg_cron purge plus a startup backstop. A message that keeps being blocked, such
-  as the prod-monitor's deliberate probe, therefore stays, with a growing `hit_count`.
+  **first** capture. A repeat only bumps `hit_count`; it never extends retention
+  (BITB-326, matching the privacy policy's "up to 30 days"). Expired rows are
+  deleted by the API's hourly sweep (and at startup) and by the daily pg_cron
+  purge. The next occurrence after deletion starts a new row with a new 30-day window.
 - Capture is **off by default**. Operators opt in per environment with
   `BLOCKED_SAMPLE_CAPTURE_ENABLED=true`.
 
