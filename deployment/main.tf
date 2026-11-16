@@ -77,6 +77,12 @@ locals {
   backend_env_vars = merge(
     # Core configuration
     {
+      # BITB-326: capped (blocked_sample_max_chars), deduplicated, TTL-bounded capture of
+      # content-safety-blocked messages for filter tuning; exported with
+      # `make export-blocked-samples` (docs/HOW-TO-EXPORT-BLOCKED-SAMPLES.md).
+      "BLOCKED_SAMPLE_CAPTURE_ENABLED" = {
+        value = tostring(var.blocked_sample_capture_enabled)
+      }
       "CHAT_FOLLOW_UPS_ENABLED" = {
         value = tostring(var.chat_follow_ups_enabled)
       }

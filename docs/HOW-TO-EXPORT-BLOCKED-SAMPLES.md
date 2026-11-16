@@ -45,7 +45,14 @@ These are enforced in code, not just by convention:
 
 ## Enabling capture (operator)
 
-Set these on the backend deployment:
+**Production (Azure)** is driven by Terraform (BITB-326):
+`blocked_sample_capture_enabled = true` in `deployment/terraform.tfvars` maps to
+`BLOCKED_SAMPLE_CAPTURE_ENABLED` on the backend Container App. It is applied by the next
+deploy (`azure-deploy.yml` runs `terraform apply`), or manually with `make tf-apply`. To turn
+it off, set the variable to `false` and redeploy. Only messages blocked *after* the switch are
+stored.
+
+Elsewhere, set these on the backend deployment:
 
 ```bash
 BLOCKED_SAMPLE_CAPTURE_ENABLED=true     # default false
@@ -62,6 +69,14 @@ The exporter is **read-only** and connects to the same database via
 `DATABASE_URL` as the API.
 
 ### With make
+
+The production Postgres firewall only admits allow-listed IPs, so a connection from your
+machine hangs until it times out. Allow your IP first, and remove the rule afterwards:
+
+```bash
+make az-pg-add-ip            # prints the rule name
+make az-pg-remove-ip RULE=<rule-name>
+```
 
 ```bash
 # Latest 100 rows as JSON to stdout
