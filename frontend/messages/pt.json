@@ -13,7 +13,7 @@
   },
   "Welcome": {
     "heading": "Bem-vindo",
-    "description": "Partilhe o que está no seu coração, faça perguntas sobre as Escrituras ou simplesmente procure encorajamento. Posso ajudá-lo a explorar temas teológicos, mas não sou substituto de teólogos formados ou de orientação pastoral.",
+    "description": "Compartilhe o que está no seu coração, faça perguntas sobre as Escrituras ou simplesmente procure encorajamento. Posso ajudá-lo a explorar temas teológicos, mas não sou substituto de teólogos formados ou de orientação pastoral.",
     "prompt1": "Estou a lutar e preciso do conforto de Deus",
     "prompt2": "Ajuda-me a encontrar forças para perdoar",
     "prompt3": "Preciso de encorajamento e esperança hoje",
@@ -120,7 +120,7 @@
     "appBody": "Agora no Google Play — inspiração diária e conversas guiadas pelas Escrituras, privadas e pensadas só para você."
   },
   "Chat": {
-    "inputPlaceholder": "Partilhe o que está no seu coração...",
+    "inputPlaceholder": "Compartilhe o que está no seu coração...",
     "disclaimer": "As respostas geradas por IA podem conter erros. Não é substituto de teologia ou aconselhamento pastoral.",
     "loadingWarmup": "Estou a preparar-me. Um momento de paciência...",
     "loadingSearch": "À procura nas Escrituras e a refletir...",
