@@ -440,7 +440,7 @@ class ChatViewModelTest {
         assertNull(state.currentConversationId)
         assertTrue(state.followUps.isEmpty())
         assertEquals("ar", state.currentLocale)
-        coVerify(atLeast = 1) { sessionPreferences.resetSessionId() }
+        coVerify(exactly = 1) { sessionPreferences.resetSessionId() }
     }
 
     @Test

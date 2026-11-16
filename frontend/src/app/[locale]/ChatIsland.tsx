@@ -325,20 +325,29 @@ export default function ChatIsland({
   //      ACTIVE UI language from the browser-local store (IndexedDB). Other
   //      languages and legacy rows without a language are never auto-resumed.
   //      History never leaves the device.
+  const freshChatRef = useRef<boolean | null>(null);
+  // Messages just loaded from history: viewing must not re-save (and so must
+  // not re-tag or bump) the stored conversation.
+  const restoredMessagesRef = useRef<ChatMessage[] | null>(null);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      if (consumeFreshChat()) {
-        if (!cancelled) setSessionId(resetSessionId());
-        return;
+      // StrictMode runs this effect twice; the flag is one-shot, so remember
+      // the decision (and rotate the session only once) in a ref.
+      if (freshChatRef.current === null) {
+        freshChatRef.current = consumeFreshChat();
+        if (freshChatRef.current) setSessionId(resetSessionId());
       }
+      if (freshChatRef.current) return;
 
       try {
         const latest = await latestConversationForLanguage(locale);
         if (cancelled || !latest) return;
         const stored = await getMessages(latest.id);
         if (cancelled || stored.length === 0) return;
-        setMessages(stored.map(storedToChatMessage));
+        const restored = stored.map(storedToChatMessage);
+        restoredMessagesRef.current = restored;
+        setMessages(restored);
         setConversationId(latest.id);
       } catch {
         // No usable local history: start fresh.
@@ -356,6 +365,7 @@ export default function ChatIsland({
   // replaces the thread wholesale, keyed by conversationId.
   useEffect(() => {
     if (isLoading || messages.length === 0) return;
+    if (messages === restoredMessagesRef.current) return;
     const firstUser = messages.find((m) => m.role === "user");
     const title = (firstUser?.content ?? "").trim().slice(0, 60) || "…";
     void saveFullConversation(
@@ -1053,7 +1063,9 @@ export default function ChatIsland({
     setMobileVersesOpen(false);
     setShowSessionLimitButton(false);
     setConversationId(id);
-    setMessages(stored.map(storedToChatMessage));
+    const restored = stored.map(storedToChatMessage);
+    restoredMessagesRef.current = restored;
+    setMessages(restored);
   };
 
   // BITB-118: the non-destructive default for a session-limit hit. Rotates

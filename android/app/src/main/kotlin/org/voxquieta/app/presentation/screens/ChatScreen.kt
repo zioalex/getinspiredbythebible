@@ -208,9 +208,9 @@ fun ChatScreen(
     // Guard for the "new" route: only start a fresh conversation when the ViewModel
     // has no active in-memory conversation. This prevents rotation (which re-runs
     // this effect on the still-"new" route) from wiping an in-progress chat. It also
-    // covers the locale-change recreate path — the ViewModel is Activity-scoped so
-    // locale recreations create a fresh ViewModel with empty state anyway, but the
-    // guard makes the intent explicit and handles any future edge cases.
+    // covers the locale-change path: setLocale() resets the thread itself (BITB-331) and the
+    // caller navigates to chat/new; the ViewModel can survive the Activity recreate (it is
+    // scoped to the back-stack entry), so this guard keeps the intent explicit.
     LaunchedEffect(conversationId) {
         when {
             conversationId == null || conversationId == "new" -> {

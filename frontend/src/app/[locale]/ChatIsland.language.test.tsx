@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextIntlClientProvider } from "next-intl";
@@ -135,6 +136,65 @@ describe.each(LOCALES)("ChatIsland language-scoped chat [%s]", (locale) => {
     expect(screen.queryByText("legacy-chat")).toBeNull();
     // ...but the legacy chat is still stored (reachable from history).
     expect((await listConversations()).map((c) => c.id)).toContain("legacy");
+  });
+
+  it("opening other-language and legacy chats from the sidebar does not re-tag or bump them", async () => {
+    const other = locale === "en" ? "it" : "en";
+    const messages = (await import(`../../../messages/${locale}.json`)).default;
+    await saveFullConversation(
+      "foreign",
+      "foreign-title",
+      MSGS("foreign-chat"),
+      other,
+    );
+    await new Promise((r) => setTimeout(r, 5));
+    await saveFullConversation("legacy", "legacy-title", MSGS("legacy-chat"));
+    const before = Object.fromEntries(
+      (await listConversations()).map((c) => [c.id, c]),
+    );
+
+    for (const [title, text] of [
+      ["foreign-title", "foreign-chat"],
+      ["legacy-title", "legacy-chat"],
+    ]) {
+      const view = await renderIn(locale);
+      fireEvent.click(screen.getByLabelText(messages.Chat.mainMenuLabel));
+      fireEvent.click(await screen.findByText(messages.Chat.historyTitle));
+      fireEvent.click(await screen.findByText(title));
+      await screen.findByText(text); // opened in the current UI
+      await new Promise((r) => setTimeout(r, 50)); // let any autosave run
+      view.unmount();
+    }
+
+    const after = Object.fromEntries(
+      (await listConversations()).map((c) => [c.id, c]),
+    );
+    expect(after.foreign.language).toBe(other);
+    expect(after.legacy.language).toBeUndefined();
+    expect(after.foreign.updatedAt).toBe(before.foreign.updatedAt);
+    expect(after.legacy.updatedAt).toBe(before.legacy.updatedAt);
+
+    // Remount: neither is auto-resumed.
+    await renderIn(locale);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText("foreign-chat")).toBeNull();
+    expect(screen.queryByText("legacy-chat")).toBeNull();
+  });
+
+  it("StrictMode double mount keeps the fresh-chat decision", async () => {
+    await saveFullConversation("prev", "t", MSGS("prev-chat"), locale);
+    markFreshChat();
+    const messages = (await import(`../../../messages/${locale}.json`)).default;
+    render(
+      <React.StrictMode>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Home />
+        </NextIntlClientProvider>
+      </React.StrictMode>,
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByText("prev-chat")).toBeNull();
+    expect(resetSessionId).toHaveBeenCalledTimes(1);
   });
 
   it("language switch opens an empty chat with a rotated session id", async () => {
