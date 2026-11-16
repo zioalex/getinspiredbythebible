@@ -57,3 +57,12 @@ After changing the UI language, the last chat in the *previous* language is show
 reload -> same-language resume only; legacy rows ignored); Android `ChatViewModelTest`.
 **Verify:** `cd frontend && npx vitest run && npm run lint && npx tsc --noEmit`; Android
 `./gradlew testDebugUnitTest` if Gradle can run, else static review and CI.
+
+## Implementation notes
+
+- Web: the language is tagged only when a conversation row is first created; viewing a chat from
+  the sidebar neither re-tags it nor re-saves it (autosave skips just-restored messages).
+- Web: the one-shot fresh-chat flag decision is held in a ref so React StrictMode's double effect
+  run keeps it.
+- Android: the `setLocale` persist/apply and the session reset run under `NonCancellable`. There is
+  no application-scoped CoroutineScope in the repo; moving this work onto one is a follow-up.

@@ -392,8 +392,10 @@ export async function saveFullConversation(
       title,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
-      ...((language ?? existing?.language)
-        ? { language: language ?? existing?.language }
+      // Tag the language only when the row is first created; later saves keep
+      // it (and legacy rows stay legacy), so viewing a chat never re-tags it.
+      ...((existing ? existing.language : language)
+        ? { language: existing ? existing.language : language }
         : {}),
     });
 

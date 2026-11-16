@@ -1189,7 +1189,9 @@ class ChatViewModel @Inject constructor(
     fun startNewConversation() {
         speechEngine.stop() // BITB-119
         viewModelScope.launch {
-            sessionPreferences.resetSessionId()
+            // NonCancellable: setLocale() calls this right before the Activity recreate and
+            // the nav pop (BITB-331), which can clear this ViewModel mid-write.
+            withContext(NonCancellable) { sessionPreferences.resetSessionId() }
         }
         _uiState.update {
             it.copy(
@@ -1319,9 +1321,14 @@ class ChatViewModel @Inject constructor(
         speechEngine.stop() // BITB-119: the answer language no longer matches the UI language
         startNewConversation() // BITB-331: reset thread + rotate session before the recreate
         _uiState.update { it.copy(currentLocale = locale) }
+        // NonCancellable (BITB-331): navigating to chat/new pops this screen's back-stack entry,
+        // which may clear this ViewModel; the persist + apply must still finish. There is no
+        // application-scoped CoroutineScope in the repo yet (see BITB-331 follow-up).
         viewModelScope.launch {
-            languagePreferences.setLanguage(locale)
-            localeApplier.apply(locale)
+            withContext(NonCancellable) {
+                languagePreferences.setLanguage(locale)
+                localeApplier.apply(locale)
+            }
         }
         return true
     }
