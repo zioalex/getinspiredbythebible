@@ -4,7 +4,7 @@ status: in-review
 priority: P2
 size: XS
 created: 2026-11-16
-follow_ups: [BITB-328]
+follow_ups: [BITB-328, BITB-329]
 ---
 
 # BITB-326: Turn On Blocked-Message Capture in Production via Terraform
@@ -51,6 +51,9 @@ in-app sweep and the daily pg_cron purge.
 
 - BITB-328: data inventory + CI guard so the privacy policy cannot drift from what the code
   stores.
+- BITB-329: the policy also contradicts what feedback (message, reply, comment, raw session id,
+  no expiry) and the contact form (email, user agent) store. This predates #1303 and was found
+  in its verification.
 
 ## Acceptance criteria
 
