@@ -34,6 +34,11 @@ data class Message(
      * Persisted in Room (`crisisJson`) so the card stays attached to the saved turn.
      */
     val crisisResources: CrisisResources? = null,
+    /**
+     * BITB-320: the reply was cut off (stream dropped before it finished) and the user may tap
+     * Continue. Persisted in Room (`interrupted`) so it survives live re-emission and reloads.
+     */
+    val isInterrupted: Boolean = false,
 ) {
     enum class Role { USER, ASSISTANT }
 }

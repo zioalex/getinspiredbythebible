@@ -35,7 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "api"))
 
 from feedback.models import BlockedMessageSample  # noqa: E402
-from sqlalchemy import create_engine, select  # noqa: E402
+from sqlalchemy import create_engine, func, select  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 FIELDS = [
@@ -91,6 +91,14 @@ def sync_database_url(url: str) -> str:
     ssl_value = query.pop("ssl", [None])[0]
     if ssl_value and "sslmode" not in query:
         query["sslmode"] = [ssl_value]
+    # libpq's verify-full/verify-ca need a root cert; without ~/.postgresql/root.crt they fail on
+    # a fresh machine. ``sslrootcert=system`` (libpq >= 16) uses the OS trust store instead.
+    if (
+        query.get("sslmode", [None])[0] in ("verify-full", "verify-ca")
+        and "sslrootcert" not in query
+        and not os.environ.get("PGSSLROOTCERT")
+    ):
+        query["sslrootcert"] = ["system"]
     return urlunsplit(parts._replace(query=urlencode(query, doseq=True)))
 
 
@@ -105,7 +113,13 @@ def to_json_safe(value: Any) -> Any:
 
 
 def build_query(args: argparse.Namespace):
-    stmt = select(BlockedMessageSample).order_by(BlockedMessageSample.created_at.desc())
+    # Never export rows past their retention (BITB-326): between expiry and the next purge
+    # they still exist, but the privacy policy promises "up to 30 days".
+    stmt = (
+        select(BlockedMessageSample)
+        .where(BlockedMessageSample.expires_at > func.now())
+        .order_by(BlockedMessageSample.created_at.desc())
+    )
     if args.stage:
         stmt = stmt.where(BlockedMessageSample.stage == args.stage)
     if args.language:

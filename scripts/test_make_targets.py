@@ -510,6 +510,10 @@ class PythonTargetTests(SandboxCase):
     def test_python_tool_targets_pass_through_user_args(self) -> None:
         res = self.make("export-blocked-samples", ARGS="--format csv --since 2026-05-01")
         self.assertEqual(res.of("python")[-1].args, ["scripts/export_blocked_samples.py", "--format", "csv", "--since", "2026-05-01"])
+        res = self.make("export-feedback", ARGS="--contacts --id 12")
+        self.assertEqual(res.of("python")[-1].args, ["scripts/export_feedback.py", "--contacts", "--id", "12"])
+        res = self.make("export-feedback", ARGS="--message-id 3f2b1c9e-8a4d-4e0b-9c1a-5d6e7f8a9b0c")
+        self.assertEqual(res.of("python")[-1].args, ["scripts/export_feedback.py", "--message-id", "3f2b1c9e-8a4d-4e0b-9c1a-5d6e7f8a9b0c"])
         res = self.make("follow-up-eval", ARGS="--language it")
         self.assertEqual(res.of("python")[-1].args, ["scripts/run_follow_up_eval.py", "--language", "it"])
         res = self.make("follow-up-checklist")

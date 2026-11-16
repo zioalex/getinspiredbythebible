@@ -219,6 +219,9 @@
     <string name="action_continue_conversation">Diese Unterhaltung fortsetzen</string>
     <string name="action_start_new_session">Neue Sitzung</string>
     <string name="action_retry">Wiederholen</string>
+    <string name="chat_interrupted_note">Diese Antwort wurde unterbrochen</string>
+    <string name="chat_continue_button">Fortsetzen</string>
+    <string name="chat_continue_prompt">Bitte fahre fort</string>
     <string name="action_share_message">Nachricht teilen</string>
     <string name="action_copy_message">Nachricht kopieren</string>
     <string name="action_copied">Kopiert</string>
@@ -289,7 +292,7 @@
     <string name="contact_bug_expected_label">Erwartetes vs. tatsächliches Verhalten</string>
     <string name="contact_bug_expected_placeholder">z. B. Erwartet: Vers öffnet sich, aber die App fror ein</string>
     <string name="contact_message_required">Bitte eine Nachricht eingeben</string>
-    <string name="contact_privacy_note">Deine Nachricht wird gespeichert, um uns bei der Verbesserung des Dienstes zu helfen.</string>
+    <string name="contact_privacy_note">Deine Nachricht und deine E-Mail-Adresse werden 90 Tage lang gespeichert, nur um dir zu antworten.</string>
     <string name="contact_send_button">Nachricht senden</string>
     <string name="contact_success_title">Nachricht erfolgreich gesendet!</string>
     <string name="contact_success_description">Vielen Dank, dass du dich gemeldet hast. Wir werden deine Nachricht bald prüfen.</string>

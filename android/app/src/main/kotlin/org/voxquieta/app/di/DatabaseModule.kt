@@ -3,6 +3,7 @@ package org.voxquieta.app.di
 import android.content.Context
 import androidx.room.Room
 import org.voxquieta.app.data.local.MIGRATION_1_2
+import org.voxquieta.app.data.local.MIGRATION_2_3
 import org.voxquieta.app.data.local.VoxQuietaDatabase
 import org.voxquieta.app.data.local.ConversationDao
 import org.voxquieta.app.data.local.MessageDao
@@ -24,7 +25,7 @@ object DatabaseModule {
             // Explicit migrations first so a normal upgrade keeps the user's saved
             // conversations (BITB-255: v1 -> v2). The destructive fallback stays only for
             // versions with no registered migration path.
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .fallbackToDestructiveMigration()
             .build()
 

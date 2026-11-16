@@ -217,6 +217,9 @@
     <!-- Actions -->
     <string name="action_select_language">भाषा चुनें</string>
     <string name="action_retry">पुनः प्रयास करें</string>
+    <string name="chat_interrupted_note">यह उत्तर बीच में रुक गया</string>
+    <string name="chat_continue_button">जारी रखें</string>
+    <string name="chat_continue_prompt">कृपया जारी रखें</string>
     <string name="action_continue_conversation">यह बातचीत जारी रखें</string>
     <string name="action_start_new_session">नया सत्र</string>
     <string name="action_share_message">संदेश साझा करें</string>
@@ -289,7 +292,7 @@
     <string name="contact_bug_expected_label">अपेक्षित बनाम वास्तविक व्यवहार</string>
     <string name="contact_bug_expected_placeholder">उदा. अपेक्षा थी कि आयत खुलेगी, पर ऐप रुक गया</string>
     <string name="contact_message_required">कृपया एक संदेश दर्ज करें</string>
-    <string name="contact_privacy_note">आपका संदेश सेवा सुधार के लिए संग्रहीत किया जाएगा।</string>
+    <string name="contact_privacy_note">आपका संदेश और ईमेल पता 90 दिनों तक रखा जाएगा, केवल आपको उत्तर देने के लिए।</string>
     <string name="contact_send_button">संदेश भेजें</string>
     <string name="contact_success_title">संदेश सफलतापूर्वक भेजा गया!</string>
     <string name="contact_success_description">संपर्क करने के लिए धन्यवाद। हम जल्द ही आपके संदेश की समीक्षा करेंगे।</string>

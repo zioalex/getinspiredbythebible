@@ -38,7 +38,7 @@ class RealRegistryIntegrationTest(unittest.TestCase):
         facts = analyze.validate_registry(load_real_registry())
         # Strings cross-check ran against the real files.
         self.assertEqual(facts["missing"], {})
-        self.assertEqual(len(facts["default_keys"]), 291)
+        self.assertEqual(len(facts["default_keys"]), 294)
 
     def test_committed_graph_json_is_fresh(self):
         registry = load_real_registry()
@@ -53,13 +53,13 @@ class RealRegistryIntegrationTest(unittest.TestCase):
         self.assertEqual(graph["schema_version"], 1)
         self.assertEqual(graph["source"], "docs/parity/registry.yaml")
         self.assertEqual(sorted(graph["clients"]), ["android", "api", "ios", "web"])
-        # 4 clients + 8 contracts + 33 capabilities + 2 negative obligations
+        # 4 clients + 8 contracts + 34 capabilities + 2 negative obligations
         node_kinds = {}
         for node in graph["nodes"]:
             node_kinds[node["kind"]] = node_kinds.get(node["kind"], 0) + 1
         self.assertEqual(node_kinds["client"], 4)
         self.assertEqual(node_kinds["contract"], 8)
-        self.assertEqual(node_kinds["capability"], 33)
+        self.assertEqual(node_kinds["capability"], 34)
         self.assertEqual(node_kinds["negative-obligation"], 2)
         # Edges: contract consumers + per-client parity + capability→contract.
         kinds = {edge["kind"] for edge in graph["edges"]}

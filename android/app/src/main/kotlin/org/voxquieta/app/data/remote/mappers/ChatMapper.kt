@@ -3,6 +3,8 @@ package org.voxquieta.app.data.remote.mappers
 import org.voxquieta.app.data.remote.models.ChatRequestDto
 import org.voxquieta.app.data.remote.models.ChatResponseDto
 import org.voxquieta.app.data.remote.models.ConversationMessageDto
+import org.voxquieta.app.data.remote.models.FinalizeRequestDto
+import org.voxquieta.app.data.remote.models.FinalizeResponseDto
 import org.voxquieta.app.data.remote.models.StreamChunkDto
 import org.voxquieta.app.data.remote.models.VerseDto
 import org.voxquieta.app.domain.models.ChatRequest
@@ -10,6 +12,8 @@ import org.voxquieta.app.data.remote.models.CrisisEmergencyDto
 import org.voxquieta.app.data.remote.models.CrisisLineDto
 import org.voxquieta.app.data.remote.models.CrisisResourcesDto
 import org.voxquieta.app.domain.models.ChatResponse
+import org.voxquieta.app.domain.models.FinalizeRequest
+import org.voxquieta.app.domain.models.FinalizeResult
 import org.voxquieta.app.domain.models.CrisisLine
 import org.voxquieta.app.domain.models.CrisisResources
 import org.voxquieta.app.domain.models.Message
@@ -25,6 +29,25 @@ fun ChatRequest.toDto(): ChatRequestDto = ChatRequestDto(
     language = language,
     region = region?.trim()?.takeIf { it.length == 2 && it.all { c -> c.isLetter() } }?.uppercase(),
     regionOverride = regionOverride,
+)
+
+fun FinalizeRequest.toDto(): FinalizeRequestDto = FinalizeRequestDto(
+    message = message,
+    assistantText = assistantText,
+    conversationHistory = conversationHistory.map { it.toConversationMessageDto() },
+    preferredTranslation = preferredTranslation?.ifBlank { null },
+    language = language,
+    sessionId = sessionId,
+    messageId = messageId?.takeIf { it.isNotBlank() },
+    reason = reason,
+)
+
+fun FinalizeResponseDto.toDomain(): FinalizeResult = FinalizeResult(
+    versesCited = versesCited,
+    resolvedVerses = resolvedVerses.map { it.toDomain() },
+    correctedMessage = correctedMessage,
+    followUps = followUps,
+    truncated = truncated,
 )
 
 fun Message.toConversationMessageDto(): ConversationMessageDto = ConversationMessageDto(
@@ -86,4 +109,6 @@ fun StreamChunkDto.toDomain(): StreamChunk = StreamChunk(
     followUps = followUps,
     languageSuggestion = languageSuggestion,
     crisisResources = crisisResources?.toDomain(),
+    errorMessage = errorMessage,
+    partial = partial,
 )

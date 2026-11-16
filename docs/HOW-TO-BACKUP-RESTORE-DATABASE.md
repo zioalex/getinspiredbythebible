@@ -16,6 +16,36 @@ configuration), [`docs/MIGRATION_GUIDELINES.md`](MIGRATION_GUIDELINES.md)
 
 ---
 
+## Quick start: pre-deploy backup (`make db-backup`)
+
+User and database default to `bibleadmin` / `bibleapp` from `deployment/terraform.tfvars`
+(override: `DB_USER=... PG_DB=... make -s db-server-url SERVER=...`).
+
+```bash
+make az-pg-add-ip
+export PGPASSWORD='<database admin password>'
+export DATABASE_URL="$(make -s db-server-url SERVER=bible-app-db-mb0172)"
+make db-backup                       # writes backups/<host>-<timestamp>.dump
+make az-pg-remove-ip RULE=bible-app-db-mb0172
+```
+
+Prerequisites: `az login`, `postgresql-client` (`pg_dump`). With `sslmode=verify-full`, libpq needs
+a root CA: on libpq >= 16 the script sets `PGSSLROOTCERT=system` for you when `~/.postgresql/root.crt`
+is missing; on older clients it stops with an error and these one-time steps:
+
+```bash
+mkdir -p ~/.postgresql
+curl -fsSL https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem > ~/.postgresql/root.crt
+curl -fsSL 'https://www.microsoft.com/pkiops/certs/Microsoft%20RSA%20Root%20Certificate%20Authority%202017.crt' \
+  | openssl x509 -inform DER >> ~/.postgresql/root.crt
+```
+
+Troubleshooting: `root certificate file ... does not exist` -> the above;
+`password authentication failed for user "bible"` -> stale user default, use `bibleadmin`/`bibleapp`
+(or `DB_USER`/`PG_DB`) and check `PGPASSWORD`; timeout -> `make az-pg-add-ip` / `make az-pg-list-rules`.
+
+---
+
 ## Commands
 
 Every step below is wrapped by a Make target. They all delegate to
@@ -35,7 +65,7 @@ the safety guards — prefer them over running the raw commands by hand.
 # Connection: DATABASE_URL for the target, PGPASSWORD for the password.
 # Never put the password in the URL — the script redacts what it logs, but
 # your shell history does not.
-export DATABASE_URL='postgresql://bible@<fqdn>:5432/bibledb?sslmode=verify-full'
+export DATABASE_URL='postgresql://bibleadmin@<fqdn>:5432/bibleapp?sslmode=verify-full'
 export PGPASSWORD='...'
 ```
 
@@ -153,21 +183,21 @@ which means **downtime and a destructive step**.
 
 ```bash
 # 0. SAFETY: dump the CURRENT state first — this is your only undo
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
 
 # 1. Get the good data (e.g. from a Scenario A restored server)
-DATABASE_URL="postgresql://bible@<restored-fqdn>:5432/${PG_DB}?sslmode=verify-full" \
+DATABASE_URL="postgresql://bibleadmin@<restored-fqdn>:5432/${PG_DB}?sslmode=verify-full" \
   make db-backup DUMP=good.dump
 
 # 2. Stop writes — scale the backend to zero so nothing writes mid-restore
 az containerapp update -g "$PG_RG" -n <backend-app> --min-replicas 0 --max-replicas 0
 
 # 3. Replace the live database. Prompts for the hostname before doing anything.
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" \
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" \
   make db-restore-same-server DUMP=good.dump
 
 # 4. Verify, then bring the backend back
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-restore-verify
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-restore-verify
 az containerapp update -g "$PG_RG" -n <backend-app> --min-replicas 1 --max-replicas <n>
 ```
 
@@ -191,7 +221,7 @@ shaped data.
 
 ```bash
 # 1. Dump prod (read-only, safe)
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
 
 # 2. Bring up PG 16 + pgvector locally and restore into it
 make db-restore-local DUMP=backups/<the-file>.dump
@@ -255,7 +285,7 @@ against this copy and confirm the result before touching production.
 data. Embeddings dominate the size, and a schema rehearsal never reads a row:
 
 ```bash
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup-schema
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup-schema
 make db-restore-local DUMP=backups/<the-file>.dump
 ```
 
