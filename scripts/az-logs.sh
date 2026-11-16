@@ -67,6 +67,19 @@ run_query() {
 	az monitor log-analytics query --workspace "$ws" --analytics-query "$1" --output table
 }
 
+# follow <az args...>: run a streaming az command. Ctrl+C is the normal way to stop a stream,
+# so an interrupt exits quietly (130) instead of reporting a streaming failure.
+follow() {
+	local interrupted=0 rc=0
+	trap 'interrupted=1' INT
+	"$@" || rc=$?
+	trap - INT
+	if ((interrupted)); then
+		exit 130
+	fi
+	return "$rc"
+}
+
 cmd_tail() {
 	local app="${1:-}" kind="${2:-}"
 	[[ -n "$app" ]] || usage
@@ -78,7 +91,7 @@ cmd_tail() {
 
 	if [[ "$kind" == system ]]; then
 		# System logs are app-level (scaling, revision provisioning): no replica to pick.
-		az containerapp logs show --name "$app" --resource-group "$RG" --type system --follow ||
+		follow az containerapp logs show --name "$app" --resource-group "$RG" --type system --follow ||
 			die "$hint"
 		return
 	fi
@@ -95,7 +108,7 @@ cmd_tail() {
 		die "revision $revision has no running replica (scaled to zero). Send a request to wake it, or read past logs with: make az-logs-${app#bible-app-}-query"
 	fi
 	echo "Streaming $app console logs from $revision / $replica (Ctrl+C to stop)..." >&2
-	az containerapp logs show --name "$app" --resource-group "$RG" \
+	follow az containerapp logs show --name "$app" --resource-group "$RG" \
 		--revision "$revision" --replica "$replica" --type console --follow ||
 		die "$hint"
 }

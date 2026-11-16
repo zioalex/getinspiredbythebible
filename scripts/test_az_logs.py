@@ -26,6 +26,11 @@ case "$*" in
   *"containerapp replica list"*) printf '%s\n' "${FAKE_REPLICA-bible-app-backend--0000076-7d9f-abcde}" ;;
   *"log-analytics workspace list"*) printf '%s\n' "${FAKE_WORKSPACE-11111111-2222-3333-4444-555555555555}" ;;
   *"containerapp logs show"*)
+    if [ -n "${FAKE_LOGSTREAM_INTERRUPT:-}" ]; then
+      # Like Ctrl+C in a terminal: SIGINT reaches the whole foreground group (az + script);
+      # az (Python) catches it and exits non-zero.
+      kill -INT "$PPID"; sleep 0.2; exit 1
+    fi
     if [ -n "${FAKE_LOGSTREAM_FAIL:-}" ]; then
       echo "Got bad status from the logstream API: 500" >&2; exit 1
     fi ;;
@@ -101,6 +106,17 @@ class AzLogsScriptTests(unittest.TestCase):
         proc, _ = self.run_script("tail", "bible-app-frontend", "console", FAKE_LOGSTREAM_FAIL="1")
         self.assertEqual(proc.returncode, 1)
         self.assertIn("make az-logs-frontend-query", proc.stderr)
+
+    def test_tail_ctrl_c_exits_quietly(self) -> None:
+        # Regression (owner run, 2026-11-16): stopping the stream with Ctrl+C printed
+        # "Error: Live streaming failed".
+        for kind in ("console", "system"):
+            with self.subTest(kind):
+                proc, _ = self.run_script(
+                    "tail", "bible-app-backend", kind, FAKE_LOGSTREAM_INTERRUPT="1"
+                )
+                self.assertEqual(proc.returncode, 130, proc.stderr)
+                self.assertNotIn("Error", proc.stderr)
 
     def test_tail_system_needs_no_replica(self) -> None:
         proc, calls = self.run_script("tail", "bible-app-backend", "system", CA_RG="other-rg")
