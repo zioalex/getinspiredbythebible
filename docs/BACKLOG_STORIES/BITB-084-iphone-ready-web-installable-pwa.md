@@ -1,9 +1,15 @@
+---
+id: BITB-084
+status: done
+priority: P2
+size: M
+rank: 1090
+created: 2026-07-29
+---
+
 # BITB-084: iPhone-Ready Web — Installable PWA, Standalone Safe Areas, and an iOS Path on `/app`
 
-**Status:** 🎯 Todo
-**Priority:** P2
-**Size:** M (1–2 days)
-**Created:** 2026-07-29
+**Migration note (2026-11-13, status):** (Parts A, B, D shipped directly; Part C delivered by BITB-102, completed 2026-09-12)
 **Part of:** the iOS delivery plan — Stage 0 of BITB-084 → BITB-085 → BITB-086 → BITB-109 → BITB-087 → BITB-088.
 This is the only stage that needs no Apple Developer account, no Mac, and no new client codebase,
 and it is worth shipping **even if the native app never happens**.

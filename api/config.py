@@ -205,6 +205,8 @@ class Settings(BaseSettings):
     passage_context_max_references: int = 2  # references expanded per turn (bounds extra queries)
     passage_context_history_lookback: int = 4  # history messages scanned; 0 disables carry-over
     max_conversation_history: int = 10  # Max messages to keep in context
+    # BITB-296: per-entry cap on client-supplied history content (truncated, not rejected).
+    max_history_message_length: int = 8000
     # BITB-058: fail closed when a scripture-seeking request cannot be grounded in any
     # verse (hard retrieval failure OR zero results). Rather than answer without
     # scripture — which undercuts a Bible-grounded product — return a localized
@@ -273,6 +275,8 @@ class Settings(BaseSettings):
 
     # Security Settings
     max_message_length: int = 500  # Max characters per chat message
+    # BITB-296: request body cap enforced by BodySizeLimitMiddleware (413 above it).
+    max_request_body_bytes: int = 1_048_576
     rate_limit_enabled: bool = True
     # BITB-061: "postgres" shares counters across replicas and survives
     # restarts/deploys (the whole point of this setting); "memory" is the
@@ -285,6 +289,12 @@ class Settings(BaseSettings):
     rate_limit_session_ttl_seconds: int = (
         3600  # Retain a session's lifetime counter for this long after its last request
     )
+    # BITB-298: IP-only per-scope limits (requests per IP per minute) for endpoints that cost
+    # money or call third parties. Independent of the chat limits above.
+    rate_limit_search_per_minute: int = 30
+    rate_limit_feedback_per_minute: int = 20
+    rate_limit_contact_per_minute: int = 3
+    rate_limit_church_per_minute: int = 6
     content_filter_enabled: bool = True
     content_filter_block_profanity: bool = True
     content_filter_block_spam: bool = True
@@ -733,7 +743,7 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()

@@ -1,9 +1,18 @@
+---
+id: BITB-126
+status: done
+priority: P2
+size: S
+rank: 450
+created: 2026-09-09
+prs: [1060]
+---
+
 # BITB-126: Diagnose a Database Stamped Ahead of the Deploy Checkout
 
-**Status:** 🚧 In Progress
-**Priority:** P2 — no outage; a deploy failure that costs triage time every time it happens
-**Size:** S (one preflight script + workflow wiring + tests)
-**Created:** 2026-09-09
+**Migration note (2026-11-13, status):** (PR #1060 merged 2026-09-20)
+**Migration note (2026-11-13, priority):** no outage; a deploy failure that costs triage time every time it happens
+**Migration note (2026-11-13, size):** (one preflight script + workflow wiring + tests)
 **Reported by:** deploy failure triage —
 [run 33369807581](https://github.com/zioalex/getinspiredbythebible/actions/runs/33369807581)
 **Affects:** `.github/workflows/azure-deploy.yml` (`run-migrations`), `scripts/`

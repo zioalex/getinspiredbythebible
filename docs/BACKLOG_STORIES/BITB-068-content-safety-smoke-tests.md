@@ -1,12 +1,18 @@
+---
+id: BITB-068
+status: done
+priority: P1
+size: M
+rank: 650
+created: 2026-07-10
+prs: [850]
+---
+
 # BITB-068: Content-Safety Smoke Tests — CI Gate + Functional + Deployed Probe
 
-**Status:** ✅ Done — three-tier smoke coverage (self-contained CI, functional, deployed probe)
-delivered on PR #850; also revived a smoke test that had been silently skipping itself.
-**Priority:** P1 (High) — for a pastoral-care product screening self-harm/violence content, the
-safety net had **no working end-to-end smoke test**: the one that existed was dead, and the unit
-tests use mocked providers with only a single "legitimate request still passes" assertion.
-**Size:** S–M (three test tiers + one prod-monitor job + a docs note)
-**Created:** 2026-07-10
+**Migration note (2026-11-13, status):** three-tier smoke coverage (self-contained CI, functional, deployed probe) delivered on PR #850; also revived a smoke test that had been silently skipping itself.
+**Migration note (2026-11-13, priority):** (High) — for a pastoral-care product screening self-harm/violence content, the safety net had **no working end-to-end smoke test**: the one that existed was dead, and the unit tests use mocked providers with only a single "legitimate request still passes" assertion.
+**Migration note (2026-11-13, size):** S–M (three test tiers + one prod-monitor job + a docs note)
 **Parent / audit ref:** BITB-061 (`docs/BACKLOG_STORIES/BITB-061-fail-closed-abuse-controls.md`) —
 this is the verification safety net for that story's content-safety phase (PR #840).
 

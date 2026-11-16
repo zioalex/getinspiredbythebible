@@ -1,9 +1,17 @@
+---
+id: BITB-129
+status: done
+priority: P2
+size: M
+rank: 500
+created: 2026-09-12
+prs: [1067, 1104]
+---
+
 # BITB-129: Right-Size CI for opencode Agent-Config Changes
 
-**Priority:** P2 (Medium)
-**Status:** 🚧 In Progress
-**Size:** S–M (one new workflow + path scoping + the missing tests)
-**Created:** 2026-09-12
+**Migration note (2026-11-13, status):** (PR #1067 merged 2026-09-14; confirmed on a real kubeopencode-only PR — #1104 triggered `opencode-ci` and skipped the full application suite's DB/Docker jobs)
+**Migration note (2026-11-13, size):** S–M (one new workflow + path scoping + the missing tests)
 **Affects:** `.github/workflows/`, `scripts/`, `deployment/kubeopencode/` — no application code
 
 ---

@@ -1,9 +1,14 @@
+---
+id: BITB-190
+status: todo
+priority: P3
+size: S
+rank: 40
+created: 2026-10-12
+---
+
 # BITB-190: Verse Ranges Written With Spaces Parse Differently on Backend vs Web/Android
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** S
-**Created:** 2026-10-12
 **Prompted by:** BITB-179 follow-up — found by the independent verifier.
 
 ## Bug Report

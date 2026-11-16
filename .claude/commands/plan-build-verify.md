@@ -35,8 +35,10 @@ Gather **all** the requirements before planning:
    writing the plan — do not guess on decisions that change the outcome.
 3. Write an explicit plan: the problem/why, the precise change per file, and a
    verification section (which tests/commands prove it works).
-4. Add the plan to the story from Stage 0 and update the `docs/BACKLOG.md`
-   entry per *Backlog Hygiene* in `AGENTS.md` (sequential `BITB-NNN`).
+4. Add the plan to the story file from Stage 0 and keep its front matter
+   (`status`, `prs`) current per *Backlog Hygiene* in `AGENTS.md` (sequential
+   `BITB-NNN`; find stories with `make backlog`, never by reading `docs/BACKLOG.md`,
+   which is a stub that PRs must not edit).
 
 ## Stage 2 — Build (delegate to Sonnet)
 
@@ -75,9 +77,16 @@ main session must treat the PR's CI run as the gate it watches to green.
   row, or a design question the plan didn't settle), stop and ask the user
   instead of looping again.
 - After the PR is open, a red CI run counts as a FAIL and re-enters the loop.
-- Mark the story status and update `docs/BACKLOG.md`.
-- Summarize for the user: what changed, test results, and any follow-ups.
-- Once the PR merges, file a follow-up `BITB-NNN` story for every point it left
-  unfixed (see *Backlog Hygiene* in `AGENTS.md`), on a fresh branch from `main`.
+- Set the story's front matter (`status`, `prs`, `follow_ups`); do not touch `docs/BACKLOG.md`.
+- **Before opening the PR**, file a follow-up `BITB-NNN` story for every point
+  it leaves unfixed, in the same PR, and list the IDs under *Follow-ups* in the
+  PR description (see *Backlog Hygiene* in `AGENTS.md`). Never write "to file at
+  merge". At merge, re-check only for new points raised in review.
+- **Owner actions:** as soon as you find a step only the owner can do (a secret,
+  `terraform apply`, a `workflow_dispatch` run, a decision), tell the user in
+  chat in that turn, under "⚠️ Owner action needed". Also put it at the top of
+  the PR description under `## ⚠️ Owner action required`.
+- Summarize for the user: what changed, test results, the follow-up story IDs,
+  and the owner actions again.
 - Commit/push only when the user has asked; never push to a closed/merged PR
   branch.

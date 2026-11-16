@@ -1,9 +1,16 @@
+---
+id: BITB-179
+status: done
+priority: P2
+size: M
+rank: 380
+created: 2026-10-10
+prs: [1163]
+---
+
 # BITB-179: Fullwidth Verse References — Colon, Range Tildes and Digits (All Three Parsers)
 
-**Status:** ✅ Done (PR #1163 merged 2026-10-12)
-**Priority:** P2
-**Size:** M
-**Created:** 2026-10-10
+**Migration note (2026-11-13, status):** (PR #1163 merged 2026-10-12)
 **Prompted by:** BITB-178 follow-up — the fullwidth-colon case is pinned as a strict `xfail` in
 `api/tests/test_passage_context.py` (`路加福音1：79`).
 

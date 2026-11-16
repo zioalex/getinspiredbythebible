@@ -42,10 +42,34 @@ Useful companions:
 ```bash
 make az-acr-list-tags        # what's in the registry
 make az-deployed-images      # what's actually running
-make az-logs-backend         # tail prod backend logs
-make az-logs-frontend        # tail prod frontend logs
+make az-logs-backend         # tail prod backend logs live (also: az-logs-frontend, *-system)
+make az-logs-backend-query   # past backend logs from Log Analytics (also: az-logs-frontend-query)
+make az-chat-stream-errors   # hourly counts of chat-stream failure signals
 make update-env-backend-url  # refresh NEXT_PUBLIC_API_URL in .env.production
 ```
+
+#### Reading production logs
+
+All log targets go through `scripts/az-logs.sh`. They need `az login` with read access to
+`bible-app-rg` (Reader on the resource group, plus Log Analytics Reader on the workspace for the
+query targets).
+
+- **Live** (`make az-logs-backend`): resolves the latest ready revision and a running replica, then
+  streams. A bare `az containerapp logs show --follow` fails with
+  `Got bad status from the logstream API: 500` when the app is scaled to zero or has several
+  replicas. If no replica is running, the target tells you so: send a request to wake the app,
+  or use the query target instead. A live stream only shows what happens while it is open.
+- **History** (`make az-logs-backend-query`): reads `ContainerAppConsoleLogs_CL` from Log
+  Analytics. Options are passed as variables:
+
+  ```bash
+  make az-logs-backend-query HOURS=6 FILTER="Chat stream"   # ERROR+WARNING lines containing text
+  make az-logs-backend-query LEVEL="ERROR|WARNING|INFO" HOURS=1 LIMIT=500
+  make az-chat-stream-errors DAYS=3                          # per-hour counts by signal
+  ```
+
+  The workspace is looked up in `bible-app-rg`. Set `LA_WORKSPACE_ID=<customer id>` to skip the
+  lookup. If `az` offers to install the `log-analytics` extension, accept.
 
 ### Infrastructure (Terraform)
 

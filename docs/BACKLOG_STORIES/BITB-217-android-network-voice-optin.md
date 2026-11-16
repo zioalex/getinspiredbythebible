@@ -1,9 +1,13 @@
+---
+id: BITB-217
+status: todo
+priority: P3
+size: M
+created: 2026-10-22
+---
+
 # BITB-217: Android — Offer Network Voices per Device When No Offline Voice Exists
 
-**Status:** 🎯 Todo
-**Priority:** P3
-**Size:** M
-**Created:** 2026-10-22
 **Follow-up of:** BITB-210 (PR #1190), which did this for web only
 
 ## Problem

@@ -1,9 +1,16 @@
+---
+id: BITB-284
+status: in-progress
+priority: P2
+size: S
+rank: 110
+created: 2026-11-09
+prs: [1272]
+---
+
 # BITB-284: Controller Owns the Deployment — Reconcile Re-Renders Templates and Reverts Hand-Patches; Behavior Undocumented
 
-**Status:** 🔄 In progress — PR #1272 (README section + this investigation shipped)
-**Priority:** P2
-**Size:** S
-**Created:** 2026-11-09
+**Migration note (2026-11-13, status):** PR #1272 (README section + this investigation shipped)
 **Incident:** 2026-11-09 ~09:10–09:56 UTC (where the behavior was observed)
 **Sibling stories:** BITB-282 (probe budget — the gap this behavior makes
 unfixable), BITB-283 (rollback anchors that must respect it)

@@ -1,10 +1,18 @@
+---
+id: BITB-066
+status: done
+priority: P1
+size: M
+rank: 600
+created: 2026-07-05
+prs: [824]
+---
+
 # BITB-066: Frontend Error Observability
 
-**Status:** ✅ Done (delivered on the PR #824 branch, reuse-endpoint approach)
-**Priority:** P1 (High) — the web frontend has **no** general client-side error telemetry, so
-user-facing failures (including the 2026-07-05 outage) are invisible to the operator.
-**Size:** M (frontend reporter + backend metric/alert + middleware tweak)
-**Created:** 2026-07-05
+**Migration note (2026-11-13, status):** (delivered on the PR #824 branch, reuse-endpoint approach)
+**Migration note (2026-11-13, priority):** (High) — the web frontend has **no** general client-side error telemetry, so user-facing failures (including the 2026-07-05 outage) are invisible to the operator.
+**Migration note (2026-11-13, size):** (frontend reporter + backend metric/alert + middleware tweak)
 **Incident ref:** the 2026-07-05 `_IncludedRouter` 500 (browser-only CORS-preflight failure) — see BITB-064.
 
 ## User Story
