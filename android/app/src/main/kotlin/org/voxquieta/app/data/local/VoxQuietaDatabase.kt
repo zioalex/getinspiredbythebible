@@ -9,10 +9,11 @@ import androidx.room.RoomDatabase
  * Version history:
  *   1 — initial schema (conversations + messages tables)
  *   2 — messages.crisisJson (BITB-255); see [MIGRATION_1_2]
+ *   3 — messages.interrupted (BITB-320); see [MIGRATION_2_3]
  */
 @Database(
     entities = [ConversationEntity::class, MessageEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class VoxQuietaDatabase : RoomDatabase() {

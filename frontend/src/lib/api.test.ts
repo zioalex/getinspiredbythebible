@@ -16,6 +16,7 @@ import {
   submitContactForm,
   streamMessage,
   recentHistory,
+  finalizeMessage,
   MAX_HISTORY_MESSAGES_SENT,
   getCrisisResources,
   ColdStartError,
@@ -1418,5 +1419,52 @@ describe("history sent with a chat request is bounded (BITB-296)", () => {
     expect(lastBody().conversation_history).toEqual(
       history.slice(-MAX_HISTORY_MESSAGES_SENT),
     );
+  });
+});
+
+describe("finalizeMessage (BITB-320)", () => {
+  it("posts the contract fields without a Turnstile header", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ verses_cited: [], truncated: false }),
+    } as Response);
+    const history: Message[] = Array.from({ length: 30 }, (_, i) => ({
+      role: i % 2 ? "assistant" : "user",
+      content: `m${i}`,
+    }));
+    const res = await finalizeMessage({
+      message: "hi",
+      assistantText: "text",
+      history,
+      preferredTranslation: "kjv",
+      language: "it",
+      sessionId: "s1",
+      messageId: "mid",
+      reason: "eof",
+    });
+    expect(res.truncated).toBe(false);
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(String(url)).toMatch(/\/api\/v1\/chat\/finalize$/);
+    const body = JSON.parse((init as RequestInit).body as string);
+    expect(body).toMatchObject({
+      message: "hi",
+      assistant_text: "text",
+      preferred_translation: "kjv",
+      language: "it",
+      session_id: "s1",
+      message_id: "mid",
+      reason: "eof",
+      platform: "web",
+    });
+    expect(body.conversation_history).toHaveLength(MAX_HISTORY_MESSAGES_SENT);
+    const headers = (init as RequestInit).headers as Record<string, string>;
+    expect(headers["X-Turnstile-Token"]).toBeUndefined();
+  });
+
+  it("throws on a non-OK response", async () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: false, status: 429 } as Response);
+    await expect(
+      finalizeMessage({ message: "a", assistantText: "b", reason: "eof" }),
+    ).rejects.toThrow("Finalize error: 429");
   });
 });

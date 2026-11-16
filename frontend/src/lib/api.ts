@@ -681,6 +681,88 @@ export interface StreamChunk {
   // BITB-080: 2-3 suggested follow-up questions, in the user's own voice.
   // Absent when suppressed (crisis/off-topic/error turns) or on an older backend.
   follow_ups?: string[];
+  // BITB-320: set when the server's post-processing failed and it fell back to
+  // a degraded completion (best-effort fields only).
+  degraded?: boolean;
+  // BITB-320, error type: the error came after content was already sent, so
+  // the client should keep its text and call finalize.
+  partial?: boolean;
+}
+
+export type FinalizeReason =
+  | "eof"
+  | "error_event"
+  | "network_error"
+  | "timeout";
+
+export interface FinalizeParams {
+  /** The user's message for this turn. */
+  message: string;
+  /** Exactly what the client received. */
+  assistantText: string;
+  history?: Message[];
+  preferredTranslation?: string;
+  language?: string;
+  sessionId?: string;
+  /** From the stream's metadata event. */
+  messageId?: string;
+  reason: FinalizeReason;
+  signal?: AbortSignal;
+}
+
+export interface FinalizeResponse {
+  verses_cited: string[];
+  resolved_verses?: Verse[];
+  citations?: CitationSpan[];
+  corrected_message?: string;
+  corrections?: { reference: string; reason: string }[];
+  follow_ups?: string[];
+  truncated: boolean;
+}
+
+/**
+ * BITB-320: recover the end-of-turn fields (chips, cited verses, corrected
+ * text) when the stream ended without a `completion` event. No Turnstile
+ * token: the turn already passed it.
+ */
+export async function finalizeMessage({
+  message,
+  assistantText,
+  history = [],
+  preferredTranslation,
+  language,
+  sessionId,
+  messageId,
+  reason,
+  signal,
+}: FinalizeParams): Promise<FinalizeResponse> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const smokeSecret = getSmokeSecret();
+  if (smokeSecret) {
+    headers["X-Monitor-Probe-Secret"] = smokeSecret;
+  }
+  const response = await fetch(`${API_URL}/api/v1/chat/finalize`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      message,
+      assistant_text: assistantText,
+      conversation_history: recentHistory(history),
+      preferred_translation: preferredTranslation,
+      language,
+      session_id: sessionId,
+      message_id: messageId,
+      reason,
+      platform: "web",
+    }),
+    signal,
+  });
+  if (!response.ok) {
+    throw new Error(`Finalize error: ${response.status}`);
+  }
+  return (await response.json()) as FinalizeResponse;
 }
 
 /**
