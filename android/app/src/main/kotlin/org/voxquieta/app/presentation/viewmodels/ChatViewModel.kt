@@ -1305,16 +1305,25 @@ class ChatViewModel @Inject constructor(
      * If apply() fires first, the init-block languageFlow collector sees the old
      * DataStore value and overwrites _uiState back to the previous locale for the
      * duration of the recreation window, causing a visible revert to the old language.
+     *
+     * BITB-331: a real language change also starts a new conversation (the old one stays in
+     * history), so the previous language's thread is not shown after the switch. Callers
+     * navigate to `chat/new` when this returns true; the NavHost survives Activity recreation,
+     * so the destination must be made explicit.
+     *
+     * @return true when the locale actually changed (and a new conversation was started).
      */
-    fun setLocale(locale: String) {
-        if (locale == _uiState.value.currentLocale) return
+    fun setLocale(locale: String): Boolean {
+        if (locale == _uiState.value.currentLocale) return false
         Timber.tag("VoxLocale").i("ChatViewModel.setLocale(%s) called", locale)
         speechEngine.stop() // BITB-119: the answer language no longer matches the UI language
+        startNewConversation() // BITB-331: reset thread + rotate session before the recreate
         _uiState.update { it.copy(currentLocale = locale) }
         viewModelScope.launch {
             languagePreferences.setLanguage(locale)
             localeApplier.apply(locale)
         }
+        return true
     }
 
     /**

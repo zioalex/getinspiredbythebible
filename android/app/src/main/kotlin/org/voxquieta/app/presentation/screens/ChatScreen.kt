@@ -310,7 +310,8 @@ fun ChatScreen(
         LanguagePickerBottomSheet(
             currentLocale = uiState.currentLocale,
             onSelectLocale = { code ->
-                viewModel.setLocale(code)
+                // BITB-331: a language change opens a new chat (old one stays in history).
+                if (viewModel.setLocale(code)) onNewConversation()
                 showLanguagePicker = false
             },
             onDismiss = { showLanguagePicker = false },
@@ -663,7 +664,10 @@ fun ChatScreen(
             uiState.languageSuggestion?.let { suggestedLocale ->
                 LanguageSwitchBanner(
                     suggestedLocale = suggestedLocale,
-                    onSwitch = { viewModel.setLocale(suggestedLocale) },
+                    onSwitch = {
+                        // BITB-331: a language change opens a new chat.
+                        if (viewModel.setLocale(suggestedLocale)) onNewConversation()
+                    },
                     onDismiss = viewModel::dismissLanguageSuggestion,
                 )
             }
