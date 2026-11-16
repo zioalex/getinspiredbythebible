@@ -5,6 +5,7 @@ priority: P1
 size: M
 rank: 190
 created: 2026-11-11
+prs: [1300]
 follow_ups: [BITB-322]
 ---
 
