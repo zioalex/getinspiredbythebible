@@ -7,7 +7,7 @@
     <string name="chat_stop_button">Detener</string>
     <string name="action_clear_conversation">Borrar conversación</string>
     <string name="welcome_title">Inspírate cada día con la Palabra de Dios</string>
-    <string name="welcome_subtitle">Trae tus cargas a la Palabra de Dios. Las Escrituras hablan consuelo, fortaleza y esperanza en cada etapa de la vida.</string>
+    <string name="welcome_subtitle">Trae tus cargas a la Palabra de Dios. Las Escrituras traen consuelo, fortaleza y esperanza en cada etapa de la vida.</string>
 
     <!-- Suggested prompts on welcome screen -->
     <string name="prompt_suggestion_1">Estoy luchando y necesito el consuelo de Dios</string>

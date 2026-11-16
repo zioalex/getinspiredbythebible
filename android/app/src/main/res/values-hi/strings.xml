@@ -330,7 +330,7 @@
 
     <!-- Feature Spotlight / Coach Marks (BITB-054) -->
     <string name="tour_title">ऐप टूर</string>
-    <string name="tour_step_indicator">चरण %1$d का %2$d</string>
+    <string name="tour_step_indicator">चरण %1$d / %2$d</string>
     <string name="tour_step_1_drawer">आपका चैट इतिहास, सेटिंग्स और नए चैट यहाँ हैं।</string>
     <string name="tour_step_2_translation">बाइबिल संस्करण बदलें।</string>
     <string name="tour_step_3_language">ऐप की भाषा बदलें।</string>
