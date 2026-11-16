@@ -119,8 +119,11 @@ If you are in the European Economic Area, you have the right to:
 - Request deletion of your data.
 - Object to processing of your data.
 
-Since we collect no personally identifiable information, most requests can be fulfilled by
-clearing your local conversation history within the app. For crash/analytics data held by
+We do not ask for your name, email or an account, so most requests can be fulfilled by clearing
+your local conversation history within the app. Records of messages
+blocked by our safety system are stored without your IP address, account or device details and
+are deleted automatically within 30 days; because they are not linked to you, we usually cannot tell which
+record is yours, but you can contact us about them at the address below. For crash/analytics data held by
 Google, please refer to Google's privacy controls at
 [myaccount.google.com](https://myaccount.google.com). For data handled by our AI providers,
 see the OpenRouter, Microsoft and OpenAI privacy policies linked above.

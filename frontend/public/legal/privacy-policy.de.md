@@ -101,7 +101,7 @@ Wenn du dich im Europäischen Wirtschaftsraum befindest, hast du das Recht:
 - die Löschung deiner Daten zu verlangen,
 - der Verarbeitung deiner Daten zu widersprechen.
 
-Da wir keine personenbezogenen Daten erheben, können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter, Microsoft und OpenAI.
+Wir fragen weder nach deinem Namen noch nach E-Mail-Adresse oder Konto, daher können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Einträge zu Nachrichten, die unser Sicherheitssystem blockiert hat, werden ohne IP-Adresse, Konto oder Geräteangaben gespeichert und innerhalb von 30 Tagen automatisch gelöscht; da sie nicht mit dir verknüpft sind, können wir in der Regel nicht erkennen, welcher Eintrag von dir stammt – du kannst uns dazu aber unter der unten genannten Adresse kontaktieren. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter, Microsoft und OpenAI.
 
 Bei Fragen zum Datenschutz erreichst du uns unter: **<privacy@voxquieta.org>**
 

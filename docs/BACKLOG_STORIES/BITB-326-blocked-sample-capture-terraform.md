@@ -34,6 +34,14 @@ reviewed.
 - **Privacy policy (11 languages):** two sentences said chat messages are never stored, which
   contradicts the blocked-message bullet. Both now carve out blocked messages. `lastUpdated`
   is now 2026-11-16.
+- **GDPR rights section (11 languages):** "since we collect no personally identifiable
+  information, clearing local history fulfils most requests" stopped being the whole story once
+  capture is on, because a blocked message may contain personal data. The section now says
+  blocked-message records are stored without IP, account or device details, deleted
+  automatically within 30 days, and how to contact us about them. The Arabic wording is aligned
+  on «نظام السلامة» throughout.
+- **Exporter:** `scripts/export_blocked_samples.py` no longer returns rows past `expires_at`,
+  which still exist between expiry and the next purge.
 
 Privacy is otherwise unchanged and enforced by the capture code: text capped at 500 chars,
 dedup by hash, session-id hash only (no IP, user id or UA), 30-day retention, with an hourly
@@ -56,6 +64,10 @@ in-app sweep and the daily pg_cron purge.
       blocked-message exception. It fails on the old policy.
       `test_privacy_policy_states_the_configured_retention` ties the policy's "up to N days" to
       `blocked_sample_retention_days`.
+- [x] `legal-pages.test.tsx`: the GDPR rights section names blocked-message records and 30 days
+      in all 11 languages.
+- [x] `api/tests/test_export_blocked_samples_query.py`: the export query filters
+      `expires_at > now()`. It fails on the old exporter.
 - [ ] Owner step: review the changed policy sentences in the 10 translations (listed in PR #1303)
       before merge.
 - [x] CI `terraform fmt -check` / `validate` green (tf-validate on PR #1303).

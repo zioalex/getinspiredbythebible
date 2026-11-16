@@ -102,7 +102,7 @@ Se ti trovi nello Spazio Economico Europeo, hai il diritto di:
 - Richiedere la cancellazione dei tuoi dati.
 - Opporti al trattamento dei tuoi dati.
 
-Poiché non raccogliamo informazioni personali identificabili, la maggior parte delle richieste può essere soddisfatta cancellando la cronologia locale delle conversazioni nell'app. Per i dati di crash/analisi detenuti da Google, consulta i controlli sulla privacy di Google su [myaccount.google.com](https://myaccount.google.com). Per i dati trattati dai nostri fornitori di IA, consulta le informative sulla privacy di OpenRouter, Microsoft e OpenAI linkate sopra.
+Non ti chiediamo nome, e-mail o account, quindi la maggior parte delle richieste può essere soddisfatta cancellando la cronologia locale delle conversazioni nell'app. I record dei messaggi bloccati dal nostro sistema di sicurezza sono conservati senza indirizzo IP, account o dati del dispositivo e vengono eliminati automaticamente entro 30 giorni; poiché non sono collegati a te, di solito non possiamo sapere quale record ti appartiene, ma puoi contattarci al riguardo all'indirizzo indicato sotto. Per i dati di crash/analisi detenuti da Google, consulta i controlli sulla privacy di Google su [myaccount.google.com](https://myaccount.google.com). Per i dati trattati dai nostri fornitori di IA, consulta le informative sulla privacy di OpenRouter, Microsoft e OpenAI linkate sopra.
 
 Per qualsiasi domanda sulla privacy, contattaci a: **<privacy@voxquieta.org>**
 

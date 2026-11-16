@@ -191,7 +191,7 @@ describe("privacy policy carves blocked messages out of 'not stored' (BITB-326)"
     ru: "заблокированных нашей системой безопасности",
     zh: "被我们的安全系统拦截",
     ko: "안전 시스템에 의해 차단된",
-    ar: "يحظرها نظام الأمان لدينا",
+    ar: "يحجبها نظام السلامة لدينا",
     hi: "सुरक्षा प्रणाली",
   };
 
@@ -207,6 +207,23 @@ describe("privacy policy carves blocked messages out of 'not stored' (BITB-326)"
     it(`${locale}: both chat-message bullets name the blocked-message exception`, () => {
       expect(bullets).toHaveLength(2);
       for (const b of bullets) expect(b).toContain(blockedPhrase[locale]);
+    });
+
+    it(`${locale}: the GDPR rights section covers blocked-message records`, () => {
+      // Once capture is on, "we collect no personally identifiable information, so clearing
+      // local history fulfils most requests" is no longer the whole story.
+      const rights = raw
+        .split(/^## /m)
+        .find(
+          (sec) =>
+            sec.includes("GDPR") ||
+            sec.includes("RGPD") ||
+            sec.includes("DSGVO") ||
+            sec.includes("<privacy@voxquieta.org>"),
+        );
+      expect(rights).toBeDefined();
+      expect(rights).toContain(blockedPhrase[locale]);
+      expect(rights).toContain("30");
     });
 
     it(`${locale}: has lastUpdated >= 2026-11-16`, () => {

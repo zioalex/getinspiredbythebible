@@ -93,7 +93,7 @@ Vox Quieta（以下简称"我们"）是一款免费的圣经灵感应用程序�
 - 请求删除您的数据，
 - 反对处理您的数据。
 
-由于我们不收集任何个人身份信息，大多数请求可通过在应用程序内清除本地对话历史记录来完成。对于 Google 持有的崩溃/分析数据，请参阅 [myaccount.google.com](https://myaccount.google.com) 上 Google 的隐私控制选项。对于由我们的 AI 提供商处理的数据，请参阅上文链接的 OpenRouter、Microsoft 和 OpenAI 隐私政策。
+我们不会要求您提供姓名、电子邮件或账户，因此大多数请求可通过在应用程序内清除本地对话历史记录来完成。被我们的安全系统拦截的消息记录在存储时不包含您的 IP 地址、账户或设备信息，并会在 30 天内自动删除；由于这些记录与您没有关联，我们通常无法确定哪条记录属于您，但您可以通过下方地址就此联系我们。对于 Google 持有的崩溃/分析数据，请参阅 [myaccount.google.com](https://myaccount.google.com) 上 Google 的隐私控制选项。对于由我们的 AI 提供商处理的数据，请参阅上文链接的 OpenRouter、Microsoft 和 OpenAI 隐私政策。
 
 如有任何隐私问题，请通过以下方式联系我们：**<privacy@voxquieta.org>**
 

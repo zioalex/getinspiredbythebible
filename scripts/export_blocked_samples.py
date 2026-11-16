@@ -35,7 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "api"))
 
 from feedback.models import BlockedMessageSample  # noqa: E402
-from sqlalchemy import create_engine, select  # noqa: E402
+from sqlalchemy import create_engine, func, select  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 FIELDS = [
@@ -105,7 +105,13 @@ def to_json_safe(value: Any) -> Any:
 
 
 def build_query(args: argparse.Namespace):
-    stmt = select(BlockedMessageSample).order_by(BlockedMessageSample.created_at.desc())
+    # Never export rows past their retention (BITB-326): between expiry and the next purge
+    # they still exist, but the privacy policy promises "up to 30 days".
+    stmt = (
+        select(BlockedMessageSample)
+        .where(BlockedMessageSample.expires_at > func.now())
+        .order_by(BlockedMessageSample.created_at.desc())
+    )
     if args.stage:
         stmt = stmt.where(BlockedMessageSample.stage == args.stage)
     if args.language:

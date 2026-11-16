@@ -102,7 +102,7 @@ Se você estiver no Espaço Econômico Europeu, tem o direito de:
 - solicitar a exclusão de seus dados,
 - opor-se ao processamento de seus dados.
 
-Como não coletamos informações de identificação pessoal, a maioria das solicitações pode ser atendida limpando seu histórico de conversas local no aplicativo. Para dados de falhas/análises mantidos pelo Google, consulte os controles de privacidade do Google em [myaccount.google.com](https://myaccount.google.com). Para dados tratados por nossos provedores de IA, consulte as políticas de privacidade da OpenRouter, da Microsoft e da OpenAI indicadas acima.
+Não pedimos seu nome, e-mail nem conta, por isso a maioria das solicitações pode ser atendida limpando seu histórico de conversas local no aplicativo. Os registros de mensagens bloqueadas pelo nosso sistema de segurança são armazenados sem seu endereço IP, conta ou dados do dispositivo e são excluídos automaticamente em até 30 dias; como não estão vinculados a você, normalmente não conseguimos identificar qual registro é seu, mas você pode entrar em contato conosco sobre eles no endereço abaixo. Para dados de falhas/análises mantidos pelo Google, consulte os controles de privacidade do Google em [myaccount.google.com](https://myaccount.google.com). Para dados tratados por nossos provedores de IA, consulte as políticas de privacidade da OpenRouter, da Microsoft e da OpenAI indicadas acima.
 
 Para quaisquer dúvidas sobre privacidade, entre em contato conosco em: **<privacy@voxquieta.org>**
 

@@ -104,7 +104,7 @@ Si vous vous trouvez dans l'Espace économique européen, vous avez le droit :
 - de demander la suppression de vos données,
 - de vous opposer au traitement de vos données.
 
-Comme nous ne collectons aucune information personnellement identifiable, la plupart des demandes peuvent être satisfaites en effaçant votre historique de conversation local dans l'application. Pour les données de plantage/analyses détenues par Google, veuillez consulter les contrôles de confidentialité de Google sur [myaccount.google.com](https://myaccount.google.com). Pour les données traitées par nos fournisseurs d'IA, consultez les politiques de confidentialité d'OpenRouter, de Microsoft et d'OpenAI mentionnées ci-dessus.
+Nous ne vous demandons ni nom, ni e-mail, ni compte : la plupart des demandes peuvent donc être satisfaites en effaçant votre historique de conversation local dans l'application. Les enregistrements des messages bloqués par notre système de sécurité sont conservés sans votre adresse IP, votre compte ni les informations de votre appareil, et sont supprimés automatiquement sous 30 jours ; comme ils ne sont pas liés à vous, nous ne pouvons généralement pas savoir lequel vous concerne, mais vous pouvez nous contacter à ce sujet à l'adresse indiquée ci-dessous. Pour les données de plantage/analyses détenues par Google, veuillez consulter les contrôles de confidentialité de Google sur [myaccount.google.com](https://myaccount.google.com). Pour les données traitées par nos fournisseurs d'IA, consultez les politiques de confidentialité d'OpenRouter, de Microsoft et d'OpenAI mentionnées ci-dessus.
 
 Pour toute question relative à la confidentialité, contactez-nous à : **<privacy@voxquieta.org>**
 
