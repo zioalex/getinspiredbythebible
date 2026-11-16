@@ -116,6 +116,8 @@ fun ChatScreen(
     conversationsViewModel: ConversationsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    // BITB-320: localized "Please continue" user turn sent by the interrupted-reply button.
+    val continuePrompt = stringResource(R.string.chat_continue_prompt)
     val chapterSheetState by viewModel.chapterSheetState.collectAsState()
     val churchFinderSheetState by viewModel.churchFinderSheetState.collectAsState()
     val availableTranslations by viewModel.availableTranslations.collectAsState()
@@ -544,6 +546,14 @@ fun ChatScreen(
                             onToggleListen = {
                                 viewModel.toggleSpeak(message, verseRefRegex, localizedToEnglish)
                             },
+                            // BITB-320: only the latest reply offers Continue, and not mid-turn.
+                            onContinue = if (
+                                message.isInterrupted &&
+                                index == uiState.messages.lastIndex &&
+                                !uiState.isLoading
+                            ) {
+                                { viewModel.sendMessage(continuePrompt) }
+                            } else null,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
 

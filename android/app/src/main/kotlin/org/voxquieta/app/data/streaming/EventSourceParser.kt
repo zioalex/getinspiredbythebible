@@ -153,6 +153,19 @@ fun ResponseBody.toChunkFlow(): Flow<StreamChunkDto> = flow {
                             emit(StreamChunkDto(type = "crisis_resources", crisisResources = resources))
                         }
                     }
+                    "error" -> {
+                        // BITB-320: surface the error event so the ViewModel can recover the
+                        // reply (finalize) instead of silently saving a truncated answer.
+                        emit(
+                            StreamChunkDto(
+                                type = "error",
+                                errorMessage = jsonObj["error"]?.jsonPrimitive?.contentOrNull ?: "",
+                                errorCode = jsonObj["error_code"]?.jsonPrimitive?.contentOrNull ?: "",
+                                partial = jsonObj["partial"]?.jsonPrimitive?.contentOrNull == "true",
+                                messageId = jsonObj["message_id"]?.jsonPrimitive?.contentOrNull ?: "",
+                            ),
+                        )
+                    }
                     "content", null, "" -> {
                         // Standard content chunk or legacy plain chunk with no type field.
                         val chunk = json.decodeFromString<StreamChunkDto>(data)

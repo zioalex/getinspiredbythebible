@@ -25,6 +25,8 @@ import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Church
 import org.voxquieta.app.domain.models.CrisisResources
 import org.voxquieta.app.domain.models.FeedbackRating
+import org.voxquieta.app.domain.models.FinalizeRequest
+import org.voxquieta.app.domain.models.FinalizeResult
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.Verse
 import org.voxquieta.app.domain.repositories.ChatRepository
@@ -50,6 +52,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -69,6 +72,7 @@ import retrofit2.HttpException
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
+import java.io.InterruptedIOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -246,6 +250,13 @@ class ChatViewModel @Inject constructor(
         /** Test-only override for [followUpsEnabled]; null = use the BuildConfig value. */
         @androidx.annotation.VisibleForTesting
         internal var followUpsEnabledForTest: Boolean? = null
+
+        /** BITB-320: finalize = one attempt plus one silent retry after this delay. */
+        internal const val FINALIZE_ATTEMPTS = 2
+        internal const val FINALIZE_RETRY_DELAY_MS = 1_500L
+
+        /** BITB-320: longest assistant text chat/finalize accepts; longer replies skip it (web parity). */
+        internal const val MAX_FINALIZE_ASSISTANT_CHARS = 8_000
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -744,12 +755,79 @@ class ChatViewModel @Inject constructor(
             var finalResolvedVerses: List<Verse> = emptyList()
             var didError = false
             var metadataMessageId = ""
+            // BITB-320: a stream that ends without `completion` is recovered via chat/finalize.
+            // `receivedCompletion` also covers a terminal `done` chunk (legacy servers).
+            var receivedCompletion = false
+            var sawErrorEvent = false
+            var recoveryReason: String? = null
             // BITB-255: crisis card from the first stream event; attached to the saved message.
             var crisisResources: CrisisResources? = null
+
+            // Merges a completion (from the SSE `completion` event OR from chat/finalize) into the
+            // in-flight turn. Both sources go through here so recovery behaves exactly as if
+            // `completion` had arrived (BITB-320).
+            fun applyCompletion(
+                versesCited: List<String>,
+                resolvedVerses: List<Verse>,
+                correctedMessage: String?,
+                followUps: List<String>,
+            ) {
+                if (versesCited.isNotEmpty()) {
+                    finalVersesCited = versesCited
+                }
+                // Backend-resolved cited verses (with text). Merging these
+                // into the verse pool ensures the "Cited" tab surfaces
+                // citations that fell outside the semantic search — common
+                // on follow-up questions whose pool reflects the short
+                // follow-up text, not what the answer actually cited.
+                if (resolvedVerses.isNotEmpty()) {
+                    finalResolvedVerses = resolvedVerses
+                }
+                // Grounding rewrote a fabricated/mismatched verse quote: the
+                // streamed text is already on screen, so replace it with the
+                // authoritative corrected body.
+                correctedMessage?.let { corrected ->
+                    accumulatedContent = corrected
+                    _uiState.update { state ->
+                        state.copy(
+                            messages = state.messages.map { msg ->
+                                if (msg.id == assistantId) {
+                                    msg.copy(content = accumulatedContent)
+                                } else msg
+                            },
+                        )
+                    }
+                }
+                // Suggested follow-up questions (BITB-149). Only set when
+                // non-empty; already cleared at turn-start above, so an
+                // absent/suppressed field must not clear it back to empty here.
+                // Gated by the rollout flag (BITB-080): when the
+                // flag is off Android ignores the field entirely — no chips,
+                // no crash, no empty row (the existing degrade-silently contract).
+                // BITB-254: keep them on the assistant message regardless of the
+                // flag -- they are echoed back in conversation_history so the
+                // model keeps writing the trailer, even when chips are hidden.
+                if (followUps.isNotEmpty()) {
+                    finalFollowUps = followUps
+                }
+                if (followUpsEnabled && followUps.isNotEmpty()) {
+                    _uiState.update { state -> state.copy(followUps = followUps) }
+                }
+            }
 
             repository
                 .chatStream(request)
                 .catch { e ->
+                    // BITB-320: a network error / timeout AFTER content keeps the text and goes
+                    // to recovery (finalize) instead of replacing it with an error message. A
+                    // user Stop (job no longer active) never recovers. With no content, or for a
+                    // non-IO failure (HTTP status etc.), fall through to the old error path.
+                    if (isActive && e is IOException && accumulatedContent.isNotBlank()) {
+                        Timber.w(e, "chatStream interrupted after content; will finalize")
+                        recoveryReason =
+                            if (e is InterruptedIOException) "timeout" else "network_error"
+                        return@catch
+                    }
                     Timber.e(e, "chatStream error")
                     didError = true
                     warmUpJob.cancel()
@@ -791,7 +869,7 @@ class ChatViewModel @Inject constructor(
                         )
                     }
                 }
-                .onCompletion {
+                .onCompletion { cause ->
                     // Turnstile token consumption is now centralised in
                     // TurnstileInterceptor — every gated POST clears the cached
                     // token and triggers a WebView reset, so each repository
@@ -800,6 +878,52 @@ class ChatViewModel @Inject constructor(
                     warmUpJob.cancel()
 
                     if (!didError) {
+                        // BITB-320: the stream ended without `completion` but text arrived (EOF,
+                        // `error` event, network error / timeout after content). Keep the text
+                        // and ask the server for the chips + verses. `cause == null && isActive`
+                        // excludes a user Stop (which cancels the job). One attempt plus one
+                        // silent retry; no snackbar or error state either way.
+                        var interrupted = false
+                        if (!receivedCompletion && cause == null && isActive &&
+                            accumulatedContent.isNotBlank()
+                        ) {
+                            val reason = recoveryReason ?: if (sawErrorEvent) "error_event" else "eof"
+                            val recovered: FinalizeResult? = try {
+                                if (accumulatedContent.length > MAX_FINALIZE_ASSISTANT_CHARS) {
+                                    // The server would reject the text (422): go straight to the
+                                    // local fallback (strip trailer, mark interrupted).
+                                    null
+                                } else recoverCompletion(
+                                    FinalizeRequest(
+                                        message = trimmed,
+                                        assistantText = accumulatedContent,
+                                        conversationHistory = history,
+                                        preferredTranslation = translation,
+                                        language = request.language,
+                                        sessionId = sessionId,
+                                        messageId = metadataMessageId.ifBlank { null },
+                                        reason = reason,
+                                    ),
+                                )
+                            } catch (e: CancellationException) {
+                                // The user pressed Stop while recovery ran: keep the partial text.
+                                null
+                            }
+                            if (recovered != null) {
+                                applyCompletion(
+                                    recovered.versesCited,
+                                    recovered.resolvedVerses,
+                                    recovered.correctedMessage,
+                                    recovered.followUps,
+                                )
+                                interrupted = recovered.truncated
+                            } else {
+                                // Finalize failed (or Stop): never show a leaked trailer.
+                                accumulatedContent = stripAnswerTrailer(accumulatedContent)
+                                interrupted = isActive
+                            }
+                        }
+
                         // Merge backend-resolved cited verses into the message's verse
                         // list (deduped by reference). This both feeds the verse panel
                         // and persists them in versesJson, so the "Cited" tab survives
@@ -824,6 +948,7 @@ class ChatViewModel @Inject constructor(
                             versesCited = finalVersesCited,
                             crisisResources = crisisResources,
                             followUps = finalFollowUps,
+                            isInterrupted = interrupted,
                         )
                         // Use NonCancellable so that DB writes and the isLoading reset always
                         // complete even when the coroutine was cancelled by the Stop button.
@@ -933,52 +1058,26 @@ class ChatViewModel @Inject constructor(
                         return@collect
                     }
 
-                    // Handle completion event with server-extracted verse citations.
-                    if (chunk.type == "completion") {
-                        if (chunk.versesCited.isNotEmpty()) {
-                            finalVersesCited = chunk.versesCited
-                        }
-                        // Backend-resolved cited verses (with text). Merging these
-                        // into the verse pool ensures the "Cited" tab surfaces
-                        // citations that fell outside the semantic search — common
-                        // on follow-up questions whose pool reflects the short
-                        // follow-up text, not what the answer actually cited.
-                        if (chunk.resolvedVerses.isNotEmpty()) {
-                            finalResolvedVerses = chunk.resolvedVerses
-                        }
-                        // Grounding rewrote a fabricated/mismatched verse quote: the
-                        // streamed text is already on screen, so replace it with the
-                        // authoritative corrected body.
-                        chunk.correctedMessage?.let { corrected ->
-                            accumulatedContent = corrected
-                            _uiState.update { state ->
-                                state.copy(
-                                    messages = state.messages.map { msg ->
-                                        if (msg.id == assistantId) {
-                                            msg.copy(content = accumulatedContent)
-                                        } else msg
-                                    },
-                                )
-                            }
-                        }
-                        // Suggested follow-up questions (BITB-149). Only set when
-                        // non-empty; already cleared at turn-start above, so an
-                        // absent/suppressed field must not clear it back to empty here.
-                        // Gated by the rollout flag (BITB-080): when the
-                        // flag is off Android ignores the field entirely — no chips,
-                        // no crash, no empty row (the existing degrade-silently contract).
-                        // BITB-254: keep them on the assistant message regardless of the
-                        // flag -- they are echoed back in conversation_history so the
-                        // model keeps writing the trailer, even when chips are hidden.
-                        if (chunk.followUps.isNotEmpty()) {
-                            finalFollowUps = chunk.followUps
-                        }
-                        if (followUpsEnabled && chunk.followUps.isNotEmpty()) {
-                            _uiState.update { state -> state.copy(followUps = chunk.followUps) }
-                        }
+                    // BITB-320: an `error` event (the server failed mid-reply). Remember it so the
+                    // end of the stream is recovered via finalize with reason "error_event".
+                    if (chunk.type == "error") {
+                        sawErrorEvent = true
                         return@collect
                     }
 
+                    // Handle completion event with server-extracted verse citations.
+                    if (chunk.type == "completion") {
+                        receivedCompletion = true
+                        applyCompletion(
+                            chunk.versesCited,
+                            chunk.resolvedVerses,
+                            chunk.correctedMessage,
+                            chunk.followUps,
+                        )
+                        return@collect
+                    }
+
+                    if (chunk.done) receivedCompletion = true
                     accumulatedContent += chunk.content
                     if (chunk.done) finalVerses = chunk.verses
 
@@ -994,6 +1093,24 @@ class ChatViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    /**
+     * BITB-320: calls chat/finalize once and, on failure, once more after a short silent delay.
+     * Returns null when both attempts fail. [CancellationException] (user Stop) propagates.
+     */
+    private suspend fun recoverCompletion(request: FinalizeRequest): FinalizeResult? {
+        repeat(FINALIZE_ATTEMPTS) { attempt ->
+            try {
+                return repository.finalizeMessage(request)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Timber.w(e, "chat finalize attempt %d failed", attempt + 1)
+            }
+            if (attempt < FINALIZE_ATTEMPTS - 1) delay(FINALIZE_RETRY_DELAY_MS)
+        }
+        return null
     }
 
     /**

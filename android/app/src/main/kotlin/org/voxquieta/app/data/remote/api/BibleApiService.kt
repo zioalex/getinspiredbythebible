@@ -11,6 +11,8 @@ import org.voxquieta.app.data.remote.models.ContactResponseDto
 import org.voxquieta.app.data.remote.models.CrisisResourcesDto
 import org.voxquieta.app.data.remote.models.CrisisResourcesRequestDto
 import org.voxquieta.app.data.remote.models.FeedbackRequestDto
+import org.voxquieta.app.data.remote.models.FinalizeRequestDto
+import org.voxquieta.app.data.remote.models.FinalizeResponseDto
 import org.voxquieta.app.data.remote.models.BookNamesResponseDto
 import org.voxquieta.app.data.remote.models.TranslationsResponseDto
 import okhttp3.ResponseBody
@@ -31,6 +33,14 @@ interface BibleApiService {
     @Streaming
     @POST("api/v1/chat/stream")
     suspend fun chatStream(@Body request: ChatRequestDto): ResponseBody
+
+    /**
+     * BITB-320: recovers the chips and cited verses of a reply whose stream ended without a
+     * `completion` event. NOT Turnstile-gated (see [TurnstileInterceptor]): the turn already
+     * passed it, and a second challenge would stall recovery.
+     */
+    @POST("api/v1/chat/finalize")
+    suspend fun finalizeChat(@Body request: FinalizeRequestDto): FinalizeResponseDto
 
     /**
      * Fetches the list of available Bible translations from the backend.

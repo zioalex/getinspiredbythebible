@@ -90,6 +90,10 @@ rate_limit_requests_per_minute = 10
 content_filter_enabled = true
 max_message_length     = 500
 
+# BITB-326: keep blocked messages (capped at 500 chars, no IP/user id, 30-day TTL)
+# so false positives can be reviewed with `make export-blocked-samples`.
+blocked_sample_capture_enabled = true
+
 # -----------------------------------------------------------------------------
 # Follow-Up Suggestions Rollout (BITB-080) — WEB ONLY
 # -----------------------------------------------------------------------------

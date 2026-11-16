@@ -332,9 +332,9 @@ class TestFeedbackEmailIntegration:
         if response.status_code == 200:
             call_kwargs = mock_email_service.send_feedback_notification.call_args.kwargs
             assert call_kwargs["rating"] == "negative"
-            assert call_kwargs["comment"] == "The response wasn't helpful."
-            assert call_kwargs["user_message"] == "How can I find peace?"
-            assert call_kwargs["assistant_response"] == "Let me help you find peace..."
+            # BITB-329: identifiers only -- no user text is handed to the e-mail service.
+            assert call_kwargs["has_comment"] is True
+            assert not {"comment", "user_message", "assistant_response"} & set(call_kwargs)
             mock_email_service.send_feedback_notification.assert_called_once()
 
     @patch("routes.feedback.email_service", autospec=True)
@@ -378,7 +378,8 @@ class TestFeedbackEmailIntegration:
             mock_email_service.send_feedback_notification.assert_called_once()
             call_kwargs = mock_email_service.send_feedback_notification.call_args.kwargs
             assert call_kwargs["rating"] == "positive"
-            assert call_kwargs["comment"] == "Great response! The verse was perfect."
+            assert call_kwargs["has_comment"] is True
+            assert not {"comment", "user_message", "assistant_response"} & set(call_kwargs)
 
     @patch("routes.feedback.email_service", autospec=True)
     def test_feedback_succeeds_when_email_fails(self, mock_email_service):
@@ -422,12 +423,10 @@ class TestContactEmailIntegration:
         assert response.status_code in [200, 500]
 
         if response.status_code == 200:
-            mock_email_service.send_contact_notification.assert_called_once_with(
-                subject_type="bug",
-                message="Found a bug in the app.",
-                reply_email="user@example.com",
-                user_agent="Mozilla/5.0 Chrome/120.0",
-            )
+            kwargs = mock_email_service.send_contact_notification.call_args.kwargs
+            assert kwargs["subject_type"] == "bug"
+            assert kwargs["has_reply_email"] is True
+            assert set(kwargs) == {"subject_type", "contact_id", "has_reply_email", "created_at"}
 
     @patch("routes.feedback.email_service", autospec=True)
     def test_contact_sends_email_with_reply_email(self, mock_email_service):
@@ -446,12 +445,10 @@ class TestContactEmailIntegration:
         assert response.status_code in [200, 500]
 
         if response.status_code == 200:
-            mock_email_service.send_contact_notification.assert_called_once_with(
-                subject_type="feedback",
-                message="Great app!",
-                reply_email="user@example.com",
-                user_agent=None,
-            )
+            kwargs = mock_email_service.send_contact_notification.call_args.kwargs
+            assert kwargs["subject_type"] == "feedback"
+            assert kwargs["has_reply_email"] is True
+            assert set(kwargs) == {"subject_type", "contact_id", "has_reply_email", "created_at"}
 
     @patch("routes.feedback.email_service", autospec=True)
     def test_contact_succeeds_when_email_fails(self, mock_email_service):
@@ -620,3 +617,79 @@ class TestContactRouteWithMockedDB:
                 await submit_contact(request, mock_repo)
 
         assert exc_info.value.status_code == 500
+
+
+class TestNotificationsNeverCarryUserText:
+    """BITB-329: through the real routes and the real e-mail service, nothing leaks."""
+
+    @pytest.mark.asyncio
+    async def test_feedback_and_contact_emails_contain_no_user_text(self):
+        import json
+        from datetime import UTC, datetime
+        from unittest.mock import AsyncMock
+
+        from feedback.models import ContactSubmission, Feedback, FeedbackRequest
+        from routes.feedback import submit_contact, submit_feedback
+        from utils.email_service import EmailService
+
+        message_id = str(uuid.uuid4())
+        feedback_row = MagicMock(spec=Feedback)
+        feedback_row.id = 5
+        feedback_row.message_id = uuid.UUID(message_id)
+        feedback_row.rating = "negative"
+        feedback_row.created_at = datetime.now(UTC)
+        contact_row = MagicMock(spec=ContactSubmission)
+        contact_row.id = 9
+        contact_row.subject = "bug"
+        contact_row.created_at = datetime.now(UTC)
+        repo = AsyncMock()
+        repo.save_feedback = AsyncMock(return_value=feedback_row)
+        repo.save_contact = AsyncMock(return_value=contact_row)
+
+        secrets = ["SECRET-Q-xyzzy", "SECRET-A-plugh", "SECRET-C-fnord", "SECRET-M-quux"]
+        secret_email = "secret.person@example.org"
+
+        service = EmailService()
+        service.enabled = True
+        service.api_key = "k"  # pragma: allowlist secret
+        response = MagicMock(status_code=200)
+        response.json.return_value = {"data": {"succeeded": 1}}
+        with (
+            patch("routes.feedback.email_service", service),
+            patch("httpx.AsyncClient.post", new_callable=AsyncMock) as post,
+        ):
+            post.return_value = response
+            await submit_feedback(
+                FeedbackRequest(
+                    message_id=message_id,
+                    rating="negative",
+                    comment=secrets[2],
+                    user_message=secrets[0],
+                    assistant_response=secrets[1],
+                ),
+                repo,
+            )
+            await submit_contact(
+                ContactRequest(
+                    email=secret_email,
+                    subject="bug",
+                    message=secrets[3],
+                    user_agent="Mozilla/5.0 SECRET-UA",
+                ),
+                repo,
+            )
+
+        assert post.await_count == 2
+        for call in post.await_args_list:
+            payload = call.kwargs["json"]
+            blob = json.dumps(payload)
+            assert "custom_headers" not in payload
+            for secret in [*secrets, secret_email, "SECRET-UA"]:
+                assert secret not in blob
+        feedback_payload = post.await_args_list[0].kwargs["json"]
+        assert (
+            f'make export-feedback ARGS="--message-id {message_id}"'
+            in feedback_payload["text_body"]
+        )
+        contact_payload = post.await_args_list[1].kwargs["json"]
+        assert 'make export-feedback ARGS="--contacts --id 9"' in contact_payload["text_body"]

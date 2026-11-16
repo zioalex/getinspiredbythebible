@@ -85,11 +85,16 @@ async def record_blocked_sample(
                     )
                     row = existing.scalar_one_or_none()
                     if row is not None:
-                        # Dedup: bump counter, refresh TTL, do not store text again.
+                        # Dedup: bump the counter only. The TTL stays fixed from the first
+                        # capture (BITB-326): refreshing it on every repeat kept text that
+                        # is blocked again and again -- with the FIRST sender's session
+                        # hash -- forever, breaking the privacy policy's "up to 30 days".
+                        # Once the row expires and is purged, the next occurrence starts a
+                        # fresh row with a fresh 30-day window.
                         await db.execute(
                             update(BlockedMessageSample)
                             .where(BlockedMessageSample.id == row.id)
-                            .values(hit_count=row.hit_count + 1, expires_at=expires)
+                            .values(hit_count=row.hit_count + 1)
                         )
                     else:
                         db.add(
