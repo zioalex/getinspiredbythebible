@@ -1,21 +1,17 @@
 package org.voxquieta.app.presentation.viewmodels
 
-// A complete or unterminated `<!-- VERSES: ... -->` / `<!-- FOLLOWUPS: ... -->` marker and
-// everything after it, or a trailing unterminated `<!--...` / partial `<!-`, `<!` opener
-// (the connection can drop in the middle of the trailer).
-private val TRAILER_START = Regex("""<!--\s*(?:VERSES|FOLLOWUPS)\b""")
-private val UNTERMINATED_COMMENT = Regex("""<!--(?:(?!-->)[\s\S])*$""")
-private val PARTIAL_OPENER = Regex("""<!-?$""")
+// Shared trailer rule (identical on backend `_UNTERMINATED_TRAILER` and web `stripTrailer`):
+// (a) remove complete `<!-- VERSES|FOLLOWUPS: ... -->` comments; (b) remove an unterminated
+// `<!--...` tail to the end of the text whatever follows the opener; (c) remove a dangling
+// `<!-`, `<!` or `<` at the very end; then right-trim.
+private val COMPLETE_TRAILER =
+    Regex("""<!--\s*(?:VERSES|FOLLOWUPS)\s*:(?:(?!-->)[\s\S])*-->""", RegexOption.IGNORE_CASE)
+private val UNTERMINATED_TRAILER = Regex("""\s*(?:<!--(?:(?!-->)[\s\S])*|<(?:!-?)?)\z""")
 
 /**
  * BITB-320: removes a machine trailer the model wrote at the end of a reply
  * (`<!-- VERSES: ... -->`, `<!-- FOLLOWUPS: a|b -->`, including a half-received one) so it is
  * never shown. Used when `chat/finalize` failed and the server could not strip it for us.
- * Text without a trailer is returned unchanged (apart from trailing whitespace after a strip).
  */
-fun stripAnswerTrailer(text: String): String {
-    var out = text
-    TRAILER_START.find(out)?.let { out = out.substring(0, it.range.first) }
-    out = out.replace(UNTERMINATED_COMMENT, "").replace(PARTIAL_OPENER, "")
-    return if (out.length == text.length) text else out.trimEnd()
-}
+fun stripAnswerTrailer(text: String): String =
+    text.replace(COMPLETE_TRAILER, "").replace(UNTERMINATED_TRAILER, "").trimEnd()

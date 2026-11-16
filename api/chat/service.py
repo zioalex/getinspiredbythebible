@@ -288,8 +288,11 @@ class ChatResponse(BaseModel):
     crisis_resources: dict | None = None  # BITB-255: hotline card payload on a crisis turn
 
 
-# BITB-320: a reply cut inside its trailer leaves "<!-- FOLLOWUPS: ..." with no closing "-->".
-_UNTERMINATED_TRAILER = re.compile(r"\s*<!--\s*(?:FOLLOWUPS|VERSES):(?:(?!-->).)*\Z", re.DOTALL)
+# BITB-320: a reply cut inside its trailer leaves "<!-- FOLLOWUPS: ..." (or a bare "<!-- FOL")
+# with no closing "-->". Shared rule across backend/web/Android: drop an unterminated "<!--"
+# tail to end of text whatever follows the opener, and a dangling "<!-", "<!" or "<" at the
+# very end; leading whitespace is consumed so the result is right-trimmed.
+_UNTERMINATED_TRAILER = re.compile(r"\s*(?:<!--(?:(?!-->).)*|<(?:!-?)?)\Z", re.DOTALL)
 _TRAILER_MARKERS = ("<!-- VERSES:", "<!-- FOLLOWUPS:")
 _SENTENCE_FINAL = ".!?\u2026\u3002\uff01\uff1f\u061f\u0964"
 _CLOSERS = "\"'\u201d\u2019\u00bb\u300d\u300f\u3011)]\uff09\u3015}*_` "
@@ -389,6 +392,7 @@ class ChatService:
         detected_language: str,
         session_id: str | None,
         context: str = "chat",
+        record_sample: bool = True,
     ) -> _SafetyOutcome:
         """
         Check message for harmful content.
@@ -398,6 +402,9 @@ class ChatService:
             detected_language: ISO language code detected from message
             session_id: Session identifier for logging
             context: Context label for log messages (e.g., 'chat' or 'chat stream')
+            record_sample: When False (BITB-320 finalize re-check) a blocked message is not
+                stored as a blocked sample and the violation is logged at INFO, so a recovery
+                never double-records a turn the original request already recorded.
 
         Returns:
             _SafetyOutcome with allowed/compassionate flags and reason.
@@ -413,29 +420,30 @@ class ChatService:
         text_hash = hashlib.sha256(message.encode()).hexdigest()[:16]
 
         if not safety_result.allowed:
-            logger.warning(
-                f"Content safety violation in {context}",
-                extra={
-                    "text_hash": text_hash,
-                    "language": detected_language,
-                    "reason": safety_result.reason,
-                    "categories": safety_result.categories,
-                    "session_id": session_id,
-                },
-            )
-            # Best-effort capture for filter tuning (no PII, TTL-bounded).
-            try:
-                from feedback.blocked_samples import record_blocked_sample
+            log_extra = {
+                "text_hash": text_hash,
+                "language": detected_language,
+                "reason": safety_result.reason,
+                "categories": safety_result.categories,
+                "session_id": session_id,
+            }
+            if record_sample:
+                logger.warning(f"Content safety violation in {context}", extra=log_extra)
+                # Best-effort capture for filter tuning (no PII, TTL-bounded).
+                try:
+                    from feedback.blocked_samples import record_blocked_sample
 
-                await record_blocked_sample(
-                    message=message,
-                    stage="content_safety",
-                    categories=safety_result.categories,
-                    language=detected_language,
-                    session_id=session_id,
-                )
-            except Exception:
-                pass
+                    await record_blocked_sample(
+                        message=message,
+                        stage="content_safety",
+                        categories=safety_result.categories,
+                        language=detected_language,
+                        session_id=session_id,
+                    )
+                except Exception:
+                    pass
+            else:
+                logger.info(f"Content safety re-check blocked in {context}", extra=log_extra)
             return _SafetyOutcome(
                 allowed=False,
                 compassionate=False,
@@ -2194,12 +2202,16 @@ Keep it under 120 words."""
         crisis_suffix: str = "",
         include_search: bool = False,
         on_grounded: Callable[[list], None] | None = None,
+        record_metrics: bool = True,
     ) -> tuple[dict, bool]:
         """Build the ``completion`` payload for a finished reply (shared, BITB-320).
 
         ``raw_text`` is the reply exactly as streamed (FOLLOWUPS trailer included).
         Returns ``(payload, trailer_present)``. ``on_grounded`` receives the merged
         VerseReference list once resolved (retrieval-miss diagnostics hook).
+        ``record_metrics=False`` (used by ``finalize``) skips the per-turn follow-up
+        counter, extraction log and structured-output stats so a recovery never
+        double-counts a turn already recorded by the stream.
         """
         # BITB-080: strip the "<!-- FOLLOWUPS: ... -->" trailer (if any) before any
         # downstream consumer sees it -- citation extraction, grounding, and the
@@ -2254,17 +2266,18 @@ Keep it under 120 words."""
         # invest in tool/function calling as a more reliable mechanism.
         has_structured = len(structured) > 0
         has_regex = len(regex_extracted) > 0
-        logger.info(
-            "Verse extraction completed",
-            extra={
-                "structured_count": len(structured),
-                "regex_count": len(regex_extracted),
-                "total_unique": len(verses_cited),
-                "cited_resolved": len(resolved_verses),
-                "llm_structured_present": has_structured,
-                "regex_only": has_regex and not has_structured,
-            },
-        )
+        if record_metrics:
+            logger.info(
+                "Verse extraction completed",
+                extra={
+                    "structured_count": len(structured),
+                    "regex_count": len(regex_extracted),
+                    "total_unique": len(verses_cited),
+                    "cited_resolved": len(resolved_verses),
+                    "llm_structured_present": has_structured,
+                    "regex_only": has_regex and not has_structured,
+                },
+            )
 
         # Two distinct fields, intentionally:
         #   verses_cited   - list[str] of raw citation references (range form
@@ -2308,14 +2321,15 @@ Keep it under 120 words."""
             set(verses_cited) | self._history_cited_refs(request_history),
             compassionate,
         )
-        self._record_follow_ups_outcome(
-            enabled=self._wants_follow_ups(compassionate),
-            trailer_present=trailer_stripped,
-            candidates=follow_up_candidates,
-            follow_ups=follow_ups,
-            language=language,
-            history=request_history,
-        )
+        if record_metrics:
+            self._record_follow_ups_outcome(
+                enabled=self._wants_follow_ups(compassionate),
+                trailer_present=trailer_stripped,
+                candidates=follow_up_candidates,
+                follow_ups=follow_ups,
+                language=language,
+                history=request_history,
+            )
         if follow_ups:
             completion["follow_ups"] = follow_ups
         return completion, trailer_stripped
@@ -2395,6 +2409,7 @@ Keep it under 120 words."""
                 translation=translation,
                 language=language,
                 compassionate=False,
+                record_metrics=False,
             )
         except Exception:
             logger.exception("Chat finalize: completion build failed; degrading")
@@ -2448,7 +2463,11 @@ Keep it under 120 words."""
         """
         try:
             safety = await self._check_content_safety(
-                req.message, language, req.session_id, context="chat finalize"
+                req.message,
+                language,
+                req.session_id,
+                context="chat finalize",
+                record_sample=False,
             )
             if not safety.allowed or safety.compassionate:
                 return [], False

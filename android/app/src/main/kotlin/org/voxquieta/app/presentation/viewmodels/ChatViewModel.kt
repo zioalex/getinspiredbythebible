@@ -254,6 +254,9 @@ class ChatViewModel @Inject constructor(
         /** BITB-320: finalize = one attempt plus one silent retry after this delay. */
         internal const val FINALIZE_ATTEMPTS = 2
         internal const val FINALIZE_RETRY_DELAY_MS = 1_500L
+
+        /** BITB-320: longest assistant text chat/finalize accepts; longer replies skip it (web parity). */
+        internal const val MAX_FINALIZE_ASSISTANT_CHARS = 8_000
     }
 
     // Read the persisted theme synchronously so the very first composition (and every
@@ -886,7 +889,11 @@ class ChatViewModel @Inject constructor(
                         ) {
                             val reason = recoveryReason ?: if (sawErrorEvent) "error_event" else "eof"
                             val recovered: FinalizeResult? = try {
-                                recoverCompletion(
+                                if (accumulatedContent.length > MAX_FINALIZE_ASSISTANT_CHARS) {
+                                    // The server would reject the text (422): go straight to the
+                                    // local fallback (strip trailer, mark interrupted).
+                                    null
+                                } else recoverCompletion(
                                     FinalizeRequest(
                                         message = trimmed,
                                         assistantText = accumulatedContent,

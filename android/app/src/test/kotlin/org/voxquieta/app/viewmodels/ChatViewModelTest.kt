@@ -3852,6 +3852,24 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `reply over the finalize size limit skips finalize and falls back locally`() = runTest {
+        val long = "a".repeat(ChatViewModel.MAX_FINALIZE_ASSISTANT_CHARS) +
+            "\n<!-- FOLLOWUPS: one|two"
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = long))
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { repository.finalizeMessage(any()) }
+        val a = lastAssistant()
+        assertEquals("a".repeat(ChatViewModel.MAX_FINALIZE_ASSISTANT_CHARS), a.content)
+        assertTrue(a.isInterrupted)
+        assertFalse(a.isError)
+        assertNull(viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
     fun `finalize retry waits about 1_5 seconds and a successful retry merges the result`() = runTest {
         every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = "Body."))
         var calls = 0

@@ -1405,29 +1405,27 @@ export default function ChatIsland({
                     />
                   )}
                   {/* BITB-320: the reply was cut off; offer to continue it. */}
-                  {message.role === "assistant" &&
-                    message.interrupted &&
-                    !isLoading && (
-                      <div
-                        role="status"
-                        data-testid="interrupted-note"
-                        className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400"
-                      >
-                        <span>{tChat("interruptedNote")}</span>
-                        {index === messages.length - 1 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void submitMessage(tChat("continuePrompt"))
-                            }
-                            disabled={turnstileBlocked}
-                            className="min-h-[44px] min-w-[44px] rounded-lg border border-indigo-600 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50 dark:border-indigo-400 dark:text-indigo-300 dark:hover:bg-gray-800"
-                          >
-                            {tChat("continueButton")}
-                          </button>
-                        )}
-                      </div>
-                    )}
+                  {message.role === "assistant" && message.interrupted && (
+                    <div
+                      role="status"
+                      data-testid="interrupted-note"
+                      className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400"
+                    >
+                      <span>{tChat("interruptedNote")}</span>
+                      {index === messages.length - 1 && !isLoading && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void submitMessage(tChat("continuePrompt"))
+                          }
+                          disabled={turnstileBlocked}
+                          className="min-h-[44px] min-w-[44px] rounded-lg border border-indigo-600 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50 dark:border-indigo-400 dark:text-indigo-300 dark:hover:bg-gray-800"
+                        >
+                          {tChat("continueButton")}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {/* BITB-080: chips under the LATEST assistant message only --
                       structural via the index check, not extra per-message state. */}
                   {index === messages.length - 1 &&

@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from chat.prompts import get_follow_ups_only_prompt
 from chat.service import (
+    _UNTERMINATED_TRAILER,
     ChatRequest,
     ChatService,
     FinalizeRequest,
@@ -202,6 +203,138 @@ class TestLooksTruncated:
         done = f"{CITATIONS[lang][0].rstrip('.。।')}{finals.get(lang, '.')}"
         assert _looks_truncated(done) is False
         assert _looks_truncated(done[:-3]) is True
+
+
+class TestUnterminatedTrailerRule:
+    """Shared trailer-stripping table -- mirrored in streamRecovery.test.ts / AnswerTrailerTest.kt."""
+
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("Plain text.", "Plain text."),
+            ("Peace.\n<!-- FOLLOWUPS: What does this me", "Peace."),
+            ("Peace. <!-- FOLLOW", "Peace."),
+            ("Peace.\n<!--", "Peace."),
+            ("Peace. <!-- note that", "Peace."),
+            ("Peace. <!-", "Peace."),
+            ("Peace. <!", "Peace."),
+            ("Peace. <", "Peace."),
+            ("A <!-- note --> B.", "A <!-- note --> B."),
+            ("神爱世人（约翰福音3:16）。<!-- FOLLOW", "神爱世人（约翰福音3:16）。"),
+            ("神爱世人。<", "神爱世人。"),
+            ("الرب راعيّ. <!-", "الرب راعيّ."),
+            ("الرب راعيّ. <!-- FOLLOWUPS: ماذا تعني", "الرب راعيّ."),
+        ],
+    )
+    def test_table(self, text, expected):
+        assert _UNTERMINATED_TRAILER.sub("", text) == expected
+
+    @pytest.mark.parametrize("text", ["Cut off <!-- FOLLOW", "Cut off <!-", "Cut off <"])
+    def test_partial_marker_only_text_is_truncated(self, text):
+        assert _looks_truncated(text) is True
+
+    @pytest.mark.asyncio
+    async def test_finalize_strips_partial_opener(self, service):
+        with patch.object(settings, "chat_follow_ups_enabled", False):
+            result = await service.finalize(_req(assistant_text="Answer ends. <!-- FOLLOW"))
+        assert result["corrected_message"] == "Answer ends."
+        assert result["truncated"] is True  # only a partial marker => no complete marker seen
+
+
+# ---------------------------------------------------------------------------
+# finalize(): no double counting (metrics / safety samples)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestFinalizeDoesNotDoubleCount:
+    async def test_finalize_does_not_record_follow_up_outcome(self, service):
+        with (
+            patch.object(settings, "chat_follow_ups_enabled", False),
+            patch("chat.service.chat_follow_ups_suppressed_counter") as counter,
+            patch.object(ChatService, "_record_follow_ups_outcome") as record,
+        ):
+            await service.finalize(_req(assistant_text="God loves you."))
+        record.assert_not_called()
+        counter.add.assert_not_called()
+
+    async def test_finalize_does_not_log_verse_extraction(self, service, caplog):
+        with (
+            caplog.at_level(logging.INFO),
+            patch.object(settings, "chat_follow_ups_enabled", False),
+        ):
+            await service.finalize(_req(assistant_text="God loves you."))
+        assert not [r for r in caplog.records if r.getMessage() == "Verse extraction completed"]
+
+    async def test_build_completion_records_metrics_by_default(self, service):
+        kwargs = {
+            "request_history": [],
+            "scripture_context": None,
+            "translation": "kjv",
+            "language": "en",
+            "compassionate": False,
+        }
+        with (
+            patch.object(settings, "chat_follow_ups_enabled", True),
+            patch.object(ChatService, "_record_follow_ups_outcome") as record,
+        ):
+            await service._build_completion("God loves you.", **kwargs)
+            assert record.call_count == 1
+            await service._build_completion("God loves you.", record_metrics=False, **kwargs)
+            assert record.call_count == 1
+
+    async def test_finalize_safety_recheck_stores_no_sample_and_logs_info(self, service, caplog):
+        blocked = MagicMock(
+            allowed=False,
+            reason="violence",
+            categories={"Violence": 6},
+            is_help_seeking=False,
+            violated_categories=[],
+            compassionate_response_needed=False,
+        )
+        safety_service = MagicMock()
+        safety_service.check = AsyncMock(return_value=blocked)
+        with (
+            caplog.at_level(logging.INFO),
+            patch.object(settings, "chat_follow_ups_enabled", True),
+            patch.object(settings, "content_safety_enabled", True),
+            patch("chat.service.get_content_safety_service", return_value=safety_service),
+            patch("feedback.blocked_samples.record_blocked_sample", new=AsyncMock()) as record,
+        ):
+            result = await service.finalize(_req(assistant_text="Hope is a gift."))
+        record.assert_not_awaited()
+        assert "follow_ups" not in result
+        assert not [r for r in caplog.records if "Content safety violation" in r.getMessage()]
+        assert [
+            r
+            for r in caplog.records
+            if r.levelno == logging.INFO and "Content safety re-check blocked" in r.getMessage()
+        ]
+
+    async def test_normal_safety_check_still_records_sample_and_warns(self, service, caplog):
+        blocked = MagicMock(
+            allowed=False,
+            reason="violence",
+            categories={"Violence": 6},
+            is_help_seeking=False,
+            violated_categories=[],
+        )
+        safety_service = MagicMock()
+        safety_service.check = AsyncMock(return_value=blocked)
+        with (
+            caplog.at_level(logging.INFO),
+            patch.object(settings, "content_safety_enabled", True),
+            patch("chat.service.get_content_safety_service", return_value=safety_service),
+            patch("feedback.blocked_samples.record_blocked_sample", new=AsyncMock()) as record,
+        ):
+            outcome = await service._check_content_safety("bad", "en", None)
+        assert outcome.allowed is False
+        record.assert_awaited_once()
+        assert [
+            r
+            for r in caplog.records
+            if r.levelno == logging.WARNING and "Content safety violation" in r.getMessage()
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -639,6 +772,72 @@ class TestStreamRouteSignals:
         assert records[0].completion_sent is False
         assert "zzzsecret" not in " ".join(str(r.__dict__) for r in caplog.records)
         counter.add.assert_called_once_with(1, {"completion_sent": "false"})
+
+    def test_cancelled_error_is_logged_counted_and_reraised(self, caplog):
+        async def chunks(request, client_country=None):
+            yield {"type": "metadata", "message_id": "mid-c"}
+            yield {"type": "content", "content": "partial words"}
+            await asyncio.sleep(3600)
+
+        response = _call_stream_route(chunks)
+
+        async def go():
+            gen = response.body_iterator
+            await gen.__anext__()
+            await gen.__anext__()
+            with pytest.raises(asyncio.CancelledError):
+                await gen.athrow(asyncio.CancelledError())
+
+        with (
+            caplog.at_level(logging.INFO),
+            patch("routes.chat.chat_stream_client_disconnected_counter") as counter,
+        ):
+            asyncio.run(go())
+        records = [
+            r
+            for r in caplog.records
+            if r.getMessage() == "Chat stream client disconnected before completion"
+        ]
+        assert len(records) == 1 and records[0].levelno == logging.WARNING
+        counter.add.assert_called_once_with(1, {"completion_sent": "false"})
+
+    @pytest.mark.parametrize("exc", [asyncio.CancelledError, GeneratorExit])
+    def test_disconnect_after_completion_is_info_without_counter(self, caplog, exc):
+        async def chunks(request, client_country=None):
+            yield {"type": "metadata", "message_id": "mid-d"}
+            yield {"type": "content", "content": "all of it"}
+            yield {"type": "completion", "verses_cited": []}
+            await asyncio.sleep(3600)
+
+        response = _call_stream_route(chunks)
+
+        async def go():
+            gen = response.body_iterator
+            for _ in range(3):
+                await gen.__anext__()
+            if exc is GeneratorExit:
+                await gen.aclose()
+            else:
+                with pytest.raises(asyncio.CancelledError):
+                    await gen.athrow(asyncio.CancelledError())
+
+        with (
+            caplog.at_level(logging.INFO),
+            patch("routes.chat.chat_stream_client_disconnected_counter") as counter,
+        ):
+            asyncio.run(go())
+        assert not [
+            r
+            for r in caplog.records
+            if r.levelno >= logging.WARNING and "disconnected" in r.getMessage()
+        ]
+        info = [
+            r
+            for r in caplog.records
+            if r.getMessage() == "Chat stream client disconnected after completion"
+        ]
+        assert len(info) == 1 and info[0].levelno == logging.INFO
+        counter.add.assert_not_called()
 
     def test_normal_stream_does_not_log_disconnect(self, caplog):
         async def chunks(request, client_country=None):

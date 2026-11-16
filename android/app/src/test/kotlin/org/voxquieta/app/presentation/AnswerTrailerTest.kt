@@ -57,4 +57,20 @@ class AnswerTrailerTest {
         val text = "A <!-- note --> B."
         assertEquals(text, stripAnswerTrailer(text))
     }
+
+    // Shared table: identical on backend, web and Android.
+    @Test
+    fun `shared rule table`() {
+        val cases = listOf(
+            "Peace. <!-- FOLLOW" to "Peace.",
+            "Peace. <!-- note that" to "Peace.",
+            "Peace. <" to "Peace.",
+            "神爱世人。<!-- FOLLOW" to "神爱世人。",
+            "الرب راعيّ. <!-" to "الرب راعيّ.",
+            "Plain text." to "Plain text.",
+        )
+        for ((input, expected) in cases) {
+            assertEquals(input, expected, stripAnswerTrailer(input))
+        }
+    }
 }

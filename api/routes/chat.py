@@ -189,17 +189,17 @@ async def chat_stream(
         except (asyncio.CancelledError, GeneratorExit):
             # BITB-320: the client went away (network switch, app backgrounded, proxy reset).
             # Never log message or reply text -- only sizes.
-            logger.warning(
-                "Chat stream client disconnected before completion",
-                extra={
-                    "content_chars": progress.content_chars,
-                    "completion_sent": progress.completion_sent,
-                    "message_id": progress.message_id,
-                },
-            )
-            chat_stream_client_disconnected_counter.add(
-                1, {"completion_sent": str(progress.completion_sent).lower()}
-            )
+            extra = {
+                "content_chars": progress.content_chars,
+                "completion_sent": progress.completion_sent,
+                "message_id": progress.message_id,
+            }
+            if progress.completion_sent:
+                # The client already has everything it needs; this is just a late close.
+                logger.info("Chat stream client disconnected after completion", extra=extra)
+            else:
+                logger.warning("Chat stream client disconnected before completion", extra=extra)
+                chat_stream_client_disconnected_counter.add(1, {"completion_sent": "false"})
             raise
         except AllModelsExhaustedError as e:
             logger.warning("Streaming: all LLM models exhausted (%s): %s", e.reason, e)

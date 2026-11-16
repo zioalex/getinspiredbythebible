@@ -232,6 +232,35 @@ describe("ChatIsland stream recovery (BITB-320)", () => {
     );
   });
 
+  it("while loading the note stays visible and only Continue is hidden", async () => {
+    vi.mocked(streamMessage).mockImplementationOnce(async function* () {
+      yield { type: "content", content: "The Lord is my" };
+    });
+    vi.mocked(finalizeMessage).mockResolvedValue({
+      ...FINALIZED,
+      truncated: true,
+    });
+    renderChat();
+    await send("psalm 23");
+    const button = await screen.findByRole("button", {
+      name: enMessages.Chat.continueButton,
+    });
+
+    // The next turn never finishes: isLoading stays true.
+    vi.mocked(streamMessage).mockImplementationOnce(async function* () {
+      await new Promise<void>(() => {});
+      yield { type: "completion", verses_cited: [] };
+    });
+    fireEvent.click(button);
+    await waitFor(() =>
+      expect(vi.mocked(streamMessage).mock.calls.length).toBe(2),
+    );
+    expect(screen.getByTestId("interrupted-note")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: enMessages.Chat.continueButton }),
+    ).toBeNull();
+  });
+
   it("user Stop never finalizes", async () => {
     vi.mocked(streamMessage).mockImplementation(async function* (_m, _h, opts) {
       yield { type: "content", content: "Partial." };

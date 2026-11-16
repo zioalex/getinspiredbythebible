@@ -3,13 +3,20 @@
  * `completion` event.
  */
 
-// A complete trailer comment, or an unterminated one cut off by the dropped
-// connection (runs to the end of the text).
-const TRAILER_RE = /<!--\s*(?:VERSES|FOLLOWUPS)\s*:[\s\S]*?(?:-->|$)/gi;
+// Shared trailer rule (same on backend `_UNTERMINATED_TRAILER` and Android `stripAnswerTrailer`):
+// (a) remove complete `<!-- VERSES|FOLLOWUPS: ... -->` comments; (b) remove an unterminated
+// `<!--...` tail to the end of the text whatever follows the opener; (c) remove a dangling
+// `<!-`, `<!` or `<` at the very end; then right-trim.
+const COMPLETE_TRAILER_RE =
+  /<!--\s*(?:VERSES|FOLLOWUPS)\s*:(?:(?!-->)[\s\S])*-->/gi;
+const UNTERMINATED_TRAILER_RE = /\s*(?:<!--(?:(?!-->)[\s\S])*|<(?:!-?)?)$/;
 
-/** Remove any `<!-- VERSES/FOLLOWUPS: ... -->` trailer so it never renders. */
+/** Remove any `<!-- VERSES/FOLLOWUPS: ... -->` trailer (or a cut-off one) so it never renders. */
 export function stripTrailer(text: string): string {
-  return text.replace(TRAILER_RE, "").trimEnd();
+  return text
+    .replace(COMPLETE_TRAILER_RE, "")
+    .replace(UNTERMINATED_TRAILER_RE, "")
+    .trimEnd();
 }
 
 /** Delay before the single silent finalize retry. */

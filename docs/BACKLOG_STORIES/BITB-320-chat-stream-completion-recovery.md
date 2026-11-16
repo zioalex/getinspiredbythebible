@@ -4,7 +4,7 @@ status: in-progress
 priority: P1
 size: L
 created: 2026-11-15
-follow_ups: [BITB-321]
+follow_ups: [BITB-321, BITB-327]
 ---
 
 # BITB-320: Reliable Chat Completion: Clients Recover Chips and Verses When a Stream Ends Early
@@ -218,3 +218,5 @@ Response 200:
 ## Follow-ups
 
 - BITB-321: Llama Guard primary (`llama-guard-4-12b`) returns `content: null` on every call.
+- BITB-327: bind finalize to a recently streamed turn (no LLM chips for off-topic,
+  clarification or scripture-unavailable turns; not callable for unknown turns).
