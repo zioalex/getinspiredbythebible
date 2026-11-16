@@ -4,6 +4,7 @@ status: in-review
 priority: P2
 size: XS
 created: 2026-11-16
+prs: [1302]
 ---
 
 # BITB-325: `make test-makefile` Is Red on `main` (Stale Doc References, Self-Scanning Report, Hook Drift)
