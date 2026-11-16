@@ -426,6 +426,12 @@ variable "chat_follow_ups_enabled" {
   default     = false
 }
 
+variable "blocked_sample_capture_enabled" {
+  description = "Store content-safety-blocked messages for filter tuning (BITB-326). Text is capped at blocked_sample_max_chars (500), deduplicated by hash, stored with a session-id hash only (no IP, user id or user agent) and deleted after blocked_sample_retention_days (30) by the daily pg_cron purge (scripts/migrations/005). Export with `make export-blocked-samples`. Off by default; production turns it on in terraform.tfvars."
+  type        = bool
+  default     = false
+}
+
 variable "web_follow_ups_enabled" {
   description = "Show the BITB-080 follow-up chips on the WEB client only. Baked into the frontend image at build time as NEXT_PUBLIC_FOLLOW_UPS_ENABLED: Next.js inlines NEXT_PUBLIC_* during `next build`, so azure-deploy.yml reads this flag from terraform.tfvars and passes it as a docker build-arg — it is NOT a runtime Container App env var. Android's gate is compile-time (CHAT_FOLLOW_UPS_ENABLED BuildConfig, PR #1217) and default-on since BITB-278 (per-build kill switch: -PchatFollowUpsEnabled=false). Flipping the web flag requires a frontend image rebuild to take effect."
   type        = bool

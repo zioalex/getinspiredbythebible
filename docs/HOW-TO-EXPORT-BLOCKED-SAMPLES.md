@@ -38,14 +38,24 @@ These are enforced in code, not just by convention:
 - `message_text` is truncated to at most `BLOCKED_SAMPLE_MAX_CHARS` chars.
 - Identical messages are deduplicated by sha256; repeats bump `hit_count`
   instead of writing new rows, so a single user cannot be amplified.
-- Rows older than `BLOCKED_SAMPLE_RETENTION_DAYS` (default **30**) are
-  deleted on app startup.
+- Rows expire `BLOCKED_SAMPLE_RETENTION_DAYS` (default **30**) after their
+  **first** capture. A repeat only bumps `hit_count`; it never extends retention
+  (BITB-326, matching the privacy policy's "up to 30 days"). Expired rows are
+  deleted by the API's hourly sweep (and at startup) and by the daily pg_cron
+  purge. The next occurrence after deletion starts a new row with a new 30-day window.
 - Capture is **off by default**. Operators opt in per environment with
   `BLOCKED_SAMPLE_CAPTURE_ENABLED=true`.
 
 ## Enabling capture (operator)
 
-Set these on the backend deployment:
+**Production (Azure)** is driven by Terraform (BITB-326):
+`blocked_sample_capture_enabled = true` in `deployment/terraform.tfvars` maps to
+`BLOCKED_SAMPLE_CAPTURE_ENABLED` on the backend Container App. It is applied by the next
+deploy (`azure-deploy.yml` runs `terraform apply`), or manually with `make tf-apply`. To turn
+it off, set the variable to `false` and redeploy. Only messages blocked *after* the switch are
+stored.
+
+Elsewhere, set these on the backend deployment:
 
 ```bash
 BLOCKED_SAMPLE_CAPTURE_ENABLED=true     # default false
@@ -62,6 +72,15 @@ The exporter is **read-only** and connects to the same database via
 `DATABASE_URL` as the API.
 
 ### With make
+
+The production Postgres firewall only admits allow-listed IPs, so a connection from your
+machine hangs until it times out. Allow your IP first, and remove the rule afterwards:
+
+```bash
+make az-pg-add-ip
+make az-pg-list-rules        # the rule is named after the server
+make az-pg-remove-ip RULE=<rule-name>
+```
 
 ```bash
 # Latest 100 rows as JSON to stdout

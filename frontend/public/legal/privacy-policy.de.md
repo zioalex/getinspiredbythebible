@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-16
 ---
 
 # Datenschutzrichtlinie
 
 > _Diese Übersetzung wurde von einer KI erstellt und dient ausschließlich der Bequemlichkeit. Bei Auslassungen, Unklarheiten oder Widersprüchen zum englischen Original ist die englische Fassung verbindlich und vorrangig._
 
-Letzte Aktualisierung: 11. November 2026
+Letzte Aktualisierung: 16. November 2026
 
 ## Wer wir sind
 
@@ -16,7 +16,7 @@ Vox Quieta („wir", „uns", „unser") ist eine kostenlose App zur Bibelinspir
 
 ### Von dir bereitgestellte Daten
 
-- **Chat-Nachrichten**: Der von dir eingegebene Text wird an unsere API gesendet, die ihn ausschließlich zur Erzeugung einer auf der Heiligen Schrift basierenden Antwort und zur Sicherheitsprüfung an Dritt-KI-Dienstleister (siehe unten) weiterleitet. Wir speichern deine Nachrichten nicht länger auf unseren Servern, als es zur Generierung einer Antwort notwendig ist.
+- **Chat-Nachrichten**: Der von dir eingegebene Text wird an unsere API gesendet, die ihn ausschließlich zur Erzeugung einer auf der Heiligen Schrift basierenden Antwort und zur Sicherheitsprüfung an Dritt-KI-Dienstleister (siehe unten) weiterleitet. Wir speichern deine Nachrichten nicht länger auf unseren Servern, als es zur Generierung einer Antwort notwendig ist – ausgenommen Nachrichten, die unser Sicherheitssystem blockiert; diese können bis zu 30 Tage gespeichert werden, wie unter „Datenspeicherung“ beschrieben.
 - **Feedback-Bewertungen**: Optionale Daumen-hoch-/Daumen-runter-Bewertungen, die du für Antworten abgibst.
 
 ### Wie deine Nachrichten durch KI verarbeitet werden
@@ -71,7 +71,7 @@ Wir zählen die Nutzung der Vorlesefunktion anonym nach Sprache, Browser-Familie
 
 ## Datenspeicherung
 
-- **Chat-Nachrichten**: nicht auf unseren Servern gespeichert.
+- **Chat-Nachrichten**: nicht auf unseren Servern gespeichert, ausgenommen von unserem Sicherheitssystem blockierte Nachrichten (siehe unten).
 - **Vom Sicherheitssystem blockierte Nachrichten**: Wenn unser
   Sicherheitssystem eine Nachricht blockiert, kann ein
   datenschutzminimaler Eintrag kurzzeitig (bis zu 30 Tage) aufbewahrt
@@ -101,7 +101,7 @@ Wenn du dich im Europäischen Wirtschaftsraum befindest, hast du das Recht:
 - die Löschung deiner Daten zu verlangen,
 - der Verarbeitung deiner Daten zu widersprechen.
 
-Da wir keine personenbezogenen Daten erheben, können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter, Microsoft und OpenAI.
+Wir fragen weder nach deinem Namen noch nach E-Mail-Adresse oder Konto, daher können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Einträge zu Nachrichten, die unser Sicherheitssystem blockiert hat, werden ohne IP-Adresse, Konto oder Geräteangaben gespeichert und innerhalb von 30 Tagen automatisch gelöscht; da sie nicht mit dir verknüpft sind, können wir in der Regel nicht erkennen, welcher Eintrag von dir stammt – du kannst uns dazu aber unter der unten genannten Adresse kontaktieren. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter, Microsoft und OpenAI.
 
 Bei Fragen zum Datenschutz erreichst du uns unter: **<privacy@voxquieta.org>**
 
