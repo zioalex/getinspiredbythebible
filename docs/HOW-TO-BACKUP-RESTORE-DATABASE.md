@@ -25,7 +25,7 @@ User and database default to `bibleadmin` / `bibleapp` from `deployment/terrafor
 make az-pg-add-ip
 export PGPASSWORD='<database admin password>'
 export DATABASE_URL="$(make -s db-server-url SERVER=bible-app-db-mb0172)"
-make db-backup                       # writes backups/<timestamp>.dump
+make db-backup                       # writes backups/<host>-<timestamp>.dump
 make az-pg-remove-ip RULE=bible-app-db-mb0172
 ```
 

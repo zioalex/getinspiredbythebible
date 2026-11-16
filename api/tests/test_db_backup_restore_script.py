@@ -255,7 +255,8 @@ class TestServerUrlDefaults:
     def test_defaults_come_from_tfvars(self, tmp_path):
         tf = _write_tf(
             tmp_path,
-            '# db_admin_username = "commented"\ndb_admin_username = "alice"  # c\n  db_name="prod_db"\n',
+            '# db_admin_username = "commented"\ndb_name_suffix = "nope"\nother_db_name = "nope"\n'
+            'db_admin_username = "alice"  # c\n  db_name="prod_db"\n',
         )
         r = _run_server_url(tmp_path, tf)
         assert r.returncode == 0, r.stderr
@@ -273,6 +274,7 @@ class TestServerUrlDefaults:
         tf = _write_tf(
             tmp_path,
             None,
+            'variable "db_name_suffix" {\n  default = "nope"\n}\n'
             'variable "db_admin_username" {\n  type = string\n  default = "vtf_user"\n}\n'
             'variable "db_name" {\n  default = "vtf_db"\n}\n',
         )
@@ -384,3 +386,33 @@ class TestLibpqRootCert:
         assert "DigiCertGlobalRootG2.crt.pem" in r.stderr
         assert "Microsoft%20RSA%20Root%20Certificate%20Authority%202017.crt" in r.stderr
         assert "~/.postgresql/root.crt" in r.stderr
+
+    def test_verify_ca_never_uses_system_store(self, tmp_path):
+        # libpq >= 16 rejects sslrootcert=system with sslmode=verify-ca.
+        r = _ensure(
+            _libpq_env(tmp_path, "pg_dump (PostgreSQL) 16.4"),
+            "postgresql://u@h:5432/d?sslmode=verify-ca",
+        )
+        assert r.returncode != 0
+        assert "CERT=system" not in r.stdout
+        assert "~/.postgresql/root.crt" in r.stderr
+
+
+def _function_body(name: str) -> str:
+    """Return the shell source of function `name` in the script (up to the closing brace)."""
+    lines = _SCRIPT.read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith(f"{name}()"))
+    end = next(i for i in range(start + 1, len(lines)) if lines[i] == "}")
+    return "\n".join(lines[start : end + 1])
+
+
+class TestRootCertCallSites:
+    """Every remote libpq path ensures a root cert; the asyncpg (alembic) path never does."""
+
+    @pytest.mark.parametrize("func", ["cmd_dump", "cmd_verify", "cmd_restore_same_server"])
+    def test_remote_libpq_commands_ensure_root_cert(self, func):
+        assert 'ensure_libpq_sslrootcert "$DB_URL"' in _function_body(func)
+
+    def test_rehearse_never_sets_system_store(self):
+        # asyncpg reads PGSSLROOTCERT as a file path, so "system" would break alembic.
+        assert "ensure_libpq_sslrootcert" not in _function_body("cmd_rehearse")

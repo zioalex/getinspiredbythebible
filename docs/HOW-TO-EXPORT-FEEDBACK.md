@@ -13,7 +13,7 @@ See also: [`scripts/export_feedback.py`](../scripts/export_feedback.py),
 
 ## Quick start (copy-paste)
 
-Verified against production on 2026-11-16. No `DB_USER` / `PG_DB` overrides are needed:
+The owner ran this sequence against production on 2026-11-16 (then with `DB_USER=bibleadmin PG_DB=bibleapp` and `PGSSLROOTCERT=system` set by hand; the script now does both itself). No `DB_USER` / `PG_DB` overrides are needed:
 `make db-server-url` takes the user and database from `deployment/terraform.tfvars`
 (`db_admin_username` = `bibleadmin`, `db_name` = `bibleapp`); override them with
 `DB_USER=... PG_DB=... make -s db-server-url SERVER=...` only for a differently named server.

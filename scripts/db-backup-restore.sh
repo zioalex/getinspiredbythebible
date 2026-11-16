@@ -98,8 +98,9 @@ tf_setting() {
 # (alembic) — never call this before a command that connects via asyncpg,
 # which would read PGSSLROOTCERT=system as a file name.
 ensure_libpq_sslrootcert() {
-  local url="$1"
+  local url="$1" mode
   [[ "$url" =~ sslmode=(verify-full|verify-ca) ]] || return 0
+  mode="${BASH_REMATCH[1]}"
   [[ -z "${PGSSLROOTCERT:-}" ]] || return 0
   [[ "$url" != *sslrootcert=* ]] || return 0
   [[ ! -f "${HOME:-}/.postgresql/root.crt" ]] || return 0
@@ -114,13 +115,16 @@ ensure_libpq_sslrootcert() {
   fi
   major="$(printf '%s' "$out" | sed -nE 's/^[^)]*\) ([0-9]+).*/\1/p' | head -n1)"
 
-  if [[ -n "$major" && "$major" -ge 16 ]]; then
+  # libpq refuses sslrootcert=system with the weaker verify-ca ("weak sslmode
+  # "verify-ca" may not be used with sslrootcert=system"), so only verify-full
+  # may use the system store; verify-ca needs a real root.crt.
+  if [[ "$mode" == verify-full && -n "$major" && "$major" -ge 16 ]]; then
     export PGSSLROOTCERT=system
     warn "No ~/.postgresql/root.crt: using the system CA store (PGSSLROOTCERT=system, libpq $major)." >&2
     return 0
   fi
 
-  die "TLS root certificate not found, and this libpq (${major:-unknown}) cannot use the system CA store (needs >= 16).
+  die "TLS root certificate not found, and the system CA store cannot be used here (libpq ${major:-unknown}, sslmode=$mode; it needs libpq >= 16 and sslmode=verify-full).
 One-time setup — install the Azure root CAs into ~/.postgresql/root.crt:
   mkdir -p ~/.postgresql
   curl -fsSL https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem > ~/.postgresql/root.crt
