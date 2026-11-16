@@ -4,6 +4,7 @@ status: in-review
 priority: P2
 size: M
 created: 2026-11-16
+follow_ups: [BITB-335, BITB-336]
 ---
 
 # BITB-334: Audit Welcome and Onboarding Translations in All 11 Languages
