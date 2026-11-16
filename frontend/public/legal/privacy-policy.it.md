@@ -45,7 +45,7 @@ Il testo del tuo messaggio viene utilizzato da questi fornitori **esclusivamente
 
 ## Cronologia delle conversazioni
 
-La cronologia delle conversazioni è archiviata **solo localmente sul tuo dispositivo** e non viene mai caricata sui nostri server:
+La cronologia delle conversazioni è archiviata **solo localmente sul tuo dispositivo** e non viene mai caricata sui nostri server, salvo un messaggio e la relativa risposta che scegli di valutare (vedi «Feedback»):
 
 - **App mobile:** un database cifrato on-device (Room/SQLite).
 - **App web:** l'archiviazione locale del browser (IndexedDB), sul dispositivo che usi.
@@ -106,7 +106,7 @@ Se ti trovi nello Spazio Economico Europeo, hai il diritto di:
 - Richiedere la cancellazione dei tuoi dati.
 - Opporti al trattamento dei tuoi dati.
 
-Non ti chiediamo un account, quindi la maggior parte delle richieste può essere soddisfatta cancellando la cronologia locale delle conversazioni nell'app. I dati del feedback e dei messaggi inviati tramite il modulo di contatto possono essere individuati ed eliminati su richiesta: inviaci l'identificativo del messaggio (feedback) o l'indirizzo e-mail che hai usato (modulo di contatto) all'indirizzo indicato sotto. I record dei messaggi bloccati dal nostro sistema di sicurezza sono conservati senza indirizzo IP, account o dati del dispositivo e vengono eliminati automaticamente entro 30 giorni; poiché non sono collegati alla tua identità, di solito non possiamo sapere quale record ti appartiene, ma puoi contattarci al riguardo all'indirizzo indicato sotto. Per i dati di crash/analisi detenuti da Google, consulta i controlli sulla privacy di Google su [myaccount.google.com](https://myaccount.google.com). Per i dati trattati dai nostri fornitori di IA, consulta le informative sulla privacy di OpenRouter, Microsoft e OpenAI linkate sopra.
+Non ti chiediamo un account, quindi la maggior parte delle richieste può essere soddisfatta cancellando la cronologia locale delle conversazioni nell'app. I dati del feedback e dei messaggi inviati tramite il modulo di contatto possono essere individuati ed eliminati su richiesta: inviaci l'identificativo del messaggio o la data e l'ora approssimative dell'invio (feedback) o l'indirizzo e-mail che hai usato (modulo di contatto) all'indirizzo indicato sotto. I record dei messaggi bloccati dal nostro sistema di sicurezza sono conservati senza indirizzo IP, account o dati del dispositivo e vengono eliminati automaticamente entro 30 giorni; poiché non sono collegati alla tua identità, di solito non possiamo sapere quale record ti appartiene, ma puoi contattarci al riguardo all'indirizzo indicato sotto. Per i dati di crash/analisi detenuti da Google, consulta i controlli sulla privacy di Google su [myaccount.google.com](https://myaccount.google.com). Per i dati trattati dai nostri fornitori di IA, consulta le informative sulla privacy di OpenRouter, Microsoft e OpenAI linkate sopra.
 
 Per qualsiasi domanda sulla privacy, contattaci a: **<privacy@voxquieta.org>**
 

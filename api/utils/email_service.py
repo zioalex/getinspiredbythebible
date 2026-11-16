@@ -89,8 +89,8 @@ def _howto_hint(server_known: bool) -> str:
     return (
         ""
         if server_known
-        else "Replace <server> with the production server name: run `make db-server-url` "
-        "without SERVER, or check deployment/terraform.tfvars."
+        else "Replace <server> with the production server name: run `make az-pg-list-rules` "
+        "(the rule name is the server name), or check deployment/terraform.tfvars."
     )
 
 

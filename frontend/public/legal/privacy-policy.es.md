@@ -45,7 +45,7 @@ Estos proveedores utilizan el texto de tu mensaje **únicamente** para generar l
 
 ## Historial de conversaciones
 
-El historial de conversaciones se almacena **solo localmente en tu dispositivo** y nunca se sube a nuestros servidores:
+El historial de conversaciones se almacena **solo localmente en tu dispositivo** y nunca se sube a nuestros servidores, salvo un mensaje y su respuesta que decidas valorar (consulta «Valoraciones y comentarios»):
 
 - **Aplicación móvil:** una base de datos cifrada en el dispositivo (Room/SQLite).
 - **Aplicación web:** el almacenamiento local de tu navegador (IndexedDB), en el dispositivo que uses.
@@ -105,7 +105,7 @@ Si te encuentras en el Espacio Económico Europeo, tienes derecho a:
 - solicitar la eliminación de tus datos,
 - oponerte al tratamiento de tus datos.
 
-No te pedimos una cuenta, por lo que la mayoría de las solicitudes pueden atenderse eliminando tu historial de conversaciones local dentro de la aplicación. Los datos de comentarios y de mensajes enviados mediante el formulario de contacto pueden localizarse y eliminarse si lo solicitas: envíanos el identificador del mensaje (comentarios) o la dirección de correo electrónico que usaste (formulario de contacto) a la dirección indicada abajo. Los registros de mensajes bloqueados por nuestro sistema de seguridad se guardan sin tu dirección IP, cuenta ni datos del dispositivo y se eliminan automáticamente en un plazo de 30 días; como no están vinculados a tu identidad, normalmente no podemos saber cuál es el tuyo, pero puedes escribirnos al respecto a la dirección indicada abajo. Para los datos de fallos/análisis en manos de Google, consulta los controles de privacidad de Google en [myaccount.google.com](https://myaccount.google.com). Para los datos tratados por nuestros proveedores de IA, consulta las políticas de privacidad de OpenRouter, Microsoft y OpenAI enlazadas más arriba.
+No te pedimos una cuenta, por lo que la mayoría de las solicitudes pueden atenderse eliminando tu historial de conversaciones local dentro de la aplicación. Los datos de comentarios y de mensajes enviados mediante el formulario de contacto pueden localizarse y eliminarse si lo solicitas: envíanos el identificador del mensaje o la fecha y hora aproximadas en que lo enviaste (comentarios) o la dirección de correo electrónico que usaste (formulario de contacto) a la dirección indicada abajo. Los registros de mensajes bloqueados por nuestro sistema de seguridad se guardan sin tu dirección IP, cuenta ni datos del dispositivo y se eliminan automáticamente en un plazo de 30 días; como no están vinculados a tu identidad, normalmente no podemos saber cuál es el tuyo, pero puedes escribirnos al respecto a la dirección indicada abajo. Para los datos de fallos/análisis en manos de Google, consulta los controles de privacidad de Google en [myaccount.google.com](https://myaccount.google.com). Para los datos tratados por nuestros proveedores de IA, consulta las políticas de privacidad de OpenRouter, Microsoft y OpenAI enlazadas más arriba.
 
 Para cualquier pregunta sobre privacidad, contáctanos en: **<privacy@voxquieta.org>**
 

@@ -501,7 +501,9 @@ class TestSendFeedbackNotification:
         text = payload["text_body"]
         assert "SERVER=<server>" in text
         assert "RULE=<server>" in text
-        assert "make db-server-url" in text and "terraform.tfvars" in text
+        assert "make az-pg-list-rules" in text and "terraform.tfvars" in text
+        # `make db-server-url` without SERVER errors (require_var SERVER): never suggest it bare
+        assert "run `make db-server-url`" not in text
 
     async def test_non_uuid_message_id_never_reaches_a_shell_command(self):
         hostile = "x'; rm -rf / #"

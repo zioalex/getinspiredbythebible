@@ -117,6 +117,14 @@ def sync_database_url(url: str) -> str:
     ssl_value = query.pop("ssl", [None])[0]
     if ssl_value and "sslmode" not in query:
         query["sslmode"] = [ssl_value]
+    # libpq's verify-full/verify-ca need a root cert; without ~/.postgresql/root.crt they fail on
+    # a fresh machine. ``sslrootcert=system`` (libpq >= 16) uses the OS trust store instead.
+    if (
+        query.get("sslmode", [None])[0] in ("verify-full", "verify-ca")
+        and "sslrootcert" not in query
+        and not os.environ.get("PGSSLROOTCERT")
+    ):
+        query["sslrootcert"] = ["system"]
     return urlunsplit(parts._replace(query=urlencode(query, doseq=True)))
 
 

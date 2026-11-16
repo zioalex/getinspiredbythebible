@@ -64,7 +64,7 @@ provider's own data-handling practices.
 ## Conversation History
 
 Conversation history is stored **locally on your device only** and is never uploaded to our
-servers:
+servers, except a message and reply you choose to rate (see Feedback):
 
 - **Mobile app:** an encrypted on-device database (Room/SQLite).
 - **Web app:** your browser's local storage (IndexedDB), on the device you use.
@@ -125,7 +125,7 @@ If you are in the European Economic Area, you have the right to:
 
 We do not ask for an account, so most requests can be fulfilled by clearing
 your local conversation history within the app. Feedback and contact-form data can be found and
-deleted on request: send us the message identifier (feedback) or the email address you used
+deleted on request: send us the message identifier or the approximate date and time you sent it (feedback) or the email address you used
 (contact form) at the address below. Records of messages
 blocked by our safety system are stored without your IP address, account or device details and
 are deleted automatically within 30 days; because they are not linked to your identity, we usually cannot tell which

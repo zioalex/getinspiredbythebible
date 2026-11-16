@@ -290,6 +290,35 @@ describe("privacy policy discloses feedback, contact form and SMTP2GO (BITB-329)
     ar: "بهويتك",
     hi: "आपकी पहचान",
   };
+  // The conversation-history paragraph must carve out the rated message/reply (not "never
+  // uploaded" without exception), and the GDPR paragraph must accept a date/time as an
+  // identifier (users cannot see a message id).
+  const historyExceptionPhrase: Record<string, string> = {
+    en: "except a message and reply you choose to rate",
+    it: "salvo un messaggio e la relativa risposta",
+    de: "ausgenommen eine Nachricht und Antwort",
+    es: "salvo un mensaje y su respuesta",
+    fr: "sauf un message et sa réponse",
+    pt: "exceto uma mensagem e a resposta",
+    ru: "за исключением сообщения и ответа",
+    zh: "但您选择评价的消息及回应除外",
+    ko: "평가하기로 선택한 메시지와 답변은 예외",
+    ar: "باستثناء الرسالة والرد",
+    hi: "सिवाय उस संदेश और उत्तर के",
+  };
+  const dateTimePhrase: Record<string, string> = {
+    en: "approximate date and time",
+    it: "data e l'ora approssimative",
+    de: "Datum und ungefähre Uhrzeit",
+    es: "fecha y hora aproximadas",
+    fr: "date et l'heure approximatives",
+    pt: "data e a hora aproximadas",
+    ru: "приблизительные дату и время",
+    zh: "大致日期和时间",
+    ko: "대략적인 날짜와 시간",
+    ar: "التاريخ والوقت التقريبيين",
+    hi: "अनुमानित तिथि और समय",
+  };
   // The 30 / 90 day numbers as the policy quotes them, per language (digits + unit).
   const SMTP2GO_URL = "https://www.smtp2go.com/privacy/";
 
@@ -355,6 +384,25 @@ describe("privacy policy discloses feedback, contact form and SMTP2GO (BITB-329)
         expect(rights).toBeDefined();
         expect(rights).toContain(messageIdPhrase[locale]);
         expect(rights).toContain(identityPhrase[locale]);
+      });
+
+      it("conversation-history section carves out the message and reply you rate", () => {
+        const history = raw
+          .split(/^## /m)
+          .find((x) => x.includes("Room/SQLite") && x.includes("IndexedDB"));
+        expect(history).toBeDefined();
+        expect(history).toContain(historyExceptionPhrase[locale]);
+        expect(history).toContain(feedbackLabel[locale]);
+      });
+
+      it("GDPR section lets users identify feedback by date and time", () => {
+        const rights = raw
+          .split(/^## /m)
+          .find(
+            (x) =>
+              x.includes("GDPR") || x.includes("RGPD") || x.includes("DSGVO"),
+          );
+        expect(rights).toContain(dateTimePhrase[locale]);
       });
 
       it("has lastUpdated >= 2026-11-16", () => {

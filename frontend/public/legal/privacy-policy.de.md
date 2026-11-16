@@ -45,7 +45,7 @@ Dein Nachrichtentext wird von diesen Anbietern **ausschließlich** verwendet, um
 
 ## Gesprächsverlauf
 
-Der Gesprächsverlauf wird **ausschließlich lokal auf deinem Gerät** gespeichert und niemals auf unsere Server hochgeladen:
+Der Gesprächsverlauf wird **ausschließlich lokal auf deinem Gerät** gespeichert und niemals auf unsere Server hochgeladen – ausgenommen eine Nachricht und Antwort, die du bewertest (siehe „Feedback“):
 
 - **Mobile App:** eine verschlüsselte On-Device-Datenbank (Room/SQLite).
 - **Web-App:** der lokale Speicher deines Browsers (IndexedDB) auf dem von dir genutzten Gerät.
@@ -105,7 +105,7 @@ Wenn du dich im Europäischen Wirtschaftsraum befindest, hast du das Recht:
 - die Löschung deiner Daten zu verlangen,
 - der Verarbeitung deiner Daten zu widersprechen.
 
-Wir verlangen kein Konto, daher können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Feedback-Daten und Nachrichten aus dem Kontaktformular können wir auf Anfrage finden und löschen: Sende uns die Nachrichten-ID (Feedback) oder die verwendete E-Mail-Adresse (Kontaktformular) an die unten genannte Adresse. Einträge zu Nachrichten, die unser Sicherheitssystem blockiert hat, werden ohne IP-Adresse, Konto oder Geräteangaben gespeichert und innerhalb von 30 Tagen automatisch gelöscht; da sie nicht mit deiner Identität verknüpft sind, können wir in der Regel nicht erkennen, welcher Eintrag von dir stammt – du kannst uns dazu aber unter der unten genannten Adresse kontaktieren. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter, Microsoft und OpenAI.
+Wir verlangen kein Konto, daher können die meisten Anfragen durch das Löschen deines lokalen Gesprächsverlaufs in der App erfüllt werden. Feedback-Daten und Nachrichten aus dem Kontaktformular können wir auf Anfrage finden und löschen: Sende uns die Nachrichten-ID oder Datum und ungefähre Uhrzeit des Absendens (Feedback) oder die verwendete E-Mail-Adresse (Kontaktformular) an die unten genannte Adresse. Einträge zu Nachrichten, die unser Sicherheitssystem blockiert hat, werden ohne IP-Adresse, Konto oder Geräteangaben gespeichert und innerhalb von 30 Tagen automatisch gelöscht; da sie nicht mit deiner Identität verknüpft sind, können wir in der Regel nicht erkennen, welcher Eintrag von dir stammt – du kannst uns dazu aber unter der unten genannten Adresse kontaktieren. Für Absturz-/Analysedaten bei Google konsultiere bitte die Datenschutzeinstellungen von Google unter [myaccount.google.com](https://myaccount.google.com). Für Daten, die von unseren KI-Anbietern verarbeitet werden, siehe die oben verlinkten Datenschutzrichtlinien von OpenRouter, Microsoft und OpenAI.
 
 Bei Fragen zum Datenschutz erreichst du uns unter: **<privacy@voxquieta.org>**
 

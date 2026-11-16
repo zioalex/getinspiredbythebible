@@ -64,7 +64,15 @@ async def _clear_expired_text(db, cutoff: datetime) -> int:
             break
         result = await db.execute(
             update(Feedback)
-            .where(Feedback.id.in_(ids))
+            .where(
+                Feedback.id.in_(ids),
+                # re-check: a concurrent sweep may have cleared these rows since the SELECT
+                or_(
+                    Feedback.user_message.is_not(None),
+                    Feedback.assistant_response.is_not(None),
+                    Feedback.comment.is_not(None),
+                ),
+            )
             .values(user_message=None, assistant_response=None, comment=None)
         )
         await db.commit()

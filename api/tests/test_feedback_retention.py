@@ -21,6 +21,7 @@ from urllib.parse import urlparse, urlunparse
 import pytest
 from pydantic import ValidationError
 from sqlalchemy import create_engine, select
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from config import Settings, settings
@@ -106,6 +107,31 @@ class TestSweepNeverRaises:
         assert counts == {"feedback_text_cleared": 0, "feedback_deleted": 0, "contacts_deleted": 0}
         assert db.rollback.await_count == 3  # one per step; later steps still ran
         assert "SECRET-TEXT" not in caplog.text
+
+
+class TestClearExpiredTextUpdateGuard:
+    async def test_update_rechecks_text_is_still_set(self):
+        """A concurrent sweep must not be double-counted: the UPDATE itself filters on
+        'at least one text column still non-NULL', not only the earlier SELECT."""
+        seen = []
+        select_result = MagicMock()
+        select_result.scalars.return_value.all.return_value = [1, 2]
+        update_result = MagicMock(rowcount=1)  # a concurrent sweep already cleared row 2
+
+        async def execute(stmt):
+            seen.append(stmt)
+            return select_result if len(seen) == 1 else update_result
+
+        db = MagicMock()
+        db.execute = execute
+        db.commit = AsyncMock()
+        total = await retention._clear_expired_text(db, NOW)
+
+        assert total == 1
+        sql = str(seen[1].compile(dialect=postgresql.dialect()))
+        assert sql.startswith("UPDATE feedback")
+        for col in ("user_message", "assistant_response", "comment"):
+            assert f"feedback.{col} IS NOT NULL" in sql
 
 
 class TestPolicyNumbersTiedToSettings:

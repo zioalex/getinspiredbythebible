@@ -42,7 +42,8 @@ already filled in for that item, plus the date the text is deleted.
 The production Postgres firewall only admits allow-listed IPs, so allow yours first and
 remove the rule afterwards. Prerequisites: the Azure CLI (`az login` done), `make` and the
 repository's Python environment (`make export-feedback` installs it), and the database admin
-password.
+password. The connection verifies the server certificate against the system CA store
+(`sslrootcert=system` is added automatically); set `PGSSLROOTCERT` to use a different CA file.
 
 ```bash
 make az-pg-add-ip
@@ -95,12 +96,19 @@ The exporter is read-only (`SELECT` only).
 
 ## Answering a privacy request
 
-Feedback and contact data can be found and deleted on request: ask for the chat message id
-(feedback) or the e-mail address used (contact). Look the row up with the export above, then
-delete it from a database client, for example:
+Feedback and contact data can be found and deleted on request. Users cannot see a message id,
+so ask for the approximate date and time the feedback was sent (or the e-mail address used for a
+contact submission). Find the row by time window with the exporter (`--since` / `--until`, UTC,
+`--until` exclusive), confirm it with the requester, then delete it from a database client:
+
+```bash
+make export-feedback ARGS="--since 2026-11-16T10:00 --until 2026-11-16T11:00"   # rows in that hour
+```
 
 ```sql
-DELETE FROM feedback WHERE message_id = '<uuid>';
+DELETE FROM feedback WHERE message_id = '<uuid>';          -- or: WHERE id = <n>
+DELETE FROM feedback WHERE created_at >= '2026-11-16 10:00+00'
+                       AND created_at <  '2026-11-16 11:00+00';  -- only if exactly the rows found
 DELETE FROM contact_submissions WHERE id = <n>;
 ```
 

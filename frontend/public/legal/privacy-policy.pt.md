@@ -45,7 +45,7 @@ O texto da sua mensagem é usado por esses provedores **exclusivamente** para ge
 
 ## Histórico de conversas
 
-O histórico de conversas é armazenado **apenas localmente em seu dispositivo** e nunca é enviado para nossos servidores:
+O histórico de conversas é armazenado **apenas localmente em seu dispositivo** e nunca é enviado para nossos servidores, exceto uma mensagem e a resposta que você escolhe avaliar (veja "Feedback"):
 
 - **Aplicativo móvel:** um banco de dados criptografado no dispositivo (Room/SQLite).
 - **Aplicativo web:** o armazenamento local do seu navegador (IndexedDB), no dispositivo que você usa.
@@ -106,7 +106,7 @@ Se você estiver no Espaço Econômico Europeu, tem o direito de:
 - solicitar a exclusão de seus dados,
 - opor-se ao processamento de seus dados.
 
-Não pedimos uma conta, por isso a maioria das solicitações pode ser atendida limpando seu histórico de conversas local no aplicativo. Os dados de feedback e das mensagens do formulário de contato podem ser localizados e excluídos mediante solicitação: envie-nos o identificador da mensagem (feedback) ou o endereço de e-mail usado (formulário de contato) para o endereço abaixo. Os registros de mensagens bloqueadas pelo nosso sistema de segurança são armazenados sem seu endereço IP, conta ou dados do dispositivo e são excluídos automaticamente em até 30 dias; como não estão vinculados à sua identidade, normalmente não conseguimos identificar qual registro é seu, mas você pode entrar em contato conosco sobre eles no endereço abaixo. Para dados de falhas/análises mantidos pelo Google, consulte os controles de privacidade do Google em [myaccount.google.com](https://myaccount.google.com). Para dados tratados por nossos provedores de IA, consulte as políticas de privacidade da OpenRouter, da Microsoft e da OpenAI indicadas acima.
+Não pedimos uma conta, por isso a maioria das solicitações pode ser atendida limpando seu histórico de conversas local no aplicativo. Os dados de feedback e das mensagens do formulário de contato podem ser localizados e excluídos mediante solicitação: envie-nos o identificador da mensagem ou a data e a hora aproximadas do envio (feedback) ou o endereço de e-mail usado (formulário de contato) para o endereço abaixo. Os registros de mensagens bloqueadas pelo nosso sistema de segurança são armazenados sem seu endereço IP, conta ou dados do dispositivo e são excluídos automaticamente em até 30 dias; como não estão vinculados à sua identidade, normalmente não conseguimos identificar qual registro é seu, mas você pode entrar em contato conosco sobre eles no endereço abaixo. Para dados de falhas/análises mantidos pelo Google, consulte os controles de privacidade do Google em [myaccount.google.com](https://myaccount.google.com). Para dados tratados por nossos provedores de IA, consulte as políticas de privacidade da OpenRouter, da Microsoft e da OpenAI indicadas acima.
 
 Para quaisquer dúvidas sobre privacidade, entre em contato conosco em: **<privacy@voxquieta.org>**
 

@@ -45,7 +45,7 @@ Le texte de votre message est utilisé par ces fournisseurs **uniquement** pour 
 
 ## Historique des conversations
 
-L'historique des conversations est stocké **uniquement en local sur votre appareil** et n'est jamais téléchargé sur nos serveurs :
+L'historique des conversations est stocké **uniquement en local sur votre appareil** et n'est jamais téléchargé sur nos serveurs, sauf un message et sa réponse que vous choisissez d'évaluer (voir « Retours et évaluations ») :
 
 - **Application mobile :** une base de données chiffrée sur l'appareil (Room/SQLite).
 - **Application web :** le stockage local de votre navigateur (IndexedDB), sur l'appareil que vous utilisez.
@@ -108,7 +108,7 @@ Si vous vous trouvez dans l'Espace économique européen, vous avez le droit :
 - de demander la suppression de vos données,
 - de vous opposer au traitement de vos données.
 
-Nous ne vous demandons pas de compte : la plupart des demandes peuvent donc être satisfaites en effaçant votre historique de conversation local dans l'application. Les données de retours et les messages du formulaire de contact peuvent être retrouvés et supprimés sur demande : envoyez-nous l'identifiant du message (retours) ou l'adresse e-mail utilisée (formulaire de contact) à l'adresse indiquée ci-dessous. Les enregistrements des messages bloqués par notre système de sécurité sont conservés sans votre adresse IP, votre compte ni les informations de votre appareil, et sont supprimés automatiquement sous 30 jours ; comme ils ne sont pas liés à votre identité, nous ne pouvons généralement pas savoir lequel vous concerne, mais vous pouvez nous contacter à ce sujet à l'adresse indiquée ci-dessous. Pour les données de plantage/analyses détenues par Google, veuillez consulter les contrôles de confidentialité de Google sur [myaccount.google.com](https://myaccount.google.com). Pour les données traitées par nos fournisseurs d'IA, consultez les politiques de confidentialité d'OpenRouter, de Microsoft et d'OpenAI mentionnées ci-dessus.
+Nous ne vous demandons pas de compte : la plupart des demandes peuvent donc être satisfaites en effaçant votre historique de conversation local dans l'application. Les données de retours et les messages du formulaire de contact peuvent être retrouvés et supprimés sur demande : envoyez-nous l'identifiant du message ou la date et l'heure approximatives de l'envoi (retours) ou l'adresse e-mail utilisée (formulaire de contact) à l'adresse indiquée ci-dessous. Les enregistrements des messages bloqués par notre système de sécurité sont conservés sans votre adresse IP, votre compte ni les informations de votre appareil, et sont supprimés automatiquement sous 30 jours ; comme ils ne sont pas liés à votre identité, nous ne pouvons généralement pas savoir lequel vous concerne, mais vous pouvez nous contacter à ce sujet à l'adresse indiquée ci-dessous. Pour les données de plantage/analyses détenues par Google, veuillez consulter les contrôles de confidentialité de Google sur [myaccount.google.com](https://myaccount.google.com). Pour les données traitées par nos fournisseurs d'IA, consultez les politiques de confidentialité d'OpenRouter, de Microsoft et d'OpenAI mentionnées ci-dessus.
 
 Pour toute question relative à la confidentialité, contactez-nous à : **<privacy@voxquieta.org>**
 

@@ -75,7 +75,7 @@ class TestHelpers:
             ("postgresql://u:p@h/db?ssl=require", "postgresql+psycopg2://u:p@h/db?sslmode=require"),
             (
                 "postgresql+asyncpg://u:p@h/db?ssl=verify-full",
-                "postgresql+psycopg2://u:p@h/db?sslmode=verify-full",
+                "postgresql+psycopg2://u:p@h/db?sslmode=verify-full&sslrootcert=system",
             ),
             (
                 "postgresql://u:p@h/db?sslmode=require&ssl=disable",
@@ -87,7 +87,10 @@ class TestHelpers:
             ),
         ],
     )
-    def test_ssl_param_is_rewritten_for_psycopg2_in_both_exporters(self, url, expected):
+    def test_ssl_param_is_rewritten_for_psycopg2_in_both_exporters(
+        self, url, expected, monkeypatch
+    ):
+        monkeypatch.delenv("PGSSLROOTCERT", raising=False)
         path = Path(__file__).resolve().parent / "export_blocked_samples.py"
         spec = importlib.util.spec_from_file_location("export_blocked_samples_ssl", path)
         mod = importlib.util.module_from_spec(spec)

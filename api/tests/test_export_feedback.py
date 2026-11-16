@@ -299,3 +299,57 @@ def test_export_end_to_end_applies_retention_and_selectors(exporter_db, tmp_path
     exporter.main(["--contacts", "--format", "csv", "--output", str(out)])
     text = out.read_text()
     assert "m-new" in text and "a@example.com" in text and "m-expired" not in text
+
+
+# --- sslrootcert (verify-full on a fresh machine has no ~/.postgresql/root.crt) -----------
+
+_BLOCKED = Path(__file__).resolve().parents[2] / "scripts" / "export_blocked_samples.py"
+_MISSES = Path(__file__).resolve().parents[2] / "scripts" / "export_retrieval_misses.py"
+
+
+def _load(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.fixture(params=["feedback", "blocked", "misses"])
+def sync_url(request):
+    if request.param == "feedback":
+        return exporter.sync_database_url
+    path, name = (
+        (_BLOCKED, "export_blocked_samples_ssl_t")
+        if request.param == "blocked"
+        else (_MISSES, "export_retrieval_misses_ssl_t")
+    )
+    return _load(path, name).sync_database_url
+
+
+class TestSslRootCert:
+    @pytest.mark.parametrize("mode", ["verify-full", "verify-ca"])
+    def test_verify_modes_default_to_system_trust_store(self, sync_url, monkeypatch, mode):
+        monkeypatch.delenv("PGSSLROOTCERT", raising=False)
+        out = sync_url(f"postgresql://u:p@h/db?sslmode={mode}")
+        assert out == f"postgresql+psycopg2://u:p@h/db?sslmode={mode}&sslrootcert=system"
+
+    def test_asyncpg_style_ssl_param_also_gets_it(self, sync_url, monkeypatch):
+        monkeypatch.delenv("PGSSLROOTCERT", raising=False)
+        out = sync_url("postgresql+asyncpg://u:p@h/db?ssl=verify-full")
+        assert "sslmode=verify-full" in out and "sslrootcert=system" in out
+
+    def test_explicit_sslrootcert_is_kept(self, sync_url, monkeypatch):
+        monkeypatch.delenv("PGSSLROOTCERT", raising=False)
+        out = sync_url("postgresql://u:p@h/db?sslmode=verify-full&sslrootcert=/x/ca.pem")
+        assert "sslrootcert=%2Fx%2Fca.pem" in out and "sslrootcert=system" not in out
+
+    def test_pgsslrootcert_env_is_respected(self, sync_url, monkeypatch):
+        monkeypatch.setenv("PGSSLROOTCERT", "/x/ca.pem")
+        out = sync_url("postgresql://u:p@h/db?sslmode=verify-full")
+        assert out == "postgresql+psycopg2://u:p@h/db?sslmode=verify-full"
+
+    @pytest.mark.parametrize("mode", ["require", "disable", "prefer"])
+    def test_other_modes_unchanged(self, sync_url, monkeypatch, mode):
+        monkeypatch.delenv("PGSSLROOTCERT", raising=False)
+        out = sync_url(f"postgresql://u:p@h/db?sslmode={mode}")
+        assert out == f"postgresql+psycopg2://u:p@h/db?sslmode={mode}"
