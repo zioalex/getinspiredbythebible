@@ -196,7 +196,7 @@ def build_provider(classifier: str, env: dict[str, str] | None = None) -> Any:
     env = dict(os.environ) if env is None else env
     # providers/__init__ imports config.Settings, which rejects the placeholder DATABASE_URL.
     # The harness never touches a database, so a throwaway value is enough.
-    os.environ.setdefault("DATABASE_URL", "postgresql://safety:golden@localhost:5432/unused")
+    os.environ.setdefault("DATABASE_URL", "postgresql://safety:golden@localhost:5432/unused")  # pragma: allowlist secret
     if classifier == "openai_moderation":
         key = env.get("OPENAI_API_KEY", "")
         if not key:

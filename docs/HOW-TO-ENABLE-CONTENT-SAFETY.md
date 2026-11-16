@@ -107,7 +107,7 @@ Setup, from zero:
 
 1. **Owner decision:** confirm OpenAI's data retention (see *Privacy* above) is acceptable.
 2. Create an OpenAI API key (Moderation is free; no billing credit is needed for it).
-3. Add it as a GitHub repo secret: `gh secret set OPENAI_API_KEY` (Settings -> Secrets and
+3. Add it as a GitHub repo secret: `gh secret set OPENAI_API_KEY` (Settings -> Secrets and <!-- pragma: allowlist secret -->
    variables -> Actions). It is optional; while unset nothing changes.
 4. Run `azure-deploy.yml` (merge to `main`, or Actions -> Run workflow). The pipeline passes it
    as `TF_VAR_openai_api_key` (this only creates the `openai-api-key` Container App secret and
