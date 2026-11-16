@@ -55,6 +55,12 @@ data class StreamChunkDto(
     @SerialName("follow_ups") val followUps: List<String> = emptyList(),
     /** Emergency/crisis contacts (BITB-255). Set only on a `crisis_resources` event. */
     @SerialName("resources") val crisisResources: CrisisResourcesDto? = null,
+    /** BITB-320: human-readable text of a `type="error"` event (server field `error`). */
+    @SerialName("error") val errorMessage: String = "",
+    /** BITB-320: machine code of a `type="error"` event (server field `error_code`). */
+    @SerialName("error_code") val errorCode: String = "",
+    /** BITB-320: true on an `error` event sent after content was already streamed. */
+    @SerialName("partial") val partial: Boolean = false,
 )
 
 /** A single scripture-fidelity correction reported in the completion event. */

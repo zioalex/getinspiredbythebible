@@ -2,7 +2,7 @@
 
 > Generated from [`docs/parity/registry.yaml`](registry.yaml) (BITB-262, updated 2026-11-08) by `tools/parity-graph/render.py` — do not edit; regenerate.
 
-35 capabilities (2 negative obligations) × 4 clients. Evidence for every cell lives in the registry; this page is the view.
+36 capabilities (2 negative obligations) × 4 clients. Evidence for every cell lives in the registry; this page is the view.
 
 ## Status legend
 
@@ -112,6 +112,7 @@ flowchart LR
 | **Splash / first-paint experience**<br/>`splash` | ⚪ n/a | 🟢 synced | 🟢 synced | 🔵 obligated (BITB-087) |
 | **Crisis resources card on self-harm turns**<br/>`crisis-resources-card` | 🟢 synced (BITB-255) | 🟢 synced (BITB-255) | 🟢 synced (BITB-255) | ⚪ n/a |
 | **Suggested follow-up question chips**<br/>`follow-up-suggestions` | 🟢 synced | 🟢 synced | 🟢 synced | ⚪ n/a |
+| **Recover chips and verse references when a chat stream ends early (BITB-320)**<br/>`chat-stream-recovery` | 🟢 synced (BITB-320) | 🟢 synced (BITB-320) | 🟢 synced (BITB-320) | 🔵 obligated (BITB-087) |
 | **Church finder**<br/>`church-finder` | 🟢 synced | 🟢 synced | 🟢 synced | ⚪ n/a |
 | **Contact form**<br/>`contact-form` | 🟢 synced | 🟢 synced | 🟢 synced | ⚪ n/a |
 | **In-app changelog**<br/>`in-app-changelog` | ⚪ n/a | 🟢 synced | 🟢 synced | ⚪ n/a |
@@ -162,11 +163,11 @@ The rows below are the registry's payload, not CI failures — each stays visibl
 
 | Status | Cells |
 |---|---|
-| 🟢 synced | 69 |
+| 🟢 synced | 72 |
 | 🔴 drifted | 1 |
 | 🟡 partial | 2 |
 | ⚫ absent | 4 |
-| 🔵 obligated | 19 |
+| 🔵 obligated | 20 |
 | ⚪ n/a | 45 |
 
 ---

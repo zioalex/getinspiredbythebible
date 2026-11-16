@@ -502,4 +502,40 @@ class EventSourceParserTest {
         assertEquals(1, chunks.size)
         assertEquals("still here", chunks[0].content)
     }
+
+    // ── BITB-320: error events are surfaced, not dropped ───────────────────────
+
+    @Test
+    fun `error event is surfaced as an error chunk with partial and message_id`() = runTest {
+        val body = bodyOf(
+            """data: {"content":"Partial answer","done":false}""" + "\n" +
+                """data: {"type":"error","error":"An unexpected error occurred","partial":true,"message_id":"m-1"}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(2, chunks.size)
+        assertEquals("Partial answer", chunks[0].content)
+        assertEquals("error", chunks[1].type)
+        assertEquals("An unexpected error occurred", chunks[1].errorMessage)
+        assertTrue(chunks[1].partial)
+        assertEquals("m-1", chunks[1].messageId)
+    }
+
+    @Test
+    fun `error event without partial defaults to partial false and keeps error_code`() = runTest {
+        val body = bodyOf(
+            """data: {"type":"error","error":"busy","error_code":"upstream_unavailable","retry_after":5}""" + "\n",
+        )
+
+        val chunks = mutableListOf<org.voxquieta.app.data.remote.models.StreamChunkDto>()
+        body.toChunkFlow().collect { chunks.add(it) }
+
+        assertEquals(1, chunks.size)
+        assertEquals("error", chunks[0].type)
+        assertEquals("upstream_unavailable", chunks[0].errorCode)
+        assertFalse(chunks[0].partial)
+        assertEquals("", chunks[0].messageId)
+    }
 }
