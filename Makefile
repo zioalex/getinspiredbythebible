@@ -12,7 +12,7 @@
 	parity-export parity-check parity-registry-check \
 	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
 	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
-	validate-env validate-env-strict export-blocked-samples \
+	validate-env validate-env-strict export-blocked-samples export-feedback \
 	clean clean-all fix-permissions update-baseline \
 	check-env-production check-local-api-url \
 	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-up-prod docker-up-prod-gpu \
@@ -31,6 +31,7 @@
 	db-restore-new-server db-restore-same-server db-server-url db-rehearse-alembic db-delete-server \
 	az-pg-add-ip az-pg-list-rules az-pg-remove-ip \
 	az-logs-backend az-logs-frontend az-logs-backend-system az-logs-frontend-system \
+	az-logs-backend-query az-logs-frontend-query az-chat-stream-errors \
 	tf-check-version tf-init tf-plan tf-apply tf-apply-auto tf-destroy tf-fmt tf-validate \
 	tf-output tf-refresh tf-state-list \
 	repo-metrics audit-metrics test-makefile
@@ -209,7 +210,7 @@ backlog-check: ## Validate every story file's front matter (BITB-313)
 	@$(SCRIPT_PYTHON) scripts/backlog.py check
 
 test-makefile: ## Audit the Makefile itself: unit tests + doc freshness (no docker/cloud/network)
-	@$(SCRIPT_PYTHON) -m unittest scripts.test_make_targets -v
+	@$(SCRIPT_PYTHON) -m unittest scripts.test_make_targets scripts.test_az_logs -v
 	@$(SCRIPT_PYTHON) scripts/audit_make_targets.py --check
 
 alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrade against $DATABASE_URL (BITB-004). MUTATES the target database -- local/CI only, NEVER point DATABASE_URL at prod.
@@ -498,6 +499,9 @@ validate-env-strict: install-deps ## Validate env vars (strict mode - warnings a
 
 export-blocked-samples: install-deps ## Export captured blocked-message samples (read-only). Usage: make export-blocked-samples ARGS="--format csv --since 2026-05-01". Requires DATABASE_URL.
 	@$(PYTHON) scripts/export_blocked_samples.py $(ARGS)
+
+export-feedback: install-deps ## Export feedback / contact-form rows WITH text while it exists (read-only). Usage: make export-feedback ARGS="--message-id <uuid>" or ARGS="--contacts --id 12". Requires DATABASE_URL; see docs/HOW-TO-EXPORT-FEEDBACK.md.
+	@$(PYTHON) scripts/export_feedback.py $(ARGS)
 
 clean: ## Clean build artifacts and caches
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
@@ -1015,7 +1019,7 @@ db-restore-new-server: ## Azure PITR into a NEW server (usage: make db-restore-n
 db-restore-same-server: ## DESTRUCTIVE — replace an existing database from a dump (usage: DATABASE_URL=... make db-restore-same-server DUMP=...)
 	@$(DB_TOOL) restore-same-server
 
-db-server-url: ## Print the DATABASE_URL for an Azure server (usage: make db-server-url SERVER=... [PG_DB=... DB_USER=...])
+db-server-url: ## Print the DATABASE_URL for an Azure server (usage: make db-server-url SERVER=... [PG_DB=... DB_USER=...]; defaults come from deployment/terraform.tfvars)
 	@SERVER="$(SERVER)" $(DB_TOOL) server-url
 
 db-rehearse-alembic: ## Stage 1 of BITB-089: stamp -> check -> upgrade against a COPY of prod (usage: DATABASE_URL=<copy> PGPASSWORD=... make db-rehearse-alembic)
@@ -1076,37 +1080,32 @@ CA_BACKEND := bible-app-backend
 CA_FRONTEND := bible-app-frontend
 CA_RG := bible-app-rg
 
-az-logs-backend: ## Tail backend container app logs
-	@echo "$(BLUE)Streaming backend logs (Ctrl+C to stop)...$(NC)"
-	@az containerapp logs show \
-		--name $(CA_BACKEND) \
-		--resource-group $(CA_RG) \
-		--type console \
-		--follow
+# BITB-319: scripts/az-logs.sh resolves the latest ready revision + a running replica before
+# streaming. A bare `--follow` failed with "Got bad status from the logstream API: 500" when the
+# app was scaled to zero or had several replicas. Live streams only show what happens while they
+# are open; the *-query targets read past logs from Log Analytics.
+AZ_LOGS := CA_RG="$(CA_RG)" bash scripts/az-logs.sh
 
-az-logs-frontend: ## Tail frontend container app logs
-	@echo "$(BLUE)Streaming frontend logs (Ctrl+C to stop)...$(NC)"
-	@az containerapp logs show \
-		--name $(CA_FRONTEND) \
-		--resource-group $(CA_RG) \
-		--type console \
-		--follow
+az-logs-backend: ## Tail backend console logs live (resolves revision + replica)
+	@$(AZ_LOGS) tail $(CA_BACKEND) console
+
+az-logs-frontend: ## Tail frontend console logs live (resolves revision + replica)
+	@$(AZ_LOGS) tail $(CA_FRONTEND) console
 
 az-logs-backend-system: ## Tail backend system logs (startup, scaling events)
-	@echo "$(BLUE)Streaming backend system logs (Ctrl+C to stop)...$(NC)"
-	@az containerapp logs show \
-		--name $(CA_BACKEND) \
-		--resource-group $(CA_RG) \
-		--type system \
-		--follow
+	@$(AZ_LOGS) tail $(CA_BACKEND) system
 
 az-logs-frontend-system: ## Tail frontend system logs (startup, scaling events)
-	@echo "$(BLUE)Streaming frontend system logs (Ctrl+C to stop)...$(NC)"
-	@az containerapp logs show \
-		--name $(CA_FRONTEND) \
-		--resource-group $(CA_RG) \
-		--type system \
-		--follow
+	@$(AZ_LOGS) tail $(CA_FRONTEND) system
+
+az-logs-backend-query: ## Past backend logs from Log Analytics (usage: [HOURS=24] [LEVEL=ERROR|WARNING] [FILTER=text] [LIMIT=200])
+	@$(AZ_LOGS) query $(CA_BACKEND)
+
+az-logs-frontend-query: ## Past frontend logs from Log Analytics (usage: [HOURS=24] [LEVEL=ERROR|WARNING] [FILTER=text] [LIMIT=200])
+	@$(AZ_LOGS) query $(CA_FRONTEND)
+
+az-chat-stream-errors: ## Hourly counts of chat-stream failure signals from Log Analytics (usage: [DAYS=7])
+	@$(AZ_LOGS) chat-stream-errors
 
 # ==================== Terraform Commands ====================
 

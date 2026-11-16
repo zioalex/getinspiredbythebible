@@ -485,7 +485,7 @@
                 "type": "null"
               }
             ],
-            "description": "Browser/device info for bug reports",
+            "description": "Accepted for old clients, ignored and never stored (BITB-329)",
             "title": "User Agent"
           }
         },
@@ -752,6 +752,184 @@
           "created_at"
         ],
         "title": "FeedbackResponse",
+        "type": "object"
+      },
+      "FinalizeRequest": {
+        "additionalProperties": false,
+        "description": "BITB-320: recover chips + verses for a reply whose ``completion`` event never arrived.",
+        "properties": {
+          "assistant_text": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Assistant Text",
+            "type": "string"
+          },
+          "conversation_history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ConversationMessage"
+            },
+            "title": "Conversation History",
+            "type": "array"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "maxLength": 10,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "message": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "platform": {
+            "default": "web",
+            "enum": [
+              "web",
+              "android"
+            ],
+            "title": "Platform",
+            "type": "string"
+          },
+          "preferred_translation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Translation"
+          },
+          "reason": {
+            "enum": [
+              "eof",
+              "error_event",
+              "network_error",
+              "timeout"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[a-zA-Z0-9\\-_]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "required": [
+          "message",
+          "assistant_text",
+          "reason"
+        ],
+        "title": "FinalizeRequest",
+        "type": "object"
+      },
+      "FinalizeResponse": {
+        "description": "Same fields as a stream ``completion`` event, plus ``truncated`` (BITB-320).",
+        "properties": {
+          "citations": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "corrected_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected Message"
+          },
+          "corrections": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrections"
+          },
+          "follow_ups": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follow Ups"
+          },
+          "resolved_verses": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Resolved Verses",
+            "type": "array"
+          },
+          "truncated": {
+            "default": false,
+            "title": "Truncated",
+            "type": "boolean"
+          },
+          "verses_cited": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Verses Cited",
+            "type": "array"
+          }
+        },
+        "title": "FinalizeResponse",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -1057,6 +1235,48 @@
         ]
       }
     },
+    "/api/v1/chat/finalize": {
+      "post": {
+        "description": "Recover chips + verse references for a reply whose `completion` event never arrived.",
+        "operationId": "chat_finalize_api_v1_chat_finalize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat Finalize",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
     "/api/v1/chat/stream": {
       "post": {
         "description": "Stream a chat response for real-time display.\n\nReturns Server-Sent Events (SSE) with response chunks.",
@@ -1244,7 +1464,7 @@
     },
     "/api/v1/feedback": {
       "post": {
-        "description": "Submit feedback for a chat message (thumbs up/down).\n\nThis endpoint logs the user's feedback along with the message content\nfor quality improvement purposes.\n\n**Privacy Notice**: By submitting feedback, the user's message and the AI\nresponse will be logged to help improve the service.",
+        "description": "Submit feedback for a chat message (thumbs up/down).\n\nThis endpoint logs the user's feedback along with the message content\nfor quality improvement purposes.\n\n**Privacy Notice**: By submitting feedback, the user's message, the AI response and\nthe optional comment are stored for 30 days (the rating and message id for 90 days)\nto help improve the service. Notification e-mails carry identifiers only.",
         "operationId": "submit_feedback_api_v1_feedback_post",
         "requestBody": {
           "content": {

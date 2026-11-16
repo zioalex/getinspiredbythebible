@@ -428,6 +428,80 @@ def test_retrieval_miss_samples_upgrade_and_downgrade(throwaway_database_url):
     assert "retrieval_miss_samples" not in _table_names(throwaway_database_url)
 
 
+def test_r0010_hashes_session_ids_and_clears_contact_user_agents(throwaway_database_url):
+    """BITB-329: r0010 hashes raw session ids (same digest as the app), leaves hashes alone,
+    clears contact user agents, and its downgrade is a data-preserving no-op."""
+    import hashlib
+
+    _run_alembic("upgrade", "r0009", database_url=throwaway_database_url)
+    already_hashed = hashlib.sha256(b"already").hexdigest()
+    parsed = urlparse(throwaway_database_url)
+
+    def _connect():
+        return psycopg2.connect(
+            host=parsed.hostname,
+            port=parsed.port or 5432,
+            user=parsed.username,
+            password=parsed.password,
+            dbname=parsed.path.lstrip("/"),
+        )
+
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            for sid in ("raw-session-1", "日本語-é", already_hashed, None, ""):
+                cur.execute(
+                    "INSERT INTO feedback (message_id, rating, session_id) "
+                    "VALUES (gen_random_uuid(), 'positive', %s)",
+                    (sid,),
+                )
+            cur.execute(
+                "INSERT INTO contact_submissions (subject, message, session_id, user_agent) "
+                "VALUES ('bug', 'm', 'raw-session-1', 'Mozilla/5.0'), "
+                "('bug', 'm', %s, 'Chrome')",
+                (already_hashed,),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    def _state():
+        c = _connect()
+        try:
+            with c.cursor() as cur:
+                cur.execute("SELECT session_id FROM feedback ORDER BY id")
+                fb = [r[0] for r in cur.fetchall()]
+                cur.execute("SELECT session_id, user_agent FROM contact_submissions ORDER BY id")
+                ct = cur.fetchall()
+            return fb, ct
+        finally:
+            c.close()
+
+    def _digest(value):
+        return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+    expected_fb = [_digest("raw-session-1"), _digest("日本語-é"), already_hashed, None, ""]
+    expected_ct = [(_digest("raw-session-1"), None), (already_hashed, None)]
+
+    _run_alembic("upgrade", "r0010", database_url=throwaway_database_url)
+    assert _state() == (expected_fb, expected_ct)
+
+    # Idempotent: a second pass (e.g. after downgrade + upgrade) changes nothing.
+    _run_alembic("downgrade", "r0009", database_url=throwaway_database_url)
+    assert _state() == (expected_fb, expected_ct)
+    _run_alembic("upgrade", "r0010", database_url=throwaway_database_url)
+    assert _state() == (expected_fb, expected_ct)
+
+
+def test_r0010_is_data_only_and_documents_locks():
+    """BITB-329: no DDL in r0010; the docstring states lock level and duration."""
+    source = (_VERSIONS_DIR / "r0010_minimise_feedback_contact_pii.py").read_text()
+    assert "lock_timeout" in source and "statement_timeout" in source
+    for ddl in ("op.create_", "op.drop_", "op.add_", "op.alter_"):
+        assert ddl not in source
+    assert "ROW EXCLUSIVE" in source and "no-op" in source
+
+
 def test_translations_created_at_timestamptz_upgrade_and_downgrade(throwaway_database_url):
     """BITB-127: r0007 converts translations.created_at without shifting the instant."""
     _run_alembic("upgrade", "r0006", database_url=throwaway_database_url)

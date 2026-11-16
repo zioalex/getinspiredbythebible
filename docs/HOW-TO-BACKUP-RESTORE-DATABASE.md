@@ -16,6 +16,36 @@ configuration), [`docs/MIGRATION_GUIDELINES.md`](MIGRATION_GUIDELINES.md)
 
 ---
 
+## Quick start: pre-deploy backup (`make db-backup`)
+
+User and database default to `bibleadmin` / `bibleapp` from `deployment/terraform.tfvars`
+(override: `DB_USER=... PG_DB=... make -s db-server-url SERVER=...`).
+
+```bash
+make az-pg-add-ip
+export PGPASSWORD='<database admin password>'
+export DATABASE_URL="$(make -s db-server-url SERVER=bible-app-db-mb0172)"
+make db-backup                       # writes backups/<host>-<timestamp>.dump
+make az-pg-remove-ip RULE=bible-app-db-mb0172
+```
+
+Prerequisites: `az login`, `postgresql-client` (`pg_dump`). With `sslmode=verify-full`, libpq needs
+a root CA: on libpq >= 16 the script sets `PGSSLROOTCERT=system` for you when `~/.postgresql/root.crt`
+is missing; on older clients it stops with an error and these one-time steps:
+
+```bash
+mkdir -p ~/.postgresql
+curl -fsSL https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem > ~/.postgresql/root.crt
+curl -fsSL 'https://www.microsoft.com/pkiops/certs/Microsoft%20RSA%20Root%20Certificate%20Authority%202017.crt' \
+  | openssl x509 -inform DER >> ~/.postgresql/root.crt
+```
+
+Troubleshooting: `root certificate file ... does not exist` -> the above;
+`password authentication failed for user "bible"` -> stale user default, use `bibleadmin`/`bibleapp`
+(or `DB_USER`/`PG_DB`) and check `PGPASSWORD`; timeout -> `make az-pg-add-ip` / `make az-pg-list-rules`.
+
+---
+
 ## Commands
 
 Every step below is wrapped by a Make target. They all delegate to
@@ -35,7 +65,7 @@ the safety guards — prefer them over running the raw commands by hand.
 # Connection: DATABASE_URL for the target, PGPASSWORD for the password.
 # Never put the password in the URL — the script redacts what it logs, but
 # your shell history does not.
-export DATABASE_URL='postgresql://bible@<fqdn>:5432/bibledb?sslmode=verify-full'
+export DATABASE_URL='postgresql://bibleadmin@<fqdn>:5432/bibleapp?sslmode=verify-full'
 export PGPASSWORD='...'
 ```
 
@@ -153,21 +183,21 @@ which means **downtime and a destructive step**.
 
 ```bash
 # 0. SAFETY: dump the CURRENT state first — this is your only undo
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
 
 # 1. Get the good data (e.g. from a Scenario A restored server)
-DATABASE_URL="postgresql://bible@<restored-fqdn>:5432/${PG_DB}?sslmode=verify-full" \
+DATABASE_URL="postgresql://bibleadmin@<restored-fqdn>:5432/${PG_DB}?sslmode=verify-full" \
   make db-backup DUMP=good.dump
 
 # 2. Stop writes — scale the backend to zero so nothing writes mid-restore
 az containerapp update -g "$PG_RG" -n <backend-app> --min-replicas 0 --max-replicas 0
 
 # 3. Replace the live database. Prompts for the hostname before doing anything.
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" \
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" \
   make db-restore-same-server DUMP=good.dump
 
 # 4. Verify, then bring the backend back
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-restore-verify
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-restore-verify
 az containerapp update -g "$PG_RG" -n <backend-app> --min-replicas 1 --max-replicas <n>
 ```
 
@@ -191,7 +221,7 @@ shaped data.
 
 ```bash
 # 1. Dump prod (read-only, safe)
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup
 
 # 2. Bring up PG 16 + pgvector locally and restore into it
 make db-restore-local DUMP=backups/<the-file>.dump
@@ -255,7 +285,7 @@ against this copy and confirm the result before touching production.
 data. Embeddings dominate the size, and a schema rehearsal never reads a row:
 
 ```bash
-DATABASE_URL="postgresql://bible@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup-schema
+DATABASE_URL="postgresql://bibleadmin@<fqdn>:5432/${PG_DB}?sslmode=verify-full" make db-backup-schema
 make db-restore-local DUMP=backups/<the-file>.dump
 ```
 
@@ -397,6 +427,89 @@ server), and delete any temporary restored server:
 make az-pg-remove-ip RULE="$PG_SERVER"
 az postgres flexible-server delete -g "$PG_RG" -n "$NEW_SERVER" --yes   # if you made one
 ```
+
+---
+
+## Restore drill
+
+A backup nobody has restored is a hope, not a backup (BITB-305). The drill is a **recorded,
+timed exercise** — not automation: restore the server to a point in time, compare row counts with
+production, delete the temporary server, and add a row to the [Drill log](#drill-log). Do it once
+now, then after any change to the backup settings and at least once a year.
+
+It reuses [Scenario E](#scenario-e--rehearse-in-azure-no-local-disk) commands and the
+[verification checklist](#verification-checklist). The restored server is billed until deleted, so
+the last step is not optional.
+
+```bash
+# 0. Variables (see Preparation above) and a stopwatch
+export PG_RG="bible-app-rg"
+export PG_SERVER="bible-app-db-<suffix>"
+export PG_DB="<db_name>"
+export COPY="${PG_SERVER}-drill-$(date +%Y%m%d)"
+make db-backup-info                      # note earliestRestoreDate
+export RESTORE_POINT="$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)"   # UTC, inside the window
+START=$(date +%s)
+
+# 1. Point-in-time restore into a temporary server (10-30 min on Burstable)
+make db-restore-new-server NEW_SERVER="$COPY" RESTORE_POINT="$RESTORE_POINT"
+# Equivalent raw command:
+#   az postgres flexible-server restore -g "$PG_RG" --name "$COPY" \
+#     --source-server "$PG_SERVER" --restore-time "$RESTORE_POINT"
+echo "minutes to restore: $(( ($(date +%s) - START) / 60 ))"        # -> Drill log
+
+# 2. Reach the copy (own firewall, own FQDN, same admin password)
+make az-pg-add-ip SERVER="$COPY"
+export DATABASE_URL="$(make -s db-server-url SERVER="$COPY")"
+export PGPASSWORD='<the production admin password>'
+make db-restore-verify                   # extensions, indexes valid, migrations
+```
+
+Compare exact row counts on the copy and on production (run the same statement against both
+`DATABASE_URL`s; `n_live_tup` is only an estimate, so use `count(*)`). Rows written after
+`RESTORE_POINT` legitimately differ on the live tables (`sessions`, `feedback`,
+`contact_submissions`, `rate_limit_hits`); the scripture tables must match exactly.
+
+```sql
+SELECT 'translations' AS t, count(*) FROM translations
+UNION ALL SELECT 'books', count(*) FROM books
+UNION ALL SELECT 'chapters', count(*) FROM chapters
+UNION ALL SELECT 'verses', count(*) FROM verses
+UNION ALL SELECT 'passages', count(*) FROM passages
+UNION ALL SELECT 'topics', count(*) FROM topics
+UNION ALL SELECT 'feedback', count(*) FROM feedback
+UNION ALL SELECT 'contact_submissions', count(*) FROM contact_submissions
+UNION ALL SELECT 'sessions', count(*) FROM sessions
+ORDER BY 1;
+```
+
+Then tear down and record:
+
+```bash
+make db-delete-server SERVER="$COPY"
+make az-pg-remove-ip RULE="$COPY" SERVER="$COPY"
+az postgres flexible-server list -g "$PG_RG" -o table      # confirm the copy is gone
+```
+
+### Drill log
+
+Add one row per drill. "Row counts matched" = scripture tables identical, live tables within the
+expected drift.
+
+| Date | Restore point (UTC) | Minutes to restore | Row counts matched | Performed by |
+| ---- | ------------------- | ------------------ | ------------------ | ------------ |
+|      |                     |                    |                    |              |
+
+### Geo-redundant backup (decision, BITB-305)
+
+`geo_redundant_backup_enabled` is `false` today. Per the Azure documentation, geo-redundant backup
+can only be chosen **when the Flexible Server is created**; it cannot be switched on for an
+existing server, and in Terraform changing the argument forces a new server. Enabling it would
+therefore mean building a new server and migrating — out of scope for BITB-305, which makes no
+backup changes in Terraform. It needs a follow-up decision from the owner (accept the
+single-region risk, or plan a new geo-redundant server together with the private-networking work
+in BITB-005). Until then, [Scenario D](#scenario-d--take-a-portable-logical-backup) is the only
+off-region copy.
 
 ---
 

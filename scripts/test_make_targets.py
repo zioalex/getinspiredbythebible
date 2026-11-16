@@ -80,12 +80,12 @@ exit 0
 
 ENV_KEYS = (
     "TAG DATABASE_URL RATE_LIMIT_BACKEND LLM_PROVIDER BACKEND_API_URL FRONTEND_URL "
-    "PG_RG PG_SERVER SERVER DUMP_ARGS NEW_SERVER RESTORE_POINT DUMP"
+    "PG_RG PG_SERVER SERVER DUMP_ARGS NEW_SERVER RESTORE_POINT DUMP CA_RG HOURS FILTER"
 )
 SCRUBBED = set(ENV_KEYS.split()) | {
     "MAKEFLAGS", "MAKELEVEL", "MFLAGS", "BASE_URL", "CATEGORY", "NAMESPACE", "POD_IP",
     "COMPOSE_PROJECT_NAME", "ARGS", "RULE", "REPO", "VENV", "ALEMBIC_TEST_ALLOW_HOST",
-    "NEXT_PUBLIC_API_URL", "ACR_NAME",
+    "NEXT_PUBLIC_API_URL", "ACR_NAME", "LEVEL", "LIMIT", "DAYS", "LA_WORKSPACE_ID",
 }
 
 
@@ -510,6 +510,10 @@ class PythonTargetTests(SandboxCase):
     def test_python_tool_targets_pass_through_user_args(self) -> None:
         res = self.make("export-blocked-samples", ARGS="--format csv --since 2026-05-01")
         self.assertEqual(res.of("python")[-1].args, ["scripts/export_blocked_samples.py", "--format", "csv", "--since", "2026-05-01"])
+        res = self.make("export-feedback", ARGS="--contacts --id 12")
+        self.assertEqual(res.of("python")[-1].args, ["scripts/export_feedback.py", "--contacts", "--id", "12"])
+        res = self.make("export-feedback", ARGS="--message-id 3f2b1c9e-8a4d-4e0b-9c1a-5d6e7f8a9b0c")
+        self.assertEqual(res.of("python")[-1].args, ["scripts/export_feedback.py", "--message-id", "3f2b1c9e-8a4d-4e0b-9c1a-5d6e7f8a9b0c"])
         res = self.make("follow-up-eval", ARGS="--language it")
         self.assertEqual(res.of("python")[-1].args, ["scripts/run_follow_up_eval.py", "--language", "it"])
         res = self.make("follow-up-checklist")
@@ -689,18 +693,28 @@ class AzureTests(SandboxCase):
         )
 
     def test_log_targets(self) -> None:
-        for target, app, kind in (
-            ("az-logs-backend", "bible-app-backend", "console"),
-            ("az-logs-frontend", "bible-app-frontend", "console"),
-            ("az-logs-backend-system", "bible-app-backend", "system"),
-            ("az-logs-frontend-system", "bible-app-frontend", "system"),
+        # BITB-319: the targets delegate to scripts/az-logs.sh, which resolves revision +
+        # replica (live) or queries Log Analytics (history). The script itself is tested
+        # against a fake az in scripts/test_az_logs.py.
+        for target, args in (
+            ("az-logs-backend", ["tail", "bible-app-backend", "console"]),
+            ("az-logs-frontend", ["tail", "bible-app-frontend", "console"]),
+            ("az-logs-backend-system", ["tail", "bible-app-backend", "system"]),
+            ("az-logs-frontend-system", ["tail", "bible-app-frontend", "system"]),
+            ("az-logs-backend-query", ["query", "bible-app-backend"]),
+            ("az-logs-frontend-query", ["query", "bible-app-frontend"]),
+            ("az-chat-stream-errors", ["chat-stream-errors"]),
         ):
             with self.subTest(target):
-                self.assertEqual(
-                    self.make(target).argv("az"),
-                    [["containerapp", "logs", "show", "--name", app, "--resource-group", "bible-app-rg",
-                      "--type", kind, "--follow"]],
-                )
+                res = self.make(target)
+                self.assertEqual(res.rc, 0, res.text)
+                self.assertEqual(res.argv("bash"), [["scripts/az-logs.sh", *args]])
+                self.assertEqual(res.of("bash")[0].env["CA_RG"], "bible-app-rg")
+
+    def test_log_query_options_reach_the_script_verbatim(self) -> None:
+        res = self.make("az-logs-backend-query", HOURS="6", FILTER="it's \"Chat stream\" $x;y")
+        env = res.of("bash")[0].env
+        self.assertEqual((env["HOURS"], env["FILTER"]), ("6", "it's \"Chat stream\" $x;y"))
 
     def test_image_info_requires_repo_and_tag(self) -> None:
         self.assertNotEqual(self.make("az-image-info").rc, 0)

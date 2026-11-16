@@ -293,6 +293,7 @@ class Settings(BaseSettings):
     # money or call third parties. Independent of the chat limits above.
     rate_limit_search_per_minute: int = 30
     rate_limit_feedback_per_minute: int = 20
+    chat_finalize_rate_limit_per_minute: int = 10  # POST /chat/finalize per IP (BITB-320)
     rate_limit_contact_per_minute: int = 3
     rate_limit_church_per_minute: int = 6
     content_filter_enabled: bool = True
@@ -473,6 +474,14 @@ class Settings(BaseSettings):
     blocked_sample_retention_days: int = 30
     blocked_sample_max_chars: int = 500
 
+    # Feedback / contact-form retention (BITB-329). Ages count from created_at and are never
+    # refreshed. The privacy policy (11 languages) quotes these numbers; a test ties them.
+    # Free text (user_message, assistant_response, comment) is NULLed after the text window;
+    # the rest of a feedback row, and contact submissions, are deleted after the row window.
+    feedback_text_retention_days: int = 30
+    feedback_retention_days: int = 90
+    contact_retention_days: int = 90
+
     # Retrieval-miss insights (BITB-256). Stores only derived signals (topics,
     # language, translation, scores, verse refs) for turns where retrieval came
     # back empty/weak or the reply cited verses outside the retrieved context.
@@ -546,6 +555,18 @@ class Settings(BaseSettings):
         if not 1 <= v <= 90:
             raise ValueError("retrieval_miss_retention_days must be between 1 and 90")
         return v
+
+    @model_validator(mode="after")
+    def validate_feedback_retention(self) -> "Settings":
+        """BITB-329: 1 <= text <= row <= 3650 (text can never outlive its row)."""
+        if not 1 <= self.feedback_text_retention_days <= self.feedback_retention_days <= 3650:
+            raise ValueError(
+                "feedback retention must satisfy 1 <= FEEDBACK_TEXT_RETENTION_DAYS <= "
+                "FEEDBACK_RETENTION_DAYS <= 3650"
+            )
+        if not 1 <= self.contact_retention_days <= 3650:
+            raise ValueError("CONTACT_RETENTION_DAYS must be between 1 and 3650")
+        return self
 
     @field_validator("database_url")
     @classmethod

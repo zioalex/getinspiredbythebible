@@ -26,6 +26,10 @@ set -euo pipefail
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[0;33m'; BLUE='\033[0;34m'; NC='\033[0m'
 
 SCRIPT_NAME="$(basename "$0")"
+# Resolved from this file's own location, never the CWD, so `make` from a
+# subdirectory or a test running from elsewhere reads the same Terraform files.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TF_DIR="${TF_DIR:-$REPO_ROOT/deployment}"
 BACKUP_DIR="${BACKUP_DIR:-backups}"
 LOCAL_CONTAINER="${LOCAL_CONTAINER:-bibledb-restore}"
 LOCAL_PORT="${LOCAL_PORT:-5433}"
@@ -51,6 +55,82 @@ join_alt() {
 require_var() {
   local name="$1"
   [[ -n "${!name:-}" ]] || die "$name is not set — $2"
+}
+
+# --- Terraform-derived defaults ---------------------------------------------
+
+# tf_setting KEY FALLBACK
+# Resolve a production setting without making the operator retype it:
+#   1. KEY = "value" in deployment/terraform.tfvars (comments ignored)
+#   2. the `default = "value"` of variable "KEY" in deployment/variables.tf
+#   3. FALLBACK
+# Used for db_admin_username / db_name so `make db-server-url` builds a URL for
+# the user and database production actually has (bibleadmin/bibleapp), not the
+# local-dev names (bible/bibledb) — a wrong user fails with a misleading
+# "password authentication failed".
+tf_setting() {
+  local key="$1" fallback="$2" val=""
+  if [[ -f "$TF_DIR/terraform.tfvars" ]]; then
+    val="$(sed -nE "s/^[[:space:]]*${key}[[:space:]]*=[[:space:]]*\"([^\"]*)\".*/\1/p" \
+      "$TF_DIR/terraform.tfvars" | tail -n1)"
+  fi
+  if [[ -z "$val" && -f "$TF_DIR/variables.tf" ]]; then
+    val="$(awk -v key="$key" '
+      $0 ~ "^[[:space:]]*variable[[:space:]]+\"" key "\"" { inblk = 1; next }
+      inblk && /^[[:space:]]*variable[[:space:]]/ { inblk = 0 }
+      inblk && match($0, /^[[:space:]]*default[[:space:]]*=[[:space:]]*"[^"]*"/) {
+        v = substr($0, RSTART, RLENGTH); sub(/^[^"]*"/, "", v); sub(/"$/, "", v)
+        print v; exit
+      }' "$TF_DIR/variables.tf")"
+  fi
+  printf '%s' "${val:-$fallback}"
+}
+
+# --- libpq TLS root certificate ---------------------------------------------
+
+# ensure_libpq_sslrootcert URL
+# libpq clients (pg_dump/pg_restore/psql) need a root CA file for
+# sslmode=verify-full|verify-ca; without one they fail with
+#   root certificate file "~/.postgresql/root.crt" does not exist
+# If nothing supplies a root cert, use the OS trust store (PGSSLROOTCERT=system,
+# libpq >= 16) or stop with the one-time setup for older clients. No-op for
+# URLs that do not verify the server certificate, and for asyncpg callers
+# (alembic) — never call this before a command that connects via asyncpg,
+# which would read PGSSLROOTCERT=system as a file name.
+ensure_libpq_sslrootcert() {
+  local url="$1" mode
+  [[ "$url" =~ sslmode=(verify-full|verify-ca) ]] || return 0
+  mode="${BASH_REMATCH[1]}"
+  [[ -z "${PGSSLROOTCERT:-}" ]] || return 0
+  [[ "$url" != *sslrootcert=* ]] || return 0
+  [[ ! -f "${HOME:-}/.postgresql/root.crt" ]] || return 0
+
+  local out major=""
+  if command -v pg_dump >/dev/null 2>&1; then
+    out="$(pg_dump --version 2>/dev/null || true)"
+  elif command -v psql >/dev/null 2>&1; then
+    out="$(psql --version 2>/dev/null || true)"
+  else
+    out=""
+  fi
+  major="$(printf '%s' "$out" | sed -nE 's/^[^)]*\) ([0-9]+).*/\1/p' | head -n1)"
+
+  # libpq refuses sslrootcert=system with the weaker verify-ca ("weak sslmode
+  # "verify-ca" may not be used with sslrootcert=system"), so only verify-full
+  # may use the system store; verify-ca needs a real root.crt.
+  if [[ "$mode" == verify-full && -n "$major" && "$major" -ge 16 ]]; then
+    export PGSSLROOTCERT=system
+    warn "No ~/.postgresql/root.crt: using the system CA store (PGSSLROOTCERT=system, libpq $major)." >&2
+    return 0
+  fi
+
+  die "TLS root certificate not found, and the system CA store cannot be used here (libpq ${major:-unknown}, sslmode=$mode; it needs libpq >= 16 and sslmode=verify-full).
+One-time setup — install the Azure root CAs into ~/.postgresql/root.crt:
+  mkdir -p ~/.postgresql
+  curl -fsSL https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem > ~/.postgresql/root.crt
+  curl -fsSL 'https://www.microsoft.com/pkiops/certs/Microsoft%20RSA%20Root%20Certificate%20Authority%202017.crt' \\
+    | openssl x509 -inform DER >> ~/.postgresql/root.crt
+Or install postgresql-client 16+ (it can use PGSSLROOTCERT=system automatically)."
 }
 
 # --- URL handling -----------------------------------------------------------
@@ -82,7 +162,7 @@ redact_url() {
 require_database_url() {
   [[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL is not set (or pass --url).
 Set it to the database you want to act on, e.g.
-  export DATABASE_URL='postgresql://user@host:5432/bibledb?sslmode=verify-full'
+  export DATABASE_URL='postgresql://user@host:5432/bibleapp?sslmode=verify-full'
 Use PGPASSWORD for the password rather than putting it in the URL."
   DB_URL="$(normalize_libpq_url "$DATABASE_URL")"
   DB_HOST="$(url_host "$DB_URL")"
@@ -129,6 +209,7 @@ cmd_info() {
 cmd_dump() {
   need pg_dump "Install the postgresql-client package."
   require_database_url
+  ensure_libpq_sslrootcert "$DB_URL"
 
   mkdir -p "$BACKUP_DIR"
   local stamp out
@@ -154,6 +235,7 @@ cmd_dump() {
 cmd_verify() {
   need psql "Install the postgresql-client package."
   require_database_url
+  ensure_libpq_sslrootcert "$DB_URL"
 
   log "Verifying $(redact_url "$DB_URL")"
   psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
@@ -362,7 +444,10 @@ cmd_server_url() {
   # sslmode, never ssl — see Rule #1 in docs/MIGRATION_GUIDELINES.md.
   # No password: a PITR copy keeps the source server's admin credentials, and
   # this URL is meant to be pasted into a shell where PGPASSWORD supplies it.
-  echo "postgresql://${DB_USER:-bible}@${fqdn}:5432/${PG_DB:-bibledb}?sslmode=verify-full"
+  local user db
+  user="${DB_USER:-$(tf_setting db_admin_username bibleadmin)}"
+  db="${PG_DB:-$(tf_setting db_name bibleapp)}"
+  echo "postgresql://${user}@${fqdn}:5432/${db}?sslmode=verify-full"
   warn "Password: export PGPASSWORD — a PITR copy keeps the SOURCE server's admin credentials." >&2
   warn "asyncpg and libpq both read PGPASSWORD, so it never needs to go in the URL." >&2
 }
@@ -463,6 +548,7 @@ until this is clean. See docs/MIGRATION_GUIDELINES.md, Stage 1."
 cmd_restore_same_server() {
   need pg_restore "Install the postgresql-client package."
   require_database_url
+  ensure_libpq_sslrootcert "$DB_URL"
   require_var DUMP "the dump file to restore from"
   local dump="$DUMP"
   [[ -f "$dump" ]] || die "Dump file not found: $dump"

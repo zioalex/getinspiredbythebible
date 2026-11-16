@@ -12,6 +12,8 @@ import org.voxquieta.app.data.streaming.toChunkFlow
 import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Conversation
 import org.voxquieta.app.domain.models.FeedbackRating
+import org.voxquieta.app.domain.models.FinalizeRequest
+import org.voxquieta.app.domain.models.FinalizeResult
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.StreamChunk
 import org.voxquieta.app.domain.repositories.ChatRepository
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -37,6 +40,9 @@ class ChatRepositoryImpl @Inject constructor(
         val responseBody = api.chatStream(request.toDto())
         responseBody.toChunkFlow().collect { emit(it.toDomain()) }
     }.flowOn(Dispatchers.IO)
+
+    override suspend fun finalizeMessage(request: FinalizeRequest): FinalizeResult =
+        withContext(Dispatchers.IO) { api.finalizeChat(request.toDto()).toDomain() }
 
     // ── Persistence ───────────────────────────────────────────────────────────
 
