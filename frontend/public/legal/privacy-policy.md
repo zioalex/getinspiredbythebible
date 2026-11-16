@@ -18,8 +18,9 @@ Vox Quieta ("we", "us", "our") is a free Bible inspiration app. Our website is [
   AI service providers (listed below) solely to generate a Scripture-based response and to
   screen it for safety. We do not store your messages on our servers beyond the time needed
   to generate a response, except messages blocked by our safety system, which may be kept for
-  up to 30 days as described under Data Retention.
-- **Feedback ratings**: Optional thumbs-up/thumbs-down ratings you submit on responses.
+  up to 30 days as described under Data Retention. Messages you choose to rate by submitting feedback are kept as described under Feedback.
+- **Feedback**: Optional thumbs-up/thumbs-down ratings you submit on responses, with an optional reason and comment. When you submit feedback, we store your message, the AI's reply and your comment for 30 days, and the rating, reason, message identifier and technical details (model, response time, verse references) for 90 days, only to improve our answers. Your session identifier is stored only as a one-way hash.
+- **Contact form**: If you write to us through the contact form, we store the subject, your message and the email address you give for 90 days, only to answer you. Your session identifier is stored only as a one-way hash, and your browser or device details are not stored.
 
 ### How Your Messages Are Processed by AI
 
@@ -55,7 +56,7 @@ provider's own data-handling practices.
 ### Data We Do NOT Collect
 
 - We do not require account registration.
-- We do not collect your name, email address, or phone number.
+- We do not collect your name, email address, or phone number, except the email address you choose to give in the contact form.
 - We do not track your location.
 - **Approximate country, for emergency numbers only**: If your message suggests that you or someone else may be in danger, we infer your country from your connection (Cloudflare's country header) or your device language, solely to show the right local emergency and crisis phone numbers. It is never stored on our servers; the card itself is saved only with your conversation, on your device. If you pick a different country on the card, that country is sent to us only to look up its numbers and is not stored on our servers.
 - We do not sell your data to third parties.
@@ -63,7 +64,7 @@ provider's own data-handling practices.
 ## Conversation History
 
 Conversation history is stored **locally on your device only** and is never uploaded to our
-servers:
+servers, except a message and reply you choose to rate (see Feedback):
 
 - **Mobile app:** an encrypted on-device database (Room/SQLite).
 - **Web app:** your browser's local storage (IndexedDB), on the device you use.
@@ -74,13 +75,14 @@ with a passphrase only you know, so it stays in your hands even in transit.
 
 ## Third-Party Services
 
-| Service                       | Purpose                                                                      | Privacy Policy                                                          |
-| ----------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Firebase Crashlytics (Google) | Crash reporting                                                              | [policies.google.com/privacy](https://policies.google.com/privacy)      |
-| Firebase Analytics (Google)   | Anonymised usage analytics                                                   | [policies.google.com/privacy](https://policies.google.com/privacy)      |
-| OpenRouter                    | AI response generation and content-safety screening                          | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
-| Azure OpenAI (Microsoft)      | Text embeddings for Scripture search                                         | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
-| OpenAI                        | Backup content-safety screening (only when the primary check is unavailable) | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
+| Service                       | Purpose                                                                                                  | Privacy Policy                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Firebase Crashlytics (Google) | Crash reporting                                                                                          | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| Firebase Analytics (Google)   | Anonymised usage analytics                                                                               | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| OpenRouter                    | AI response generation and content-safety screening                                                      | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
+| Azure OpenAI (Microsoft)      | Text embeddings for Scripture search                                                                     | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
+| OpenAI                        | Backup content-safety screening (only when the primary check is unavailable)                             | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
+| SMTP2GO                       | Email notifications to the operator about feedback and contact messages; they contain no message content | [smtp2go.com/privacy](https://www.smtp2go.com/privacy/)                 |
 
 ## Read Aloud
 
@@ -92,7 +94,7 @@ We count read-aloud use anonymously, by language, browser family and operating s
 
 ## Data Retention
 
-- **Chat messages**: Not retained on our servers, except messages blocked by our safety system (see below).
+- **Chat messages**: Not retained on our servers, except messages blocked by our safety system (see below). Messages you choose to rate by submitting feedback are kept as described under Feedback.
 - **Messages blocked by our safety system**: When our safety system blocks a
   message, a privacy-minimal record may be kept for a short time (up to 30
   days) so we can improve the filter. The record contains the message text
@@ -108,6 +110,8 @@ We count read-aloud use anonymously, by language, browser family and operating s
   identifier. It never contains the text of your message or of the reply,
   and we do not store your IP address, account, or any user-agent string
   with it. These records are used only to improve search quality.
+- **Feedback**: Your message, the AI's reply and your comment are kept for 30 days and then deleted. The rest of the feedback record (rating, reason, message identifier, model, response time, verse references and a one-way hash of the session identifier) is kept for 90 days and then deleted. The notification emails we receive contain no message text.
+- **Contact form messages**: The subject, message, email address you gave and a one-way hash of the session identifier are kept for 90 days and then deleted. They are used only to answer you.
 - **Crash reports & analytics**: Retained by Google for up to 14 months per their standard policy.
 - **Local conversation history**: Stored on your device until you delete it via the app or uninstall the app.
 
@@ -119,10 +123,12 @@ If you are in the European Economic Area, you have the right to:
 - Request deletion of your data.
 - Object to processing of your data.
 
-We do not ask for your name, email or an account, so most requests can be fulfilled by clearing
-your local conversation history within the app. Records of messages
+We do not ask for an account, so most requests can be fulfilled by clearing
+your local conversation history within the app. Feedback and contact-form data can be found and
+deleted on request: send us the message identifier or the approximate date and time you sent it (feedback) or the email address you used
+(contact form) at the address below. Records of messages
 blocked by our safety system are stored without your IP address, account or device details and
-are deleted automatically within 30 days; because they are not linked to you, we usually cannot tell which
+are deleted automatically within 30 days; because they are not linked to your identity, we usually cannot tell which
 record is yours, but you can contact us about them at the address below. For crash/analytics data held by
 Google, please refer to Google's privacy controls at
 [myaccount.google.com](https://myaccount.google.com). For data handled by our AI providers,

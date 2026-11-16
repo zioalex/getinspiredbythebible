@@ -293,7 +293,7 @@
     <string name="contact_bug_expected_label">Comportamento esperado vs. real</string>
     <string name="contact_bug_expected_placeholder">ex. Esperava que o versículo abrisse, mas a app bloqueou</string>
     <string name="contact_message_required">Por favor, insira uma mensagem</string>
-    <string name="contact_privacy_note">Sua mensagem será armazenada para nos ajudar a melhorar o serviço.</string>
+    <string name="contact_privacy_note">Sua mensagem e seu e-mail serão mantidos por 90 dias, apenas para responder a você.</string>
     <string name="contact_send_button">Enviar mensagem</string>
     <string name="contact_success_title">Mensagem enviada com sucesso!</string>
     <string name="contact_success_description">Obrigado por entrar em contato. Analisaremos sua mensagem em breve.</string>

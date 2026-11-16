@@ -296,7 +296,7 @@
     <string name="contact_bug_expected_label">السلوك المتوقع مقابل الفعلي</string>
     <string name="contact_bug_expected_placeholder">مثال: توقعت أن تُفتح الآية، لكن التطبيق توقف</string>
     <string name="contact_message_required">الرجاء إدخال رسالة</string>
-    <string name="contact_privacy_note">ستُخزَّن رسالتك لمساعدتنا في تحسين الخدمة.</string>
+    <string name="contact_privacy_note">سيُحتفَظ برسالتك وبريدك الإلكتروني لمدة 90 يومًا، للرد عليك فقط.</string>
     <string name="contact_send_button">إرسال الرسالة</string>
     <string name="contact_success_title">تم إرسال الرسالة بنجاح!</string>
     <string name="contact_success_description">شكراً لتواصلك معنا. سنراجع رسالتك قريباً.</string>

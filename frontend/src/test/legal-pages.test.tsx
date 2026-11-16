@@ -232,3 +232,183 @@ describe("privacy policy carves blocked messages out of 'not stored' (BITB-326)"
     });
   }
 });
+
+// BITB-329: feedback text, contact-form data and the SMTP2GO notification e-mails are stored /
+// sent, so the policy must disclose them with the retention numbers (30 / 90 / 90 days) in every
+// language. The backend test api/tests/test_feedback_retention.py ties the same numbers to the
+// settings defaults.
+describe("privacy policy discloses feedback, contact form and SMTP2GO (BITB-329)", () => {
+  const feedbackLabel: Record<string, string> = {
+    en: "Feedback",
+    it: "Feedback",
+    de: "Feedback",
+    es: "Valoraciones y comentarios",
+    fr: "Retours et évaluations",
+    pt: "Feedback",
+    ru: "Отзывы",
+    zh: "反馈",
+    ko: "피드백",
+    ar: "الملاحظات",
+    hi: "फ़ीडबैक",
+  };
+  const contactLabel: Record<string, string> = {
+    en: "Contact form",
+    it: "Modulo di contatto",
+    de: "Kontaktformular",
+    es: "Formulario de contacto",
+    fr: "Formulaire de contact",
+    pt: "Formulário de contato",
+    ru: "обратной связи",
+    zh: "联系表单",
+    ko: "문의 양식",
+    ar: "نموذج التواصل",
+    hi: "संपर्क फ़ॉर्म",
+  };
+  const messageIdPhrase: Record<string, string> = {
+    en: "message identifier",
+    it: "identificativo del messaggio",
+    de: "Nachrichten-ID",
+    es: "identificador del mensaje",
+    fr: "identifiant du message",
+    pt: "identificador da mensagem",
+    ru: "идентификатор сообщения",
+    zh: "消息标识符",
+    ko: "메시지 식별자",
+    ar: "معرّف الرسالة",
+    hi: "संदेश आईडी",
+  };
+  const identityPhrase: Record<string, string> = {
+    en: "not linked to your identity",
+    it: "alla tua identità",
+    de: "deiner Identität",
+    es: "a tu identidad",
+    fr: "votre identité",
+    pt: "à sua identidade",
+    ru: "вашей личностью",
+    zh: "您的身份",
+    ko: "귀하의 신원",
+    ar: "بهويتك",
+    hi: "आपकी पहचान",
+  };
+  // The conversation-history paragraph must carve out the rated message/reply (not "never
+  // uploaded" without exception), and the GDPR paragraph must accept a date/time as an
+  // identifier (users cannot see a message id).
+  const historyExceptionPhrase: Record<string, string> = {
+    en: "except a message and reply you choose to rate",
+    it: "salvo un messaggio e la relativa risposta",
+    de: "ausgenommen eine Nachricht und Antwort",
+    es: "salvo un mensaje y su respuesta",
+    fr: "sauf un message et sa réponse",
+    pt: "exceto uma mensagem e a resposta",
+    ru: "за исключением сообщения и ответа",
+    zh: "但您选择评价的消息及回应除外",
+    ko: "평가하기로 선택한 메시지와 답변은 예외",
+    ar: "باستثناء الرسالة والرد",
+    hi: "सिवाय उस संदेश और उत्तर के",
+  };
+  const dateTimePhrase: Record<string, string> = {
+    en: "approximate date and time",
+    it: "data e l'ora approssimative",
+    de: "Datum und ungefähre Uhrzeit",
+    es: "fecha y hora aproximadas",
+    fr: "date et l'heure approximatives",
+    pt: "data e a hora aproximadas",
+    ru: "приблизительные дату и время",
+    zh: "大致日期和时间",
+    ko: "대략적인 날짜와 시간",
+    ar: "التاريخ والوقت التقريبيين",
+    hi: "अनुमानित तिथि और समय",
+  };
+  // The 30 / 90 day numbers as the policy quotes them, per language (digits + unit).
+  const SMTP2GO_URL = "https://www.smtp2go.com/privacy/";
+
+  for (const locale of Object.keys(feedbackLabel)) {
+    const file =
+      locale === "en" ? "privacy-policy.md" : `privacy-policy.${locale}.md`;
+    const raw = readFileSync(join(legalDir, file), "utf8");
+    const bullets = (label: string) =>
+      raw
+        .split(/\n(?=- |\s*\n)/)
+        .filter((b) => b.trimStart().startsWith(`- **${label}**`));
+
+    describe(locale, () => {
+      it("feedback bullets (collected + retention) state 30 and 90 days", () => {
+        const found = bullets(feedbackLabel[locale]);
+        expect(found).toHaveLength(2);
+        for (const b of found) {
+          expect(b).toMatch(/(?<!\d)30(?!\d)/);
+          expect(b).toMatch(/(?<!\d)90(?!\d)/);
+          expect(b).toContain(messageIdPhrase[locale]);
+        }
+      });
+
+      it("contact-form bullets (collected + retention) state 90 days", () => {
+        // Collected bullet ("Contact form") and retention bullet ("Contact form messages").
+        const found = raw.split(/\n(?=- |\s*\n)/).filter((b) => {
+          const m = b.trimStart().match(/^- \*\*([^*]+)\*\*/);
+          return (
+            m !== null &&
+            m[1].toLowerCase().includes(contactLabel[locale].toLowerCase())
+          );
+        });
+        expect(found).toHaveLength(2);
+        for (const b of found) expect(b).toMatch(/(?<!\d)90(?!\d)/);
+      });
+
+      it("carves the contact-form email out of 'we do not collect email'", () => {
+        // The "we do not collect your email" bullet is a plain (non-bold) bullet; it must now
+        // name the contact form as the exception.
+        const stem = contactLabel[locale].toLowerCase();
+        const lines = raw.split("\n").filter((l) => l.startsWith("- "));
+        const carveOut = lines.filter(
+          (l) => !l.startsWith("- **") && l.toLowerCase().includes(stem),
+        );
+        expect(carveOut.length).toBeGreaterThanOrEqual(1);
+      });
+
+      it("has an SMTP2GO row in the third-party table linking its privacy page", () => {
+        const row = raw.split("\n").find((l) => /^\|\s*SMTP2GO\s*\|/.test(l));
+        expect(row).toBeDefined();
+        expect(row).toContain(SMTP2GO_URL);
+      });
+
+      it("GDPR section: feedback/contact data are findable and deletable; blocked records are 'not linked to your identity'", () => {
+        const rights = raw
+          .split(/^## /m)
+          .find(
+            (sec) =>
+              sec.includes("GDPR") ||
+              sec.includes("RGPD") ||
+              sec.includes("DSGVO"),
+          );
+        expect(rights).toBeDefined();
+        expect(rights).toContain(messageIdPhrase[locale]);
+        expect(rights).toContain(identityPhrase[locale]);
+      });
+
+      it("conversation-history section carves out the message and reply you rate", () => {
+        const history = raw
+          .split(/^## /m)
+          .find((x) => x.includes("Room/SQLite") && x.includes("IndexedDB"));
+        expect(history).toBeDefined();
+        expect(history).toContain(historyExceptionPhrase[locale]);
+        expect(history).toContain(feedbackLabel[locale]);
+      });
+
+      it("GDPR section lets users identify feedback by date and time", () => {
+        const rights = raw
+          .split(/^## /m)
+          .find(
+            (x) =>
+              x.includes("GDPR") || x.includes("RGPD") || x.includes("DSGVO"),
+          );
+        expect(rights).toContain(dateTimePhrase[locale]);
+      });
+
+      it("has lastUpdated >= 2026-11-16", () => {
+        const m = raw.match(/^lastUpdated:\s*(\d{4}-\d{2}-\d{2})\s*$/m);
+        expect(m![1] >= "2026-11-16").toBe(true);
+      });
+    });
+  }
+});
