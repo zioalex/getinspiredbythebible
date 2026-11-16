@@ -192,6 +192,10 @@ class TestLooksTruncated:
             "Cut off <!-- VERSES: John 3:16 -->",
             "Cut off <!-- FOLLOWUPS: a|b -->",
             "Cut off <!-- FOLLOWUPS: a|b",
+            # Case/spacing variants count too (BITB-320 verification finding).
+            "Cut off <!--VERSES: John 3:16 -->",
+            "Cut off <!-- followups : a|b -->",
+            "Cut off <!--  Verses:John 3:16-->",
         ],
     )
     def test_trailer_marker_means_complete(self, text):

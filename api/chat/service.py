@@ -293,14 +293,16 @@ class ChatResponse(BaseModel):
 # tail to end of text whatever follows the opener, and a dangling "<!-", "<!" or "<" at the
 # very end; leading whitespace is consumed so the result is right-trimmed.
 _UNTERMINATED_TRAILER = re.compile(r"\s*(?:<!--(?:(?!-->).)*|<(?:!-?)?)\Z", re.DOTALL)
-_TRAILER_MARKERS = ("<!-- VERSES:", "<!-- FOLLOWUPS:")
+# Case/spacing-tolerant, like the clients' strippers (BITB-320 verification): `<!--VERSES:`
+# or `<!-- followups :` still count as the model's end-of-answer trailer.
+_TRAILER_MARKER_RE = re.compile(r"<!--\s*(?:VERSES|FOLLOWUPS)\s*:", re.IGNORECASE)
 _SENTENCE_FINAL = ".!?\u2026\u3002\uff01\uff1f\u061f\u0964"
 _CLOSERS = "\"'\u201d\u2019\u00bb\u300d\u300f\u3011)]\uff09\u3015}*_` "
 
 
 def _looks_truncated(text: str) -> bool:
     """BITB-320: True when a reply has no trailer marker and ends mid-sentence."""
-    if any(marker in text for marker in _TRAILER_MARKERS):
+    if _TRAILER_MARKER_RE.search(text):
         return False
     tail = text.rstrip().rstrip(_CLOSERS)
     return not tail or tail[-1] not in _SENTENCE_FINAL

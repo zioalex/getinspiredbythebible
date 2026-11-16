@@ -1,9 +1,10 @@
 ---
 id: BITB-320
-status: in-progress
+status: in-review
 priority: P1
 size: L
 created: 2026-11-15
+prs: [1299]
 follow_ups: [BITB-321, BITB-327]
 ---
 
@@ -193,19 +194,19 @@ Response 200:
 
 ## Acceptance criteria
 
-- [ ] Backend: finalize contract tests (happy path, trailer chips, LLM chips, LLM failure →
+- [x] Backend: finalize contract tests (happy path, trailer chips, LLM chips, LLM failure →
       no chips, `truncated` cases, 11-language verse extraction, KJV vs WEB, rate limit,
       content filter, 422s). An integration test through `chat_stream()` shows a
       post-processing exception yields `completion` with `degraded: true`. Route tests: the
       disconnect is logged and counted, and the error event after content carries `partial`.
-- [ ] Android: parser test (`error` surfaced). ViewModel tests: EOF without completion, error
+- [x] Android: parser test (`error` surfaced). ViewModel tests: EOF without completion, error
       event, and IOException after content each trigger finalize and merge chips and verses;
       finalize failure keeps the text, marks it interrupted and strips the trailer; Stop does
       not finalize; no content means the old error path. Migration 2→3 test. Compose test for
       the note and Continue.
-- [ ] Web: Vitest for the same scenarios. `npm run lint`, `tsc --noEmit` and the build pass.
-- [ ] Strings present in all 11 locales (Android translation validation, web messages).
-- [ ] `make az-chat-stream-errors` shows `client_disconnected` / `client_finalize`.
+- [x] Web: Vitest for the same scenarios. `npm run lint`, `tsc --noEmit` and the build pass.
+- [x] Strings present in all 11 locales (Android translation validation, web messages).
+- [x] `make az-chat-stream-errors` shows `client_disconnected` / `client_finalize`.
 - [ ] Owner step: after deploy, `make az-chat-stream-errors DAYS=3` shows how often streams
       end early, and on which platform.
 
