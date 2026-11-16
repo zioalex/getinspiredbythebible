@@ -23,6 +23,8 @@ import org.voxquieta.app.data.remote.models.TranslationsResponseDto
 import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Church
 import org.voxquieta.app.domain.models.FeedbackRating
+import org.voxquieta.app.domain.models.FinalizeRequest
+import org.voxquieta.app.domain.models.FinalizeResult
 import org.voxquieta.app.domain.models.Conversation
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.StreamChunk
@@ -115,6 +117,9 @@ class ChatViewModelTest {
         coEvery { repository.saveMessage(any(), any()) } returns Unit
         coEvery { repository.touchConversation(any()) } returns Unit
         coEvery { repository.deleteConversation(any()) } returns Unit
+        // BITB-320: a stream that ends without `completion` is recovered via finalize; the
+        // default stub returns an empty, complete result. Recovery tests override it.
+        coEvery { repository.finalizeMessage(any()) } returns FinalizeResult()
         churchRepository = mockk(relaxed = true)
         contactRepository = mockk(relaxed = true)
         turnstileManager = TurnstileManager()
@@ -3693,5 +3698,268 @@ class ChatViewModelTest {
 
         coVerify { sessionPreferences.setCrisisRegionOverride("AT") }
         coVerify(exactly = 0) { bibleApiService.getCrisisResources(any()) }
+    }
+
+    // ── BITB-320: recovery when a stream ends without `completion` ─────────────
+
+    private fun lastAssistant(): Message =
+        viewModel.uiState.value.messages.last { it.role == Message.Role.ASSISTANT }
+
+    private val recovered = FinalizeResult(
+        versesCited = listOf("John 3:16"),
+        resolvedVerses = listOf(Verse(book = "John", chapter = 3, verse = 16, text = "For God so loved")),
+        correctedMessage = "Corrected body (John 3:16).",
+        followUps = listOf("Tell me more", "Why?"),
+        truncated = false,
+    )
+
+    @Test
+    fun `EOF without completion finalizes and merges chips and verses like a completion`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(type = "metadata", messageId = "11111111-1111-1111-1111-111111111111"),
+            StreamChunk(content = "Body (John 3:16)."),
+        )
+        val slot = slot<FinalizeRequest>()
+        coEvery { repository.finalizeMessage(capture(slot)) } returns recovered
+
+        viewModel.sendMessage("Tell me about love")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { repository.finalizeMessage(any()) }
+        assertEquals("eof", slot.captured.reason)
+        assertEquals("Tell me about love", slot.captured.message)
+        assertEquals("Body (John 3:16).", slot.captured.assistantText)
+        assertEquals("test-session-id", slot.captured.sessionId)
+        assertEquals("11111111-1111-1111-1111-111111111111", slot.captured.messageId)
+
+        val a = lastAssistant()
+        assertEquals("Corrected body (John 3:16).", a.content)
+        assertEquals(listOf("John 3:16"), a.versesCited)
+        assertEquals(listOf("Tell me more", "Why?"), a.followUps)
+        assertTrue(a.verses.any { it.book == "John" && it.chapter == 3 && it.verse == 16 })
+        assertFalse(a.isInterrupted)
+        assertFalse(a.isStreaming)
+        assertEquals(listOf("Tell me more", "Why?"), viewModel.uiState.value.followUps)
+        assertNull(viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `error event after content finalizes with reason error_event and shows no error`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Partial body."),
+            StreamChunk(type = "error", errorMessage = "An unexpected error occurred", partial = true),
+        )
+        val slot = slot<FinalizeRequest>()
+        coEvery { repository.finalizeMessage(capture(slot)) } returns recovered.copy(correctedMessage = null)
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("error_event", slot.captured.reason)
+        val a = lastAssistant()
+        assertEquals("Partial body.", a.content)
+        assertFalse(a.isError)
+        assertEquals(listOf("Tell me more", "Why?"), a.followUps)
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `IOException after content keeps the text and finalizes with reason network_error`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(content = "Half an answ"))
+            throw IOException("connection reset")
+        }
+        val slot = slot<FinalizeRequest>()
+        coEvery { repository.finalizeMessage(capture(slot)) } returns recovered.copy(correctedMessage = null)
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("network_error", slot.captured.reason)
+        assertEquals("Half an answ", slot.captured.assistantText)
+        val a = lastAssistant()
+        assertEquals("Half an answ", a.content) // NOT replaced with an error message
+        assertFalse(a.isError)
+        assertNull(viewModel.uiState.value.error)
+        assertEquals(listOf("Tell me more", "Why?"), a.followUps)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `SocketTimeoutException after content finalizes with reason timeout`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(content = "Half"))
+            throw SocketTimeoutException("Read timed out")
+        }
+        val slot = slot<FinalizeRequest>()
+        coEvery { repository.finalizeMessage(capture(slot)) } returns FinalizeResult()
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("timeout", slot.captured.reason)
+        assertEquals("Half", lastAssistant().content)
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `finalize reporting truncated marks the message interrupted`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = "Cut off in the mid"))
+        coEvery { repository.finalizeMessage(any()) } returns FinalizeResult(truncated = true)
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(lastAssistant().isInterrupted)
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `interrupted flag is persisted with the saved assistant message`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = "Cut off in the mid"))
+        coEvery { repository.finalizeMessage(any()) } returns FinalizeResult(truncated = true)
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            repository.saveMessage(
+                any(),
+                match { it.role == Message.Role.ASSISTANT && it.isInterrupted && it.content == "Cut off in the mid" },
+            )
+        }
+    }
+
+    @Test
+    fun `finalize failing twice keeps the text, marks it interrupted and strips the trailer`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Peace be with you.\n<!-- VERSES: John 14:27 -->\n<!-- FOLLOWUPS: a|b"),
+        )
+        coEvery { repository.finalizeMessage(any()) } throws IOException("offline")
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { repository.finalizeMessage(any()) } // one attempt + one retry
+        val a = lastAssistant()
+        assertEquals("Peace be with you.", a.content)
+        assertTrue(a.isInterrupted)
+        assertFalse(a.isError)
+        assertNull(viewModel.uiState.value.error)
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+    }
+
+    @Test
+    fun `finalize retry waits about 1_5 seconds and a successful retry merges the result`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = "Body."))
+        var calls = 0
+        coEvery { repository.finalizeMessage(any()) } answers {
+            if (++calls == 1) throw IOException("blip") else recovered.copy(correctedMessage = null)
+        }
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(1, calls)
+        assertTrue(viewModel.uiState.value.isLoading) // still recovering, silently
+
+        testDispatcher.scheduler.advanceTimeBy(ChatViewModel.FINALIZE_RETRY_DELAY_MS - 1)
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(1, calls)
+
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(2, calls)
+        val a = lastAssistant()
+        assertEquals(listOf("Tell me more", "Why?"), a.followUps)
+        assertFalse(a.isInterrupted)
+        assertNull(viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `completion received means finalize is never called`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Full answer."),
+            StreamChunk(type = "completion", followUps = listOf("x")),
+        )
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { repository.finalizeMessage(any()) }
+        assertFalse(lastAssistant().isInterrupted)
+    }
+
+    @Test
+    fun `Stop does not finalize and keeps the partial text`() = runTest {
+        every { repository.chatStream(any()) } returns flow {
+            emit(StreamChunk(content = "Partial answer"))
+            awaitCancellation()
+        }
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { repository.finalizeMessage(any()) }
+        val a = lastAssistant()
+        assertEquals("Partial answer", a.content)
+        assertFalse(a.isInterrupted)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `Stop while recovery is running keeps the partial text and resets loading`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = "Partial answer"))
+        coEvery { repository.finalizeMessage(any()) } coAnswers { awaitCancellation() }
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.isLoading) // recovery in flight
+
+        viewModel.cancelStream()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { repository.finalizeMessage(any()) }
+        val a = lastAssistant()
+        assertEquals("Partial answer", a.content)
+        assertFalse(a.isInterrupted)
+        assertFalse(viewModel.uiState.value.isLoading)
+    }
+
+    @Test
+    fun `EOF with no content never finalizes`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(type = "metadata", messageId = "m"))
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { repository.finalizeMessage(any()) }
+    }
+
+    @Test
+    fun `IOException with no content keeps the old error path and never finalizes`() = runTest {
+        every { repository.chatStream(any()) } returns flow { throw IOException("no network") }
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { repository.finalizeMessage(any()) }
+        assertTrue(lastAssistant().isError)
+        assertEquals("Network error. Please check your connection.", viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun `recovered chips are not shown when the follow-ups gate is off but stay on the message`() = runTest {
+        ChatViewModel.followUpsEnabledForTest = false
+        every { repository.chatStream(any()) } returns flowOf(StreamChunk(content = "Body."))
+        coEvery { repository.finalizeMessage(any()) } returns FinalizeResult(followUps = listOf("a", "b"))
+
+        viewModel.sendMessage("Hi")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.followUps.isEmpty())
+        assertEquals(listOf("a", "b"), lastAssistant().followUps)
     }
 }
