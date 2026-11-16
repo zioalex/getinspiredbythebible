@@ -1019,7 +1019,7 @@ db-restore-new-server: ## Azure PITR into a NEW server (usage: make db-restore-n
 db-restore-same-server: ## DESTRUCTIVE — replace an existing database from a dump (usage: DATABASE_URL=... make db-restore-same-server DUMP=...)
 	@$(DB_TOOL) restore-same-server
 
-db-server-url: ## Print the DATABASE_URL for an Azure server (usage: make db-server-url SERVER=... [PG_DB=... DB_USER=...])
+db-server-url: ## Print the DATABASE_URL for an Azure server (usage: make db-server-url SERVER=... [PG_DB=... DB_USER=...]; defaults come from deployment/terraform.tfvars)
 	@SERVER="$(SERVER)" $(DB_TOOL) server-url
 
 db-rehearse-alembic: ## Stage 1 of BITB-089: stamp -> check -> upgrade against a COPY of prod (usage: DATABASE_URL=<copy> PGPASSWORD=... make db-rehearse-alembic)

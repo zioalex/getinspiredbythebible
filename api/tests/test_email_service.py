@@ -332,7 +332,7 @@ _SECRET_CONTACT_MESSAGE = "SECRET-CONTACT-MESSAGE-quux I need pastoral help"
 _SECRET_EMAIL = "secret.sender@example.org"
 _FB_UUID = "3f2b1c9e-8a4d-4e0b-9c1a-5d6e7f8a9b0c"
 _PROD_URL = (
-    "postgresql+asyncpg://bible@bible-app-db-mb0172.postgres.database.azure.com:5432/bibledb"
+    "postgresql+asyncpg://bibleadmin@bible-app-db-mb0172.postgres.database.azure.com:5432/bibleapp"
     "?ssl=require"
 )
 

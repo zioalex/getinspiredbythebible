@@ -162,6 +162,23 @@ contradicts what the backend stores and sends.
       contacts older than 90 days.
 - [ ] Owner step: review the policy text in the 10 translations before merge.
 
+## Fix: db-server-url defaults and TLS root certificate (2026-11-16)
+
+Owner ran the export against production and hit two failures: `make db-server-url` defaulted to user
+`bible` / database `bibledb` (production is `bibleadmin` / `bibleapp`, so `password authentication
+failed for user "bible"`), and `pg_dump`/`psql` with `sslmode=verify-full` failed with
+`root certificate file "~/.postgresql/root.crt" does not exist` until `PGSSLROOTCERT=system` was
+exported. Only `DB_USER=bibleadmin PG_DB=bibleapp` plus that export worked.
+
+- `scripts/db-backup-restore.sh`: `DB_USER`/`PG_DB` now default from `deployment/terraform.tfvars`
+  (`db_admin_username`, `db_name`), then `variables.tf` defaults, then `bibleadmin`/`bibleapp`; env
+  overrides still win; paths resolve from the script location.
+- New `ensure_libpq_sslrootcert` helper (dump, verify, restore-same-server): sets
+  `PGSSLROOTCERT=system` on libpq >= 16 when no root cert is configured, else errors with the
+  Azure root CA install steps.
+- Tests in `api/tests/test_db_backup_restore_script.py`; docs `HOW-TO-EXPORT-FEEDBACK.md` (quick
+  start, prerequisites, troubleshooting) and `HOW-TO-BACKUP-RESTORE-DATABASE.md` updated.
+
 ## Out of scope
 
 - Admin UI. A pg_cron backstop: the in-app sweep runs hourly and at startup, and the export

@@ -11,6 +11,42 @@ See also: [`scripts/export_feedback.py`](../scripts/export_feedback.py),
 [Privacy Policy](../frontend/public/legal/privacy-policy.md) and the sibling how-to
 [HOW-TO-EXPORT-BLOCKED-SAMPLES.md](HOW-TO-EXPORT-BLOCKED-SAMPLES.md).
 
+## Quick start (copy-paste)
+
+Verified against production on 2026-11-16. No `DB_USER` / `PG_DB` overrides are needed:
+`make db-server-url` takes the user and database from `deployment/terraform.tfvars`
+(`db_admin_username` = `bibleadmin`, `db_name` = `bibleapp`); override them with
+`DB_USER=... PG_DB=... make -s db-server-url SERVER=...` only for a differently named server.
+
+```bash
+make az-pg-add-ip
+export PGPASSWORD='<database admin password>'   # the Terraform db_admin_password / TF_VAR_DB_ADMIN_PASSWORD secret
+export DATABASE_URL="$(make -s db-server-url SERVER=bible-app-db-mb0172)"
+make export-feedback ARGS="--message-id <uuid>"          # or --contacts --id <n>, or --since/--until
+make az-pg-remove-ip RULE=bible-app-db-mb0172
+```
+
+### Prerequisites
+
+- `az login` done and the right subscription selected (`az account show`); read access to
+  resource group `bible-app-rg` (`az-pg-add-ip` and `db-server-url` call `az postgres flexible-server`;
+  adding the firewall rule needs Contributor on the server).
+- `make` and the Python environment: `make setup-dev`, or just run `make export-feedback`, whose
+  `install-deps` step creates the venv.
+- The database admin password (`PGPASSWORD`).
+- Certificates: the exporter adds `sslrootcert=system` itself (OS trust store). For `pg_dump`/`psql`
+  (`make db-backup`) the script sets `PGSSLROOTCERT=system` automatically on libpq >= 16 when
+  `~/.postgresql/root.crt` is absent.
+
+One-time setup for libpq older than 16 (`pg_dump --version`): install the Azure root CAs.
+
+```bash
+mkdir -p ~/.postgresql
+curl -fsSL https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem > ~/.postgresql/root.crt
+curl -fsSL 'https://www.microsoft.com/pkiops/certs/Microsoft%20RSA%20Root%20Certificate%20Authority%202017.crt' \
+  | openssl x509 -inform DER >> ~/.postgresql/root.crt
+```
+
 ## What is stored, and for how long
 
 | Data | Table / columns | Kept |
@@ -42,8 +78,8 @@ already filled in for that item, plus the date the text is deleted.
 The production Postgres firewall only admits allow-listed IPs, so allow yours first and
 remove the rule afterwards. Prerequisites: the Azure CLI (`az login` done), `make` and the
 repository's Python environment (`make export-feedback` installs it), and the database admin
-password. The connection verifies the server certificate against the system CA store
-(`sslrootcert=system` is added automatically); set `PGSSLROOTCERT` to use a different CA file.
+password (see the Quick start above for details and certificate behaviour). Set
+`PGSSLROOTCERT` to use a different CA file.
 
 ```bash
 make az-pg-add-ip
@@ -93,6 +129,14 @@ DATABASE_URL=postgresql://... python scripts/export_feedback.py --help
 | `--output FILE` | Write to a file instead of stdout. |
 
 The exporter is read-only (`SELECT` only).
+
+## Troubleshooting
+
+| Error | Cause and fix |
+| ----- | ------------- |
+| `root certificate file ".../.postgresql/root.crt" does not exist` | libpq has no CA file for `sslmode=verify-full`. `export PGSSLROOTCERT=system` (libpq >= 16; `make db-*` does it for you), or do the one-time `root.crt` install above. |
+| `FATAL: password authentication failed for user "bible"` | Old default user. Update to a branch with this fix, or pass `DB_USER=bibleadmin PG_DB=bibleapp` to `make -s db-server-url`; also check `PGPASSWORD` is the admin password. |
+| Connection timeout / hangs | Your IP is not on the firewall: `make az-pg-add-ip` (your IP may have changed; list with `make az-pg-list-rules`). |
 
 ## Answering a privacy request
 
