@@ -16,8 +16,9 @@ Vox Quieta ("noi", "ci", "nostro") è un'app gratuita di ispirazione biblica. Il
 
 ### Dati che fornisci tu
 
-- **Messaggi della chat**: il testo che digiti viene inviato alla nostra API, che lo inoltra a fornitori terzi di servizi di IA (elencati di seguito) esclusivamente per generare una risposta basata sulle Scritture e verificarne la sicurezza. Non conserviamo i tuoi messaggi sui nostri server oltre il tempo necessario a generare la risposta, salvo i messaggi bloccati dal nostro sistema di sicurezza, che possono essere conservati fino a 30 giorni come descritto in «Conservazione dei dati».
-- **Valutazioni del feedback**: le valutazioni opzionali (pollice su/pollice giù) che invii sulle risposte.
+- **Messaggi della chat**: il testo che digiti viene inviato alla nostra API, che lo inoltra a fornitori terzi di servizi di IA (elencati di seguito) esclusivamente per generare una risposta basata sulle Scritture e verificarne la sicurezza. Non conserviamo i tuoi messaggi sui nostri server oltre il tempo necessario a generare la risposta, salvo i messaggi bloccati dal nostro sistema di sicurezza, che possono essere conservati fino a 30 giorni come descritto in «Conservazione dei dati». I messaggi che scegli di valutare inviando un feedback sono conservati come descritto alla voce «Feedback».
+- **Feedback**: le valutazioni opzionali (pollice su/pollice giù) che invii sulle risposte, con un motivo e un commento facoltativi. Quando invii un feedback, conserviamo il tuo messaggio, la risposta dell'IA e il tuo commento per 30 giorni, e la valutazione, il motivo, l'identificativo del messaggio e i dettagli tecnici (modello, tempo di risposta, riferimenti ai versetti) per 90 giorni, al solo scopo di migliorare le nostre risposte. L'identificativo di sessione viene conservato solo come hash unidirezionale.
+- **Modulo di contatto**: se ci scrivi tramite il modulo di contatto, conserviamo l'oggetto, il tuo messaggio e l'indirizzo e-mail che indichi per 90 giorni, al solo scopo di risponderti. L'identificativo di sessione viene conservato solo come hash unidirezionale e i dettagli del tuo browser o dispositivo non vengono memorizzati.
 
 ### Come i tuoi messaggi vengono elaborati dall'IA
 
@@ -37,14 +38,14 @@ Il testo del tuo messaggio viene utilizzato da questi fornitori **esclusivamente
 ### Dati che NON raccogliamo
 
 - Non richiediamo la registrazione di un account.
-- Non raccogliamo nome, indirizzo e-mail o numero di telefono.
+- Non raccogliamo nome, indirizzo e-mail o numero di telefono, salvo l'indirizzo e-mail che scegli di indicare nel modulo di contatto.
 - Non tracciamo la tua posizione.
 - **Paese approssimativo, solo per i numeri di emergenza**: se il tuo messaggio fa pensare che tu o qualcun altro possiate essere in pericolo, deduciamo il tuo paese dalla connessione (l'intestazione del paese di Cloudflare) o dalla lingua del dispositivo, al solo scopo di mostrarti i numeri di emergenza e di supporto locali corretti. Non viene mai memorizzato sui nostri server; la scheda viene salvata solo insieme alla tua conversazione, sul tuo dispositivo. Se scegli un altro paese sulla scheda, quel paese ci viene inviato solo per cercarne i numeri e non viene memorizzato sui nostri server.
 - Non vendiamo i tuoi dati a terze parti.
 
 ## Cronologia delle conversazioni
 
-La cronologia delle conversazioni è archiviata **solo localmente sul tuo dispositivo** e non viene mai caricata sui nostri server:
+La cronologia delle conversazioni è archiviata **solo localmente sul tuo dispositivo** e non viene mai caricata sui nostri server, salvo un messaggio e la relativa risposta che scegli di valutare (vedi «Feedback»):
 
 - **App mobile:** un database cifrato on-device (Room/SQLite).
 - **App web:** l'archiviazione locale del browser (IndexedDB), sul dispositivo che usi.
@@ -53,13 +54,14 @@ Puoi visualizzare, rinominare, eliminare o cancellare questa cronologia in quals
 
 ## Servizi di terze parti
 
-| Servizio                      | Scopo                                                                                                   | Informativa sulla privacy                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Firebase Crashlytics (Google) | Segnalazione di crash                                                                                   | [policies.google.com/privacy](https://policies.google.com/privacy)      |
-| Firebase Analytics (Google)   | Analisi anonima dell'utilizzo                                                                           | [policies.google.com/privacy](https://policies.google.com/privacy)      |
-| OpenRouter                    | Generazione di risposte IA e controllo di sicurezza dei contenuti                                       | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
-| Azure OpenAI (Microsoft)      | Embedding testuali per la ricerca dei passi biblici                                                     | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
-| OpenAI                        | Controllo di sicurezza dei contenuti di riserva (solo quando il controllo principale non è disponibile) | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
+| Servizio                      | Scopo                                                                                                       | Informativa sulla privacy                                               |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Firebase Crashlytics (Google) | Segnalazione di crash                                                                                       | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| Firebase Analytics (Google)   | Analisi anonima dell'utilizzo                                                                               | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| OpenRouter                    | Generazione di risposte IA e controllo di sicurezza dei contenuti                                           | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
+| Azure OpenAI (Microsoft)      | Embedding testuali per la ricerca dei passi biblici                                                         | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
+| OpenAI                        | Controllo di sicurezza dei contenuti di riserva (solo quando il controllo principale non è disponibile)     | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
+| SMTP2GO                       | Notifiche e-mail all'operatore su feedback e messaggi di contatto; non contengono il contenuto dei messaggi | [smtp2go.com/privacy](https://www.smtp2go.com/privacy/)                 |
 
 ## Lettura ad alta voce
 
@@ -71,7 +73,7 @@ Contiamo l'uso della lettura ad alta voce in forma anonima, per lingua, famiglia
 
 ## Conservazione dei dati
 
-- **Messaggi della chat**: non conservati sui nostri server, salvo i messaggi bloccati dal nostro sistema di sicurezza (vedi sotto).
+- **Messaggi della chat**: non conservati sui nostri server, salvo i messaggi bloccati dal nostro sistema di sicurezza (vedi sotto). I messaggi che scegli di valutare inviando un feedback sono conservati come descritto alla voce «Feedback».
 - **Messaggi bloccati dal nostro sistema di sicurezza**: quando il nostro
   sistema di sicurezza blocca un messaggio, può essere conservato un record
   minimo dal punto di vista della privacy per un breve periodo (fino a 30
@@ -91,6 +93,8 @@ Contiamo l'uso della lettura ad alta voce in forma anonima, per lingua, famiglia
   messaggio né della risposta, e non memorizziamo il tuo indirizzo IP, il
   tuo account né alcuna stringa user-agent con esso. Questi record sono
   utilizzati solo per migliorare la qualità della ricerca.
+- **Feedback**: il tuo messaggio, la risposta dell'IA e il tuo commento sono conservati per 30 giorni e poi eliminati. Il resto del record di feedback (valutazione, motivo, identificativo del messaggio, modello, tempo di risposta, riferimenti ai versetti e un hash unidirezionale dell'identificativo di sessione) è conservato per 90 giorni e poi eliminato. Le e-mail di notifica che riceviamo non contengono il testo dei messaggi.
+- **Messaggi del modulo di contatto**: l'oggetto, il messaggio, l'indirizzo e-mail che hai indicato e un hash unidirezionale dell'identificativo di sessione sono conservati per 90 giorni e poi eliminati. Sono usati solo per risponderti.
 - **Segnalazioni di crash e analisi**: conservati da Google fino a 14 mesi secondo la loro policy standard.
 - **Cronologia locale delle conversazioni**: archiviata sul tuo dispositivo fino a quando non la elimini tramite l'app o disinstalli l'app.
 
@@ -102,7 +106,7 @@ Se ti trovi nello Spazio Economico Europeo, hai il diritto di:
 - Richiedere la cancellazione dei tuoi dati.
 - Opporti al trattamento dei tuoi dati.
 
-Non ti chiediamo nome, e-mail o account, quindi la maggior parte delle richieste può essere soddisfatta cancellando la cronologia locale delle conversazioni nell'app. I record dei messaggi bloccati dal nostro sistema di sicurezza sono conservati senza indirizzo IP, account o dati del dispositivo e vengono eliminati automaticamente entro 30 giorni; poiché non sono collegati a te, di solito non possiamo sapere quale record ti appartiene, ma puoi contattarci al riguardo all'indirizzo indicato sotto. Per i dati di crash/analisi detenuti da Google, consulta i controlli sulla privacy di Google su [myaccount.google.com](https://myaccount.google.com). Per i dati trattati dai nostri fornitori di IA, consulta le informative sulla privacy di OpenRouter, Microsoft e OpenAI linkate sopra.
+Non ti chiediamo un account, quindi la maggior parte delle richieste può essere soddisfatta cancellando la cronologia locale delle conversazioni nell'app. I dati del feedback e dei messaggi inviati tramite il modulo di contatto possono essere individuati ed eliminati su richiesta: inviaci l'identificativo del messaggio o la data e l'ora approssimative dell'invio (feedback) o l'indirizzo e-mail che hai usato (modulo di contatto) all'indirizzo indicato sotto. I record dei messaggi bloccati dal nostro sistema di sicurezza sono conservati senza indirizzo IP, account o dati del dispositivo e vengono eliminati automaticamente entro 30 giorni; poiché non sono collegati alla tua identità, di solito non possiamo sapere quale record ti appartiene, ma puoi contattarci al riguardo all'indirizzo indicato sotto. Per i dati di crash/analisi detenuti da Google, consulta i controlli sulla privacy di Google su [myaccount.google.com](https://myaccount.google.com). Per i dati trattati dai nostri fornitori di IA, consulta le informative sulla privacy di OpenRouter, Microsoft e OpenAI linkate sopra.
 
 Per qualsiasi domanda sulla privacy, contattaci a: **<privacy@voxquieta.org>**
 

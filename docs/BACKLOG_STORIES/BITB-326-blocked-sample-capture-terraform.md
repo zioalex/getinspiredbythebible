@@ -1,9 +1,10 @@
 ---
 id: BITB-326
-status: in-review
+status: done
 priority: P2
 size: XS
 created: 2026-11-16
+prs: [1303]
 follow_ups: [BITB-328, BITB-329]
 ---
 

@@ -214,3 +214,205 @@ class TestDestructiveGuards:
         assert "DATABASE_URL" not in result.stderr
         assert "prod.example.com" not in result.stdout + result.stderr
         assert "DUMP is not set" in result.stderr or "docker not found" in result.stderr
+
+
+# --- BITB-329: Terraform-derived defaults and libpq root-cert handling --------
+
+
+def _write_tf(tmp_path: Path, tfvars: str | None, variables: str | None = None) -> Path:
+    d = tmp_path / "deployment"
+    d.mkdir()
+    if tfvars is not None:
+        (d / "terraform.tfvars").write_text(tfvars)
+    if variables is not None:
+        (d / "variables.tf").write_text(variables)
+    return d
+
+
+def _run_server_url(tmp_path: Path, tf_dir: Path, **env) -> subprocess.CompletedProcess:
+    """Run `server-url` with a fake `az` that returns an FQDN."""
+    import os
+
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    az = bindir / "az"
+    az.write_text("#!/bin/sh\necho srv.postgres.database.azure.com\n")
+    az.chmod(0o755)
+    e = {k: v for k, v in os.environ.items() if k not in ("DB_USER", "PG_DB")}
+    e.update(
+        PATH=f"{bindir}:{e['PATH']}",
+        PG_RG="rg",
+        SERVER="srv",
+        TF_DIR=str(tf_dir),
+        **env,
+    )
+    return subprocess.run(
+        ["bash", str(_SCRIPT), "server-url"], capture_output=True, text=True, env=e, cwd="/"
+    )
+
+
+class TestServerUrlDefaults:
+    def test_defaults_come_from_tfvars(self, tmp_path):
+        tf = _write_tf(
+            tmp_path,
+            '# db_admin_username = "commented"\ndb_name_suffix = "nope"\nother_db_name = "nope"\n'
+            'db_admin_username = "alice"  # c\n  db_name="prod_db"\n',
+        )
+        r = _run_server_url(tmp_path, tf)
+        assert r.returncode == 0, r.stderr
+        assert r.stdout.strip() == (
+            "postgresql://alice@srv.postgres.database.azure.com:5432/prod_db?sslmode=verify-full"
+        )
+
+    def test_env_overrides_win(self, tmp_path):
+        tf = _write_tf(tmp_path, 'db_admin_username = "alice"\ndb_name = "prod_db"\n')
+        r = _run_server_url(tmp_path, tf, DB_USER="bob", PG_DB="other")
+        assert r.stdout.strip().startswith("postgresql://bob@")
+        assert "/other?sslmode=verify-full" in r.stdout
+
+    def test_missing_tfvars_falls_back_to_variables_tf_default(self, tmp_path):
+        tf = _write_tf(
+            tmp_path,
+            None,
+            'variable "db_name_suffix" {\n  default = "nope"\n}\n'
+            'variable "db_admin_username" {\n  type = string\n  default = "vtf_user"\n}\n'
+            'variable "db_name" {\n  default = "vtf_db"\n}\n',
+        )
+        r = _run_server_url(tmp_path, tf)
+        assert "postgresql://vtf_user@" in r.stdout and "/vtf_db?" in r.stdout
+
+    def test_missing_everything_falls_back_to_bibleadmin_bibleapp(self, tmp_path):
+        r = _run_server_url(tmp_path, tmp_path / "nonexistent")
+        assert r.returncode == 0, r.stderr
+        assert r.stdout.strip() == (
+            "postgresql://bibleadmin@srv.postgres.database.azure.com:5432/bibleapp"
+            "?sslmode=verify-full"
+        )
+
+    def test_real_repo_tfvars_match_production_names(self):
+        result = _source_and_run("tf_setting db_admin_username x; echo; tf_setting db_name x")
+        assert result.stdout.split() == ["bibleadmin", "bibleapp"]
+
+    def test_default_resolves_regardless_of_cwd(self, tmp_path):
+        import os
+
+        r = subprocess.run(
+            [
+                "bash",
+                "-c",
+                'source "$1" && tf_setting db_name x',
+                "_",
+                str(_SCRIPT),
+            ],
+            capture_output=True,
+            text=True,
+            cwd=str(tmp_path),
+            env={k: v for k, v in os.environ.items() if k != "TF_DIR"},
+        )
+        assert r.stdout == "bibleapp"
+
+
+def _libpq_env(tmp_path: Path, version_out: str | None, *, root_crt=False, preset=None):
+    import os
+
+    home = tmp_path / "home"
+    home.mkdir(exist_ok=True)
+    if root_crt:
+        (home / ".postgresql").mkdir()
+        (home / ".postgresql" / "root.crt").write_text("x")
+    bindir = tmp_path / "fakebin"
+    bindir.mkdir(exist_ok=True)
+    if version_out is not None:
+        pg = bindir / "pg_dump"
+        pg.write_text(f"#!/bin/sh\necho '{version_out}'\n")
+        pg.chmod(0o755)
+    env = {k: v for k, v in os.environ.items() if k != "PGSSLROOTCERT"}
+    env["HOME"] = str(home)
+    # Keep real pg_dump/psql off the PATH so only the fake is seen.
+    env["PATH"] = f"{bindir}:/usr/bin:/bin"
+    if preset:
+        env["PGSSLROOTCERT"] = preset
+    return env
+
+
+def _ensure(env, url="postgresql://u@h:5432/d?sslmode=verify-full"):
+    return subprocess.run(
+        [
+            "bash",
+            "-c",
+            'source "$1" && ensure_libpq_sslrootcert "$2" && echo "CERT=${PGSSLROOTCERT:-}"',
+            "_",
+            str(_SCRIPT),
+            url,
+        ],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
+class TestLibpqRootCert:
+    @pytest.mark.parametrize(
+        "version", ["pg_dump (PostgreSQL) 16.4 (Ubuntu 16.4-1)", "pg_dump (PostgreSQL) 17.2"]
+    )
+    def test_auto_sets_system_on_libpq_16_plus(self, tmp_path, version):
+        r = _ensure(_libpq_env(tmp_path, version))
+        assert r.returncode == 0, r.stderr
+        assert "CERT=system" in r.stdout
+        assert "PGSSLROOTCERT=system" in r.stderr
+
+    def test_not_overridden_when_already_set(self, tmp_path):
+        r = _ensure(_libpq_env(tmp_path, "pg_dump (PostgreSQL) 16.4", preset="/my/ca.pem"))
+        assert "CERT=/my/ca.pem" in r.stdout
+
+    def test_not_set_when_root_crt_exists(self, tmp_path):
+        r = _ensure(_libpq_env(tmp_path, "pg_dump (PostgreSQL) 16.4", root_crt=True))
+        assert r.returncode == 0 and "CERT=\n" in r.stdout + "\n"
+
+    def test_not_set_when_url_has_sslrootcert(self, tmp_path):
+        url = "postgresql://u@h/d?sslmode=verify-full&sslrootcert=/x.pem"
+        r = _ensure(_libpq_env(tmp_path, "pg_dump (PostgreSQL) 16.4"), url)
+        assert r.stdout.strip() == "CERT="
+
+    def test_noop_for_non_verifying_sslmode(self, tmp_path):
+        r = _ensure(
+            _libpq_env(tmp_path, "pg_dump (PostgreSQL) 16.4"), "postgresql://u@h/d?sslmode=require"
+        )
+        assert r.stdout.strip() == "CERT="
+
+    def test_libpq_15_errors_with_install_instructions(self, tmp_path):
+        r = _ensure(_libpq_env(tmp_path, "pg_dump (PostgreSQL) 15.8 (Debian 15.8-1)"))
+        assert r.returncode != 0
+        assert "DigiCertGlobalRootG2.crt.pem" in r.stderr
+        assert "Microsoft%20RSA%20Root%20Certificate%20Authority%202017.crt" in r.stderr
+        assert "~/.postgresql/root.crt" in r.stderr
+
+    def test_verify_ca_never_uses_system_store(self, tmp_path):
+        # libpq >= 16 rejects sslrootcert=system with sslmode=verify-ca.
+        r = _ensure(
+            _libpq_env(tmp_path, "pg_dump (PostgreSQL) 16.4"),
+            "postgresql://u@h:5432/d?sslmode=verify-ca",
+        )
+        assert r.returncode != 0
+        assert "CERT=system" not in r.stdout
+        assert "~/.postgresql/root.crt" in r.stderr
+
+
+def _function_body(name: str) -> str:
+    """Return the shell source of function `name` in the script (up to the closing brace)."""
+    lines = _SCRIPT.read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith(f"{name}()"))
+    end = next(i for i in range(start + 1, len(lines)) if lines[i] == "}")
+    return "\n".join(lines[start : end + 1])
+
+
+class TestRootCertCallSites:
+    """Every remote libpq path ensures a root cert; the asyncpg (alembic) path never does."""
+
+    @pytest.mark.parametrize("func", ["cmd_dump", "cmd_verify", "cmd_restore_same_server"])
+    def test_remote_libpq_commands_ensure_root_cert(self, func):
+        assert 'ensure_libpq_sslrootcert "$DB_URL"' in _function_body(func)
+
+    def test_rehearse_never_sets_system_store(self):
+        # asyncpg reads PGSSLROOTCERT as a file path, so "system" would break alembic.
+        assert "ensure_libpq_sslrootcert" not in _function_body("cmd_rehearse")

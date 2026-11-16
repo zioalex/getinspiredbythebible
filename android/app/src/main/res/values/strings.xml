@@ -301,7 +301,7 @@
     <string name="contact_bug_expected_label">Expected vs. actual behavior</string>
     <string name="contact_bug_expected_placeholder">e.g. Expected the verse to open, but the app froze</string>
     <string name="contact_message_required">Please enter a message</string>
-    <string name="contact_privacy_note">Your message will be stored to help us improve the service.</string>
+    <string name="contact_privacy_note">Your message and email address will be kept for 90 days, only to answer you.</string>
     <string name="contact_send_button">Send Message</string>
     <string name="contact_success_title">Message sent successfully!</string>
     <string name="contact_success_description">Thank you for reaching out. We\'ll review your message soon.</string>

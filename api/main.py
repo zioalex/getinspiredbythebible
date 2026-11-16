@@ -140,7 +140,7 @@ TTL_PURGE_INTERVAL_SECONDS = 60 * 60
 
 
 async def _purge_ttl_samples() -> None:
-    """Best-effort TTL sweep for blocked-message and retrieval-miss samples."""
+    """Best-effort TTL sweep: blocked-message, retrieval-miss, feedback and contact data."""
     try:
         from feedback.blocked_samples import purge_expired_blocked_samples
 
@@ -158,6 +158,15 @@ async def _purge_ttl_samples() -> None:
             logger.info("Purged expired retrieval-miss samples", extra={"deleted": deleted})
     except Exception as e:
         logger.warning("Retrieval-miss purge failed: %s", e)
+
+    try:
+        from feedback.retention import purge_expired_feedback
+
+        counts = await purge_expired_feedback()
+        if any(counts.values()):
+            logger.info("Applied feedback/contact retention", extra=counts)
+    except Exception as e:
+        logger.warning("Feedback retention sweep failed: %s", e)
 
 
 async def _ttl_purge_loop() -> None:
