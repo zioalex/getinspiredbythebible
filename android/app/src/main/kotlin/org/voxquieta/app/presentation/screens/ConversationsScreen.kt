@@ -144,7 +144,8 @@ fun ConversationsScreen(
                                         }
                                     },
                                     onClick = {
-                                        chatViewModel.setLocale(option.code)
+                                        // BITB-331: a language change opens a new chat.
+                                        if (chatViewModel.setLocale(option.code)) onNewConversation()
                                         showLanguageMenu = false
                                     },
                                 )

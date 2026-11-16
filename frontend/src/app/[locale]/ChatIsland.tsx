@@ -82,7 +82,9 @@ import { useKeyboardAwareViewport } from "@/lib/useKeyboardAwareViewport";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import {
-  listConversations,
+  latestConversationForLanguage,
+  consumeFreshChat,
+  markFreshChat,
   getMessages,
   storedToChatMessage,
   saveFullConversation,
@@ -315,39 +317,25 @@ export default function ChatIsland({
     );
   }, []);
 
-  // Restore a conversation on mount. Two sources, in priority order:
-  //   1. A conversation preserved across a language switch. The switch triggers
-  //      router.replace which remounts this page, so we stash messages in
-  //      sessionStorage before navigating and restore them here exactly once.
-  //   2. Otherwise, resume the most-recently-updated conversation from the
-  //      browser-local history store (IndexedDB) so a reload doesn't lose the
-  //      thread. History never leaves the device.
+  // Restore a conversation on mount (BITB-331).
+  //   1. After a language switch (one-shot `vq_fresh_chat` flag set by the
+  //      LanguageSwitcher / suggestion banner) open a NEW chat: rotate the
+  //      session id and resume nothing. The old chat stays in history.
+  //   2. Otherwise resume the most-recently-updated conversation held in the
+  //      ACTIVE UI language from the browser-local store (IndexedDB). Other
+  //      languages and legacy rows without a language are never auto-resumed.
+  //      History never leaves the device.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      try {
-        const raw = sessionStorage.getItem("preservedConversation");
-        if (raw) {
-          sessionStorage.removeItem("preservedConversation");
-          const saved = JSON.parse(raw) as {
-            messages?: ChatMessage[];
-            conversationId?: string;
-          };
-          if (saved.messages && saved.messages.length > 0) {
-            if (!cancelled) setMessages(saved.messages);
-            if (saved.conversationId && !cancelled)
-              setConversationId(saved.conversationId);
-            return;
-          }
-        }
-      } catch {
-        // Corrupt/blocked storage: fall through to the local history store.
+      if (consumeFreshChat()) {
+        if (!cancelled) setSessionId(resetSessionId());
+        return;
       }
 
       try {
-        const list = await listConversations();
-        if (cancelled || list.length === 0) return;
-        const latest = list[0];
+        const latest = await latestConversationForLanguage(locale);
+        if (cancelled || !latest) return;
         const stored = await getMessages(latest.id);
         if (cancelled || stored.length === 0) return;
         setMessages(stored.map(storedToChatMessage));
@@ -359,6 +347,7 @@ export default function ChatIsland({
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only restore
   }, []);
 
   // Auto-save the active conversation to browser-local history whenever a turn
@@ -379,8 +368,9 @@ export default function ChatIsland({
         crisisResources: m.crisisResources,
         follow_ups: m.follow_ups,
       })),
+      locale,
     ).then(() => setHistoryRefresh((n) => n + 1));
-  }, [messages, isLoading, conversationId]);
+  }, [messages, isLoading, conversationId, locale]);
 
   // Save preference, scoped to the active UI locale, when changed (BITB-115).
   const handleTranslationChange = (code: string) => {
@@ -1100,14 +1090,7 @@ export default function ChatIsland({
 
   const handleLanguageSwitch = () => {
     if (!languageSuggestion) return;
-    try {
-      sessionStorage.setItem(
-        "preservedConversation",
-        JSON.stringify({ messages, conversationId }),
-      );
-    } catch {
-      // Storage unavailable: navigate anyway, conversation won't persist.
-    }
+    markFreshChat(); // BITB-331: new language, new chat
     router.replace(pathname, { locale: languageSuggestion });
   };
 
