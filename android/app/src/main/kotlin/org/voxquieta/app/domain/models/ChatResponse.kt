@@ -40,4 +40,30 @@ data class StreamChunk(
     val followUps: List<String> = emptyList(),
     val languageSuggestion: String? = null,
     val crisisResources: CrisisResources? = null,
+    /** BITB-320: text of a `type="error"` event; empty otherwise. */
+    val errorMessage: String = "",
+    /** BITB-320: true on an `error` event sent after content was already streamed. */
+    val partial: Boolean = false,
+)
+
+/** BITB-320: what to send to `chat/finalize` after a stream ended without `completion`. */
+data class FinalizeRequest(
+    val message: String,
+    val assistantText: String,
+    val conversationHistory: List<Message> = emptyList(),
+    val preferredTranslation: String? = null,
+    val language: String? = null,
+    val sessionId: String,
+    val messageId: String? = null,
+    /** "eof" | "error_event" | "network_error" | "timeout". */
+    val reason: String,
+)
+
+/** BITB-320: the recovered completion fields plus whether the reply looks cut off. */
+data class FinalizeResult(
+    val versesCited: List<String> = emptyList(),
+    val resolvedVerses: List<Verse> = emptyList(),
+    val correctedMessage: String? = null,
+    val followUps: List<String> = emptyList(),
+    val truncated: Boolean = false,
 )

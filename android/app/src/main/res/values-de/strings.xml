@@ -219,6 +219,9 @@
     <string name="action_continue_conversation">Diese Unterhaltung fortsetzen</string>
     <string name="action_start_new_session">Neue Sitzung</string>
     <string name="action_retry">Wiederholen</string>
+    <string name="chat_interrupted_note">Diese Antwort wurde unterbrochen</string>
+    <string name="chat_continue_button">Fortsetzen</string>
+    <string name="chat_continue_prompt">Bitte fahre fort</string>
     <string name="action_share_message">Nachricht teilen</string>
     <string name="action_copy_message">Nachricht kopieren</string>
     <string name="action_copied">Kopiert</string>

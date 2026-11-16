@@ -26,7 +26,9 @@ class TurnstileInterceptor @Inject constructor(
         // BITB-247: read-aloud telemetry is fire-and-forget and not Turnstile-gated. Pass it
         // through untouched so it never consumes the user's single-use token, requests a
         // widget reset, or waits for a token.
-        if (original.url.encodedPath.trimEnd('/').endsWith(CLIENT_EVENTS_PATH)) {
+        // BITB-320: chat finalize is the same: the turn it recovers already passed Turnstile.
+        val path = original.url.encodedPath.trimEnd('/')
+        if (UNGATED_PATHS.any { path.endsWith(it) }) {
             return chain.proceed(original)
         }
         // Turnstile-gated endpoints on this backend are all POST requests
@@ -108,6 +110,8 @@ class TurnstileInterceptor @Inject constructor(
 
     companion object {
         const val CLIENT_EVENTS_PATH = "api/v1/client-events"
+        const val CHAT_FINALIZE_PATH = "api/v1/chat/finalize"
+        private val UNGATED_PATHS = listOf(CLIENT_EVENTS_PATH, CHAT_FINALIZE_PATH)
         const val DEFAULT_TOKEN_WAIT_MILLIS: Long = 5_000L
         const val DEFAULT_RETRY_TOKEN_WAIT_MILLIS: Long = 8_000L
     }

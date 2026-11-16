@@ -217,6 +217,9 @@
     <!-- Actions -->
     <string name="action_select_language">भाषा चुनें</string>
     <string name="action_retry">पुनः प्रयास करें</string>
+    <string name="chat_interrupted_note">यह उत्तर बीच में रुक गया</string>
+    <string name="chat_continue_button">जारी रखें</string>
+    <string name="chat_continue_prompt">कृपया जारी रखें</string>
     <string name="action_continue_conversation">यह बातचीत जारी रखें</string>
     <string name="action_start_new_session">नया सत्र</string>
     <string name="action_share_message">संदेश साझा करें</string>

@@ -3,6 +3,8 @@ package org.voxquieta.app.domain.repositories
 import org.voxquieta.app.domain.models.ChatRequest
 import org.voxquieta.app.domain.models.Conversation
 import org.voxquieta.app.domain.models.FeedbackRating
+import org.voxquieta.app.domain.models.FinalizeRequest
+import org.voxquieta.app.domain.models.FinalizeResult
 import org.voxquieta.app.domain.models.Message
 import org.voxquieta.app.domain.models.StreamChunk
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +15,12 @@ interface ChatRepository {
      * The flow completes after the chunk with [StreamChunk.done] == true is emitted.
      */
     fun chatStream(request: ChatRequest): Flow<StreamChunk>
+
+    /**
+     * BITB-320: recover chips and cited verses for a reply whose stream ended without a
+     * `completion` event. Throws on network/HTTP failure; the caller decides about retries.
+     */
+    suspend fun finalizeMessage(request: FinalizeRequest): FinalizeResult
 
     // ── Persistence ───────────────────────────────────────────────────────────
 

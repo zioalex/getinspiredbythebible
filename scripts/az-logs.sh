@@ -140,6 +140,8 @@ cmd_chat_stream_errors() {
     Log_s has 'Content safety violation in chat stream', 'content_safety_block',
     Log_s has 'Llama Guard API returned malformed response shape', 'llama_guard_malformed',
     Log_s has 'Primary Llama Guard model failed', 'llama_guard_primary_failed',
+    Log_s has 'Chat stream client disconnected', 'client_disconnected',
+    Log_s has 'Chat finalize requested', 'client_finalize',
     '')
 | where Signal != ''
 | summarize Count = count() by bin(TimeGenerated, 1h), Signal, RevisionName_s

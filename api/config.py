@@ -293,6 +293,7 @@ class Settings(BaseSettings):
     # money or call third parties. Independent of the chat limits above.
     rate_limit_search_per_minute: int = 30
     rate_limit_feedback_per_minute: int = 20
+    chat_finalize_rate_limit_per_minute: int = 10  # POST /chat/finalize per IP (BITB-320)
     rate_limit_contact_per_minute: int = 3
     rate_limit_church_per_minute: int = 6
     content_filter_enabled: bool = True

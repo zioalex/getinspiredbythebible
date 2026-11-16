@@ -217,6 +217,9 @@
     <!-- Actions -->
     <string name="action_select_language">Selecionar idioma</string>
     <string name="action_retry">Tentar novamente</string>
+    <string name="chat_interrupted_note">Esta resposta foi interrompida</string>
+    <string name="chat_continue_button">Continuar</string>
+    <string name="chat_continue_prompt">Por favor, continue</string>
     <string name="action_continue_conversation">Continuar esta conversa</string>
     <string name="action_start_new_session">Nova sessão</string>
     <string name="action_share_message">Compartilhar mensagem</string>

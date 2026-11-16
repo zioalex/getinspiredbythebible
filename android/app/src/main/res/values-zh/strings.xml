@@ -217,6 +217,9 @@
     <!-- Actions -->
     <string name="action_select_language">选择语言</string>
     <string name="action_retry">重试</string>
+    <string name="chat_interrupted_note">此回复已中断</string>
+    <string name="chat_continue_button">继续</string>
+    <string name="chat_continue_prompt">请继续</string>
     <string name="action_continue_conversation">继续此对话</string>
     <string name="action_start_new_session">新会话</string>
     <string name="action_share_message">分享消息</string>

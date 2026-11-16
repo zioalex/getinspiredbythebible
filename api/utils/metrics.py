@@ -113,6 +113,21 @@ chat_follow_ups_suppressed_counter = meter.create_counter(
     unit="1",
 )  # attributes: reason, language, history_turns
 
+# BITB-320: a streamed reply whose final `completion` event never reached the client.
+# `chat.stream.client_disconnected` counts server-observed disconnects before completion;
+# `chat.finalize.requests` counts client recovery calls (reason/platform/outcome).
+chat_stream_client_disconnected_counter = meter.create_counter(
+    name="chat.stream.client_disconnected",
+    description="Chat streams cancelled/closed by the client before the completion event",
+    unit="1",
+)
+
+chat_finalize_counter = meter.create_counter(
+    name="chat.finalize.requests",
+    description="Client recovery calls to POST /chat/finalize after a stream ended early",
+    unit="1",
+)  # attributes: reason, platform, outcome (ok|llm_chips|no_chips|error)
+
 # ── Translation data-coverage diagnostics (BITB-054) ──────────────────────
 # A supported UI language whose backing translation has zero verses (never
 # loaded) or zero embeddings (loaded but unsearchable) degrades silently —

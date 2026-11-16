@@ -219,6 +219,9 @@
     <string name="action_continue_conversation">متابعة هذه المحادثة</string>
     <string name="action_start_new_session">جلسة جديدة</string>
     <string name="action_retry">إعادة المحاولة</string>
+    <string name="chat_interrupted_note">انقطعت هذه الإجابة</string>
+    <string name="chat_continue_button">متابعة</string>
+    <string name="chat_continue_prompt">أكمل من فضلك</string>
     <string name="action_share_message">مشاركة الرسالة</string>
     <string name="action_copy_message">نسخ الرسالة</string>
     <string name="action_copied">تم النسخ</string>

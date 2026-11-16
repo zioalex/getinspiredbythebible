@@ -220,6 +220,9 @@
     <!-- Actions -->
     <string name="action_select_language">Select language</string>
     <string name="action_retry">Retry</string>
+    <string name="chat_interrupted_note">This response was interrupted</string>
+    <string name="chat_continue_button">Continue</string>
+    <string name="chat_continue_prompt">Please continue</string>
     <string name="action_continue_conversation">Continue this conversation</string>
     <string name="action_start_new_session">Start New Session</string>
     <string name="action_share_message">Share message</string>
