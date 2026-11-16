@@ -264,12 +264,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--since",
         type=parse_date,
-        help="Include rows created at or after this date (YYYY-MM-DD).",
+        help="Include rows created at or after this time (YYYY-MM-DD or ISO 8601; UTC if no zone).",
     )
     parser.add_argument(
         "--until",
         type=parse_date,
-        help="Exclude rows created at or after this date (YYYY-MM-DD).",
+        help="Exclude rows created at or after this time (YYYY-MM-DD or ISO 8601; UTC if no zone).",
     )
     parser.add_argument("--limit", type=int, help="Maximum rows to return.")
     parser.add_argument(

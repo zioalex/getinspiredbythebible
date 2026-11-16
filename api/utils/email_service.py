@@ -90,7 +90,8 @@ def _howto_hint(server_known: bool) -> str:
         ""
         if server_known
         else "Replace <server> with the production server name: run `make az-pg-list-rules` "
-        "(the rule name is the server name), or check deployment/terraform.tfvars."
+        "(the rule name is the server name); it is bible-app-db-<resource_suffix>, with "
+        "resource_suffix from deployment/terraform.tfvars."
     )
 
 
