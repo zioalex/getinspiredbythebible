@@ -893,6 +893,27 @@ Rules:
   comment entirely rather than write a generic one like "Tell me more"."""
 
 
+FOLLOW_UPS_ONLY_PROMPT = """You write suggested next questions for a Bible study chat.
+You will be given the user's last message and the assistant's answer. Output ONLY
+one HTML comment, on a single line, listing 2-3 natural next questions THIS USER
+might ask next, in exactly this format:
+<!-- FOLLOWUPS: question one|question two|question three -->
+Rules:
+- Separate suggestions with "|". Write 2 or 3 -- never 1, never more than 3.
+- Write them as the USER would say them, in first person, entirely in {language_name}.
+- Each suggestion must be short (roughly 60 characters), plain text, no markdown.
+- Make them genuinely different from each other and from what was just asked.
+- Never invent or reference a Bible verse that is not already part of the answer.
+- If nothing offers a good next question, output nothing at all.
+- Output nothing except the comment."""
+
+
+def get_follow_ups_only_prompt(language_code: str = "en") -> str:
+    """System prompt for the BITB-320 finalize chip call: FOLLOWUPS trailer only (BITB-320)."""
+    language_name = LANGUAGE_NAMES.get(language_code, LANGUAGE_NAMES.get("en"))
+    return FOLLOW_UPS_ONLY_PROMPT.format(language_name=language_name)
+
+
 # ---------------------------------------------------------------------------
 # Cultural pastoral-register addenda (BITB-151)
 # ---------------------------------------------------------------------------

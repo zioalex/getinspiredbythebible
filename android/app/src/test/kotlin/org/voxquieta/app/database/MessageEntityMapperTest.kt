@@ -241,4 +241,27 @@ class MessageEntityMapperTest {
         assertEquals(null, domain.crisisResources)
         assertEquals("Stored", domain.content)
     }
+
+    // ── BITB-320: interrupted flag round-trips through Room ───────────────────
+
+    @Test
+    fun `interrupted flag survives Message to entity and back`() {
+        val message = Message(
+            id = "m-int",
+            role = Message.Role.ASSISTANT,
+            content = "Cut off mid",
+            isInterrupted = true,
+        )
+        val entity = message.toEntity(conversationId)
+        assertTrue(entity.interrupted)
+        assertTrue(entity.toDomain().isInterrupted)
+    }
+
+    @Test
+    fun `ordinary message is not interrupted`() {
+        val entity = Message(id = "m-ok", role = Message.Role.ASSISTANT, content = "Done.")
+            .toEntity(conversationId)
+        assertFalse(entity.interrupted)
+        assertFalse(entity.toDomain().isInterrupted)
+    }
 }

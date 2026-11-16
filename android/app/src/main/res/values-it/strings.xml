@@ -217,6 +217,9 @@
     <!-- Actions -->
     <string name="action_select_language">Seleziona lingua</string>
     <string name="action_retry">Riprova</string>
+    <string name="chat_interrupted_note">Questa risposta è stata interrotta</string>
+    <string name="chat_continue_button">Continua</string>
+    <string name="chat_continue_prompt">Per favore, continua</string>
     <string name="action_continue_conversation">Continua questa conversazione</string>
     <string name="action_start_new_session">Nuova sessione</string>
     <string name="action_share_message">Condividi messaggio</string>
@@ -290,7 +293,7 @@
     <string name="contact_bug_expected_label">Comportamento atteso vs. effettivo</string>
     <string name="contact_bug_expected_placeholder">es. Mi aspettavo che il versetto si aprisse, ma l’app si è bloccata</string>
     <string name="contact_message_required">Inserisci un messaggio</string>
-    <string name="contact_privacy_note">Il tuo messaggio verrà archiviato per aiutarci a migliorare il servizio.</string>
+    <string name="contact_privacy_note">Il tuo messaggio e il tuo indirizzo e-mail verranno conservati per 90 giorni, solo per risponderti.</string>
     <string name="contact_send_button">Invia messaggio</string>
     <string name="contact_success_title">Messaggio inviato con successo!</string>
     <string name="contact_success_description">Grazie per averci contattato. Esamineremo il tuo messaggio a breve.</string>

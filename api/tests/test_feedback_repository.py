@@ -129,3 +129,63 @@ async def test_get_feedback_by_message_id_invalid_uuid_raises():
         await repo.get_feedback_by_message_id("not-a-uuid")
 
     db.execute.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# BITB-329: only a one-way session hash is stored; contact user agents are not
+# ---------------------------------------------------------------------------
+
+
+def _saved_row(db):
+    return db.add.call_args.args[0]
+
+
+def _db():
+    db = MagicMock()
+    db.add = MagicMock()
+    db.commit = AsyncMock()
+    db.refresh = AsyncMock()
+    return db
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("session_id", ["sess-123", "日本語-é", "x" * 128])
+async def test_save_feedback_stores_hash_not_raw_session_id(session_id):
+    import hashlib
+
+    from feedback.blocked_samples import _hash_session_id
+
+    request = _make_feedback_request().model_copy(update={"session_id": session_id})
+    db = _db()
+    await FeedbackRepository(db).save_feedback(request)
+
+    stored = _saved_row(db).session_id
+    assert stored == hashlib.sha256(session_id.encode("utf-8")).hexdigest()
+    assert stored == _hash_session_id(session_id)  # same digest as blocked samples
+    assert session_id not in stored
+
+
+@pytest.mark.asyncio
+async def test_save_contact_stores_hash_and_no_user_agent():
+    from feedback.blocked_samples import _hash_session_id
+
+    request = _make_contact_request().model_copy(
+        update={"session_id": "sess-abc", "user_agent": "Mozilla/5.0 Chrome/120"}
+    )
+    db = _db()
+    await FeedbackRepository(db).save_contact(request)
+
+    row = _saved_row(db)
+    assert row.session_id == _hash_session_id("sess-abc")
+    assert row.user_agent is None
+
+
+@pytest.mark.asyncio
+async def test_missing_session_id_stays_null():
+    db = _db()
+    await FeedbackRepository(db).save_feedback(_make_feedback_request())
+    assert _saved_row(db).session_id is None
+
+    db = _db()
+    await FeedbackRepository(db).save_contact(_make_contact_request())
+    assert _saved_row(db).session_id is None

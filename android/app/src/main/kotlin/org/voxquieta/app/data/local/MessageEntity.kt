@@ -1,5 +1,6 @@
 package org.voxquieta.app.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -38,4 +39,9 @@ data class MessageEntity(
      * written before DB version 2.
      */
     val crisisJson: String? = null,
+    /**
+     * BITB-320: the reply was cut off and offers a Continue button. Rows written before DB
+     * version 3 read as `false` (column default 0).
+     */
+    @ColumnInfo(defaultValue = "0") val interrupted: Boolean = false,
 )

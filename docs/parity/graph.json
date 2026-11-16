@@ -187,6 +187,54 @@
     },
     {
       "evidence": [
+        "android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt",
+        "android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt"
+      ],
+      "from": "capability:chat-stream-recovery",
+      "kind": "parity",
+      "status": "synced",
+      "story": "BITB-320",
+      "to": "client:android"
+    },
+    {
+      "evidence": [
+        "api/routes/chat.py",
+        "api/chat/service.py",
+        "api/tests/test_chat_finalize.py"
+      ],
+      "from": "capability:chat-stream-recovery",
+      "kind": "parity",
+      "note": "POST /api/v1/chat/finalize, degraded completion, partial error events, disconnect log + counters.",
+      "status": "synced",
+      "story": "BITB-320",
+      "to": "client:api"
+    },
+    {
+      "from": "capability:chat-stream-recovery",
+      "kind": "parity",
+      "note": "Tier 1 streaming chat must implement the same recovery contract.",
+      "status": "obligated",
+      "story": "BITB-087",
+      "to": "client:ios"
+    },
+    {
+      "evidence": [
+        "frontend/src/lib/api.ts",
+        "frontend/src/app/[locale]/ChatIsland.tsx"
+      ],
+      "from": "capability:chat-stream-recovery",
+      "kind": "parity",
+      "status": "synced",
+      "story": "BITB-320",
+      "to": "client:web"
+    },
+    {
+      "from": "capability:chat-stream-recovery",
+      "kind": "governed_by",
+      "to": "contract:chat-stream-sse"
+    },
+    {
+      "evidence": [
         "android/app/src/main/kotlin/org/voxquieta/app/data/remote/models/ChatRequestDto.kt",
         "android/app/src/main/kotlin/org/voxquieta/app/data/streaming/EventSourceParser.kt:54-79"
       ],
@@ -1579,6 +1627,13 @@
       "label": "Chapter reading view"
     },
     {
+      "description": "When a reply ends without its `completion` event (dropped connection, error event after content), the client keeps the received text, calls POST /api/v1/chat/finalize once (plus one silent retry) and merges the returned chips and verse references; if the reply was cut off (`truncated`) or finalize fails it shows an \"interrupted\" note with a Continue button. The server also degrades to a `completion` with `degraded: true` instead of erroring.",
+      "id": "capability:chat-stream-recovery",
+      "ios_tier": 1,
+      "kind": "capability",
+      "label": "Recover chips and verse references when a chat stream ends early (BITB-320)"
+    },
+    {
       "description": "Ask a question and watch a streamed answer render; the request carries include_search + session_id; the metadata event arrives before content; the completion event carries citations, corrections, follow-ups and crisis resources.",
       "id": "capability:chat-streaming",
       "ios_tier": 1,
@@ -1903,9 +1958,9 @@
     "absent": 4,
     "drifted": 1,
     "n/a": 45,
-    "obligated": 19,
+    "obligated": 20,
     "partial": 2,
-    "synced": 69
+    "synced": 72
   },
   "strings_catalog": {
     "android_locales": [
@@ -1920,7 +1975,7 @@
       "ru",
       "zh"
     ],
-    "default_key_count": 291,
+    "default_key_count": 294,
     "missing_by_locale": {},
     "web_locales": [
       "ar",

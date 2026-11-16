@@ -79,6 +79,12 @@ async def test_record_blocked_sample_dedup_increments_hit_count(monkeypatch):
     db.add.assert_not_called()
     db.commit.assert_awaited_once()
 
+    # BITB-326: a repeat bumps the counter but never extends retention -- the privacy
+    # policy promises blocked-message records are kept "up to 30 days".
+    update_stmt = db.execute.await_args_list[1].args[0]
+    updated_columns = {col.name for col in update_stmt._values}
+    assert updated_columns == {"hit_count"}
+
 
 @pytest.mark.asyncio
 async def test_record_blocked_sample_insert_when_no_existing_row(monkeypatch):

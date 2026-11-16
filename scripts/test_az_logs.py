@@ -204,8 +204,13 @@ class AzLogsScriptTests(unittest.TestCase):
             "llm_all_models_exhausted",
             "llama_guard_malformed",
             "content_safety_block",
+            # BITB-320: client-side early stream ends and the recovery calls they trigger.
+            "client_disconnected",
+            "client_finalize",
         ):
             self.assertIn(label, kql)
+        self.assertIn("has 'Chat stream client disconnected'", kql)
+        self.assertIn("has 'Chat finalize requested'", kql)
         bad, _ = self.run_script("chat-stream-errors", DAYS="31")
         self.assertEqual(bad.returncode, 1)
 

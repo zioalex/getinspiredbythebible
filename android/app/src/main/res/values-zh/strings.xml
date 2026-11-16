@@ -217,6 +217,9 @@
     <!-- Actions -->
     <string name="action_select_language">选择语言</string>
     <string name="action_retry">重试</string>
+    <string name="chat_interrupted_note">此回复已中断</string>
+    <string name="chat_continue_button">继续</string>
+    <string name="chat_continue_prompt">请继续</string>
     <string name="action_continue_conversation">继续此对话</string>
     <string name="action_start_new_session">新会话</string>
     <string name="action_share_message">分享消息</string>
@@ -288,7 +291,7 @@
     <string name="contact_bug_expected_label">预期行为与实际行为</string>
     <string name="contact_bug_expected_placeholder">例如：预期经文会打开，但应用卡住了</string>
     <string name="contact_message_required">请输入消息</string>
-    <string name="contact_privacy_note">您的消息将被存储以帮助我们改进服务。</string>
+    <string name="contact_privacy_note">您的消息和电子邮件地址将保存 90 天，仅用于回复您。</string>
     <string name="contact_send_button">发送消息</string>
     <string name="contact_success_title">消息发送成功！</string>
     <string name="contact_success_description">感谢您的联系，我们将尽快查看您的消息。</string>

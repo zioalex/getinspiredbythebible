@@ -29,6 +29,7 @@ fun Message.toEntity(
     versesJson = json.encodeToString(verses.map { it.toSerializable() }),
     createdAt = createdAt,
     crisisJson = crisisResources?.let { json.encodeToString(it.toDto()) },
+    interrupted = isInterrupted,
 )
 
 /**
@@ -51,6 +52,7 @@ fun MessageEntity.toDomain(): Message = Message(
     },
     isStreaming = false,
     crisisResources = crisisJson?.let { decodeCrisisResources(id, it) },
+    isInterrupted = interrupted,
 )
 
 /**

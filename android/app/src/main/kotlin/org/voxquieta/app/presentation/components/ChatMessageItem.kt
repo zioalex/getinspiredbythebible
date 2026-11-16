@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -67,6 +68,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
@@ -696,6 +699,9 @@ fun ChatMessageItem(
     // BITB-205: reading is paused (position kept); the Listen button then offers "Resume".
     isPaused: Boolean = false,
     onToggleListen: (() -> Unit)? = null,
+    // BITB-320: tap handler for the "Continue" button under an interrupted reply. Pass non-null
+    // only for the latest message; null shows the note without the button.
+    onContinue: (() -> Unit)? = null,
 ) {
     val isUser = message.role == Message.Role.USER
 
@@ -1017,6 +1023,11 @@ fun ChatMessageItem(
                     }
                 }
 
+                // BITB-320: the stream dropped mid-reply; keep the text, offer Continue.
+                if (!isUser && !message.isStreaming && !message.isError && message.isInterrupted) {
+                    InterruptedNote(onContinue = onContinue)
+                }
+
             }
         }
     }
@@ -1037,6 +1048,34 @@ fun ChatMessageItem(
                 onDismissSheet()
             },
         )
+    }
+}
+
+/**
+ * BITB-320: inline "This response was interrupted" note with a **Continue** button.
+ * The note is a polite live region so TalkBack announces it; the button keeps a 48dp touch target.
+ * [onContinue] null hides the button (only the latest message offers it).
+ */
+@Composable
+internal fun InterruptedNote(
+    onContinue: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.padding(top = 4.dp)) {
+        Text(
+            text = stringResource(R.string.chat_interrupted_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        if (onContinue != null) {
+            OutlinedButton(
+                onClick = onContinue,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                Text(text = stringResource(R.string.chat_continue_button))
+            }
+        }
     }
 }
 

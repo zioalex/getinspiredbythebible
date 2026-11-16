@@ -39,6 +39,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
   return {
     streamMessage: vi.fn(),
+    // BITB-320: recovery when a stream ends without `completion`.
+    finalizeMessage: vi.fn().mockRejectedValue(new Error("finalize disabled")),
     getChapter: vi.fn(),
     getTranslations: vi.fn().mockResolvedValue([]),
     getBookNames: vi.fn().mockResolvedValue({}),
@@ -1493,6 +1495,7 @@ describe("smart auto-scroll", () => {
         model: "test-model",
       };
       yield { type: "content" as const, content: "Test response" };
+      yield { type: "completion" as const, verses_cited: [] };
     });
   };
 

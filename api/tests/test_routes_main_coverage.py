@@ -12,7 +12,7 @@ Coverage targets:
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -613,6 +613,41 @@ class TestWarmReadyTranslations:
 
 class TestPurgeTtlSamples:
     """Tests for main.py's _purge_ttl_samples() (blocked + retrieval-miss TTL sweep)."""
+
+    @pytest.fixture(autouse=True)
+    def _no_feedback_sweep(self):
+        """Keep the BITB-329 feedback/contact sweep off the real DB in these tests."""
+        with patch(
+            "feedback.retention.purge_expired_feedback",
+            new_callable=AsyncMock,
+            return_value={"feedback_text_cleared": 0, "feedback_deleted": 0, "contacts_deleted": 0},
+        ) as m:
+            self.feedback_sweep = m
+            yield
+
+    @pytest.mark.asyncio
+    async def test_runs_feedback_retention_and_logs_counts_only(self):
+        from main import _purge_ttl_samples
+
+        counts = {"feedback_text_cleared": 4, "feedback_deleted": 2, "contacts_deleted": 1}
+        self.feedback_sweep.return_value = counts
+        p1, p2, p3 = self._patches()
+        with p1, p2, p3 as mock_logger:
+            await _purge_ttl_samples()
+
+        self.feedback_sweep.assert_awaited_once()
+        mock_logger.info.assert_any_call("Applied feedback/contact retention", extra=counts)
+
+    @pytest.mark.asyncio
+    async def test_feedback_retention_failure_does_not_stop_the_sweep(self):
+        from main import _purge_ttl_samples
+
+        self.feedback_sweep.side_effect = RuntimeError("db down")
+        p1, p2, p3 = self._patches(blocked=1)
+        with p1, p2, p3 as mock_logger:
+            await _purge_ttl_samples()  # must not raise
+
+        mock_logger.warning.assert_any_call("Feedback retention sweep failed: %s", ANY)
 
     @staticmethod
     def _patches(blocked=0, misses=0, blocked_exc=None, misses_exc=None):

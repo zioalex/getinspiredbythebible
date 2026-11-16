@@ -217,6 +217,9 @@
     <!-- Actions -->
     <string name="action_select_language">언어 선택</string>
     <string name="action_retry">다시 시도</string>
+    <string name="chat_interrupted_note">이 답변이 중단되었습니다</string>
+    <string name="chat_continue_button">계속하기</string>
+    <string name="chat_continue_prompt">계속해 주세요</string>
     <string name="action_continue_conversation">이 대화 계속하기</string>
     <string name="action_start_new_session">새 세션</string>
     <string name="action_share_message">메시지 공유</string>
@@ -288,7 +291,7 @@
     <string name="contact_bug_expected_label">예상 동작 vs. 실제 동작</string>
     <string name="contact_bug_expected_placeholder">예: 구절이 열릴 것으로 예상했지만 앱이 멈춤</string>
     <string name="contact_message_required">메시지를 입력해 주세요</string>
-    <string name="contact_privacy_note">귀하의 메시지는 서비스 개선을 위해 저장됩니다.</string>
+    <string name="contact_privacy_note">귀하의 메시지와 이메일 주소는 90일간 보관되며, 답변 목적으로만 사용됩니다.</string>
     <string name="contact_send_button">메시지 보내기</string>
     <string name="contact_success_title">메시지가 성공적으로 전송되었습니다!</string>
     <string name="contact_success_description">문의해 주셔서 감사합니다. 곧 메시지를 검토하겠습니다.</string>
