@@ -16,8 +16,9 @@ Vox Quieta ("nosotros", "nos", "nuestro") es una aplicación gratuita de inspira
 
 ### Datos que tú proporcionas
 
-- **Mensajes del chat**: el texto que escribes se envía a nuestra API, que lo reenvía a proveedores externos de servicios de IA (indicados más abajo) únicamente para generar una respuesta basada en las Escrituras y comprobar su seguridad. No almacenamos tus mensajes en nuestros servidores más allá del tiempo necesario para generar una respuesta, salvo los mensajes bloqueados por nuestro sistema de seguridad, que pueden conservarse hasta 30 días, como se describe en «Retención de datos».
-- **Valoraciones de comentarios**: valoraciones opcionales de pulgar arriba/pulgar abajo que envías sobre las respuestas.
+- **Mensajes del chat**: el texto que escribes se envía a nuestra API, que lo reenvía a proveedores externos de servicios de IA (indicados más abajo) únicamente para generar una respuesta basada en las Escrituras y comprobar su seguridad. No almacenamos tus mensajes en nuestros servidores más allá del tiempo necesario para generar una respuesta, salvo los mensajes bloqueados por nuestro sistema de seguridad, que pueden conservarse hasta 30 días, como se describe en «Retención de datos». Los mensajes que decides valorar al enviar comentarios se conservan como se describe en «Valoraciones y comentarios».
+- **Valoraciones y comentarios**: valoraciones opcionales de pulgar arriba/pulgar abajo que envías sobre las respuestas, con un motivo y un comentario opcionales. Cuando envías comentarios, conservamos tu mensaje, la respuesta de la IA y tu comentario durante 30 días, y la valoración, el motivo, el identificador del mensaje y datos técnicos (modelo, tiempo de respuesta, referencias de versículos) durante 90 días, únicamente para mejorar nuestras respuestas. Tu identificador de sesión se guarda solo como un hash unidireccional.
+- **Formulario de contacto**: si nos escribes mediante el formulario de contacto, conservamos el asunto, tu mensaje y la dirección de correo electrónico que indiques durante 90 días, únicamente para responderte. Tu identificador de sesión se guarda solo como un hash unidireccional y no almacenamos datos de tu navegador o dispositivo.
 
 ### Cómo la IA procesa tus mensajes
 
@@ -37,7 +38,7 @@ Estos proveedores utilizan el texto de tu mensaje **únicamente** para generar l
 ### Datos que NO recopilamos
 
 - No requerimos registro de cuenta.
-- No recopilamos tu nombre, dirección de correo electrónico ni número de teléfono.
+- No recopilamos tu nombre, dirección de correo electrónico ni número de teléfono, salvo la dirección de correo electrónico que decidas indicar en el formulario de contacto.
 - No rastreamos tu ubicación.
 - **País aproximado, solo para números de emergencia**: si tu mensaje sugiere que tú u otra persona podéis estar en peligro, deducimos tu país a partir de tu conexión (la cabecera de país de Cloudflare) o del idioma de tu dispositivo, únicamente para mostrarte los números de emergencia y de ayuda locales correctos. Nunca se almacena en nuestros servidores; la tarjeta solo se guarda junto con tu conversación, en tu dispositivo. Si eliges otro país en la tarjeta, ese país se nos envía únicamente para buscar sus números y no se almacena en nuestros servidores.
 - No vendemos tus datos a terceros.
@@ -53,13 +54,14 @@ Puedes ver, renombrar, eliminar o borrar este historial en cualquier momento. Ta
 
 ## Servicios de terceros
 
-| Servicio                      | Propósito                                                                                                     | Política de privacidad                                                  |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Firebase Crashlytics (Google) | Informes de fallos                                                                                            | [policies.google.com/privacy](https://policies.google.com/privacy)      |
-| Firebase Analytics (Google)   | Análisis de uso anonimizado                                                                                   | [policies.google.com/privacy](https://policies.google.com/privacy)      |
-| OpenRouter                    | Generación de respuestas de IA y comprobación de seguridad del contenido                                      | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
-| Azure OpenAI (Microsoft)      | Embeddings de texto para la búsqueda de pasajes bíblicos                                                      | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
-| OpenAI                        | Comprobación de seguridad de contenido de respaldo (solo cuando la comprobación principal no está disponible) | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
+| Servicio                      | Propósito                                                                                                                                | Política de privacidad                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Firebase Crashlytics (Google) | Informes de fallos                                                                                                                       | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| Firebase Analytics (Google)   | Análisis de uso anonimizado                                                                                                              | [policies.google.com/privacy](https://policies.google.com/privacy)      |
+| OpenRouter                    | Generación de respuestas de IA y comprobación de seguridad del contenido                                                                 | [openrouter.ai/privacy](https://openrouter.ai/privacy)                  |
+| Azure OpenAI (Microsoft)      | Embeddings de texto para la búsqueda de pasajes bíblicos                                                                                 | [privacy.microsoft.com](https://privacy.microsoft.com)                  |
+| OpenAI                        | Comprobación de seguridad de contenido de respaldo (solo cuando la comprobación principal no está disponible)                            | [openai.com/enterprise-privacy](https://openai.com/enterprise-privacy/) |
+| SMTP2GO                       | Notificaciones por correo electrónico al responsable sobre comentarios y mensajes de contacto; no contienen el contenido de los mensajes | [smtp2go.com/privacy](https://www.smtp2go.com/privacy/)                 |
 
 ## Lectura en voz alta
 
@@ -71,7 +73,7 @@ Contamos el uso de la lectura en voz alta de forma anónima, por idioma, familia
 
 ## Retención de datos
 
-- **Mensajes del chat**: no se conservan en nuestros servidores, salvo los mensajes bloqueados por nuestro sistema de seguridad (ver más abajo).
+- **Mensajes del chat**: no se conservan en nuestros servidores, salvo los mensajes bloqueados por nuestro sistema de seguridad (ver más abajo). Los mensajes que decides valorar al enviar comentarios se conservan como se describe en «Valoraciones y comentarios».
 - **Mensajes bloqueados por nuestro sistema de seguridad**: cuando nuestro
   sistema de seguridad bloquea un mensaje, puede conservarse un registro
   mínimo en cuanto a privacidad durante un breve período (hasta 30 días)
@@ -90,6 +92,8 @@ Contamos el uso de la lectura en voz alta de forma anónima, por idioma, familia
   respuesta, y no almacenamos tu dirección IP, tu cuenta ni ninguna cadena
   user-agent con él. Estos registros se usan solo para mejorar la calidad
   de la búsqueda.
+- **Valoraciones y comentarios**: tu mensaje, la respuesta de la IA y tu comentario se conservan durante 30 días y después se eliminan. El resto del registro (valoración, motivo, identificador del mensaje, modelo, tiempo de respuesta, referencias de versículos y un hash unidireccional del identificador de sesión) se conserva durante 90 días y después se elimina. Los correos de notificación que recibimos no contienen el texto de los mensajes.
+- **Mensajes del formulario de contacto**: el asunto, el mensaje, la dirección de correo electrónico que indicaste y un hash unidireccional del identificador de sesión se conservan durante 90 días y después se eliminan. Se usan únicamente para responderte.
 - **Informes de fallos y análisis**: conservados por Google hasta 14 meses según su política estándar.
 - **Historial local de conversaciones**: almacenado en tu dispositivo hasta que lo elimines mediante la aplicación o desinstales la aplicación.
 
@@ -101,7 +105,7 @@ Si te encuentras en el Espacio Económico Europeo, tienes derecho a:
 - solicitar la eliminación de tus datos,
 - oponerte al tratamiento de tus datos.
 
-No te pedimos nombre, correo electrónico ni cuenta, por lo que la mayoría de las solicitudes pueden atenderse eliminando tu historial de conversaciones local dentro de la aplicación. Los registros de mensajes bloqueados por nuestro sistema de seguridad se guardan sin tu dirección IP, cuenta ni datos del dispositivo y se eliminan automáticamente en un plazo de 30 días; como no están vinculados a ti, normalmente no podemos saber cuál es el tuyo, pero puedes escribirnos al respecto a la dirección indicada abajo. Para los datos de fallos/análisis en manos de Google, consulta los controles de privacidad de Google en [myaccount.google.com](https://myaccount.google.com). Para los datos tratados por nuestros proveedores de IA, consulta las políticas de privacidad de OpenRouter, Microsoft y OpenAI enlazadas más arriba.
+No te pedimos una cuenta, por lo que la mayoría de las solicitudes pueden atenderse eliminando tu historial de conversaciones local dentro de la aplicación. Los datos de comentarios y de mensajes enviados mediante el formulario de contacto pueden localizarse y eliminarse si lo solicitas: envíanos el identificador del mensaje (comentarios) o la dirección de correo electrónico que usaste (formulario de contacto) a la dirección indicada abajo. Los registros de mensajes bloqueados por nuestro sistema de seguridad se guardan sin tu dirección IP, cuenta ni datos del dispositivo y se eliminan automáticamente en un plazo de 30 días; como no están vinculados a tu identidad, normalmente no podemos saber cuál es el tuyo, pero puedes escribirnos al respecto a la dirección indicada abajo. Para los datos de fallos/análisis en manos de Google, consulta los controles de privacidad de Google en [myaccount.google.com](https://myaccount.google.com). Para los datos tratados por nuestros proveedores de IA, consulta las políticas de privacidad de OpenRouter, Microsoft y OpenAI enlazadas más arriba.
 
 Para cualquier pregunta sobre privacidad, contáctanos en: **<privacy@voxquieta.org>**
 

@@ -289,7 +289,7 @@
     <string name="contact_bug_expected_label">अपेक्षित बनाम वास्तविक व्यवहार</string>
     <string name="contact_bug_expected_placeholder">उदा. अपेक्षा थी कि आयत खुलेगी, पर ऐप रुक गया</string>
     <string name="contact_message_required">कृपया एक संदेश दर्ज करें</string>
-    <string name="contact_privacy_note">आपका संदेश सेवा सुधार के लिए संग्रहीत किया जाएगा।</string>
+    <string name="contact_privacy_note">आपका संदेश और ईमेल पता 90 दिनों तक रखा जाएगा, केवल आपको उत्तर देने के लिए।</string>
     <string name="contact_send_button">संदेश भेजें</string>
     <string name="contact_success_title">संदेश सफलतापूर्वक भेजा गया!</string>
     <string name="contact_success_description">संपर्क करने के लिए धन्यवाद। हम जल्द ही आपके संदेश की समीक्षा करेंगे।</string>

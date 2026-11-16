@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from utils.db_retry import run_with_disconnect_retry
 
+from .blocked_samples import _hash_session_id
 from .models import ContactRequest, ContactSubmission, Feedback, FeedbackRequest
 
 
@@ -43,7 +44,8 @@ class FeedbackRepository:
         async def _do_save() -> Feedback:
             feedback = Feedback(
                 message_id=UUID(request.message_id),
-                session_id=request.session_id,
+                # BITB-329: only the one-way hash is stored (same digest as blocked samples).
+                session_id=_hash_session_id(request.session_id),
                 rating=request.rating,
                 comment=request.comment,
                 user_message=request.user_message,
@@ -83,8 +85,9 @@ class FeedbackRepository:
                 email=request.email,
                 subject=request.subject,
                 message=request.message,
-                session_id=request.session_id,
-                user_agent=request.user_agent,
+                session_id=_hash_session_id(request.session_id),
+                # BITB-329: user_agent is no longer stored (the request field is still
+                # accepted and ignored so older clients keep working).
                 status="new",
                 created_at=datetime.now(UTC),
             )

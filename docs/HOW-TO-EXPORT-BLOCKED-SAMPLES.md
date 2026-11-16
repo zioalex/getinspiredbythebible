@@ -5,6 +5,9 @@ privacy-minimal record into the `blocked_message_samples` table so we can
 tune the filter against real traffic. This doc covers how the capture is
 gated and how to retrieve the rows.
 
+Feedback and contact-form messages have their own how-to:
+[HOW-TO-EXPORT-FEEDBACK.md](HOW-TO-EXPORT-FEEDBACK.md).
+
 See also: [`api/feedback/blocked_samples.py`](../api/feedback/blocked_samples.py),
 [`api/feedback/models.py`](../api/feedback/models.py),
 the public [Privacy Policy](../frontend/public/legal/privacy-policy.md).

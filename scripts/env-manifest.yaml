@@ -232,6 +232,26 @@ variables:
     default: "false"
 
   # ---------------------------------------------------------------------------
+  # Feedback / contact-form retention (BITB-329)
+  # `none`: not wired into docker-compose/Terraform; the code defaults apply. The privacy
+  # policy quotes 30 / 90 / 90 days, so only change these together with the policy text.
+  # ---------------------------------------------------------------------------
+  FEEDBACK_TEXT_RETENTION_DAYS:
+    required_in: none
+    description: Days feedback free text (message, AI reply, comment) is kept before it is set to NULL; 1 <= this <= FEEDBACK_RETENTION_DAYS (BITB-329)
+    default: "30"
+
+  FEEDBACK_RETENTION_DAYS:
+    required_in: none
+    description: Days a whole feedback row is kept before it is deleted; at most 3650 (BITB-329)
+    default: "90"
+
+  CONTACT_RETENTION_DAYS:
+    required_in: none
+    description: Days a contact-form submission is kept before it is deleted; 1..3650 (BITB-329)
+    default: "90"
+
+  # ---------------------------------------------------------------------------
   # Retrieval-miss insights (BITB-256)
   # Derived signals only (topics, language, translation, scores, refs); never text.
   # `none`: not wired into docker-compose/Terraform; the code default (off) applies.

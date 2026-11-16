@@ -1,9 +1,10 @@
 ---
 id: BITB-329
-status: in-progress
+status: in-review
 priority: P1
 size: L
 created: 2026-11-16
+prs: [1311]
 ---
 
 # BITB-329: Bound, Minimise and Disclose Stored Feedback Text and Contact-Form Data
@@ -140,21 +141,21 @@ contradicts what the backend stores and sends.
 
 ## Acceptance criteria
 
-- [ ] Retention sweep tests: text cleared at 30 days and not before; feedback rows deleted at 90
+- [x] Retention sweep tests: text cleared at 30 days and not before; feedback rows deleted at 90
       days; contacts deleted at 90 days; younger rows untouched; settings respected; validation
       bounds.
-- [ ] Hashing tests for new writes (same digest as blocked samples) and for migration `r0010`
+- [x] Hashing tests for new writes (same digest as blocked samples) and for migration `r0010`
       (already-hashed values untouched; user_agent cleared). `alembic` up/down on a test DB if
       CI's Alembic job covers it.
-- [ ] Email tests: bodies (text + HTML) contain none of: the user message, the AI reply, the
+- [x] Email tests: bodies (text + HTML) contain none of: the user message, the AI reply, the
       comment, the contact message or the reply email. They contain the exact export commands
       with the id, and the deletion date. No `reply_to`.
-- [ ] Export tool tests (query filters, no expired rows, CLI flags) under `api/tests/`, so CI
+- [x] Export tool tests (query filters, no expired rows, CLI flags) under `api/tests/`, so CI
       runs them.
-- [ ] `legal-pages.test.tsx`: feedback, contact and SMTP2GO disclosures plus the retention numbers
+- [x] `legal-pages.test.tsx`: feedback, contact and SMTP2GO disclosures plus the retention numbers
       in all 11 languages. A backend test ties the policy numbers to the settings. Both fail on
       the current policy.
-- [ ] `make test-makefile` audit (`scripts/make_target_audit.json`, `docs/MAKE_TARGET_AUDIT.md`)
+- [x] `make test-makefile` audit (`scripts/make_target_audit.json`, `docs/MAKE_TARGET_AUDIT.md`)
       updated for `export-feedback`.
 - [ ] Owner step: **before the first deploy**, export anything worth keeping. The first sweep
       clears feedback text older than 30 days and deletes feedback older than 90 days and

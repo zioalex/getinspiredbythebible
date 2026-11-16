@@ -12,7 +12,7 @@
 	parity-export parity-check parity-registry-check \
 	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
 	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
-	validate-env validate-env-strict export-blocked-samples \
+	validate-env validate-env-strict export-blocked-samples export-feedback \
 	clean clean-all fix-permissions update-baseline \
 	check-env-production check-local-api-url \
 	docker-up docker-up-gpu docker-up-dev docker-up-dev-gpu docker-up-prod docker-up-prod-gpu \
@@ -499,6 +499,9 @@ validate-env-strict: install-deps ## Validate env vars (strict mode - warnings a
 
 export-blocked-samples: install-deps ## Export captured blocked-message samples (read-only). Usage: make export-blocked-samples ARGS="--format csv --since 2026-05-01". Requires DATABASE_URL.
 	@$(PYTHON) scripts/export_blocked_samples.py $(ARGS)
+
+export-feedback: install-deps ## Export feedback / contact-form rows WITH text while it exists (read-only). Usage: make export-feedback ARGS="--message-id <uuid>" or ARGS="--contacts --id 12". Requires DATABASE_URL; see docs/HOW-TO-EXPORT-FEEDBACK.md.
+	@$(PYTHON) scripts/export_feedback.py $(ARGS)
 
 clean: ## Clean build artifacts and caches
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"

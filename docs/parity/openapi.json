@@ -485,7 +485,7 @@
                 "type": "null"
               }
             ],
-            "description": "Browser/device info for bug reports",
+            "description": "Accepted for old clients, ignored and never stored (BITB-329)",
             "title": "User Agent"
           }
         },
@@ -1244,7 +1244,7 @@
     },
     "/api/v1/feedback": {
       "post": {
-        "description": "Submit feedback for a chat message (thumbs up/down).\n\nThis endpoint logs the user's feedback along with the message content\nfor quality improvement purposes.\n\n**Privacy Notice**: By submitting feedback, the user's message and the AI\nresponse will be logged to help improve the service.",
+        "description": "Submit feedback for a chat message (thumbs up/down).\n\nThis endpoint logs the user's feedback along with the message content\nfor quality improvement purposes.\n\n**Privacy Notice**: By submitting feedback, the user's message, the AI response and\nthe optional comment are stored for 30 days (the rating and message id for 90 days)\nto help improve the service. Notification e-mails carry identifiers only.",
         "operationId": "submit_feedback_api_v1_feedback_post",
         "requestBody": {
           "content": {
