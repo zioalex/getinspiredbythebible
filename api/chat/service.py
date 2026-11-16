@@ -7,13 +7,14 @@ conversation management to create meaningful spiritual dialogues.
 
 import asyncio
 import hashlib
+import re
 import time
 import uuid
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from typing import Any, AsyncIterator, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
@@ -57,6 +58,7 @@ from utils.metrics import (
     chat_clarification_requested_counter,
     chat_crisis_card_shown_counter,
     chat_cultural_tone_applied_counter,
+    chat_finalize_counter,
     chat_follow_ups_suppressed_counter,
     chat_scripture_unavailable_counter,
     chat_verseless_responses_counter,
@@ -86,6 +88,7 @@ from .prompts import (
     detect_intent_prompt,
     get_blocked_response,
     get_compassionate_addendum,
+    get_follow_ups_only_prompt,
     get_pastoral_register_note,
     get_prayer_lookup_prompt,
     get_scripture_unavailable_response,
@@ -165,6 +168,14 @@ class ConversationMessage(BaseModel):
         return v
 
 
+def _trim_history_value(v: Any) -> Any:
+    """Keep only the last ``max_conversation_history`` entries (shared, BITB-296/320)."""
+    if isinstance(v, list):
+        keep = settings.max_conversation_history
+        return v[-keep:] if keep > 0 else []
+    return v
+
+
 class ChatRequest(BaseModel):
     """Request to the chat endpoint."""
 
@@ -199,10 +210,7 @@ class ChatRequest(BaseModel):
         role inside the kept window is a 422; ``len(request.conversation_history)`` is now
         capped at the setting (only used as 0 vs >0 by clarification, plus log fields).
         """
-        if isinstance(v, list):
-            keep = settings.max_conversation_history
-            return v[-keep:] if keep > 0 else []
-        return v
+        return _trim_history_value(v)
 
     @field_validator("region", mode="before")
     @classmethod
@@ -220,6 +228,51 @@ class ChatRequest(BaseModel):
         return stripped
 
 
+class FinalizeRequest(BaseModel):
+    """BITB-320: recover chips + verses for a reply whose ``completion`` event never arrived."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    message: str = Field(..., min_length=1, max_length=settings.max_message_length)
+    assistant_text: str = Field(..., min_length=1, max_length=settings.max_history_message_length)
+    conversation_history: list[ConversationMessage] = []
+    preferred_translation: str | None = None
+    language: str | None = Field(default=None, max_length=10)
+    session_id: str | None = Field(default=None, max_length=64, pattern=r"^[a-zA-Z0-9\-_]+$")
+    message_id: str | None = Field(default=None, max_length=64)
+    reason: Literal["eof", "error_event", "network_error", "timeout"]
+    platform: Literal["web", "android"] = "web"
+
+    @field_validator("conversation_history", mode="before")
+    @classmethod
+    def _trim_history(cls, v: Any) -> Any:
+        """Same BITB-296 tail-trim as ``ChatRequest`` before entry validation."""
+        return _trim_history_value(v)
+
+    @field_validator("message_id", mode="after")
+    @classmethod
+    def _valid_message_id(cls, v: str | None) -> str | None:
+        """Ignore (drop) a malformed message id rather than rejecting the recovery."""
+        if v is None:
+            return None
+        try:
+            return str(uuid.UUID(v))
+        except ValueError:
+            return None
+
+
+class FinalizeResponse(BaseModel):
+    """Same fields as a stream ``completion`` event, plus ``truncated`` (BITB-320)."""
+
+    verses_cited: list[str] = []
+    resolved_verses: list[dict] = []
+    citations: list[dict] = []
+    corrected_message: str | None = None
+    corrections: list[dict] | None = None
+    follow_ups: list[str] | None = None
+    truncated: bool = False
+
+
 class ChatResponse(BaseModel):
     """Response from the chat endpoint."""
 
@@ -233,6 +286,21 @@ class ChatResponse(BaseModel):
     language_suggestion: str | None = None  # Detected language differs from selected UI language
     follow_ups: list[str] = []  # BITB-080: suggested next questions, in the user's voice
     crisis_resources: dict | None = None  # BITB-255: hotline card payload on a crisis turn
+
+
+# BITB-320: a reply cut inside its trailer leaves "<!-- FOLLOWUPS: ..." with no closing "-->".
+_UNTERMINATED_TRAILER = re.compile(r"\s*<!--\s*(?:FOLLOWUPS|VERSES):(?:(?!-->).)*\Z", re.DOTALL)
+_TRAILER_MARKERS = ("<!-- VERSES:", "<!-- FOLLOWUPS:")
+_SENTENCE_FINAL = ".!?\u2026\u3002\uff01\uff1f\u061f\u0964"
+_CLOSERS = "\"'\u201d\u2019\u00bb\u300d\u300f\u3011)]\uff09\u3015}*_` "
+
+
+def _looks_truncated(text: str) -> bool:
+    """BITB-320: True when a reply has no trailer marker and ends mid-sentence."""
+    if any(marker in text for marker in _TRAILER_MARKERS):
+        return False
+    tail = text.rstrip().rstrip(_CLOSERS)
+    return not tail or tail[-1] not in _SENTENCE_FINAL
 
 
 @dataclass
@@ -2068,23 +2136,86 @@ Keep it under 120 words."""
                 timings, "generation", (time.perf_counter() - first_token_at) * 1000, stage_attrs
             )
 
+        # BITB-320: post-generation processing (trailer strip, citation extraction, DB
+        # grounding, follow-up filtering) is one unit shared with ``finalize``. A failure
+        # here must NOT lose the reply's chips/verses: the text already reached the client,
+        # so degrade to a best-effort completion instead of an error event.
+        raw_streamed_response = full_response
+        try:
+            completion, _ = await self._build_completion(
+                raw_streamed_response,
+                request_history=request.conversation_history,
+                scripture_context=scripture_context,
+                translation=translation,
+                language=effective_language,
+                compassionate=safety.compassionate,
+                crisis_suffix=crisis_suffix,
+                include_search=request.include_search,
+                on_grounded=lambda refs: self._retrieval_miss_hook(
+                    request=request,
+                    ctx=scripture_context,
+                    trace=retrieval_trace,
+                    intent=detected_intent,
+                    is_verse_lookup=is_verse_lookup,
+                    language=effective_language,
+                    translation=translation,
+                    cited_refs=refs,
+                    safety=safety,
+                    crisis=crisis,
+                ),
+            )
+        except Exception:
+            logger.exception("Chat stream post-generation failed; sending degraded completion")
+            completion = self._degraded_completion(
+                raw_streamed_response,
+                request_history=request.conversation_history,
+                compassionate=safety.compassionate,
+                crisis_suffix=crisis_suffix,
+            )
+
+        record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
+        logger.info(
+            "chat_stage_timings %s",
+            format_timings(timings),
+            extra={"timings_ms": timings, "stream": True},
+        )
+
+        yield completion
+
+    async def _build_completion(
+        self,
+        raw_text: str,
+        *,
+        request_history: list[ConversationMessage],
+        scripture_context: SearchResults | None,
+        translation: str,
+        language: str,
+        compassionate: bool,
+        crisis_suffix: str = "",
+        include_search: bool = False,
+        on_grounded: Callable[[list], None] | None = None,
+    ) -> tuple[dict, bool]:
+        """Build the ``completion`` payload for a finished reply (shared, BITB-320).
+
+        ``raw_text`` is the reply exactly as streamed (FOLLOWUPS trailer included).
+        Returns ``(payload, trailer_present)``. ``on_grounded`` receives the merged
+        VerseReference list once resolved (retrieval-miss diagnostics hook).
+        """
         # BITB-080: strip the "<!-- FOLLOWUPS: ... -->" trailer (if any) before any
         # downstream consumer sees it -- citation extraction, grounding, and the
         # verse-fabrication filter below must all work against the clean body, never
-        # the raw streamed text. `full_response` is reassigned to that clean body, so
-        # every existing use below it is automatically corrected; `trailer_stripped`
-        # tracks whether the client's already-streamed text needs to be replaced.
-        raw_streamed_response = full_response
-        full_response, follow_up_candidates = split_follow_ups(raw_streamed_response)
-        trailer_stripped = full_response != raw_streamed_response
+        # the raw streamed text. `trailer_stripped` tracks whether the client's
+        # already-streamed text needs to be replaced.
+        full_response, follow_up_candidates = split_follow_ups(raw_text)
+        trailer_stripped = full_response != raw_text
 
-        # Step 5: Extract cited verses (dual-source) and yield completion event
+        # Extract cited verses (dual-source).
         structured = parse_structured_citations(full_response)
         regex_extracted = extract_all_references(full_response)
 
         # Merge and deduplicate (structured takes priority, regex catches misses).
         # Keep the VerseReference objects (not just their string form) so we can
-        # resolve them against the DB below — including verses the LLM cited that
+        # resolve them against the DB below -- including verses the LLM cited that
         # are NOT in the semantic search pool.
         merged_refs: dict[str, object] = {}
         for v in structured:
@@ -2095,46 +2226,31 @@ Keep it under 120 words."""
         verses_cited = list(merged_refs.keys())
 
         # Resolve the cited references to full VerseResult objects so the client
-        # can merge them into its verse panel. Without this, a cited verse that
-        # is outside the semantic pool (common on follow-up questions) never
-        # appears in the "Cited" tab.
+        # can merge them into its verse panel (see completion fields below).
         resolved_verses, corrected_message, corrections = await self._ground_streamed_answer(
             list(merged_refs.values()),
             full_response,
             scripture_context,
             translation,
-            effective_language,
+            language,
         )
 
         # AC2 (BITB-055): emit a business-level SLI when scripture search was
-        # attempted but produced zero DB context AND zero resolved citations —
-        # the exact signature of a silent pipeline failure (e.g. the 2-week
-        # SQL bug that broke all retrieval without any 5xx or user alert).
-        # Off-topic early-returns (include_search=False) are excluded; those
-        # are expected to be verse-less.
+        # attempted but produced zero DB context AND zero resolved citations --
+        # the exact signature of a silent pipeline failure. Off-topic early-returns
+        # (include_search=False) are excluded; those are expected to be verse-less.
         if (
-            request.include_search
+            include_search
             and not (scripture_context and scripture_context.verses)
             and not resolved_verses
         ):
-            chat_verseless_responses_counter.add(1, {"language": effective_language})
+            chat_verseless_responses_counter.add(1, {"language": language})
 
-        # BITB-256: weak/failed retrieval diagnostics. Fire-and-forget (task), so the
-        # completion event below is not delayed by the DB write.
-        self._retrieval_miss_hook(
-            request=request,
-            ctx=scripture_context,
-            trace=retrieval_trace,
-            intent=detected_intent,
-            is_verse_lookup=is_verse_lookup,
-            language=effective_language,
-            translation=translation,
-            cited_refs=list(merged_refs.values()),
-            safety=safety,
-            crisis=crisis,
-        )
+        # BITB-256: weak/failed retrieval diagnostics (fire-and-forget, never raises).
+        if on_grounded is not None:
+            on_grounded(list(merged_refs.values()))
 
-        # Track LLM structured output compliance — helps decide whether to
+        # Track LLM structured output compliance -- helps decide whether to
         # invest in tool/function calling as a more reliable mechanism.
         has_structured = len(structured) > 0
         has_regex = len(regex_extracted) > 0
@@ -2166,8 +2282,6 @@ Keep it under 120 words."""
             "verses_cited": verses_cited,
             "resolved_verses": [v.model_dump() for v in resolved_verses],
         }
-        # Only sent when a quote was rewritten; older clients ignore unknown
-        # fields, so this is backward compatible.
         # Sent whenever the authoritative body differs from what the client already
         # rendered token-by-token -- either grounding rewrote a quote (BITB-053), or
         # a FOLLOWUPS trailer (BITB-080) was stripped from it. `corrections` keeps
@@ -2179,12 +2293,8 @@ Keep it under 120 words."""
                 {"reference": c.reference, "reason": c.reason} for c in corrections
             ]
 
-        # citations (BITB-086): where each verses_cited reference sits in the
-        # text the client actually renders. `corrected_message` is the same
-        # string as `full_response` unless grounding rewrote a quote, so this
-        # is always computed against the authoritative, final text — never
-        # against pre-correction content. Purely additive; older clients
-        # ignore the field and keep linkifying with their own regex.
+        # citations (BITB-086): where each verses_cited reference sits in the text the
+        # client actually renders (post-correction), never pre-correction content.
         completion["citations"] = [
             asdict(span) for span in extract_citation_spans(corrected_message + crisis_suffix)
         ]
@@ -2195,28 +2305,175 @@ Keep it under 120 words."""
         # as unacceptable as one in the answer body itself.
         follow_ups = self._filter_fabricated_follow_ups(
             follow_up_candidates,
-            set(verses_cited) | self._history_cited_refs(request.conversation_history),
-            safety.compassionate,
+            set(verses_cited) | self._history_cited_refs(request_history),
+            compassionate,
         )
         self._record_follow_ups_outcome(
-            enabled=self._wants_follow_ups(safety.compassionate),
+            enabled=self._wants_follow_ups(compassionate),
             trailer_present=trailer_stripped,
             candidates=follow_up_candidates,
             follow_ups=follow_ups,
-            language=effective_language,
-            history=request.conversation_history,
+            language=language,
+            history=request_history,
         )
         if follow_ups:
             completion["follow_ups"] = follow_ups
+        return completion, trailer_stripped
 
-        record_stage(timings, "total", (time.perf_counter() - total_start) * 1000, stage_attrs)
-        logger.info(
-            "chat_stage_timings %s",
-            format_timings(timings),
-            extra={"timings_ms": timings, "stream": True},
+    def _degraded_completion(
+        self,
+        raw_text: str,
+        *,
+        request_history: list[ConversationMessage],
+        compassionate: bool,
+        crisis_suffix: str = "",
+    ) -> dict:
+        """Best-effort ``completion`` when ``_build_completion`` raised (BITB-320).
+
+        Each part is computed in its own ``try`` so one failure cannot lose the others.
+        No DB access: ``resolved_verses`` is empty (clients still linkify ``verses_cited``).
+        """
+        clean = raw_text
+        follow_up_candidates: list[str] = []
+        try:
+            clean, follow_up_candidates = split_follow_ups(raw_text)
+        except Exception:  # noqa: BLE001
+            logger.exception("Degraded completion: trailer split failed")
+        completion: dict = {
+            "type": "completion",
+            "verses_cited": [],
+            "resolved_verses": [],
+            "citations": [],
+            "degraded": True,
+        }
+        try:
+            completion["verses_cited"] = list(
+                dict.fromkeys(str(r) for r in extract_all_references(clean))
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("Degraded completion: reference extraction failed")
+        try:
+            completion["citations"] = [
+                asdict(span) for span in extract_citation_spans(clean + crisis_suffix)
+            ]
+        except Exception:  # noqa: BLE001
+            logger.exception("Degraded completion: citation spans failed")
+        try:
+            follow_ups = self._filter_fabricated_follow_ups(
+                follow_up_candidates,
+                set(completion["verses_cited"]) | self._history_cited_refs(request_history),
+                compassionate,
+            )
+            if follow_ups:
+                completion["follow_ups"] = follow_ups
+        except Exception:  # noqa: BLE001
+            logger.exception("Degraded completion: follow-up filter failed")
+        if clean != raw_text:
+            completion["corrected_message"] = clean + crisis_suffix
+        return completion
+
+    async def finalize(self, req: FinalizeRequest) -> dict:
+        """BITB-320: rebuild the ``completion`` fields for text a client already received.
+
+        Never raises: anything that cannot be computed is omitted (the route returns 200).
+        Verses are always resolved from the DB in the user's translation; client text is
+        never echoed back as scripture. Never logs message or assistant text.
+        """
+        language = req.language if req.language else detect_language(req.message)
+        translation = resolve_translation(req.preferred_translation, language)
+        text = req.assistant_text
+        # A stream cut inside the trailer leaves an unterminated "<!-- FOLLOWUPS: ..." tail;
+        # drop it so it can never be shown. (A complete trailer is handled by split_follow_ups.)
+        stripped_tail = _UNTERMINATED_TRAILER.sub("", text)
+        truncated = _looks_truncated(text)
+        outcome = "ok"
+        try:
+            completion, trailer_present = await self._build_completion(
+                stripped_tail,
+                request_history=req.conversation_history,
+                scripture_context=None,
+                translation=translation,
+                language=language,
+                compassionate=False,
+            )
+        except Exception:
+            logger.exception("Chat finalize: completion build failed; degrading")
+            outcome = "error"
+            completion = self._degraded_completion(
+                stripped_tail, request_history=req.conversation_history, compassionate=False
+            )
+            trailer_present = True
+        completion.pop("type", None)
+        completion.pop("degraded", None)
+
+        if outcome != "error" and not completion.get("follow_ups"):
+            outcome = "no_chips"
+            if not trailer_present and settings.chat_follow_ups_enabled:
+                chips, failed = await self._llm_follow_ups(
+                    req, language, stripped_tail, set(completion["verses_cited"])
+                )
+                if chips:
+                    completion["follow_ups"] = chips
+                    outcome = "llm_chips"
+                elif failed:
+                    outcome = "error"
+
+        if stripped_tail != text and "corrected_message" not in completion:
+            completion["corrected_message"] = split_follow_ups(stripped_tail)[0]
+        completion["truncated"] = truncated
+        chat_finalize_counter.add(
+            1, {"reason": req.reason, "platform": req.platform, "outcome": outcome}
         )
+        logger.warning(
+            "Chat finalize requested",
+            extra={
+                "reason": req.reason,
+                "platform": req.platform,
+                "outcome": outcome,
+                "truncated": truncated,
+                "language": language,
+                "assistant_chars": len(text),
+                "message_id": req.message_id,
+            },
+        )
+        return completion
 
-        yield completion
+    async def _llm_follow_ups(
+        self, req: FinalizeRequest, language: str, clean_text: str, cited: set[str]
+    ) -> tuple[list[str], bool]:
+        """One bounded LLM call for chips when the reply has no trailer (BITB-320).
+
+        Returns ``(chips, failed)``. Skipped on a compassionate/crisis turn (the safety
+        pipeline is re-run on the user's message; any failure there also means no chips).
+        """
+        try:
+            safety = await self._check_content_safety(
+                req.message, language, req.session_id, context="chat finalize"
+            )
+            if not safety.allowed or safety.compassionate:
+                return [], False
+            body = split_follow_ups(clean_text)[0]
+            messages = [
+                ChatMessage(role="system", content=get_follow_ups_only_prompt(language)),
+                ChatMessage(
+                    role="user",
+                    content=f"User message:\n{req.message}\n\nAssistant answer:\n{body}",
+                ),
+            ]
+            response = await self.llm.chat(
+                messages=messages,
+                temperature=0.3,
+                max_tokens=200,
+                model_override=get_model_override_for_language(language),
+            )
+            _, candidates = split_follow_ups(response.content)
+            chips = self._filter_fabricated_follow_ups(
+                candidates, cited | self._history_cited_refs(req.conversation_history), False
+            )
+            return chips, False
+        except Exception as exc:  # noqa: BLE001 - an LLM failure means no chips, never a 5xx
+            logger.warning("Chat finalize: follow-up LLM call failed: %s", type(exc).__name__)
+            return [], True
 
     def _determine_prompt_type(self, is_verse_lookup: bool, prayer_ref) -> str:
         """Determine the appropriate prompt type based on request characteristics."""

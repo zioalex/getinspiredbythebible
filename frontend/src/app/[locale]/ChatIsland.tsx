@@ -26,6 +26,7 @@ import ChurchFinderInlinePrompt from "@/components/ChurchFinderInlinePrompt";
 import FollowUpSuggestions from "@/components/FollowUpSuggestions";
 import CrisisResourcesCard from "@/components/CrisisResourcesCard";
 import { followUpsEnabled } from "@/lib/featureFlags";
+import { stripTrailer, FINALIZE_RETRY_DELAY_MS } from "@/lib/streamRecovery";
 import ChurchFinderModal from "@/components/ChurchFinderModal";
 import ContactForm from "@/components/ContactForm";
 import ContactModal from "@/components/ContactModal";
@@ -34,6 +35,9 @@ import MainMenu from "@/components/MainMenu";
 import LanguageSwitchSuggestion from "@/components/LanguageSwitchSuggestion";
 import {
   streamMessage,
+  finalizeMessage,
+  FinalizeReason,
+  MAX_FINALIZE_ASSISTANT_CHARS,
   Message,
   Verse,
   getChapter,
@@ -105,6 +109,9 @@ interface ChatMessage {
   // BITB-255: crisis contacts card, shown above this assistant bubble. Unlike
   // citations this IS persisted, so the card stays attached to the saved turn.
   crisisResources?: CrisisResources;
+  // BITB-320: the reply was cut off (stream ended early and the server could
+  // not confirm it complete). Live-only; shows a note + Continue button.
+  interrupted?: boolean;
 }
 
 export default function ChatIsland({
@@ -566,93 +573,22 @@ export default function ChatIsland({
         return [...prev, placeholderMessage];
       });
 
-      // Send the active UI locale so the backend replies in it. If the user
-      // types in a different language the backend returns a language_suggestion
-      // and we surface a dismissible switch banner.
-      for await (const chunk of streamMessage(userMessageContent, apiMessages, {
-        preferredTranslation: selectedTranslation || undefined,
-        sessionId,
-        language: locale,
-        signal: controller.signal,
-      })) {
-        if (controller.signal.aborted) break;
-        if (chunk.type === "error") {
-          throw new Error(chunk.error || "Stream error");
-        }
-
-        if (chunk.type === "crisis_resources") {
-          // BITB-255: first event of a crisis turn. Attach to the placeholder
-          // assistant message; it is spread-preserved by every later update,
-          // including the stop/error paths, so the card never disappears.
-          if (chunk.resources) {
-            const resources = chunk.resources;
-            setMessages((prev) => {
-              const updated = [...prev];
-              const msg = updated[assistantMessageIndex];
-              if (msg && msg.role === "assistant") {
-                updated[assistantMessageIndex] = {
-                  ...msg,
-                  crisisResources: resources,
-                };
-              }
-              return updated;
-            });
-          }
-        } else if (chunk.type === "metadata") {
-          // Received metadata - update state with verses and message_id
-          metadata = {
-            message_id: chunk.message_id!,
-            scripture_context: chunk.scripture_context,
-            provider: chunk.provider!,
-            model: chunk.model!,
-            detected_translation: chunk.detected_translation,
-            translation_info: chunk.translation_info,
-            language_suggestion: chunk.language_suggestion ?? null,
-          };
-
-          // Surface a language-switch suggestion when the backend detected a
-          // different (and supported) language than the active UI locale.
-          if (
-            chunk.language_suggestion &&
-            chunk.language_suggestion !== locale &&
-            localeLabels[chunk.language_suggestion]
-          ) {
-            setLanguageSuggestion(chunk.language_suggestion);
-            setLanguageSuggestionDismissed(false);
-          }
-
-          // Update detected translation
-          if (chunk.detected_translation) {
-            setDetectedTranslation(chunk.detected_translation);
-          }
-
-          // Append relevant verses immediately (verses appear before text starts)
-          if (chunk.scripture_context?.verses) {
-            setRelevantVerses((prev) => [
-              ...prev,
-              ...(chunk.scripture_context?.verses || []),
-            ]);
-          }
-
-          // Update the placeholder message with metadata (immutable update)
-          setMessages((prev) => {
-            const updated = [...prev];
-            const msg = updated[assistantMessageIndex];
-            if (msg && msg.role === "assistant") {
-              updated[assistantMessageIndex] = {
-                ...msg,
-                messageId: metadata!.message_id,
-                model: metadata!.model,
-              };
-            }
-            return updated;
-          });
-        } else if (chunk.type === "content") {
-          // Received content chunk - append to streaming message
-          streamedContent += chunk.content || "";
-
-          // Update the message content in real-time using immutable update
-          // so React detects the change and referencedVerses useMemo re-runs
+      // Merge the end-of-turn fields into the assistant message. Used for the
+      // stream's `completion` event and for a BITB-320 finalize recovery.
+      const applyCompletion = (
+        done: Pick<
+          StreamChunk,
+          | "corrected_message"
+          | "verses_cited"
+          | "resolved_verses"
+          | "follow_ups"
+          | "citations"
+        >,
+      ) => {
+        // If grounding rewrote a fabricated/mismatched verse quote, swap the
+        // streamed text for the authoritative corrected body.
+        if (done.corrected_message) {
+          streamedContent = done.corrected_message;
           setMessages((prev) => {
             const updated = [...prev];
             const msg = updated[assistantMessageIndex];
@@ -664,13 +600,216 @@ export default function ChatIsland({
             }
             return updated;
           });
-        } else if (chunk.type === "completion") {
-          // Server-provided verse citations (dual-source: LLM structured + regex)
-          receivedCompletion = true;
-          // If grounding rewrote a fabricated/mismatched verse quote, swap the
-          // streamed text for the authoritative corrected body.
-          if (chunk.corrected_message) {
-            streamedContent = chunk.corrected_message;
+        }
+        if (done.verses_cited) {
+          const serverCited = (done.verses_cited as string[]).map((v: string) =>
+            v.toLowerCase(),
+          );
+          setMessages((prev) => {
+            const updated = [...prev];
+            const msg = updated[assistantMessageIndex];
+            if (msg && msg.role === "assistant") {
+              updated[assistantMessageIndex] = {
+                ...msg,
+                versesCited: serverCited,
+              };
+            }
+            return updated;
+          });
+        }
+        // Merge the backend-resolved cited verses into the pool so the
+        // "Cited" filter surfaces them even when they fell outside the
+        // semantic search (common on follow-up questions).
+        if (done.resolved_verses?.length) {
+          setRelevantVerses((prev) => mergeVerses(prev, done.resolved_verses));
+        }
+        // BITB-080: absent when suppressed (crisis/off-topic/error turns) or
+        // on an older backend -- render nothing rather than an empty row.
+        if (done.follow_ups?.length) {
+          const turnFollowUps = done.follow_ups;
+          setFollowUps(turnFollowUps);
+          setMessages((prev) => {
+            const updated = [...prev];
+            const msg = updated[assistantMessageIndex];
+            if (msg && msg.role === "assistant") {
+              updated[assistantMessageIndex] = {
+                ...msg,
+                follow_ups: turnFollowUps,
+              };
+            }
+            return updated;
+          });
+        }
+        if (done.citations) {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const msg = updated[assistantMessageIndex];
+            if (msg && msg.role === "assistant") {
+              updated[assistantMessageIndex] = {
+                ...msg,
+                citations: done.citations,
+              };
+            }
+            return updated;
+          });
+        }
+      };
+
+      const updateAssistant = (patch: Partial<ChatMessage>) => {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const msg = updated[assistantMessageIndex];
+          if (msg && msg.role === "assistant") {
+            updated[assistantMessageIndex] = { ...msg, ...patch };
+          }
+          return updated;
+        });
+      };
+
+      // BITB-320: the stream ended without `completion` but some text arrived.
+      // Keep the text and ask the server for the missing chips/verses: one
+      // attempt plus one silent retry. Never called after a user Stop.
+      const recoverCompletion = async (reason: FinalizeReason) => {
+        const finalizeBase = {
+          message: userMessageContent,
+          assistantText: streamedContent,
+          history: apiMessages,
+          preferredTranslation: selectedTranslation || undefined,
+          language: locale,
+          sessionId,
+          messageId: metadata?.message_id,
+          reason,
+          signal: controller.signal,
+        };
+        let result: Awaited<ReturnType<typeof finalizeMessage>> | null = null;
+        if (streamedContent.length <= MAX_FINALIZE_ASSISTANT_CHARS) {
+          for (let attempt = 0; attempt < 2 && !result; attempt++) {
+            if (attempt > 0) {
+              await new Promise((r) => setTimeout(r, FINALIZE_RETRY_DELAY_MS));
+            }
+            if (controller.signal.aborted) return;
+            try {
+              result = await finalizeMessage(finalizeBase);
+            } catch {
+              result = null;
+            }
+          }
+        }
+        if (controller.signal.aborted) return;
+        if (result) {
+          applyCompletion(result);
+          if (result.truncated) updateAssistant({ interrupted: true });
+          return;
+        }
+        // Finalize failed: keep the text, hide any trailer, and offer Continue.
+        streamedContent = stripTrailer(streamedContent);
+        updateAssistant({
+          content: streamedContent,
+          versesCited: Array.from(extractVerseReferences(streamedContent)),
+          interrupted: true,
+        });
+      };
+
+      // Why the stream ended without a completion event (BITB-320).
+      let recoveryReason: FinalizeReason = "eof";
+
+      // Send the active UI locale so the backend replies in it. If the user
+      // types in a different language the backend returns a language_suggestion
+      // and we surface a dismissible switch banner.
+      try {
+        for await (const chunk of streamMessage(
+          userMessageContent,
+          apiMessages,
+          {
+            preferredTranslation: selectedTranslation || undefined,
+            sessionId,
+            language: locale,
+            signal: controller.signal,
+          },
+        )) {
+          if (controller.signal.aborted) break;
+          if (chunk.type === "error") {
+            // BITB-320: an error after content keeps the text and recovers.
+            if (streamedContent.trim() !== "") {
+              recoveryReason = "error_event";
+              break;
+            }
+            throw new Error(chunk.error || "Stream error");
+          }
+
+          if (chunk.type === "crisis_resources") {
+            // BITB-255: first event of a crisis turn. Attach to the placeholder
+            // assistant message; it is spread-preserved by every later update,
+            // including the stop/error paths, so the card never disappears.
+            if (chunk.resources) {
+              const resources = chunk.resources;
+              setMessages((prev) => {
+                const updated = [...prev];
+                const msg = updated[assistantMessageIndex];
+                if (msg && msg.role === "assistant") {
+                  updated[assistantMessageIndex] = {
+                    ...msg,
+                    crisisResources: resources,
+                  };
+                }
+                return updated;
+              });
+            }
+          } else if (chunk.type === "metadata") {
+            // Received metadata - update state with verses and message_id
+            metadata = {
+              message_id: chunk.message_id!,
+              scripture_context: chunk.scripture_context,
+              provider: chunk.provider!,
+              model: chunk.model!,
+              detected_translation: chunk.detected_translation,
+              translation_info: chunk.translation_info,
+              language_suggestion: chunk.language_suggestion ?? null,
+            };
+
+            // Surface a language-switch suggestion when the backend detected a
+            // different (and supported) language than the active UI locale.
+            if (
+              chunk.language_suggestion &&
+              chunk.language_suggestion !== locale &&
+              localeLabels[chunk.language_suggestion]
+            ) {
+              setLanguageSuggestion(chunk.language_suggestion);
+              setLanguageSuggestionDismissed(false);
+            }
+
+            // Update detected translation
+            if (chunk.detected_translation) {
+              setDetectedTranslation(chunk.detected_translation);
+            }
+
+            // Append relevant verses immediately (verses appear before text starts)
+            if (chunk.scripture_context?.verses) {
+              setRelevantVerses((prev) => [
+                ...prev,
+                ...(chunk.scripture_context?.verses || []),
+              ]);
+            }
+
+            // Update the placeholder message with metadata (immutable update)
+            setMessages((prev) => {
+              const updated = [...prev];
+              const msg = updated[assistantMessageIndex];
+              if (msg && msg.role === "assistant") {
+                updated[assistantMessageIndex] = {
+                  ...msg,
+                  messageId: metadata!.message_id,
+                  model: metadata!.model,
+                };
+              }
+              return updated;
+            });
+          } else if (chunk.type === "content") {
+            // Received content chunk - append to streaming message
+            streamedContent += chunk.content || "";
+
+            // Update the message content in real-time using immutable update
+            // so React detects the change and referencedVerses useMemo re-runs
             setMessages((prev) => {
               const updated = [...prev];
               const msg = updated[assistantMessageIndex];
@@ -682,62 +821,31 @@ export default function ChatIsland({
               }
               return updated;
             });
-          }
-          if (chunk.verses_cited) {
-            const serverCited = (chunk.verses_cited as string[]).map(
-              (v: string) => v.toLowerCase(),
-            );
-            setMessages((prev) => {
-              const updated = [...prev];
-              const msg = updated[assistantMessageIndex];
-              if (msg && msg.role === "assistant") {
-                updated[assistantMessageIndex] = {
-                  ...msg,
-                  versesCited: serverCited,
-                };
-              }
-              return updated;
-            });
-          }
-          // Merge the backend-resolved cited verses into the pool so the
-          // "Cited" filter surfaces them even when they fell outside the
-          // semantic search (common on follow-up questions).
-          if (chunk.resolved_verses?.length) {
-            setRelevantVerses((prev) =>
-              mergeVerses(prev, chunk.resolved_verses),
-            );
-          }
-          // BITB-080: absent when suppressed (crisis/off-topic/error turns) or
-          // on an older backend -- render nothing rather than an empty row.
-          if (chunk.follow_ups?.length) {
-            const turnFollowUps = chunk.follow_ups;
-            setFollowUps(turnFollowUps);
-            setMessages((prev) => {
-              const updated = [...prev];
-              const msg = updated[assistantMessageIndex];
-              if (msg && msg.role === "assistant") {
-                updated[assistantMessageIndex] = {
-                  ...msg,
-                  follow_ups: turnFollowUps,
-                };
-              }
-              return updated;
-            });
-          }
-          if (chunk.citations) {
-            setMessages((prev) => {
-              const updated = [...prev];
-              const msg = updated[assistantMessageIndex];
-              if (msg && msg.role === "assistant") {
-                updated[assistantMessageIndex] = {
-                  ...msg,
-                  citations: chunk.citations,
-                };
-              }
-              return updated;
-            });
+          } else if (chunk.type === "completion") {
+            receivedCompletion = true;
+            applyCompletion(chunk);
           }
         }
+      } catch (streamError) {
+        // BITB-320: network/timeout failure AFTER content was received is
+        // recoverable. Aborts, deliberate server rejections and no-content
+        // failures keep their existing handling in the outer catch.
+        const recoverable =
+          !controller.signal.aborted &&
+          streamedContent.trim() !== "" &&
+          !(
+            streamError instanceof DOMException &&
+            streamError.name === "AbortError"
+          ) &&
+          !(streamError instanceof ContentBlockedError) &&
+          !(streamError instanceof SessionLimitError) &&
+          !(streamError instanceof MessageTooLongError) &&
+          !(streamError instanceof VerificationError);
+        if (!recoverable) throw streamError;
+        recoveryReason =
+          streamError instanceof StreamTimeoutError
+            ? "timeout"
+            : "network_error";
       }
 
       // Resilience guard: the stream completed without error but no content
@@ -762,17 +870,16 @@ export default function ChatIsland({
         return;
       }
 
-      // Fallback: if no completion event received, extract client-side
+      // BITB-320: no completion event. A user Stop keeps the partial text as is
+      // (client-side verse refs only); anything else asks the server to finalize.
       if (!receivedCompletion) {
-        const citedRefs = Array.from(extractVerseReferences(streamedContent));
-        setMessages((prev) => {
-          const updated = [...prev];
-          const msg = updated[assistantMessageIndex];
-          if (msg && msg.role === "assistant") {
-            updated[assistantMessageIndex] = { ...msg, versesCited: citedRefs };
-          }
-          return updated;
-        });
+        if (controller.signal.aborted) {
+          updateAssistant({
+            versesCited: Array.from(extractVerseReferences(streamedContent)),
+          });
+        } else {
+          await recoverCompletion(recoveryReason);
+        }
       }
 
       // Stream complete - increment interaction count for church finder
@@ -1294,6 +1401,30 @@ export default function ChatIsland({
                       onDismiss={handleInlinePromptDismiss}
                     />
                   )}
+                  {/* BITB-320: the reply was cut off; offer to continue it. */}
+                  {message.role === "assistant" &&
+                    message.interrupted &&
+                    !isLoading && (
+                      <div
+                        role="status"
+                        data-testid="interrupted-note"
+                        className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400"
+                      >
+                        <span>{tChat("interruptedNote")}</span>
+                        {index === messages.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void submitMessage(tChat("continuePrompt"))
+                            }
+                            disabled={turnstileBlocked}
+                            className="min-h-[44px] min-w-[44px] rounded-lg border border-indigo-600 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 disabled:opacity-50 dark:border-indigo-400 dark:text-indigo-300 dark:hover:bg-gray-800"
+                          >
+                            {tChat("continueButton")}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   {/* BITB-080: chips under the LATEST assistant message only --
                       structural via the index check, not extra per-message state. */}
                   {index === messages.length - 1 &&

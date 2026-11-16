@@ -2,6 +2,7 @@
 Chat API routes.
 """
 
+import asyncio
 import json
 import time
 
@@ -9,7 +10,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE
 
-from chat import ChatRequest, ChatResponse, ChatService
+from chat import ChatRequest, ChatResponse, ChatService, FinalizeRequest, FinalizeResponse
+from chat.service import _looks_truncated
+from config import settings
 from providers import AllModelsExhaustedError, EmbeddingProviderDep, LLMProviderDep
 from scripture import DbSession
 from utils.language import SUPPORTED_LANGUAGES
@@ -18,9 +21,10 @@ from utils.metrics import (
     chat_messages_counter,
     chat_response_time,
     chat_sessions_counter,
+    chat_stream_client_disconnected_counter,
     chat_stream_counter,
 )
-from utils.security import check_content_filter, require_rate_limit
+from utils.security import check_content_filter, require_ip_rate_limit, require_rate_limit
 from utils.session_tracker import track_session
 from utils.turnstile import require_turnstile
 
@@ -144,8 +148,26 @@ async def chat_stream(
     client_country = http_request.headers.get("CF-IPCountry")
 
     async def generate():
+        # BITB-320: track what the client has been sent so a disconnect is observable and an
+        # error after content can tell the client the reply is partial (and which message).
+        message_id: str | None = None
+        content_chars = 0
+        completion_sent = False
+
+        def _error_event(payload: dict) -> str:
+            if content_chars > 0:
+                payload = {**payload, "partial": True, "message_id": message_id}
+            return f"data: {json.dumps({'type': 'error', **payload})}\n\n"
+
         try:
             async for chunk in service.chat_stream(request, client_country=client_country):
+                chunk_type = chunk.get("type")
+                if chunk_type == "metadata":
+                    message_id = chunk.get("message_id") or message_id
+                elif chunk_type == "content":
+                    content_chars += len(chunk.get("content") or "")
+                elif chunk_type == "completion":
+                    completion_sent = True
                 # chunk is now a dict with 'type' field
                 # SSE format: data: {json}\n\n
                 yield f"data: {json.dumps(chunk)}\n\n"
@@ -154,15 +176,36 @@ async def chat_stream(
             # get_db_session dependency cleanup once the response body is drained.
             await track_session(db, request.session_id, user_agent=user_agent, language=language)
             yield "data: [DONE]\n\n"
+        except (asyncio.CancelledError, GeneratorExit):
+            # BITB-320: the client went away (network switch, app backgrounded, proxy reset).
+            # Never log message or reply text -- only sizes.
+            logger.warning(
+                "Chat stream client disconnected before completion",
+                extra={
+                    "content_chars": content_chars,
+                    "completion_sent": completion_sent,
+                    "message_id": message_id,
+                },
+            )
+            chat_stream_client_disconnected_counter.add(
+                1, {"completion_sent": str(completion_sent).lower()}
+            )
+            raise
         except AllModelsExhaustedError as e:
             logger.warning("Streaming: all LLM models exhausted (%s): %s", e.reason, e)
-            yield f"data: {json.dumps({'type': 'error', 'error': 'Our AI service is temporarily busy. Please try again in a moment.', 'error_code': 'upstream_unavailable', 'retry_after': e.retry_after or UPSTREAM_RETRY_AFTER_SECONDS})}\n\n"
+            yield _error_event(
+                {
+                    "error": "Our AI service is temporarily busy. Please try again in a moment.",
+                    "error_code": "upstream_unavailable",
+                    "retry_after": e.retry_after or UPSTREAM_RETRY_AFTER_SECONDS,
+                }
+            )
         except RuntimeError as e:
             logger.exception("Chat stream runtime error: %s", str(e))
-            yield f"data: {json.dumps({'type': 'error', 'error': 'An unexpected error occurred'})}\n\n"
+            yield _error_event({"error": "An unexpected error occurred"})
         except Exception as e:
             logger.exception("Chat stream failed: %s", str(e))
-            yield f"data: {json.dumps({'type': 'error', 'error': 'An error occurred processing your request'})}\n\n"
+            yield _error_event({"error": "An error occurred processing your request"})
 
     return StreamingResponse(
         generate(),
@@ -172,6 +215,41 @@ async def chat_stream(
             "Connection": "keep-alive",
         },
     )
+
+
+@router.post(
+    "/finalize",
+    response_model=FinalizeResponse,
+    response_model_exclude_none=True,
+    dependencies=[
+        # BITB-320: IP-only limit, separate bucket from chat; no Turnstile -- the turn already
+        # passed one, and a second challenge would stall recovery. No session message cap.
+        Depends(
+            require_ip_rate_limit(
+                "chat_finalize", lambda: settings.chat_finalize_rate_limit_per_minute
+            )
+        ),
+        Depends(check_content_filter),
+    ],
+)
+async def chat_finalize(
+    request: FinalizeRequest,
+    db: DbSession,
+    llm: LLMProviderDep,
+    embedding: EmbeddingProviderDep,
+):
+    """Recover chips + verse references for a reply whose `completion` event never arrived."""
+    service = ChatService(db, llm, embedding)
+    try:
+        return await service.finalize(request)
+    except Exception:  # noqa: BLE001 - recovery degrades to an empty 200, never a 5xx
+        logger.exception("Chat finalize failed")
+        return {
+            "verses_cited": [],
+            "resolved_verses": [],
+            "citations": [],
+            "truncated": _looks_truncated(request.assistant_text),
+        }
 
 
 @router.get("/verse/{book}/{chapter}/{verse}")

@@ -166,6 +166,11 @@ variables:
     description: Max GET /scripture/search and /scripture/search/text requests per IP per minute, independent of the chat limits (BITB-298)
     default: "30"
 
+  CHAT_FINALIZE_RATE_LIMIT_PER_MINUTE:
+    required_in: none
+    description: Max POST /chat/finalize (client stream-recovery) requests per IP per minute, independent of the chat limits (BITB-320)
+    default: "10"
+
   RATE_LIMIT_FEEDBACK_PER_MINUTE:
     required_in: none
     description: Max POST /feedback requests per IP per minute, independent of the chat limits (BITB-298)
