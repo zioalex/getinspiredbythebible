@@ -224,6 +224,16 @@ variables:
     default: "true"
 
   # ---------------------------------------------------------------------------
+  # Blocked-message samples (BITB-326)
+  # Wired into Terraform (blocked_sample_capture_enabled); docker-compose keeps the code
+  # default (off), so local stacks never record samples.
+  # ---------------------------------------------------------------------------
+  BLOCKED_SAMPLE_CAPTURE_ENABLED:
+    required_in: remote
+    description: Store content-safety-blocked messages (capped, deduplicated, TTL) for filter tuning (BITB-326)
+    default: "false"
+
+  # ---------------------------------------------------------------------------
   # Retrieval-miss insights (BITB-256)
   # Derived signals only (topics, language, translation, scores, refs); never text.
   # `none`: not wired into docker-compose/Terraform; the code default (off) applies.

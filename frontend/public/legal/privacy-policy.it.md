@@ -1,12 +1,12 @@
 ---
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-16
 ---
 
 # Informativa sulla privacy
 
 > _Questa traduzione è stata generata dall'intelligenza artificiale ed è fornita esclusivamente per comodità. In caso di omissioni, ambiguità o contraddizioni rispetto all'originale inglese, prevale la versione inglese, che resta canonica._
 
-Ultimo aggiornamento: 11 novembre 2026
+Ultimo aggiornamento: 16 novembre 2026
 
 ## Chi siamo
 
@@ -16,7 +16,7 @@ Vox Quieta ("noi", "ci", "nostro") è un'app gratuita di ispirazione biblica. Il
 
 ### Dati che fornisci tu
 
-- **Messaggi della chat**: il testo che digiti viene inviato alla nostra API, che lo inoltra a fornitori terzi di servizi di IA (elencati di seguito) esclusivamente per generare una risposta basata sulle Scritture e verificarne la sicurezza. Non conserviamo i tuoi messaggi sui nostri server oltre il tempo necessario a generare la risposta.
+- **Messaggi della chat**: il testo che digiti viene inviato alla nostra API, che lo inoltra a fornitori terzi di servizi di IA (elencati di seguito) esclusivamente per generare una risposta basata sulle Scritture e verificarne la sicurezza. Non conserviamo i tuoi messaggi sui nostri server oltre il tempo necessario a generare la risposta, salvo i messaggi bloccati dal nostro sistema di sicurezza, che possono essere conservati fino a 30 giorni come descritto in «Conservazione dei dati».
 - **Valutazioni del feedback**: le valutazioni opzionali (pollice su/pollice giù) che invii sulle risposte.
 
 ### Come i tuoi messaggi vengono elaborati dall'IA
@@ -71,7 +71,7 @@ Contiamo l'uso della lettura ad alta voce in forma anonima, per lingua, famiglia
 
 ## Conservazione dei dati
 
-- **Messaggi della chat**: non conservati sui nostri server.
+- **Messaggi della chat**: non conservati sui nostri server, salvo i messaggi bloccati dal nostro sistema di sicurezza (vedi sotto).
 - **Messaggi bloccati dal nostro sistema di sicurezza**: quando il nostro
   sistema di sicurezza blocca un messaggio, può essere conservato un record
   minimo dal punto di vista della privacy per un breve periodo (fino a 30
@@ -102,7 +102,7 @@ Se ti trovi nello Spazio Economico Europeo, hai il diritto di:
 - Richiedere la cancellazione dei tuoi dati.
 - Opporti al trattamento dei tuoi dati.
 
-Poiché non raccogliamo informazioni personali identificabili, la maggior parte delle richieste può essere soddisfatta cancellando la cronologia locale delle conversazioni nell'app. Per i dati di crash/analisi detenuti da Google, consulta i controlli sulla privacy di Google su [myaccount.google.com](https://myaccount.google.com). Per i dati trattati dai nostri fornitori di IA, consulta le informative sulla privacy di OpenRouter, Microsoft e OpenAI linkate sopra.
+Non ti chiediamo nome, e-mail o account, quindi la maggior parte delle richieste può essere soddisfatta cancellando la cronologia locale delle conversazioni nell'app. I record dei messaggi bloccati dal nostro sistema di sicurezza sono conservati senza indirizzo IP, account o dati del dispositivo e vengono eliminati automaticamente entro 30 giorni; poiché non sono collegati a te, di solito non possiamo sapere quale record ti appartiene, ma puoi contattarci al riguardo all'indirizzo indicato sotto. Per i dati di crash/analisi detenuti da Google, consulta i controlli sulla privacy di Google su [myaccount.google.com](https://myaccount.google.com). Per i dati trattati dai nostri fornitori di IA, consulta le informative sulla privacy di OpenRouter, Microsoft e OpenAI linkate sopra.
 
 Per qualsiasi domanda sulla privacy, contattaci a: **<privacy@voxquieta.org>**
 

@@ -1,10 +1,10 @@
 ---
-lastUpdated: 2026-11-11
+lastUpdated: 2026-11-16
 ---
 
 # Privacy Policy
 
-Last updated: November 11, 2026
+Last updated: November 16, 2026
 
 ## Who We Are
 
@@ -17,7 +17,8 @@ Vox Quieta ("we", "us", "our") is a free Bible inspiration app. Our website is [
 - **Chat messages**: The text you type is sent to our API, which forwards it to third-party
   AI service providers (listed below) solely to generate a Scripture-based response and to
   screen it for safety. We do not store your messages on our servers beyond the time needed
-  to generate a response.
+  to generate a response, except messages blocked by our safety system, which may be kept for
+  up to 30 days as described under Data Retention.
 - **Feedback ratings**: Optional thumbs-up/thumbs-down ratings you submit on responses.
 
 ### How Your Messages Are Processed by AI
@@ -91,7 +92,7 @@ We count read-aloud use anonymously, by language, browser family and operating s
 
 ## Data Retention
 
-- **Chat messages**: Not retained on our servers.
+- **Chat messages**: Not retained on our servers, except messages blocked by our safety system (see below).
 - **Messages blocked by our safety system**: When our safety system blocks a
   message, a privacy-minimal record may be kept for a short time (up to 30
   days) so we can improve the filter. The record contains the message text
@@ -118,8 +119,11 @@ If you are in the European Economic Area, you have the right to:
 - Request deletion of your data.
 - Object to processing of your data.
 
-Since we collect no personally identifiable information, most requests can be fulfilled by
-clearing your local conversation history within the app. For crash/analytics data held by
+We do not ask for your name, email or an account, so most requests can be fulfilled by clearing
+your local conversation history within the app. Records of messages
+blocked by our safety system are stored without your IP address, account or device details and
+are deleted automatically within 30 days; because they are not linked to you, we usually cannot tell which
+record is yours, but you can contact us about them at the address below. For crash/analytics data held by
 Google, please refer to Google's privacy controls at
 [myaccount.google.com](https://myaccount.google.com). For data handled by our AI providers,
 see the OpenRouter, Microsoft and OpenAI privacy policies linked above.
