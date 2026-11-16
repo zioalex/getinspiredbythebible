@@ -4,6 +4,7 @@ status: in-review
 priority: P1
 size: M
 created: 2026-11-16
+follow_ups: [BITB-337]
 ---
 
 # BITB-331: Changing Language Starts a New Chat (Web + Android)
