@@ -157,7 +157,7 @@ export default function MainMenu({
             className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Volume2 className="w-4 h-4 shrink-0" aria-hidden="true" />
-            <span className="flex-1 text-left">{t("showListenButton")}</span>
+            <span className="flex-1 text-start">{t("showListenButton")}</span>
             <span
               aria-hidden="true"
               className={`inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
@@ -182,7 +182,9 @@ export default function MainMenu({
               className="w-full flex items-center gap-3 px-3 py-2 min-h-[44px] text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <span className="w-4 shrink-0" aria-hidden="true" />
-              <span className="flex-1 text-left">{t("allowOnlineVoices")}</span>
+              <span className="flex-1 text-start">
+                {t("allowOnlineVoices")}
+              </span>
               <span
                 aria-hidden="true"
                 className={`inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${

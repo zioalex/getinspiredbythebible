@@ -131,13 +131,13 @@ export default function ChapterModal({
                   id={`verse-${verse.verse}`}
                   className={`group scroll-mt-6 transition-all py-2 ${
                     highlightVerse === verse.verse
-                      ? "bg-amber-100 -mx-3 px-3 rounded-lg border-l-4 border-amber-500"
+                      ? "bg-amber-100 -mx-3 px-3 rounded-lg border-s-4 border-amber-500"
                       : "hover:bg-gray-50 -mx-3 px-3 rounded-lg"
                   }`}
                 >
                   <div className="flex gap-3">
                     <span
-                      className={`shrink-0 w-8 text-right text-sm font-bold ${
+                      className={`shrink-0 w-8 text-end text-sm font-bold ${
                         highlightVerse === verse.verse
                           ? "text-amber-700"
                           : "text-gray-400 group-hover:text-gray-600"

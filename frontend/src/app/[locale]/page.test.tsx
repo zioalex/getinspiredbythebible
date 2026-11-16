@@ -547,7 +547,7 @@ describe("Home page responsive layout", () => {
         const mobileVisibleAfterForm =
           !el.className.includes("order-first") &&
           !el.className.includes("hidden") &&
-          !el.className.includes("text-right"); // char counter hugs the form
+          !el.className.includes("text-end"); // char counter hugs the form
         expect(mobileVisibleAfterForm, el.outerHTML.slice(0, 120)).toBe(false);
       }
     });
@@ -621,7 +621,7 @@ describe("Home page responsive layout", () => {
       const prompts = screen
         .getAllByRole("button")
         .filter(
-          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+          (b) => !b.querySelector("svg") && b.className.includes("text-start"),
         );
 
       expect(prompts.length).toBeGreaterThan(0);
@@ -1178,7 +1178,7 @@ describe("Home page responsive layout", () => {
       const prompts = screen
         .getAllByRole("button")
         .filter(
-          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+          (b) => !b.querySelector("svg") && b.className.includes("text-start"),
         );
 
       // All suggested prompts should be disabled
@@ -1204,7 +1204,7 @@ describe("Home page responsive layout", () => {
       const prompts = screen
         .getAllByRole("button")
         .filter(
-          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+          (b) => !b.querySelector("svg") && b.className.includes("text-start"),
         );
 
       prompts.forEach((prompt) => {
@@ -1233,7 +1233,7 @@ describe("Home page responsive layout", () => {
       const prompts = screen
         .getAllByRole("button")
         .filter(
-          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+          (b) => !b.querySelector("svg") && b.className.includes("text-start"),
         );
 
       // All suggested prompts should be enabled
@@ -1349,7 +1349,7 @@ describe("Home page responsive layout", () => {
       const prompts = screen
         .getAllByRole("button")
         .filter(
-          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+          (b) => !b.querySelector("svg") && b.className.includes("text-start"),
         );
       prompts.forEach((prompt) => {
         expect(prompt).not.toBeDisabled();
@@ -1407,7 +1407,7 @@ describe("Home page responsive layout", () => {
       const prompts = screen
         .getAllByRole("button")
         .filter(
-          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+          (b) => !b.querySelector("svg") && b.className.includes("text-start"),
         );
 
       await act(async () => {
@@ -1449,7 +1449,7 @@ describe("Home page responsive layout", () => {
       const prompts = screen
         .getAllByRole("button")
         .filter(
-          (b) => !b.querySelector("svg") && b.className.includes("text-left"),
+          (b) => !b.querySelector("svg") && b.className.includes("text-start"),
         );
 
       const promptText = prompts[0].textContent;

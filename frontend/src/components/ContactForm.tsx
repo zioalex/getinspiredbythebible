@@ -110,7 +110,7 @@ export default function ContactForm({ embedded = false }: ContactFormProps) {
       {!embedded && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-between text-left text-gray-600 hover:text-gray-800 transition-colors"
+          className="w-full flex items-center justify-between text-start text-gray-600 hover:text-gray-800 transition-colors"
         >
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />

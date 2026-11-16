@@ -73,12 +73,12 @@ export default function AboutIntroModal({
         <button
           onClick={onDismiss}
           aria-label={t("introDismissLabel")}
-          className="absolute top-4 right-4 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="absolute top-4 end-4 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
         >
           <X size={20} />
         </button>
 
-        <h2 className="text-xl font-bold text-gray-900 mb-3 pr-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-3 pe-8">
           {t("introTitle")}
         </h2>
         <p className="text-gray-600 leading-relaxed mb-6">{t("introBody")}</p>

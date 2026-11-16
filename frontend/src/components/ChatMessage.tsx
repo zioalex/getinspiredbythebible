@@ -204,7 +204,7 @@ export default function ChatMessage({
       parts.push(
         <span
           key={`${key}-quote-${partKey++}`}
-          className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded-sm italic font-serif border-l-2 border-amber-400"
+          className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded-sm italic font-serif border-s-2 border-amber-400"
         >
           &ldquo;{match[1]}&rdquo;
         </span>,
@@ -315,7 +315,7 @@ export default function ChatMessage({
                   ),
                   // Style blockquotes as scripture
                   blockquote: ({ children }) => (
-                    <blockquote className="border-l-4 border-amber-500 pl-4 pr-3 py-3 my-3 bg-amber-50 rounded-r-lg italic font-serif text-amber-900">
+                    <blockquote className="border-s-4 border-amber-500 ps-4 pe-3 py-3 my-3 bg-amber-50 rounded-e-lg italic font-serif text-amber-900">
                       {children}
                     </blockquote>
                   ),
@@ -385,10 +385,10 @@ export default function ChatMessage({
                   },
                   // Ensure lists look good
                   ul: ({ children }) => (
-                    <ul className="list-disc pl-5 space-y-1">{children}</ul>
+                    <ul className="list-disc ps-5 space-y-1">{children}</ul>
                   ),
                   ol: ({ children }) => (
-                    <ol className="list-decimal pl-5 space-y-1">{children}</ol>
+                    <ol className="list-decimal ps-5 space-y-1">{children}</ol>
                   ),
                 }}
               >

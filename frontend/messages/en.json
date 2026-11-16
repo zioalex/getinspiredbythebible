@@ -1,7 +1,8 @@
 {
   "Metadata": {
     "title": "Vox Quieta",
-    "description": "Get inspired daily by God's Word"
+    "description": "Get inspired daily by God's Word",
+    "homeDescription": "Ask questions in your own words and get answers grounded in the Bible. Free, no account needed, and available in 11 languages."
   },
   "Header": {
     "title": "Vox Quieta",
@@ -12,7 +13,7 @@
     "appCta": "Get the app"
   },
   "Welcome": {
-    "heading": "Welcome",
+    "heading": "Find comfort and guidance in Scripture",
     "description": "Share what's on your heart, ask questions about Scripture, or simply seek encouragement. While I can help explore theological topics, I'm not a substitute for trained theologians or pastoral guidance.",
     "prompt1": "I'm struggling and need God's comfort",
     "prompt2": "Help me find the strength to forgive",
@@ -430,5 +431,10 @@
     "regionSaved": "We'll use {country} numbers from your next message.",
     "emergencyNumberAria": "Call emergency number {number}",
     "localEmergencyHint": "Call your local emergency number (<dial>112</dial> works from most mobile phones)."
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "body": "Sorry, we could not find the page you were looking for.",
+    "backHome": "Back to home"
   }
 }

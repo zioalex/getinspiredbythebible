@@ -22,12 +22,16 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Tester" });
 
-  return pageMetadata({
-    locale,
-    path: "/tester",
-    title: t("metaTitle"),
-    description: t("metaDescription"),
-  });
+  return {
+    ...pageMetadata({
+      locale,
+      path: "/tester",
+      title: t("metaTitle"),
+      description: t("metaDescription"),
+    }),
+    // The beta funnel is reachable by URL but must not be indexed.
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function TesterPage({

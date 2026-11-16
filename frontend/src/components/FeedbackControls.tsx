@@ -155,7 +155,7 @@ export default function FeedbackControls({
   return (
     <div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400 mr-1">{t("wasHelpful")}</span>
+        <span className="text-xs text-gray-400 me-1">{t("wasHelpful")}</span>
         <button
           onClick={() => handleThumb("positive")}
           disabled={disabled || effectiveGiven !== null}
@@ -189,9 +189,9 @@ export default function FeedbackControls({
           />
         </button>
         {effectiveGiven && (
-          <span className="text-xs text-gray-400 ml-1">{t("thanks")}</span>
+          <span className="text-xs text-gray-400 ms-1">{t("thanks")}</span>
         )}
-        {trailing && <div className="ml-auto">{trailing}</div>}
+        {trailing && <div className="ms-auto">{trailing}</div>}
       </div>
 
       {pending && !effectiveGiven && (

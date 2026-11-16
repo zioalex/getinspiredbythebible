@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildJsonLd, pageMetadata, SITE_URL } from "./seo";
+import { buildJsonLd, pageMetadata, OG_LOCALE, SITE_URL } from "./seo";
+import { routing } from "@/i18n/routing";
 
 describe("buildJsonLd", () => {
   it("returns a string that parses cleanly as JSON", () => {
@@ -48,7 +49,7 @@ describe("buildJsonLd", () => {
     expect(website.inLanguage).toBe("de");
   });
 
-  it("resolves the Organization logo to SITE_URL/icon.svg", () => {
+  it("resolves the Organization logo to a raster icon (SVG logos are not accepted)", () => {
     const parsed = JSON.parse(
       buildJsonLd({
         locale: "en",
@@ -59,7 +60,7 @@ describe("buildJsonLd", () => {
       (n: { "@type": string }) => n["@type"] === "Organization",
     );
 
-    expect(organization.logo).toBe(`${SITE_URL}/icon.svg`);
+    expect(organization.logo).toBe(`${SITE_URL}/icons/icon-512.png`);
   });
 });
 
@@ -73,4 +74,45 @@ describe("pageMetadata", () => {
 
     expect(metadata.twitter?.card).toBe("summary_large_image");
   });
+});
+
+describe("pageMetadata Open Graph locale", () => {
+  const expected: Record<string, string> = {
+    en: "en_US",
+    it: "it_IT",
+    de: "de_DE",
+    es: "es_ES",
+    fr: "fr_FR",
+    pt: "pt_BR",
+    ar: "ar_AR",
+    ru: "ru_RU",
+    zh: "zh_CN",
+    hi: "hi_IN",
+    ko: "ko_KR",
+  };
+
+  it("covers every routing locale in the map", () => {
+    expect(Object.keys(OG_LOCALE).sort()).toEqual([...routing.locales].sort());
+  });
+
+  it.each(Object.entries(expected))(
+    "uses region-qualified og:locale for %s (%s) and lists the other ten as alternates",
+    (locale, ogLocale) => {
+      const md = pageMetadata({
+        locale,
+        title: "t",
+        description: "d",
+      });
+      const og = md.openGraph as {
+        locale: string;
+        alternateLocale: string[];
+      };
+      expect(og.locale).toBe(ogLocale);
+      expect(og.alternateLocale).toHaveLength(10);
+      expect(og.alternateLocale).not.toContain(ogLocale);
+      expect(new Set([og.locale, ...og.alternateLocale])).toEqual(
+        new Set(Object.values(expected)),
+      );
+    },
+  );
 });

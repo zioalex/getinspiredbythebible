@@ -86,7 +86,7 @@ export default function WhatsNewModal() {
           <button
             onClick={handleDismiss}
             aria-label={t("dismiss")}
-            className="ml-4 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="ms-4 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <X size={20} />
           </button>

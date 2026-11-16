@@ -1,7 +1,8 @@
 {
   "Metadata": {
     "title": "Vox Quieta",
-    "description": "每天从上帝的话语中获得灵感"
+    "description": "每天从上帝的话语中获得灵感",
+    "homeDescription": "用您自己的话提出问题，获得以圣经为依据的解答。完全免费，无需注册账号，支持 11 种语言，随时陪伴您阅读圣经、思考信仰、寻求安慰与指引，帮助您更深入地理解经文的意义与应用，让每一天都更有盼望、平安与力量，在安静中聆听神的声音，在日常生活里找到属于自己的答案与祝福。"
   },
   "Header": {
     "title": "Vox Quieta",
@@ -12,7 +13,7 @@
     "appCta": "获取应用"
   },
   "Welcome": {
-    "heading": "欢迎",
+    "heading": "在圣经中寻找安慰与指引",
     "description": "分享您心中所想，提问关于圣经的问题，或寻求鼓励。我可以帮助探索神学主题，但我不能替代专业神学家或牧灵辅导。",
     "prompt1": "我正在挣扎，需要上帝的安慰",
     "prompt2": "帮助我找到宽恕的力量",
@@ -430,5 +431,10 @@
     "regionSaved": "从你的下一条消息开始，我们将使用{country}的号码。",
     "emergencyNumberAria": "拨打紧急电话 {number}",
     "localEmergencyHint": "请拨打当地的紧急电话（大多数手机都可以拨打 <dial>112</dial>）。"
+  },
+  "NotFound": {
+    "title": "页面未找到",
+    "body": "抱歉，我们找不到您要访问的页面。",
+    "backHome": "返回首页"
   }
 }

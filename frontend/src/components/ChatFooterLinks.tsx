@@ -27,7 +27,7 @@ export default function ChatFooterLinks() {
             {link.icon && (
               <link.icon
                 aria-hidden="true"
-                className="inline-block w-3 h-3 mr-1 align-[-1px]"
+                className="inline-block w-3 h-3 me-1 align-[-1px]"
               />
             )}
             {link.label}

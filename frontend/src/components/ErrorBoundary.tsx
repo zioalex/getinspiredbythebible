@@ -69,7 +69,7 @@ function ErrorFallback({ error }: { error?: Error }) {
 
         {/* Technical Details (Development Only) */}
         {process.env.NODE_ENV === "development" && error && (
-          <div className="mb-6 p-4 bg-gray-100 rounded-sm text-left">
+          <div className="mb-6 p-4 bg-gray-100 rounded-sm text-start">
             <p className="text-sm font-mono text-red-600 break-all">
               {error.toString()}
             </p>

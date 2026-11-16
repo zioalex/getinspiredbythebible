@@ -194,6 +194,49 @@ else
 fi
 
 echo ""
+echo -e "${BLUE}-- Headings / indexing / sitemap honesty (BITB-300) --${NC}"
+# Exactly one <h1> source per page component. The homepage hero lives in
+# [locale]/page.tsx; the header brand (ChatIsland) and splash screen must not
+# render a heading of their own, and ChatIsland may only keep the single
+# fallback h1 used when no server hero is passed in.
+h1_bad=""
+while IFS= read -r pf; do
+  n=$(grep -c "<h1[[:space:]>]" "$pf" 2>/dev/null || true)
+  [ "${n:-0}" = "1" ] || h1_bad="$h1_bad ${pf#"$APP"/}(${n:-0})"
+done < <(find "$APP/[locale]" -name page.tsx -not -name '*.test.tsx' 2>/dev/null | sort)
+if [ -z "$h1_bad" ]; then
+  pass "every page.tsx has exactly one <h1> source"
+else
+  fail "pages without exactly one <h1> source:$h1_bad"
+fi
+
+splash="$FE/src/components/SplashScreen.tsx"
+if [ -f "$splash" ] && grep -q "<h1[[:space:]>]" "$splash"; then
+  fail "SplashScreen.tsx renders an <h1> — it would duplicate the page heading"
+else
+  pass "SplashScreen has no <h1>"
+fi
+chat_h1=$(grep -c "<h1[[:space:]>]" "$APP/[locale]/ChatIsland.tsx" 2>/dev/null || true)
+if [ "${chat_h1:-0}" -le 1 ]; then
+  pass "ChatIsland has at most one <h1> (hero fallback only)"
+else
+  fail "ChatIsland.tsx has ${chat_h1} <h1> sources — only the hero fallback may be one"
+fi
+
+tester="$APP/[locale]/tester/page.tsx"
+if [ -f "$tester" ] && grep -qE "index:[[:space:]]*false" "$tester"; then
+  pass "tester page is noindex (robots: { index: false })"
+else
+  fail "tester page lacks robots { index: false } — the beta funnel would be indexable"
+fi
+
+if grep -q "new Date()" "$APP/sitemap.ts" 2>/dev/null; then
+  fail "sitemap.ts uses new Date() — every <lastmod> would be the build time"
+else
+  pass "sitemap.ts does not stamp new Date()"
+fi
+
+echo ""
 echo -e "${BLUE}-- Manual-review reminders (not auto-checkable) --${NC}"
 if grep -q "use client" "$APP/[locale]/page.tsx" 2>/dev/null; then
   warn "homepage [locale]/page.tsx is a client component ('use client') — confirm enough server-rendered body text for crawlers."
