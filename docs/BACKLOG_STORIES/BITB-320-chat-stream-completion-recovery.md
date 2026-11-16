@@ -161,7 +161,7 @@ Response 200:
   - No snackbar or error state on recovery.
 - `domain/models/Message.kt`: `isInterrupted: Boolean = false`. Room: column `interrupted`
   (INTEGER NOT NULL DEFAULT 0), `MIGRATION_2_3` in `data/local/Migrations.kt`, DB version 3,
-  exported schema JSON, entity mapper.
+  entity mapper (the v2/v3 schema JSON is not committed — only 1.json is tracked; Room regenerates it on build).
 - UI (`ChatMessageItem` / `ChatScreen`): note + **Continue** under an interrupted assistant
   message (only the latest one shows Continue). TalkBack live region, 48dp target. Continue
   calls `sendMessage(stringResource(chat_continue_prompt))`.
