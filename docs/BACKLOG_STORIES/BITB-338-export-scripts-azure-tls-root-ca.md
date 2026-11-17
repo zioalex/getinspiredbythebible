@@ -1,12 +1,13 @@
 ---
-id: BITB-330
+id: BITB-338
 status: in-review
 priority: P1
 size: S
 created: 2026-11-17
+prs: [1314]
 ---
 
-# BITB-330: Export scripts fail with "certificate verify failed" against Azure Postgres
+# BITB-338: Export scripts fail with "certificate verify failed" against Azure Postgres
 
 **Bug.** Running the commands from the feedback notification e-mail
 (`make export-feedback ...` with the `DATABASE_URL` from `make db-server-url`) fails with
