@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.62.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.61.0...v1.62.0) (2026-11-16)
+
+
+### Features
+
+* **api:** ordered ml_only failover chain with Azure Content Safety hop (BITB-292) ([#1282](https://github.com/zioalex/getinspiredbythebible/issues/1282)) ([98658d2](https://github.com/zioalex/getinspiredbythebible/commit/98658d2c9862c2fcabf87075836c386d4bd10a98))
+* **api:** synthetic probe of the ML content-safety path (BITB-291) ([#1279](https://github.com/zioalex/getinspiredbythebible/issues/1279)) ([b9e6207](https://github.com/zioalex/getinspiredbythebible/commit/b9e6207378ed3d36297d1035af043e91caac13ad))
+* **infra:** keyword-fallback share SLO tiles and burn-rate alerts (BITB-290) ([#1281](https://github.com/zioalex/getinspiredbythebible/issues/1281)) ([b03f9ed](https://github.com/zioalex/getinspiredbythebible/commit/b03f9eda0187be5131a1031e14521e5caaa5a8a2))
+* **infra:** turn on blocked-message capture in production, within the privacy policy's 30 days (BITB-326) ([#1303](https://github.com/zioalex/getinspiredbythebible/issues/1303)) ([68b52ac](https://github.com/zioalex/getinspiredbythebible/commit/68b52ace76a66eeb78b515108b6e67f5f9dc13dd))
+* **legal:** 30/90-day limits, hashing and disclosure for feedback and contact data (BITB-329) ([1c50695](https://github.com/zioalex/getinspiredbythebible/commit/1c506954768dc0e016cc5f14f93c39538a275b84))
+* **legal:** disclose OpenAI moderation fallback and provider retention in the privacy policy (BITB-309) ([#1287](https://github.com/zioalex/getinspiredbythebible/issues/1287)) ([c5039aa](https://github.com/zioalex/getinspiredbythebible/commit/c5039aa192ac392f9490dd105db0c919645065c9))
+
+
+### Bug Fixes
+
+* **api:** block "killing yourself", "kys" and "you should" taunts in Stage 1 directed harm (BITB-266) ([#1283](https://github.com/zioalex/getinspiredbythebible/issues/1283)) ([6a03fb9](https://github.com/zioalex/getinspiredbythebible/commit/6a03fb942f0affb36d0476697eea3d5a83e8dc7f))
+* **api:** derive the client IP from trusted proxies only (BITB-297) ([#1286](https://github.com/zioalex/getinspiredbythebible/issues/1286)) ([2b4c081](https://github.com/zioalex/getinspiredbythebible/commit/2b4c081e16622d765b4b8dd0032a70cc2e415e5a))
+* **api:** rate-limit search, feedback and church endpoints (BITB-298) ([#1290](https://github.com/zioalex/getinspiredbythebible/issues/1290)) ([e401385](https://github.com/zioalex/getinspiredbythebible/commit/e40138591f114281525f0fc4f5bb7ff48aae9fdc))
+* **api:** single half-open probe, cooldown backoff and hard budget for Llama Guard (BITB-289) ([#1278](https://github.com/zioalex/getinspiredbythebible/issues/1278)) ([dded0b0](https://github.com/zioalex/getinspiredbythebible/commit/dded0b05aa064189d2ef7891b9fe6b1d996d1d51))
+* **api:** validate and bound client-supplied chat history (BITB-296) ([#1289](https://github.com/zioalex/getinspiredbythebible/issues/1289)) ([a75ca4c](https://github.com/zioalex/getinspiredbythebible/commit/a75ca4c67767acda1b97e1d3d44c9ea5ade6f873))
+* **ci:** repair post-deploy smoke tests and az-logs make targets (BITB-319) ([#1298](https://github.com/zioalex/getinspiredbythebible/issues/1298)) ([72c35a6](https://github.com/zioalex/getinspiredbythebible/commit/72c35a622cf999adae9821caaf0ec485aa5ef864))
+* **deploy:** wire OPENAI_API_KEY into the backend for the ml_only moderation failover (BITB-288) ([#1280](https://github.com/zioalex/getinspiredbythebible/issues/1280)) ([2a8b257](https://github.com/zioalex/getinspiredbythebible/commit/2a8b257d7a75de44e6d119aecc48b21d1c037444))
+* **ios:** point turnstile probe at api.voxquieta.org for /config and chat ([#1288](https://github.com/zioalex/getinspiredbythebible/issues/1288)) ([cb04418](https://github.com/zioalex/getinspiredbythebible/commit/cb04418d29d00bbbf068920bd742008f932e7d95))
+* recover chips and verses when a chat stream ends without completion (BITB-320) ([231256b](https://github.com/zioalex/getinspiredbythebible/commit/231256beaf22092c0a2c9bcee312bcab8a57a377))
+
+
+### Documentation
+
+* file BITB-291 follow-ups (BITB-314/315) and require follow-ups at PR creation ([#1296](https://github.com/zioalex/getinspiredbythebible/issues/1296)) ([f522390](https://github.com/zioalex/getinspiredbythebible/commit/f522390d0506c4c0bb1e661d46ec055daa041952))
+* verified project review, improvement plan and stories BITB-296..307 ([#1284](https://github.com/zioalex/getinspiredbythebible/issues/1284)) ([5609a85](https://github.com/zioalex/getinspiredbythebible/commit/5609a85b88b30e88ee43ff921bf681948cd2b6d0))
+
 ## [1.61.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.60.0...v1.61.0) (2026-11-10)
 
 

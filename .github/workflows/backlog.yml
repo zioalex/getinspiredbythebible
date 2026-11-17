@@ -69,9 +69,20 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
+      # BITB-304: this job checks out the PR head, which may predate .python-version. Read the
+      # version from the workflow commit instead, so the file always exists.
+      - name: Fetch .python-version from the workflow commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .pyver
+          sparse-checkout: .python-version
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".pyver/.python-version"
 
       - name: Validate every story's front matter
         run: python3 scripts/backlog.py check
@@ -128,7 +139,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       - name: Validate, then render the index and recent changelog (no commit)
         run: |

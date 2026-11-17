@@ -32,11 +32,13 @@ variables:
     description: LLM provider (ollama, claude, openrouter)
     default: ollama
 
-  # Ollama-specific (local only - remote uses OpenRouter/Claude)
+  # Applies to the ollama and claude providers (openrouter uses OPENROUTER_MODEL).
+  # For claude, leave it unset to get the provider default (claude-sonnet-5-5);
+  # the llama3:8b default below is the Ollama default only (BITB-304).
   LLM_MODEL:
     required_in: local
     condition: LLM_PROVIDER=ollama
-    description: Model name for Ollama provider
+    description: Model name for the ollama and claude providers (claude - unset uses the provider default)
     default: llama3:8b
 
   OLLAMA_HOST:
@@ -166,6 +168,11 @@ variables:
     description: Max GET /scripture/search and /scripture/search/text requests per IP per minute, independent of the chat limits (BITB-298)
     default: "30"
 
+  CHAT_FINALIZE_RATE_LIMIT_PER_MINUTE:
+    required_in: none
+    description: Max POST /chat/finalize (client stream-recovery) requests per IP per minute, independent of the chat limits (BITB-320)
+    default: "10"
+
   RATE_LIMIT_FEEDBACK_PER_MINUTE:
     required_in: none
     description: Max POST /feedback requests per IP per minute, independent of the chat limits (BITB-298)
@@ -220,6 +227,36 @@ variables:
     required_in: none
     description: Show the on-device "Listen" (read aloud) button in clients (BITB-119)
     default: "true"
+
+  # ---------------------------------------------------------------------------
+  # Blocked-message samples (BITB-326)
+  # Wired into Terraform (blocked_sample_capture_enabled); docker-compose keeps the code
+  # default (off), so local stacks never record samples.
+  # ---------------------------------------------------------------------------
+  BLOCKED_SAMPLE_CAPTURE_ENABLED:
+    required_in: remote
+    description: Store content-safety-blocked messages (capped, deduplicated, TTL) for filter tuning (BITB-326)
+    default: "false"
+
+  # ---------------------------------------------------------------------------
+  # Feedback / contact-form retention (BITB-329)
+  # `none`: not wired into docker-compose/Terraform; the code defaults apply. The privacy
+  # policy quotes 30 / 90 / 90 days, so only change these together with the policy text.
+  # ---------------------------------------------------------------------------
+  FEEDBACK_TEXT_RETENTION_DAYS:
+    required_in: none
+    description: Days feedback free text (message, AI reply, comment) is kept before it is set to NULL; 1 <= this <= FEEDBACK_RETENTION_DAYS (BITB-329)
+    default: "30"
+
+  FEEDBACK_RETENTION_DAYS:
+    required_in: none
+    description: Days a whole feedback row is kept before it is deleted; at most 3650 (BITB-329)
+    default: "90"
+
+  CONTACT_RETENTION_DAYS:
+    required_in: none
+    description: Days a contact-form submission is kept before it is deleted; 1..3650 (BITB-329)
+    default: "90"
 
   # ---------------------------------------------------------------------------
   # Retrieval-miss insights (BITB-256)

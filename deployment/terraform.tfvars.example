@@ -149,6 +149,10 @@ log_level = "INFO"
 rate_limit_enabled            = true
 rate_limit_requests_per_minute = 10
 
+# Store content-safety-blocked messages (capped, hashed session id, 30-day TTL) for
+# filter tuning; read them with `make export-blocked-samples` (BITB-326)
+blocked_sample_capture_enabled = false
+
 # Content filtering (blocks profanity, spam, URLs)
 content_filter_enabled = true
 max_message_length     = 500

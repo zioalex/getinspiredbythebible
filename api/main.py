@@ -42,6 +42,7 @@ from middleware.access_audit import AccessAuditMiddleware  # noqa: E402
 from middleware.body_size_limit import BodySizeLimitMiddleware  # noqa: E402
 from middleware.correlation_id import CorrelationIDMiddleware  # noqa: E402
 from providers import ProviderError, get_embedding_provider, get_llm_provider  # noqa: E402
+from providers.factory import effective_llm_model  # noqa: E402
 from routes import (  # noqa: E402
     admin_router,
     chat_router,
@@ -139,7 +140,7 @@ TTL_PURGE_INTERVAL_SECONDS = 60 * 60
 
 
 async def _purge_ttl_samples() -> None:
-    """Best-effort TTL sweep for blocked-message and retrieval-miss samples."""
+    """Best-effort TTL sweep: blocked-message, retrieval-miss, feedback and contact data."""
     try:
         from feedback.blocked_samples import purge_expired_blocked_samples
 
@@ -157,6 +158,15 @@ async def _purge_ttl_samples() -> None:
             logger.info("Purged expired retrieval-miss samples", extra={"deleted": deleted})
     except Exception as e:
         logger.warning("Retrieval-miss purge failed: %s", e)
+
+    try:
+        from feedback.retention import purge_expired_feedback
+
+        counts = await purge_expired_feedback()
+        if any(counts.values()):
+            logger.info("Applied feedback/contact retention", extra=counts)
+    except Exception as e:
+        logger.warning("Feedback retention sweep failed: %s", e)
 
 
 async def _ttl_purge_loop() -> None:
@@ -199,10 +209,7 @@ async def lifespan(app: FastAPI):
         },
     )
     # Get the actual model being used based on provider
-    if settings.llm_provider == "openrouter":
-        llm_model = settings.openrouter_model
-    else:
-        llm_model = settings.llm_model
+    llm_model = effective_llm_model(settings)
 
     logger.info(
         "LLM configuration",
@@ -331,7 +338,7 @@ app = FastAPI(
     The API supports multiple LLM backends:
     - **Ollama** (default): Self-hosted, local inference
     - **Claude**: Anthropic's Claude API
-    - **OpenAI**: Coming soon
+    - **OpenRouter**: Hosted open models via the OpenRouter aggregator
     """,
     lifespan=lifespan,
 )
@@ -427,10 +434,7 @@ async def get_config():
     Useful for debugging and frontend configuration.
     """
     # Get the actual model being used based on provider
-    if settings.llm_provider == "openrouter":
-        llm_model = settings.openrouter_model
-    else:
-        llm_model = settings.llm_model
+    llm_model = effective_llm_model(settings)
 
     return {
         "telemetry": {

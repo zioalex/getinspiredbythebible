@@ -908,6 +908,42 @@ capabilities:
         status: n/a
         note: BITB-087 Tier 2 — explicitly deferred to a follow-up story after v1.
 
+  - id: chat-stream-recovery
+    title: Recover chips and verse references when a chat stream ends early (BITB-320)
+    description: >-
+      When a reply ends without its `completion` event (dropped connection, error event after content), the client keeps
+      the received text, calls POST /api/v1/chat/finalize once (plus one silent retry) and merges the returned chips and
+      verse references; if the reply was cut off (`truncated`) or finalize fails it shows an "interrupted" note with a
+      Continue button. The server also degrades to a `completion` with `degraded: true` instead of erroring.
+    kind: capability
+    tier: 1
+    contracts: [chat-stream-sse]
+    parity:
+      api:
+        status: synced
+        evidence:
+          - api/routes/chat.py
+          - api/chat/service.py
+          - api/tests/test_chat_finalize.py
+        story: BITB-320
+        note: POST /api/v1/chat/finalize, degraded completion, partial error events, disconnect log + counters.
+      web:
+        status: synced
+        evidence:
+          - frontend/src/lib/api.ts
+          - frontend/src/app/[locale]/ChatIsland.tsx
+        story: BITB-320
+      android:
+        status: synced
+        evidence:
+          - android/app/src/main/kotlin/org/voxquieta/app/data/remote/api/BibleApiService.kt
+          - android/app/src/main/kotlin/org/voxquieta/app/presentation/viewmodels/ChatViewModel.kt
+        story: BITB-320
+      ios:
+        status: obligated
+        story: BITB-087
+        note: Tier 1 streaming chat must implement the same recovery contract.
+
   - id: church-finder
     title: Church finder
     description: >-

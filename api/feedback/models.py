@@ -70,7 +70,9 @@ class ContactRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000, description="The user's message")
     session_id: str | None = Field(None, max_length=128, description="Optional session identifier")
     user_agent: str | None = Field(
-        None, max_length=500, description="Browser/device info for bug reports"
+        None,
+        max_length=500,
+        description="Accepted for old clients, ignored and never stored (BITB-329)",
     )
 
 

@@ -3,11 +3,17 @@ Tests for the email service (SMTP2GO HTTP API).
 """
 
 import asyncio
+import html
+import inspect
+import json
 import time
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+
+from utils.email_service import EXPORT_HOWTO_URL
 
 
 class TestEmailServiceInitialization:
@@ -319,212 +325,238 @@ class TestSendEmail:
             assert elapsed < 0.6  # concurrent, not serialized (0.3 + 10*0.03)
 
 
+_SECRET_USER_MESSAGE = "SECRET-QUESTION-xyzzy why am I suffering"
+_SECRET_REPLY = "SECRET-AI-REPLY-plugh the answer is"
+_SECRET_COMMENT = "SECRET-COMMENT-fnord it was unhelpful"
+_SECRET_CONTACT_MESSAGE = "SECRET-CONTACT-MESSAGE-quux I need pastoral help"
+_SECRET_EMAIL = "secret.sender@example.org"
+_FB_UUID = "3f2b1c9e-8a4d-4e0b-9c1a-5d6e7f8a9b0c"
+_PROD_URL = (
+    "postgresql+asyncpg://bibleadmin@bible-app-db-mb0172.postgres.database.azure.com:5432/bibleapp"
+    "?ssl=require"
+)
+
+
+def _mock_settings(mock_settings, database_url=_PROD_URL):
+    mock_settings.smtp2go_enabled = True
+    mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
+    mock_settings.smtp2go_sender_email = "sender@example.com"
+    mock_settings.smtp2go_sender_name = "Test Sender"
+    mock_settings.contact_notification_email = "admin@example.com"
+    mock_settings.feedback_text_retention_days = 30
+    mock_settings.contact_retention_days = 90
+    mock_settings.database_url = database_url
+
+
+async def _send(method, database_url=_PROD_URL, **kwargs):
+    """Call ``EmailService.<method>`` and return the SMTP2GO payload it posted."""
+    with patch("utils.email_service.settings") as mock_settings:
+        _mock_settings(mock_settings, database_url)
+        from utils.email_service import EmailService
+
+        service = EmailService()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"data": {"succeeded": 1}}
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_response
+            result = await getattr(service, method)(**kwargs)
+            assert result is True
+            mock_post.assert_called_once()
+            return mock_post.call_args[1]["json"]
+
+
+_CREATED = datetime(2026, 11, 16, 9, 30, tzinfo=timezone.utc)
+
+
 @pytest.mark.asyncio
 class TestSendContactNotification:
-    """Test send_contact_notification method."""
+    """send_contact_notification: identifiers only (BITB-329)."""
 
-    async def test_send_contact_notification_formats_correctly(self):
-        """Test that contact notification is formatted correctly."""
-        with patch("utils.email_service.settings") as mock_settings:
-            mock_settings.smtp2go_enabled = True
-            mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
-            mock_settings.smtp2go_sender_email = "sender@example.com"
-            mock_settings.smtp2go_sender_name = "Test Sender"
-            mock_settings.contact_notification_email = "admin@example.com"
+    async def test_contact_notification_has_identifiers_and_howto(self):
+        payload = await _send(
+            "send_contact_notification",
+            subject_type="bug",
+            contact_id=42,
+            has_reply_email=True,
+            created_at=_CREATED,
+        )
+        assert payload["to"] == ["admin@example.com"]
+        assert "Bug" in payload["subject"]
+        for body in (payload["text_body"], payload["html_body"]):
+            assert "42" in body
+            assert 'make export-feedback ARGS="--contacts --id 42"' in html.unescape(body)
+            # created 2026-11-16 + 90 days
+            assert "2027-02-14" in body
+            assert EXPORT_HOWTO_URL in body
+        assert "Reply email left: yes" in payload["text_body"]
 
-            from utils.email_service import EmailService
+    async def test_contact_notification_has_no_reply_to_and_no_text(self):
+        payload = await _send(
+            "send_contact_notification",
+            subject_type="feature",
+            contact_id=7,
+            has_reply_email=True,
+            created_at=_CREATED,
+        )
+        assert "custom_headers" not in payload
+        blob = json.dumps(payload)
+        for secret in (_SECRET_CONTACT_MESSAGE, _SECRET_EMAIL, "Mozilla"):
+            assert secret not in blob
 
-            service = EmailService()
+    async def test_contact_notification_signature_cannot_carry_text(self):
+        """The removed parameters are gone: passing them is a TypeError, not a leak."""
+        from utils.email_service import EmailService
 
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"data": {"succeeded": 1}}
-
-            with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-                mock_post.return_value = mock_response
-
-                result = await service.send_contact_notification(
-                    subject_type="bug",
-                    message="Found a bug in the app",
-                    reply_email="user@example.com",
-                    user_agent="Mozilla/5.0",
-                )
-
-                assert result is True
-                call_args = mock_post.call_args
-                payload = call_args[1]["json"]
-                assert payload["to"] == ["admin@example.com"]
-                assert "Bug" in payload["subject"]
-                assert "Found a bug" in payload["text_body"]
-                assert "user@example.com" in payload["text_body"]
-
-    async def test_send_contact_notification_sets_reply_to(self):
-        """Test that reply-to is set when email is provided."""
-        with patch("utils.email_service.settings") as mock_settings:
-            mock_settings.smtp2go_enabled = True
-            mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
-            mock_settings.smtp2go_sender_email = "sender@example.com"
-            mock_settings.smtp2go_sender_name = "Test Sender"
-            mock_settings.contact_notification_email = "admin@example.com"
-
-            from utils.email_service import EmailService
-
-            service = EmailService()
-
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"data": {"succeeded": 1}}
-
-            with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-                mock_post.return_value = mock_response
-
-                await service.send_contact_notification(
-                    subject_type="feature",
-                    message="Please add dark mode",
-                    reply_email="user@example.com",
-                )
-
-                call_args = mock_post.call_args
-                payload = call_args[1]["json"]
-                assert payload["custom_headers"] == [
-                    {"header": "Reply-To", "value": "user@example.com"}
-                ]
+        params = inspect.signature(EmailService.send_contact_notification).parameters
+        assert set(params) == {
+            "self",
+            "subject_type",
+            "contact_id",
+            "has_reply_email",
+            "created_at",
+        }
 
 
 @pytest.mark.asyncio
 class TestSendFeedbackNotification:
-    """Test send_feedback_notification method."""
+    """send_feedback_notification: identifiers only (BITB-329)."""
 
-    async def test_feedback_notification_only_sends_for_negative(self):
-        """Test that notification is only sent for negative feedback."""
-        with patch("utils.email_service.settings") as mock_settings:
-            mock_settings.smtp2go_enabled = True
-            mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
-            mock_settings.smtp2go_sender_email = "sender@example.com"
-            mock_settings.smtp2go_sender_name = "Test Sender"
-            mock_settings.contact_notification_email = "admin@example.com"
+    async def test_negative_feedback_sends(self):
+        payload = await _send(
+            "send_feedback_notification",
+            rating="negative",
+            message_id=_FB_UUID,
+            has_comment=True,
+            reason="inaccurate",
+            created_at=_CREATED,
+        )
+        assert "Negative" in payload["subject"]
 
-            from utils.email_service import EmailService
+    async def test_positive_feedback_renders_positive(self):
+        payload = await _send(
+            "send_feedback_notification",
+            rating="positive",
+            message_id=_FB_UUID,
+            has_comment=True,
+            created_at=_CREATED,
+        )
+        assert "Positive" in payload["subject"]
 
-            service = EmailService()
+    async def test_feedback_bodies_never_contain_user_text(self):
+        payload = await _send(
+            "send_feedback_notification",
+            rating="negative",
+            message_id=_FB_UUID,
+            has_comment=True,
+            verses_cited=["John 3:16"],
+            model_used="claude-test",
+            response_time_ms=1234,
+            reason="inaccurate",
+            created_at=_CREATED,
+        )
+        assert "custom_headers" not in payload
+        blob = json.dumps(payload)
+        for secret in (_SECRET_USER_MESSAGE, _SECRET_REPLY, _SECRET_COMMENT):
+            assert secret not in blob
+        # identifiers kept
+        for body in (payload["text_body"], payload["html_body"]):
+            assert _FB_UUID in body
+            assert "inaccurate" in body
+            assert "claude-test" in body
+            assert "1234" in body
+            assert "John 3:16" in body
+        assert "Comment left: yes" in payload["text_body"]
 
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"data": {"succeeded": 1}}
+    async def test_feedback_howto_commands_are_exact_for_this_item(self):
+        payload = await _send(
+            "send_feedback_notification",
+            rating="negative",
+            message_id=_FB_UUID,
+            created_at=_CREATED,
+        )
+        text = payload["text_body"]
+        for line in (
+            "make az-pg-add-ip",
+            "export PGPASSWORD='<database admin password>'",
+            'export DATABASE_URL="$(make -s db-server-url SERVER=bible-app-db-mb0172)"',
+            f'make export-feedback ARGS="--message-id {_FB_UUID}"',
+            "make az-pg-remove-ip RULE=bible-app-db-mb0172",
+        ):
+            assert line in text
+            assert line in html.unescape(payload["html_body"])
+        # created 2026-11-16 + 30 days
+        assert "Text available until 2026-12-16" in text
+        assert EXPORT_HOWTO_URL in text and EXPORT_HOWTO_URL in payload["html_body"]
+        assert "<server>" not in text
 
-            with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-                mock_post.return_value = mock_response
+    async def test_unknown_server_prints_placeholder_and_hint(self):
+        payload = await _send(
+            "send_feedback_notification",
+            database_url="postgresql://u:p@localhost:5432/db",
+            rating="negative",
+            message_id=_FB_UUID,
+            created_at=_CREATED,
+        )
+        text = payload["text_body"]
+        assert "SERVER=<server>" in text
+        assert "RULE=<server>" in text
+        assert "make az-pg-list-rules" in text and "terraform.tfvars" in text
+        # `make db-server-url` without SERVER errors (require_var SERVER): never suggest it bare
+        assert "run `make db-server-url`" not in text
 
-                result = await service.send_feedback_notification(
-                    rating="negative",
-                    comment="Not helpful",
-                    user_message="What is the meaning of life?",
-                    assistant_response="The meaning of life is...",
-                )
+    async def test_non_uuid_message_id_never_reaches_a_shell_command(self):
+        hostile = "x'; rm -rf / #"
+        payload = await _send(
+            "send_feedback_notification",
+            rating="negative",
+            message_id=hostile,
+            created_at=_CREATED,
+        )
+        assert 'ARGS="--message-id' not in payload["text_body"]
+        assert hostile not in payload["html_body"]  # HTML-escaped in the table
+        assert html.escape(hostile) in payload["html_body"]
 
-                assert result is True
-                mock_post.assert_called_once()
+    async def test_user_controlled_fields_are_html_escaped(self):
+        payload = await _send(
+            "send_feedback_notification",
+            rating="negative",
+            message_id=_FB_UUID,
+            reason="<script>alert(1)</script>",
+            model_used="<b>m</b>",
+            verses_cited=["<i>x</i>"],
+            created_at=_CREATED,
+        )
+        body = payload["html_body"]
+        assert "<script>" not in body and "<b>m</b>" not in body and "<i>x</i>" not in body
+        assert "&lt;script&gt;" in body
 
-    async def test_feedback_notification_renders_positive(self):
-        """Positive feedback now renders and sends; gating moved to the route.
+    async def test_signature_cannot_carry_text(self):
+        from utils.email_service import EmailService
 
-        ``send_feedback_notification`` renders whatever rating it is given —
-        the decision of *when* to notify (negative, or positive with a comment)
-        lives in the route. So a direct call for positive feedback sends.
-        """
-        with patch("utils.email_service.settings") as mock_settings:
-            mock_settings.smtp2go_enabled = True
-            mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
-            mock_settings.smtp2go_sender_email = "sender@example.com"
-            mock_settings.smtp2go_sender_name = "Test Sender"
-            mock_settings.contact_notification_email = "admin@example.com"
+        params = set(inspect.signature(EmailService.send_feedback_notification).parameters)
+        assert not params & {"comment", "user_message", "assistant_response", "reply_to"}
 
-            from utils.email_service import EmailService
 
-            service = EmailService()
+class TestProdServerName:
+    def test_derived_from_azure_host(self):
+        with patch("utils.email_service.settings") as s:
+            s.database_url = _PROD_URL
+            from utils.email_service import _prod_server_name
 
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"data": {"succeeded": 1}}
+            assert _prod_server_name() == "bible-app-db-mb0172"
 
-            with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-                mock_post.return_value = mock_response
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "postgresql://u:p@localhost/db",
+            "postgresql://u:p@evil.example.com/db",
+            "postgresql://u:p@x.postgres.database.azure.com.evil.com/db",
+        ],
+    )
+    def test_none_for_other_hosts(self, url):
+        with patch("utils.email_service.settings") as s:
+            s.database_url = url
+            from utils.email_service import _prod_server_name
 
-                result = await service.send_feedback_notification(
-                    rating="positive",
-                    comment="Great answer!",
-                    user_message="What is love?",
-                    assistant_response="Love is...",
-                )
-
-                assert result is True
-                mock_post.assert_called_once()
-                payload = mock_post.call_args[1]["json"]
-                assert "Positive" in payload["subject"]
-
-    async def test_feedback_notification_includes_full_messages(self):
-        """Long messages are sent in full — no 500-char truncation."""
-        with patch("utils.email_service.settings") as mock_settings:
-            mock_settings.smtp2go_enabled = True
-            mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
-            mock_settings.smtp2go_sender_email = "sender@example.com"
-            mock_settings.smtp2go_sender_name = "Test Sender"
-            mock_settings.contact_notification_email = "admin@example.com"
-
-            from utils.email_service import EmailService
-
-            service = EmailService()
-
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"data": {"succeeded": 1}}
-
-            long_message = "A" * 600  # 600 character message
-
-            with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-                mock_post.return_value = mock_response
-
-                await service.send_feedback_notification(
-                    rating="negative",
-                    comment="Bad response",
-                    user_message=long_message,
-                    assistant_response=long_message,
-                )
-
-                call_args = mock_post.call_args
-                payload = call_args[1]["json"]
-                # The full 600-char message is present, untruncated.
-                assert "A" * 600 in payload["text_body"]
-                assert "..." not in payload["text_body"]
-
-    async def test_feedback_notification_handles_no_comment(self):
-        """Test feedback notification with no comment."""
-        with patch("utils.email_service.settings") as mock_settings:
-            mock_settings.smtp2go_enabled = True
-            mock_settings.smtp2go_api_key = "test-api-key"  # pragma: allowlist secret
-            mock_settings.smtp2go_sender_email = "sender@example.com"
-            mock_settings.smtp2go_sender_name = "Test Sender"
-            mock_settings.contact_notification_email = "admin@example.com"
-
-            from utils.email_service import EmailService
-
-            service = EmailService()
-
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.json.return_value = {"data": {"succeeded": 1}}
-
-            with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-                mock_post.return_value = mock_response
-
-                result = await service.send_feedback_notification(
-                    rating="negative",
-                    comment=None,
-                    user_message="Question",
-                    assistant_response="Answer",
-                )
-
-                assert result is True
-                call_args = mock_post.call_args
-                payload = call_args[1]["json"]
-                assert "No comment provided" in payload["text_body"]
+            assert _prod_server_name() is None

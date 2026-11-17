@@ -50,8 +50,9 @@ async def submit_feedback(
     This endpoint logs the user's feedback along with the message content
     for quality improvement purposes.
 
-    **Privacy Notice**: By submitting feedback, the user's message and the AI
-    response will be logged to help improve the service.
+    **Privacy Notice**: By submitting feedback, the user's message, the AI response and
+    the optional comment are stored for 30 days (the rating and message id for 90 days)
+    to help improve the service. Notification e-mails carry identifiers only.
     """
     logger.info(
         "Feedback submission received",
@@ -80,14 +81,13 @@ async def submit_feedback(
         if should_notify:
             await email_service.send_feedback_notification(
                 rating=request.rating,
-                comment=request.comment,
-                user_message=request.user_message,
-                assistant_response=request.assistant_response,
                 message_id=request.message_id,
+                has_comment=bool(request.comment),
                 verses_cited=request.verses_cited,
                 model_used=request.model_used,
                 response_time_ms=request.response_time_ms,
                 reason=request.reason,
+                created_at=feedback.created_at,
             )
 
         return FeedbackResponse(
@@ -160,9 +160,9 @@ async def submit_contact(
         # Send email notification
         email_sent = await email_service.send_contact_notification(
             subject_type=request.subject,
-            message=request.message,
-            reply_email=request.email,
-            user_agent=request.user_agent,
+            contact_id=contact.id,
+            has_reply_email=bool(request.email),
+            created_at=contact.created_at,
         )
 
         if email_sent:
