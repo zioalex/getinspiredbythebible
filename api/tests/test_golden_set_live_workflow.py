@@ -160,7 +160,7 @@ def test_run_json_is_uploaded_as_an_artifact_even_when_the_run_fails():
 def test_installs_only_what_the_runner_imports_and_pins_python():
     steps = _steps()
     setup = [s for s in steps if str(s.get("uses", "")).startswith("actions/setup-python@")]
-    assert setup and setup[0]["with"]["python-version"] == "3.12"
+    assert setup and setup[0]["with"]["python-version-file"] == ".python-version"
     install = next(s for s in steps if "pip install" in s.get("run", ""))
     assert install["run"].strip() == "pip install httpx pyyaml pydantic"
 
