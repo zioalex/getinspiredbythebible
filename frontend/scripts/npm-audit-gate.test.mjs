@@ -111,6 +111,47 @@ describe("evaluateAudit", () => {
     });
   });
 
+  it("allowlists the picomatch ReDoS advisory (no patched release exists)", () => {
+    // GHSA-fc5q-39xc-vjpf: affected range is <=4.0.7 and 4.0.7 is the newest
+    // picomatch, so the gate must ignore it until a fix is published.
+    const PICOMATCH = "https://github.com/advisories/GHSA-fc5q-39xc-vjpf";
+    const file = JSON.parse(
+      readFileSync(resolve(__dirname, "..", "audit-allowlist.json"), "utf8"),
+    );
+    const picomatchReport = {
+      vulnerabilities: {
+        picomatch: {
+          name: "picomatch",
+          severity: "high",
+          via: [
+            {
+              name: "picomatch",
+              title: "picomatch vulnerable to ReDoS",
+              url: PICOMATCH,
+              severity: "high",
+            },
+          ],
+        },
+        "@parcel/watcher": {
+          name: "@parcel/watcher",
+          severity: "high",
+          via: ["picomatch"],
+        },
+      },
+    };
+    const entry = file.advisories.find((e) => e.url === PICOMATCH);
+    expect(entry).toBeDefined();
+    // Evaluate on the day before it expires so the test does not rot with time.
+    const day = new Date(Date.parse(entry.reviewBy) - 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    expect(evaluateAudit(picomatchReport, file, day)).toEqual({
+      blocking: [],
+      ignored: [PICOMATCH],
+      expired: [],
+    });
+  });
+
   it("ships an allowlist where every entry has a url, reason and reviewBy", () => {
     const file = JSON.parse(
       readFileSync(resolve(__dirname, "..", "audit-allowlist.json"), "utf8"),
