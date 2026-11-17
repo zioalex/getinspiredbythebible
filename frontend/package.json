@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "type-check": "tsc --noEmit",
+    "og:generate": "node scripts/generate-og-images.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed"
@@ -28,6 +29,11 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@fontsource/noto-sans": "5.3.0",
+    "@fontsource/noto-sans-arabic": "5.3.0",
+    "@fontsource/noto-sans-devanagari": "5.3.0",
+    "@fontsource/noto-sans-kr": "5.3.1",
+    "@fontsource/noto-sans-sc": "5.3.1",
     "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4.3.5",
     "@testing-library/jest-dom": "^6.9.1",
