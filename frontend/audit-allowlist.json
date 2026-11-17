@@ -6,6 +6,12 @@
       "package": "braces",
       "reason": "Stack-exhaustion DoS via deeply nested glob patterns. Every braces version (<=3.0.3) is affected and no patched release exists. Reached only through dev/build tooling (tailwindcss@3 via chokidar/micromatch, eslint-config-next via fast-glob@3.3.1), which runs on repo-controlled patterns; the production dependency tree (npm audit --omit=dev) is clean. Upgrading Tailwind to v4 would not clear it because @next/eslint-plugin-next pins fast-glob@3.3.1.",
       "reviewBy": "2027-01-04"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reason": "ReDoS through single-branch repeated extglobs; affected range is <=4.0.7 and 4.0.7 is the newest release of every line (2.x, 3.x, 4.x), so no patched version exists to upgrade to (checked 2026-11-17). Reached through repo-controlled glob patterns only: dev/build tooling (vite, vitest, tinyglobby, micromatch) and @parcel/watcher, the optional file watcher next-intl uses at dev/build time. No request-time code path passes user input to picomatch. Drop this entry once a patched picomatch is published and the lockfile resolves to it.",
+      "reviewBy": "2026-12-15"
     }
   ]
 }
