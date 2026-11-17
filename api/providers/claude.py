@@ -17,6 +17,10 @@ from utils.metrics import (
 
 from .base import ChatMessage, LLMProvider, LLMResponse
 
+# Current Sonnet model ID (Anthropic models page). scripts/check_configured_models.py
+# probes this constant weekly to catch retirement (BITB-304).
+DEFAULT_CLAUDE_MODEL = "claude-sonnet-5-5"
+
 
 class ClaudeProvider(LLMProvider):
     """
@@ -26,13 +30,13 @@ class ClaudeProvider(LLMProvider):
     Claude's advanced reasoning capabilities.
     """
 
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-20250514"):
+    def __init__(self, api_key: str, model: str = DEFAULT_CLAUDE_MODEL):
         """
         Initialize Claude provider.
 
         Args:
             api_key: Anthropic API key
-            model: Model name (default: claude-sonnet-4-20250514)
+            model: Model name (default: DEFAULT_CLAUDE_MODEL)
         """
         self.model = model
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
@@ -73,8 +77,9 @@ class ClaudeProvider(LLMProvider):
             "model": self.model,
             "max_tokens": max_tokens,
             "messages": converted_messages,
-            "temperature": temperature,
         }
+        # ``temperature`` is accepted for interface parity but never sent: current Claude
+        # models reject non-default sampling parameters with a 400 (BITB-304).
 
         if system_prompt:
             request_params["system"] = system_prompt
@@ -111,13 +116,16 @@ class ClaudeProvider(LLMProvider):
         total_chars = 0
 
         try:
-            async with self._client.messages.stream(
-                model=self.model,
-                max_tokens=max_tokens,
-                messages=converted_messages,  # type: ignore[arg-type]
-                temperature=temperature,
-                system=system_prompt if system_prompt else None,
-            ) as stream:
+            # No ``temperature`` (rejected by current Claude models) and no ``system=None``
+            # (sent as JSON null); see chat() above (BITB-304).
+            stream_params: dict = {
+                "model": self.model,
+                "max_tokens": max_tokens,
+                "messages": converted_messages,
+            }
+            if system_prompt:
+                stream_params["system"] = system_prompt
+            async with self._client.messages.stream(**stream_params) as stream:
                 async for text in stream.text_stream:
                     if first_chunk:
                         ttft_ms = (time.perf_counter() - stream_start) * 1000
