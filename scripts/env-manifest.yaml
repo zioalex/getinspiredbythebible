@@ -32,11 +32,13 @@ variables:
     description: LLM provider (ollama, claude, openrouter)
     default: ollama
 
-  # Ollama-specific (local only - remote uses OpenRouter/Claude)
+  # Applies to the ollama and claude providers (openrouter uses OPENROUTER_MODEL).
+  # For claude, leave it unset to get the provider default (claude-sonnet-5-5);
+  # the llama3:8b default below is the Ollama default only (BITB-304).
   LLM_MODEL:
     required_in: local
     condition: LLM_PROVIDER=ollama
-    description: Model name for Ollama provider
+    description: Model name for the ollama and claude providers (claude - unset uses the provider default)
     default: llama3:8b
 
   OLLAMA_HOST:

@@ -754,16 +754,16 @@ class TestProviderFactory:
                 _env_file=None,
             )
 
-    def test_create_openai_raises_not_implemented(self):
-        """Settings validation should reject OpenAI without API key."""
+    def test_openai_llm_provider_rejected_by_settings(self):
+        """llm_provider=openai is no longer a valid literal (BITB-304)."""
         from config import Settings
 
-        with pytest.raises(ValidationError, match="openai_api_key is required"):
+        with pytest.raises(ValidationError, match="llm_provider"):
             Settings(
                 database_url="postgresql://user:pass@localhost:5432/bibledb",  # pragma: allowlist secret
                 llm_provider="openai",
                 llm_model="gpt-4",
-                openai_api_key=None,
+                openai_api_key="sk-test",  # pragma: allowlist secret
                 _env_file=None,
             )
 
