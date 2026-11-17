@@ -1205,12 +1205,12 @@ export default function ChatIsland({
               />
               <Book className="w-8 h-8 text-primary-600 hidden sm:block shrink-0" />
               <div className="min-w-0">
-                <h1
+                <p
                   dir="ltr"
                   className="text-lg sm:text-xl font-semibold text-gray-800 truncate"
                 >
                   {tHeader("title")}
-                </h1>
+                </p>
                 <p className="text-sm text-gray-500 hidden sm:block">
                   {tHeader("subtitle")}
                 </p>
@@ -1303,9 +1303,9 @@ export default function ChatIsland({
               <Book className="w-16 h-16 text-primary-300 mb-4" />
               {heroContent ?? (
                 <>
-                  <h2 className="text-2xl font-serif text-gray-700 mb-2">
+                  <h1 className="text-2xl font-serif text-gray-700 mb-2">
                     {tWelcome("heading")}
-                  </h2>
+                  </h1>
                   <p className="text-gray-500 max-w-md mb-8">
                     {tWelcome("description")}
                   </p>
@@ -1327,7 +1327,7 @@ export default function ChatIsland({
                     key={index}
                     onClick={() => submitMessage(prompt)}
                     disabled={turnstileBlocked}
-                    className="text-left px-4 py-3 bg-white border border-primary-200 rounded-lg text-sm text-gray-700 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-start px-4 py-3 bg-white border border-primary-200 rounded-lg text-sm text-gray-700 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {prompt}
                   </button>
@@ -1337,7 +1337,7 @@ export default function ChatIsland({
               {/* Official app invitation — get Vox Quieta on Google Play */}
               <Link
                 href="/app"
-                className="group mt-8 flex items-center gap-3 sm:gap-4 max-w-lg mx-auto px-4 py-3 sm:px-5 sm:py-4 bg-teal-50 border border-teal-200 rounded-xl hover:border-teal-400 hover:bg-teal-100/70 transition-colors text-left"
+                className="group mt-8 flex items-center gap-3 sm:gap-4 max-w-lg mx-auto px-4 py-3 sm:px-5 sm:py-4 bg-teal-50 border border-teal-200 rounded-xl hover:border-teal-400 hover:bg-teal-100/70 transition-colors text-start"
               >
                 <Image
                   src="/app-icon.png"
@@ -1537,7 +1537,7 @@ export default function ChatIsland({
               they understand why a long message can't grow further. */}
           {input.length >= maxMessageLength * 0.8 && (
             <p
-              className={`text-xs mt-1 text-right ${
+              className={`text-xs mt-1 text-end ${
                 input.length >= maxMessageLength
                   ? "text-red-500"
                   : "text-gray-400"
@@ -1576,7 +1576,7 @@ export default function ChatIsland({
 
       {/* Sidebar - Relevant Verses */}
       {relevantVerses.length > 0 && (
-        <aside className="hidden lg:flex lg:flex-col w-80 border-l border-gray-200 bg-white/50">
+        <aside className="hidden lg:flex lg:flex-col w-80 border-s border-gray-200 bg-white/50">
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-gray-700">
@@ -1590,7 +1590,7 @@ export default function ChatIsland({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowOnlyReferenced(true)}
-                className={`flex-1 text-xs px-2 py-1.5 rounded-l-md border transition-colors ${
+                className={`flex-1 text-xs px-2 py-1.5 rounded-s-md border transition-colors ${
                   showOnlyReferenced
                     ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
                     : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
@@ -1600,7 +1600,7 @@ export default function ChatIsland({
               </button>
               <button
                 onClick={() => setShowOnlyReferenced(false)}
-                className={`flex-1 text-xs px-2 py-1.5 rounded-r-md border-t border-r border-b transition-colors ${
+                className={`flex-1 text-xs px-2 py-1.5 rounded-e-md border-t border-e border-b transition-colors ${
                   !showOnlyReferenced
                     ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
                     : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
@@ -1667,7 +1667,7 @@ export default function ChatIsland({
       {relevantVerses.length > 0 && (
         <button
           onClick={() => setMobileVersesOpen(true)}
-          className="lg:hidden fixed bottom-[calc(8rem+env(safe-area-inset-bottom))] right-4 z-40 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
+          className="lg:hidden fixed bottom-[calc(8rem+env(safe-area-inset-bottom))] end-4 z-40 flex items-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors"
           aria-label={tVerses("showScriptureReferences")}
         >
           <BookOpen className="w-5 h-5" />
@@ -1684,7 +1684,7 @@ export default function ChatIsland({
             onClick={() => setMobileVersesOpen(false)}
           />
           {/* Panel */}
-          <div className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-200">
+          <div className="absolute end-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-200">
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-700">
@@ -1705,7 +1705,7 @@ export default function ChatIsland({
               <div className="flex items-center gap-2 mt-2">
                 <button
                   onClick={() => setShowOnlyReferenced(true)}
-                  className={`flex-1 text-xs px-2 py-1.5 rounded-l-md border transition-colors ${
+                  className={`flex-1 text-xs px-2 py-1.5 rounded-s-md border transition-colors ${
                     showOnlyReferenced
                       ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
                       : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
@@ -1715,7 +1715,7 @@ export default function ChatIsland({
                 </button>
                 <button
                   onClick={() => setShowOnlyReferenced(false)}
-                  className={`flex-1 text-xs px-2 py-1.5 rounded-r-md border-t border-r border-b transition-colors ${
+                  className={`flex-1 text-xs px-2 py-1.5 rounded-e-md border-t border-e border-b transition-colors ${
                     !showOnlyReferenced
                       ? "bg-primary-100 border-primary-300 text-primary-700 font-medium"
                       : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
@@ -1819,7 +1819,7 @@ export default function ChatIsland({
 
       {/* Toast notification for errors */}
       {feedbackError && (
-        <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-2">
+        <div className="fixed bottom-4 end-4 z-50 animate-in slide-in-from-bottom-2">
           <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
             <span className="text-sm">{feedbackError}</span>
             <button

@@ -37,7 +37,7 @@ export default function FollowUpSuggestions({
           type="button"
           onClick={() => onSelect(suggestion)}
           disabled={disabled}
-          className="text-left px-3 py-2 bg-white border border-primary-200 rounded-lg text-sm text-gray-700 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="text-start px-3 py-2 bg-white border border-primary-200 rounded-lg text-sm text-gray-700 hover:border-primary-400 hover:bg-primary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {suggestion}
         </button>

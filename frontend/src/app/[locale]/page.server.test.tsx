@@ -4,17 +4,17 @@ import type { ReactElement } from "react";
 import enMessages from "../../../messages/en.json";
 import deMessages from "../../../messages/de.json";
 import itMessages from "../../../messages/it.json";
-import arMessages from "../../../messages/ar.json";
-import zhMessages from "../../../messages/zh.json";
 
-// Message catalogs keyed by locale, used to back the mocked server translator.
-const catalogs: Record<string, typeof enMessages> = {
-  en: enMessages,
-  de: deMessages,
-  it: itMessages,
-  ar: arMessages,
-  zh: zhMessages,
-};
+// Message catalogs for all 11 locales, used to back the mocked server translator.
+const catalogs = Object.fromEntries(
+  Object.entries(
+    import.meta.glob("../../../messages/*.json", {
+      eager: true,
+      import: "default",
+    }) as Record<string, typeof enMessages>,
+  ).map(([path, mod]) => [path.match(/([a-z]+)\.json$/)![1], mod]),
+) as Record<string, typeof enMessages>;
+const ALL_LOCALES = Object.keys(catalogs);
 
 // Importing the server `page.tsx` transitively pulls in the "use client"
 // ChatIsland island and its dependencies. We never render the island here,
@@ -55,7 +55,10 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: vi.fn().mockReturnValue({ replace: vi.fn() }),
 }));
 vi.mock("@/i18n/routing", () => ({
-  routing: { locales: ["en", "it", "de"], defaultLocale: "en" },
+  routing: {
+    locales: ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"],
+    defaultLocale: "en",
+  },
 }));
 
 // Mock next-intl/server so the server component resolves real per-locale
@@ -93,7 +96,7 @@ describe("server-rendered homepage hero (SEO)", () => {
   // The hero text must be present in the server output for every locale so
   // crawlers (and AI bots) get real, localized content instead of a thin
   // client shell — this is the core BITB-136 fix.
-  it.each(["en", "de", "it", "ar", "zh"])(
+  it.each(ALL_LOCALES)(
     "renders the localized welcome heading and description for /%s",
     async (locale) => {
       const element = (await Home({
@@ -123,5 +126,30 @@ describe("server-rendered homepage hero (SEO)", () => {
       screen.queryByText(enMessages.Welcome.heading),
     ).not.toBeInTheDocument();
     expect(screen.getByText(deMessages.Welcome.heading)).toBeInTheDocument();
+  });
+
+  it.each(ALL_LOCALES)(
+    "renders exactly one non-brand, non-empty h1 for /%s",
+    async (locale) => {
+      const element = (await Home({
+        params: Promise.resolve({ locale }),
+      })) as ReactElement<{ heroContent: ReactElement }>;
+
+      render(element.props.heroContent);
+
+      const h1s = screen.getAllByRole("heading", { level: 1 });
+      expect(h1s).toHaveLength(1);
+      const text = h1s[0].textContent?.trim() ?? "";
+      expect(text.length).toBeGreaterThan(0);
+      expect(text).not.toBe(catalogs[locale].Header.title);
+      expect(text).not.toBe("Vox Quieta");
+    },
+  );
+
+  it("gives every locale a heading distinct from the old 'Welcome' copy", () => {
+    expect(ALL_LOCALES).toHaveLength(11);
+    expect(enMessages.Welcome.heading).toBe(
+      "Find comfort and guidance in Scripture",
+    );
   });
 });

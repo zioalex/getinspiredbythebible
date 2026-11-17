@@ -22,12 +22,16 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Tester" });
 
-  return pageMetadata({
-    locale,
-    path: "/tester",
-    title: t("metaTitle"),
-    description: t("metaDescription"),
-  });
+  return {
+    ...pageMetadata({
+      locale,
+      path: "/tester",
+      title: t("metaTitle"),
+      description: t("metaDescription"),
+    }),
+    // The beta funnel is reachable by URL but must not be indexed.
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function TesterPage({
@@ -95,7 +99,7 @@ export default async function TesterPage({
                 </div>
                 <div>
                   <p className="font-medium text-gray-800">
-                    <span className="text-primary-500 mr-2">{index + 1}.</span>
+                    <span className="text-primary-500 me-2">{index + 1}.</span>
                     {step.title}
                   </p>
                   <p className="text-sm text-gray-500 mt-1 leading-relaxed">

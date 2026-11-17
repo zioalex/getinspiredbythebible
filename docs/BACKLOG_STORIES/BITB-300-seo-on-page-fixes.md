@@ -1,10 +1,11 @@
 ---
 id: BITB-300
-status: todo
+status: in-review
 priority: P1
 size: S
 rank: 20
 created: 2026-11-11
+follow_ups: [BITB-323, BITB-324]
 ---
 
 # BITB-300: SEO On-Page Fixes — Headings, Descriptions, Noindex, Localized 404, Honest Sitemap Dates
@@ -109,6 +110,11 @@ Implement decisions 1–9. Additionally:
 - New pages (BITB-301, BITB-302, BITB-303).
 - `FAQPage`/`SoftwareApplication` structured data (do it with the pages that need it).
 - Splitting `ChatIsland.tsx`.
+
+## Follow-ups
+
+- BITB-323: keep `lastmod.json` fresh automatically (deploy-time regeneration).
+- BITB-324: server-render the localized 404 (today it renders only after hydration).
 
 ## Related
 

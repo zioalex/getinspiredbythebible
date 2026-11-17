@@ -131,10 +131,15 @@ describe("ChatIsland header responsive layout (BITB-219)", () => {
       expect(newChat.parentElement).toHaveClass("shrink-0");
 
       // Title stays on one line
-      const h1 = screen.getByRole("heading", { level: 1 });
-      expect(h1).toHaveClass("truncate");
+      // The brand is a plain <p>, not a heading: the page <h1> is the
+      // server-rendered hero (BITB-300).
+      expect(
+        screen.queryByRole("heading", { name: messages.Header.title }),
+      ).toBeNull();
+      const brand = screen.getByText(messages.Header.title, { selector: "p" });
+      expect(brand).toHaveClass("truncate");
       // Latin brand truncates from its end even in RTL locales (ar)
-      expect(h1).toHaveAttribute("dir", "ltr");
+      expect(brand).toHaveAttribute("dir", "ltr");
 
       await waitFor(() => expect(screen.getByRole("main")).toBeInTheDocument());
     },

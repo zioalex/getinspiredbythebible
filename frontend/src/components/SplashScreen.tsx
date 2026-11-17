@@ -293,9 +293,9 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           </svg>
         </div>
 
-        <h1 className="text-white text-2xl font-semibold mb-2 tracking-wide">
+        <p className="text-white text-2xl font-semibold mb-2 tracking-wide">
           {t("title")}
-        </h1>
+        </p>
         <p className="text-white/60 text-sm tracking-wider uppercase">
           {t("motto")}
         </p>

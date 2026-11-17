@@ -1,7 +1,8 @@
 {
   "Metadata": {
     "title": "Vox Quieta",
-    "description": "Lasciati ispirare ogni giorno dalla Parola di Dio"
+    "description": "Lasciati ispirare ogni giorno dalla Parola di Dio",
+    "homeDescription": "Fai domande con parole tue e ricevi risposte basate sulla Bibbia. Gratuito, senza bisogno di un account e disponibile in 11 lingue."
   },
   "Header": {
     "title": "Vox Quieta",
@@ -12,7 +13,7 @@
     "appCta": "Scarica l'app"
   },
   "Welcome": {
-    "heading": "Benvenuto",
+    "heading": "Trova conforto e guida nelle Scritture",
     "description": "Condividi ciò che hai nel cuore, fai domande sulle Scritture o cerca semplicemente incoraggiamento. Posso aiutarti a esplorare argomenti teologici, ma non sostituisco teologi preparati o la guida pastorale.",
     "prompt1": "Sto lottando e ho bisogno del conforto di Dio",
     "prompt2": "Aiutami a trovare la forza per perdonare",
@@ -433,5 +434,10 @@
     "regionSaved": "Dal prossimo messaggio useremo i numeri di {country}.",
     "emergencyNumberAria": "Chiama il numero di emergenza {number}",
     "localEmergencyHint": "Chiama il numero di emergenza locale (il <dial>112</dial> funziona dalla maggior parte dei telefoni cellulari)."
+  },
+  "NotFound": {
+    "title": "Pagina non trovata",
+    "body": "Spiacenti, non abbiamo trovato la pagina che cercavi.",
+    "backHome": "Torna alla home"
   }
 }

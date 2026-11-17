@@ -1,7 +1,8 @@
 {
   "Metadata": {
     "title": "Vox Quieta",
-    "description": "Lass dich täglich von Gottes Wort inspirieren"
+    "description": "Lass dich täglich von Gottes Wort inspirieren",
+    "homeDescription": "Stelle Fragen in deinen eigenen Worten und erhalte Antworten, die auf der Bibel beruhen. Kostenlos, ohne Konto und in 11 Sprachen verfügbar."
   },
   "Header": {
     "title": "Vox Quieta",
@@ -12,7 +13,7 @@
     "appCta": "App holen"
   },
   "Welcome": {
-    "heading": "Willkommen",
+    "heading": "Finde Trost und Orientierung in der Heiligen Schrift",
     "description": "Teile mit, was dich bewegt, stelle Fragen zur Heiligen Schrift oder suche einfach Ermutigung. Ich kann dir helfen, theologische Themen zu erkunden, bin aber kein Ersatz für ausgebildete Theologen oder seelsorgerliche Begleitung.",
     "prompt1": "Ich kämpfe und brauche Gottes Trost",
     "prompt2": "Hilf mir, die Kraft zum Vergeben zu finden",
@@ -433,5 +434,10 @@
     "regionSaved": "Ab deiner nächsten Nachricht verwenden wir die Nummern für {country}.",
     "emergencyNumberAria": "Notrufnummer {number} anrufen",
     "localEmergencyHint": "Rufen Sie die örtliche Notrufnummer an (die <dial>112</dial> funktioniert von den meisten Mobiltelefonen aus)."
+  },
+  "NotFound": {
+    "title": "Seite nicht gefunden",
+    "body": "Entschuldigung, die gesuchte Seite wurde nicht gefunden.",
+    "backHome": "Zurück zur Startseite"
   }
 }

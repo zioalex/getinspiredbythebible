@@ -247,7 +247,7 @@ export default function ConversationSidebar({
                         onSelectConversation(conv.id);
                         onClose();
                       }}
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      className="flex min-w-0 flex-1 items-center gap-2 text-start"
                     >
                       <MessageSquare className="h-4 w-4 shrink-0 text-gray-400" />
                       <span className="truncate text-gray-800 dark:text-gray-100">
@@ -329,7 +329,7 @@ export default function ConversationSidebar({
                     type="file"
                     accept=".json,application/json"
                     onChange={handleFilePicked}
-                    className="block w-full text-xs text-gray-600 file:mr-2 file:rounded-sm file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs dark:text-gray-300 dark:file:bg-gray-800"
+                    className="block w-full text-xs text-gray-600 file:me-2 file:rounded-sm file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs dark:text-gray-300 dark:file:bg-gray-800"
                   />
                 </>
               )}
