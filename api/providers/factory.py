@@ -13,7 +13,7 @@ from config import Settings, settings
 
 from .azure_openai import AzureOpenAIEmbeddingProvider
 from .base import EmbeddingProvider, LLMProvider
-from .claude import ClaudeProvider
+from .claude import DEFAULT_CLAUDE_MODEL, ClaudeProvider
 from .embedding_cache import CachingEmbeddingProvider
 from .embedding_resilience import ResilientEmbeddingProvider
 from .ollama import OllamaEmbeddingProvider, OllamaProvider
@@ -24,6 +24,15 @@ class ProviderError(Exception):
     """Raised when provider initialization fails."""
 
     pass
+
+
+def effective_llm_model(config: Settings) -> str:
+    """Model ID the configured LLM provider actually uses (for logs and ``/config``)."""
+    if config.llm_provider == "openrouter":
+        return config.openrouter_model
+    if config.llm_provider == "claude" and "llm_model" not in config.model_fields_set:
+        return DEFAULT_CLAUDE_MODEL
+    return config.llm_model
 
 
 def create_llm_provider(config: Settings) -> LLMProvider:
@@ -47,7 +56,12 @@ def create_llm_provider(config: Settings) -> LLMProvider:
                 raise ProviderError(
                     "Claude provider requires ANTHROPIC_API_KEY environment variable"
                 )
-            return ClaudeProvider(api_key=config.anthropic_api_key, model=config.llm_model)
+            # LLM_MODEL defaults to an Ollama model name ("llama3:8b"), which Anthropic would
+            # reject. Only forward it when the operator explicitly set it (env var, .env or
+            # constructor kwarg); otherwise ClaudeProvider's own default applies.
+            if "llm_model" in config.model_fields_set:
+                return ClaudeProvider(api_key=config.anthropic_api_key, model=config.llm_model)
+            return ClaudeProvider(api_key=config.anthropic_api_key)
         case "openrouter":
             if not config.openrouter_api_key:
                 raise ProviderError(
@@ -67,9 +81,6 @@ def create_llm_provider(config: Settings) -> LLMProvider:
                 allow_fallbacks=config.openrouter_allow_fallbacks,
                 preferred_min_throughput_p50=config.openrouter_preferred_min_throughput_p50,
             )
-        case "openai":
-            # Future implementation
-            raise ProviderError("OpenAI provider not yet implemented")
         case _:
             raise ProviderError(f"Unknown LLM provider: {config.llm_provider}")
 
