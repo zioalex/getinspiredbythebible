@@ -91,7 +91,7 @@ VS Code automatically detects the virtual environment:
    - Type "Python: Select Interpreter"
    - Choose `.venv/bin/python`
 
-3. **Verify** - Bottom left of VS Code shows: `Python 3.12.x ('.venv': venv)`
+3. **Verify** - Bottom left of VS Code shows: `Python 3.14.x ('.venv': venv)`
 
 VS Code will now:
 
@@ -273,7 +273,7 @@ python scripts/load_bible.py
 2. ✅ **One virtual environment per project**
 3. ✅ **Use `make setup-dev`** for consistency
 4. ✅ **Pin exact versions** in `requirements.txt`
-5. ✅ **Document Python version** (we use Python 3.12)
+5. ✅ **Document Python version** (we use Python 3.14, pinned in `.python-version`)
 6. ✅ **Use Makefile commands** (handles venv automatically)
 7. ✅ **Recreate if corrupted** (`make clean-all && make setup-dev`)
 

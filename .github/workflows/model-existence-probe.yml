@@ -1,0 +1,44 @@
+name: Model Existence Probe
+
+# Weekly check that every configured model ID still exists at its provider (BITB-304).
+# scripts/check_configured_models.py reads the IDs from api/config.py, api/providers/llama_guard.py,
+# api/providers/claude.py and deployment/variables.tf, then asks the provider's model-list endpoint
+# (OpenRouter: public, no key; Anthropic: only when ANTHROPIC_API_KEY is set, otherwise skipped).
+# It makes no completion calls. Exit 1 = an ID is missing (retired); exit 2 = network/HTTP error,
+# kept distinct so an outage is not read as a retirement.
+#
+# Optional repo secret: ANTHROPIC_API_KEY (enables the Claude default-model check).
+
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC (off the :00/:30 peaks)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-existence-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - name: Unit-test the probe
+        run: |
+          pip install pytest
+          python -m pytest scripts/test_check_configured_models.py -q
+
+      - name: Check configured models exist
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/check_configured_models.py
