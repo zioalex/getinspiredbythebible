@@ -60,7 +60,7 @@ Never run `npm install` or `docker-compose` with `sudo` in the project directory
 python3 -m venv .venv
 
 # Or update Makefile PYTHON_VERSION variable
-PYTHON_VERSION := python3.12  # or python3.11
+PYTHON_VERSION := python3.14  # must match .python-version
 ```
 
 ### Problem: Virtual environment not activating
@@ -359,7 +359,7 @@ git commit --no-verify -m "..."
 
    ```yaml
    # Check .github/workflows/*.yml
-   python-version: '3.12'  # Must match local
+   python-version-file: '.python-version'  # Single source of truth, matches local
    node-version: '18.x'    # Must match local
    ```
 
