@@ -68,7 +68,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version-file: ".python-version"
 
       # The `secrets` context is not usable in a step-level `if:`, so read it into an output here.
       - name: Check the credentials for the selected classifier
