@@ -418,11 +418,9 @@ class TestMainApp:
             response = client.get("/config")
             assert response.status_code == 200
             data = response.json()
-            assert "llm" in data
-            assert "embedding" in data
+            assert "llm" not in data  # BITB-307
+            assert "embedding" not in data
             assert "chat" in data
-            assert "provider" in data["llm"]
-            assert "model" in data["llm"]
             # BITB-075: the effective chat message-length limit must be
             # published so clients don't rely on a hard-coded, possibly
             # out-of-sync, constant.
@@ -448,11 +446,15 @@ class TestMainApp:
             data = response.json()
             assert "error" in data
             assert "LLM Provider Error" in data["error"]
+            assert data["detail"] == "The AI service is temporarily unavailable."
+            assert "Test provider error" not in response.text
+            assert "hint" not in data
 
     def test_get_cors_origins(self):
         from main import _get_cors_origins
 
-        origins = _get_cors_origins()
+        with patch("main.settings.cors_allow_localhost", True):
+            origins = _get_cors_origins()
         assert "http://localhost:3000" in origins
         assert "http://127.0.0.1:3000" in origins
 
@@ -461,6 +463,8 @@ class TestMainApp:
         from main import _get_cors_origins
 
         mock_settings.cors_origins = "https://custom.example.com, https://other.example.com"
+        mock_settings.cors_allow_localhost = False
+        mock_settings.debug = False
         origins = _get_cors_origins()
         assert "https://custom.example.com" in origins
         assert "https://other.example.com" in origins
@@ -470,6 +474,8 @@ class TestMainApp:
         from main import _get_cors_origins
 
         mock_settings.cors_origins = ""
+        mock_settings.cors_allow_localhost = True
+        mock_settings.debug = False
         origins = _get_cors_origins()
         assert "http://localhost:3000" in origins
 
