@@ -92,14 +92,16 @@ class TestHealthSmoke:
         assert r.json()["status"] == "alive"
 
     def test_config_endpoint(self, api):
-        """GET /config exposes llm and embedding configuration."""
+        """GET /config exposes only the client-read keys, no provider or model (BITB-307)."""
         r = api.get("/config")
         assert r.status_code == 200
         data = r.json()
-        assert "llm" in data
-        assert "embedding" in data
-        assert "provider" in data["llm"]
-        assert "model" in data["llm"]
+        assert "max_message_length" in data["chat"]
+        assert "session_max_requests" in data["chat"]
+        assert "tts_enabled" in data["features"]
+        assert "turnstile_enabled" in data["security"]
+        for removed in ("llm", "embedding", "telemetry"):
+            assert removed not in data
 
     def test_translations_list_includes_all_languages(self, api):
         """
