@@ -345,21 +345,55 @@ app = FastAPI(
 
 
 def _get_cors_origins() -> list[str]:
-    """Build list of allowed CORS origins from settings."""
-    # Always allow localhost for development
-    origins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-        # Production domain (configurable via PRODUCTION_FRONTEND_URL env var)
-        settings.production_frontend_url,
-    ]
+    """Build list of allowed CORS origins from settings.
+
+    Localhost origins are development-only (BITB-307): they are included only when
+    ``settings.debug`` is true or ``CORS_ALLOW_LOCALHOST=true`` is set.
+    """
+    origins: list[str] = []
+    if settings.debug or settings.cors_allow_localhost:
+        origins.extend(
+            [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:3001",
+                "http://127.0.0.1:3001",
+            ]
+        )
+    # Production domain (configurable via PRODUCTION_FRONTEND_URL env var)
+    origins.append(settings.production_frontend_url)
     # Add custom origins from environment variable (comma-separated)
     if settings.cors_origins:
         custom_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
         origins.extend(custom_origins)
     return origins
+
+
+# Methods the API exposes to browsers (no PUT/DELETE/PATCH routes exist).
+CORS_ALLOW_METHODS = ["GET", "POST", "OPTIONS"]
+# Request headers the shipped clients send cross-origin (BITB-307): web `getHeaders()` in
+# frontend/src/lib/api.ts (Content-Type, X-Turnstile-Token, X-Monitor-Probe-Secret) plus the
+# correlation-id header read by CorrelationIDMiddleware. Accept-Language is CORS-safelisted but
+# listed so a preflight naming it passes.
+CORS_ALLOW_HEADERS = [
+    "Content-Type",
+    "Accept",
+    "Accept-Language",
+    "X-Turnstile-Token",
+    "X-Monitor-Probe-Secret",
+    "X-Request-ID",
+]
+
+
+def get_cors_middleware_kwargs() -> dict:
+    """Keyword arguments for CORSMiddleware (shared with tests)."""
+    return {
+        "allow_origins": _get_cors_origins(),
+        # No client sends cookies or HTTP auth; the session id travels in the body.
+        "allow_credentials": False,
+        "allow_methods": CORS_ALLOW_METHODS,
+        "allow_headers": CORS_ALLOW_HEADERS,
+    }
 
 
 # Explicitly instrument the FastAPI app for Application Insights request tracing.
@@ -384,13 +418,7 @@ if _appinsights_initialized:
 app.add_middleware(BodySizeLimitMiddleware)
 
 # CORS middleware for frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_get_cors_origins(),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, **get_cors_middleware_kwargs())
 
 # Correlation ID middleware for request tracing
 # Added after CORS (executes before CORS in request chain due to middleware stack)
@@ -426,17 +454,44 @@ async def root():
     }
 
 
-@app.get("/config", tags=["info"])
-async def get_config():
-    """
-    Get current configuration (non-sensitive).
+# Keys published by the public GET /config (BITB-307). Only what shipped clients read:
+# web serverConfig.tsx (chat.max_message_length, chat.session_max_requests,
+# features.tts_enabled), web turnstile.tsx (security.turnstile_*), Android
+# ConfigResponseDto (chat.*, features.tts_enabled). Provider/model/telemetry detail lives
+# behind the probe secret at GET /api/v1/admin/config.
+PUBLIC_CONFIG_KEYS: dict[str, set[str]] = {
+    "chat": {"max_message_length", "session_max_requests"},
+    "features": {"tts_enabled"},
+    "security": {"turnstile_enabled", "turnstile_site_key"},
+}
 
-    Useful for debugging and frontend configuration.
-    """
+
+def build_public_config() -> dict:
+    """Public, non-sensitive configuration clients need."""
+    return {
+        "chat": {
+            "max_message_length": settings.max_message_length,
+            "session_max_requests": settings.rate_limit_session_max_requests,
+        },
+        "features": {
+            "tts_enabled": settings.tts_enabled,
+        },
+        "security": {
+            "turnstile_enabled": settings.turnstile_enabled,
+            "turnstile_site_key": (
+                settings.turnstile_site_key if settings.turnstile_enabled else None
+            ),
+        },
+    }
+
+
+def build_admin_config() -> dict:
+    """Diagnostic configuration detail (provider/model/telemetry) for operators."""
     # Get the actual model being used based on provider
     llm_model = effective_llm_model(settings)
 
     return {
+        **build_public_config(),
         "telemetry": {
             "appinsights_configured": bool(_appinsights_conn),
             "appinsights_initialized": _appinsights_initialized,
@@ -452,22 +507,13 @@ async def get_config():
             "model": settings.embedding_model,
             "dimensions": settings.embedding_dimensions,
         },
-        "chat": {
-            "max_context_verses": settings.max_context_verses,
-            "max_conversation_history": settings.max_conversation_history,
-            "max_message_length": settings.max_message_length,
-            "session_max_requests": settings.rate_limit_session_max_requests,
-        },
-        "features": {
-            "tts_enabled": settings.tts_enabled,
-        },
-        "security": {
-            "turnstile_enabled": settings.turnstile_enabled,
-            "turnstile_site_key": (
-                settings.turnstile_site_key if settings.turnstile_enabled else None
-            ),
-        },
     }
+
+
+@app.get("/config", tags=["info"])
+async def get_config():
+    """Get public client configuration (limits, feature flags, Turnstile site key)."""
+    return build_public_config()
 
 
 # Client-error report types the frontend may send. Keeping this a bounded set
@@ -693,13 +739,17 @@ async def debug_embeddings():
 
 @app.exception_handler(ProviderError)
 async def provider_error_handler(request, exc: ProviderError):
-    """Handle LLM provider errors."""
+    """Handle LLM provider errors.
+
+    The full exception is logged; the client only gets a generic message (BITB-307) so
+    upstream error text and deployment hints are never disclosed.
+    """
+    logger.error("LLM provider error: %s", exc, exc_info=exc)
     return JSONResponse(
         status_code=503,
         content={
             "error": "LLM Provider Error",
-            "detail": str(exc),
-            "hint": "Check if Ollama is running: ollama serve",
+            "detail": "The AI service is temporarily unavailable.",
         },
     )
 
