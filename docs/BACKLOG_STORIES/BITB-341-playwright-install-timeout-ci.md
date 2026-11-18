@@ -101,8 +101,12 @@ different reasons and are treated differently — that asymmetry is the heart of
       engine matrix is unchanged. 17 tests; each invariant verified against a deliberately broken
       workflow, not just asserted
 - [x] `yamllint` / pre-commit and `make backlog-check` pass
-- [ ] The PR's own `Frontend E2E` run is green on all four engines (the workflow's path filter
-      includes itself, so the fix tests itself)
+- [x] The PR's own `Frontend E2E` run is green on all four engines (the workflow's path filter
+      includes itself, so the fix tests itself).
+      [Run 118](https://github.com/zioalex/getinspiredbythebible/actions/runs/44215478870), PR #1317,
+      2026-11-18 01:23 UTC — firefox 2m38s, chromium 2m53s, webkit 3m04s, Mobile Safari 3m25s.
+      All four well inside the new budget, and the webkit legs that were cancelled at 15m on
+      2026-11-17 now finish in about three minutes. (First data point for BITB-343.)
 
 ## Out of scope
 
