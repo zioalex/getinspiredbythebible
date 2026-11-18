@@ -53,7 +53,7 @@ jobs:
   browser-smoke:
     name: Browser chat smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 24
     steps:
       - uses: actions/checkout@v7
 
@@ -67,13 +67,54 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      # BITB-341: a timeout here pages the owner via Telegram about a perfectly healthy
+      # production, so the budget is generous. The apt half is NOT retry-wrapped -- `timeout`
+      # TERMs `npx` and orphans its `sudo apt-get`, which keeps the dpkg lock and would make a
+      # second attempt die instantly on "Could not get lock"; apt retries its own downloads.
+      # Only the browser download (plain CDN fetch) is retried.
+      #   deps 10m + chromium 3 x 2m = 6m + smoke 4m = 20m, inside the job's 24m.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-chromium-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            pw-${{ runner.os }}-chromium-
+
+      - name: Install Playwright system deps
+        working-directory: frontend
+        timeout-minutes: 10
+        run: npx playwright install-deps chromium
+
       - name: Install Chromium
         working-directory: frontend
-        run: npx playwright install --with-deps chromium
+        # Not gated on the cache hit: `playwright install` is a no-op when already present.
+        timeout-minutes: 8
+        run: |
+          for attempt in $(seq 1 3); do
+            echo "playwright install: attempt $attempt of 3"
+            rc=0
+            timeout 2m npx playwright install chromium || rc=$?
+            if [ "$rc" -eq 0 ]; then
+              exit 0
+            fi
+            if [ "$rc" -eq 124 ]; then
+              echo "::warning::playwright install attempt $attempt timed out after 2m (stalled CDN?)"
+            else
+              echo "::warning::playwright install attempt $attempt failed with exit code $rc"
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep 15
+            fi
+          done
+          echo "::error::playwright install failed after 3 attempts"
+          exit 1
 
       - name: Run browser smoke test
         id: smoke
         working-directory: frontend
+        timeout-minutes: 4
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.PLAYWRIGHT_BASE_URL }}
           SMOKE_PROBE_SECRET: ${{ secrets.SMOKE_PROBE_SECRET }}
