@@ -93,10 +93,9 @@ def test_config_endpoint():
     response = client.get("/config")
     assert response.status_code == 200
     data = response.json()
-    assert "llm" in data
-    assert "embedding" in data
-    assert "provider" in data["llm"]
-    assert "model" in data["llm"]
+    # BITB-307: provider/model detail is not public
+    assert "llm" not in data
+    assert "embedding" not in data
     # BITB-119: read-aloud flag defaults to enabled
     assert data["features"]["tts_enabled"] is True
 

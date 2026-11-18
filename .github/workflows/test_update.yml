@@ -335,6 +335,9 @@ jobs:
           # once had neither table at all -- which tripped the limiter's circuit
           # breaker to fail closed (real 429s) after 5 chat/stream requests.
           RATE_LIMIT_BACKEND=memory
+          # BITB-307: localhost CORS origins are opt-in; the browser-level checks here call
+          # the API from http://localhost:3000.
+          CORS_ALLOW_LOCALHOST=true
           OLLAMA_HOST=http://ollama:11434
           EMBEDDING_PROVIDER=ollama
           EMBEDDING_MODEL=mxbai-embed-large
@@ -435,7 +438,9 @@ jobs:
           echo "=== Testing Config Endpoint ==="
           config_response=$(curl -sf http://localhost:8000/config)
           echo "$config_response" | jq .
-          if echo "$config_response" | jq -e '.llm.provider' > /dev/null; then
+          # BITB-307: provider/model detail moved behind the probe secret; assert on the
+          # public keys clients read.
+          if echo "$config_response" | jq -e '.chat.max_message_length and .features.tts_enabled != null' > /dev/null; then
             echo "✓ Config endpoint OK"
           else
             echo "ERROR: Config response missing expected fields"
