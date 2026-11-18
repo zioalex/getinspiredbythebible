@@ -6,7 +6,7 @@ size: M
 rank: 190
 created: 2026-11-11
 prs: [1300]
-follow_ups: [BITB-322]
+follow_ups: [BITB-322, BITB-340]
 ---
 
 # BITB-293: 11-Language Safety Golden Set for a Single Moderation Classifier (OpenAI Moderation First)
@@ -48,3 +48,4 @@ BITB-288, BITB-272, BITB-292, BITB-257, BITB-238.
 ## Follow-ups
 
 - BITB-322: gray-zone and hate cases, more cases per language, `make` target.
+- BITB-340: intermittent `page.test.tsx` teardown race that turned this PR's frontend CI red twice (not caused by this PR).
