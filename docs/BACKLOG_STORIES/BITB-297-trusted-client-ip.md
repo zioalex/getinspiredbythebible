@@ -1,6 +1,6 @@
 ---
 id: BITB-297
-status: in-review
+status: done
 priority: P0
 size: M
 rank: 20

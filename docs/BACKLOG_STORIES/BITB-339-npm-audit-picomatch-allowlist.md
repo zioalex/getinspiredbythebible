@@ -1,9 +1,10 @@
 ---
 id: BITB-339
-status: in-review
+status: done
 priority: P1
 size: XS
 created: 2026-11-17
+prs: [1315]
 ---
 
 # BITB-339: `Security & Dependency Check` Red on `main` (picomatch ReDoS, No Patched Release)

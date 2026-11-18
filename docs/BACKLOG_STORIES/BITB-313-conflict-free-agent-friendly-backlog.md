@@ -1,6 +1,6 @@
 ---
 id: BITB-313
-status: in-review
+status: done
 priority: P1
 size: L
 created: 2026-11-13
