@@ -1,10 +1,11 @@
 ---
 id: BITB-330
-status: in-progress
+status: in-review
 priority: P2
 size: XS
 rank: 45
 created: 2026-11-16
+prs: [1318]
 follow_ups: [BITB-344]
 ---
 
