@@ -180,7 +180,7 @@ class TestProbeBypass:
             assert ROUTES[name](limiter_env, h).status_code == 200
 
     def test_wrong_probe_secret_does_not_bypass(self, limiter_env):
-        h = {"X-Test-IP": "7.7.7.8", "X-Monitor-Probe-Secret": "nope"}
+        h = {"X-Test-IP": "7.7.7.8", "X-Monitor-Probe-Secret": "nope"}  # pragma: allowlist secret
         for _ in range(LIMIT):
             ROUTES["contact"](limiter_env, h)
         assert ROUTES["contact"](limiter_env, h).status_code == 429
