@@ -110,14 +110,35 @@ async def test_redacted_mode_hides_detail():
 
 
 # --- Static guard -----------------------------------------------------------------------
-# Public route modules must never put raw exception text in a response. Logging it
-# (``extra={"error": str(e)}``) is fine, so the module scan only looks for ``detail=str(e)``.
-# health.py is scanned only for readiness_probe(), where any ``error=str(e)`` /
-# ``"error": str(e)`` is a leak: its other helpers (check_llm_health, get_memory_info, ...)
-# only surface through the require_local_access-guarded GET /health, so they are exempt.
-_ROUTES = Path(__file__).resolve().parent.parent / "routes"
-_DETAIL_LEAK = re.compile(r"detail\s*=\s*str\(e\)")
-_ERROR_LEAK = re.compile(r"\"error\"\s*:\s*str\(e\)|error\s*=\s*str\(e\)")
+# Public routes must never put raw exception text in a response. Logging it
+# (``extra={"error": str(e)}``) is legitimate, so the scan looks only at ``detail=``.
+#
+# The module list is globbed rather than hardcoded, so a NEW ``api/routes/*.py`` is
+# covered automatically. ``api/main.py`` is included too: it hosts public routes of its
+# own (``/``, ``/config``, the client-error and tts-event POSTs) plus the global
+# ProviderError handler.
+#
+# ``health.py`` is exempt from the module scan and checked separately below. Its
+# ``check_llm_health`` / ``check_embedding_health`` / ``get_memory_info`` helpers keep the
+# full detail on purpose, because they surface only through the
+# ``require_local_access``-guarded ``GET /health`` (BITB-348 pins that guard).
+#
+# Known gap, tracked as BITB-349: this is a text scan, so it does not catch
+# ``detail=f"...{e}"`` interpolation. ``api/routes/church.py`` has that shape today and
+# discloses an upstream HTTP status code only (BITB-351).
+_API = Path(__file__).resolve().parent.parent
+_ROUTES = _API / "routes"
+_EXEMPT_MODULES = {"__init__.py", "health.py"}
+# ``str``/``repr`` of the caught exception under any of the usual binding names.
+_EXC_CALL = r"(?:str|repr)\((?:error|exc|err|e)\)"
+_DETAIL_LEAK = re.compile(rf"detail\s*=\s*{_EXC_CALL}")
+_ERROR_LEAK = re.compile(rf"\"error\"\s*:\s*{_EXC_CALL}|error\s*=\s*{_EXC_CALL}")
+
+
+def _public_source_files() -> list[Path]:
+    """Every source file that can answer a request without a local-access guard."""
+    modules = [p for p in sorted(_ROUTES.glob("*.py")) if p.name not in _EXEMPT_MODULES]
+    return modules + [_API / "main.py"]
 
 
 def _readiness_probe_source() -> str:
@@ -127,15 +148,36 @@ def _readiness_probe_source() -> str:
     return src[start : start + 1 + end.start()] if end else src[start:]
 
 
-@pytest.mark.parametrize(
-    "module", ["feedback.py", "church.py", "scripture.py", "chat.py", "crisis.py", "admin.py"]
-)
-def test_public_route_modules_do_not_echo_exception_text(module):
-    assert _DETAIL_LEAK.search((_ROUTES / module).read_text()) is None
+def test_scanned_sources_cover_every_public_route_module():
+    """Without this, a mis-globbed path would make the guard below silently vacuous."""
+    names = {p.name for p in _public_source_files()}
+    assert {
+        "feedback.py",
+        "church.py",
+        "scripture.py",
+        "chat.py",
+        "crisis.py",
+        "admin.py",
+    } <= names
+    assert "main.py" in names
+    assert "health.py" not in names
 
 
-def test_readiness_probe_does_not_echo_exception_text():
+@pytest.mark.parametrize("source", _public_source_files(), ids=lambda p: p.name)
+def test_public_sources_do_not_echo_exception_text(source):
+    assert _DETAIL_LEAK.search(source.read_text()) is None
+
+
+def test_readiness_probe_asks_for_redaction():
+    """The real regression guard: readiness must request redaction.
+
+    Scanning ``readiness_probe()`` for ``error=str(e)`` alone passes on the PRE-FIX code,
+    because the leak lived in ``check_database_health()`` while readiness only reads
+    ``db_health.error``. Asserting the ``redact_errors=True`` argument is what actually
+    fails if someone reverts the fix.
+    """
     source = _readiness_probe_source()
     assert "db_health.error" in source  # sanity: we scanned the right function
+    assert "redact_errors=True" in source
     assert _DETAIL_LEAK.search(source) is None
     assert _ERROR_LEAK.search(source) is None
