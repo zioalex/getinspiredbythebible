@@ -44,7 +44,12 @@ EXECUTION = ("real", "mocked", "static")
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 # `make` may be followed by option words; the target is the first non-option word.
-DOC_REF_RE = re.compile(r"\bmake\s+(?:-[A-Za-z-]+\s+)*([a-z][a-z0-9]*(?:-[a-z0-9]+)+|[a-z]+)\b")
+# The trailing lookahead rejects templated names such as `make az-logs-${app}-query` or
+# `make az-logs-*`: without it the regex stopped at the placeholder and reported the
+# truncated prefix (`az-logs`) as a missing target (BITB-325).
+DOC_REF_RE = re.compile(
+    r"\bmake\s+(?:-[A-Za-z-]+\s+)*([a-z][a-z0-9]*(?:-[a-z0-9]+)+|[a-z]+)(?![\w$*{<-])"
+)
 PATH_RE = re.compile(
     r"(?<![\w./$-])((?:scripts|tools|k8s|deployment|docs|\.github|android|api|frontend)/[\w./-]*[\w]"
     r"|docker-compose[\w.-]*\.yml)"
@@ -182,11 +187,16 @@ def tracked_text_files(root: Path = ROOT) -> list[Path]:
 def doc_references(
     known: set[str], skip_prefixes: list[str], ignore: list[str], root: Path = ROOT
 ) -> list[tuple[str, int, str]]:
-    """`make <target>` mentions in live docs/scripts that name a target that does not exist."""
+    """`make <target>` mentions in live docs/scripts that name a target that does not exist.
+
+    The generated report is never scanned: it quotes every bad reference it found, so scanning
+    it fed those quotes back in as new findings, and each `--write` grew the list (BITB-325).
+    """
     bad: list[tuple[str, int, str]] = []
+    report_rel = REPORT.relative_to(ROOT).as_posix()
     for path in tracked_text_files(root):
         rel = path.relative_to(root).as_posix()
-        if any(rel.startswith(p) for p in skip_prefixes):
+        if rel == report_rel or any(rel.startswith(p) for p in skip_prefixes):
             continue
         try:
             text = path.read_text(encoding="utf-8")
@@ -314,7 +324,7 @@ def build_report(targets: dict[str, Target], cls: dict, dry: dict[str, int], ref
     else:
         w(
             "None. Every hyphenated `make <target>` mentioned in tracked live docs, workflows and "
-            "scripts exists (history/archives are excluded: "
+            "scripts exists (this generated report and history/archives are excluded: "
             + ", ".join(f"`{p}`" for p in cls["doc_scan_skip"])
             + ")."
         )

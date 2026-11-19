@@ -48,6 +48,7 @@ Every target is dry-run with `make -n` (no recipe executes). *Executed* says how
 | D11 | medium | `lint`, `format`, `type-check`, `security`, `test-backend` | `$(CURDIR)/$(PYTHON)` turned an absolute VENV override (VENV=/opt/shared-venv) into `<cwd>//opt/shared-venv/bin/python`. PYTHON now comes from `$(abspath $(VENV))`, so absolute and relative overrides both resolve correctly. | MakePlumbingTests.test_absolute_venv_override_is_not_prefixed_with_cwd |
 | D12 | low | `help`, `test-e2e`, `test-e2e-local`, `collect-k8s-diagnostics` | Regression guard: the help scraping and the audit's help matcher must list every target described with a `##` comment, including names with digits (test-e2e) or multiple hyphens (collect-k8s-diagnostics). | InventoryTests.test_help_lists_every_described_target |
 | D13 | low | `check-local-api-url` | The localhost check compared the raw grep\|cut value of NEXT_PUBLIC_API_URL without stripping surrounding quotes. The build targets need the value quoted (so `source` can carry the space-containing prod URL), so a quoted `http://localhost` value spuriously tripped the 'frontend will bypass your local API' warning. It now strips a leading/trailing quote before matching. | DockerTests.test_acr_backend_stack_passes_tag_and_warns_on_remote_api_url |
+| D14 | low | `test-makefile` | The doc-reference scan read the generated audit report itself, which quotes every bad `make <target>` it lists, so each --write re-reported its own quotes and the list grew without bound (BITB-325). The report is now excluded from the scan, as is the frozen docs/backlog/CHANGELOG-archive.md. | InventoryTests.test_doc_scan_skips_generated_report_and_frozen_archive |
 
 ## Open findings (documented, not fixed here)
 
@@ -63,7 +64,7 @@ Every target is dry-run with `make -n` (no recipe executes). *Executed* says how
 |---|---|---|---|---|---|---|---|
 | `help` | 65 | yes | yes | `read-only` | mocked | ok | Default goal; prints the command list, runs nothing else. |
 | `venv` | 69 | yes | yes | `local-write` | static | ok | Creates a real Python virtualenv (python3 -m venv); exercised only indirectly as an install-deps prerequisite where a pre-seeded fake venv already exists, so no behaviour is asserted. |
-| `install-hooks` | 87 | yes | yes | `local-write` | mocked | ok | pip-installs pre-commit then registers the pre-commit and commit-msg hooks. |
+| `install-hooks` | 87 | yes | yes | `local-write` | mocked | ok | pip-installs pre-commit then registers the pre-commit, commit-msg and pre-push hooks (BITB-243). |
 | `setup-dev` | 95 | yes | yes | `local-write` | static | ok | Installs Python (requirements-dev + tools) and Node dependencies via `npm install` against live package indexes; never run in the offline sandbox. |
 | `lint` | 114 | yes | yes | `read-only` | mocked | ok | ruff + black --check (api) and npm run lint (frontend); read-only checks. |
 | `format` | 124 | yes | yes | `local-write` | mocked | ok | Rewrites source: black, isort, ruff --fix, prettier --write. |
@@ -206,36 +207,4 @@ Every target is dry-run with `make -n` (no recipe executes). *Executed* says how
 
 ## Documentation references to missing targets
 
-- `docs/BITB-150-postgres-cost-analysis.md:182` -> `make golden-set-eval`
-- `docs/BITB-150-postgres-cost-analysis.md:269` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:209` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:210` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:211` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:212` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:213` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:214` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:215` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:216` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:217` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:218` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:219` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:220` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:221` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:222` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:223` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:224` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:225` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:226` -> `make golden-set-eval`
-- `docs/MAKE_TARGET_AUDIT.md:227` -> `make check-llm-budget`
-- `docs/MAKE_TARGET_AUDIT.md:228` -> `make check-llm-budget`
-- `docs/MAKE_TARGET_AUDIT.md:229` -> `make az-logs`
-- `docs/MAKE_TARGET_AUDIT.md:230` -> `make az-logs`
-- `docs/MAKE_TARGET_AUDIT.md:231` -> `make az-logs`
-- `docs/MAKE_TARGET_AUDIT.md:232` -> `make check-llm-budget`
-- `docs/MAKE_TARGET_AUDIT.md:233` -> `make az-logs`
-- `docs/MAKE_TARGET_AUDIT.md:234` -> `make az-logs`
-- `docs/MAKE_TARGET_AUDIT.md:235` -> `make az-logs`
-- `docs/backlog/CHANGELOG-archive.md:43` -> `make check-llm-budget`
-- `scripts/az-logs.sh:2` -> `make az-logs`
-- `scripts/az-logs.sh:77` -> `make az-logs`
-- `scripts/az-logs.sh:95` -> `make az-logs`
+None. Every hyphenated `make <target>` mentioned in tracked live docs, workflows and scripts exists (this generated report and history/archives are excluded: `conversation_history/`, `backups/`, `docs/DONE/`, `docs/metrics/`, `docs/BACKLOG_STORIES/`, `docs/backlog/CHANGELOG-archive.md`, `CHANGELOG.md`).

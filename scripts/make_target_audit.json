@@ -12,6 +12,7 @@
     "docs/DONE/",
     "docs/metrics/",
     "docs/BACKLOG_STORIES/",
+    "docs/backlog/CHANGELOG-archive.md",
     "CHANGELOG.md"
   ],
   "doc_ref_ignore": ["eval-smoke"],
@@ -121,6 +122,14 @@
       "test": "DockerTests.test_acr_backend_stack_passes_tag_and_warns_on_remote_api_url"
     },
     {
+      "id": "D14",
+      "severity": "low",
+      "status": "fixed",
+      "targets": ["test-makefile"],
+      "summary": "The doc-reference scan read the generated audit report itself, which quotes every bad `make <target>` it lists, so each --write re-reported its own quotes and the list grew without bound (BITB-325). The report is now excluded from the scan, as is the frozen docs/backlog/CHANGELOG-archive.md.",
+      "test": "InventoryTests.test_doc_scan_skips_generated_report_and_frozen_archive"
+    },
+    {
       "id": "O1",
       "severity": "medium",
       "status": "open",
@@ -148,7 +157,7 @@
   "targets": {
     "help": {"safety": "read-only", "execution": "mocked", "tests": ["MakePlumbingTests.test_default_goal_prints_help_not_first_recipe"], "note": "Default goal; prints the command list, runs nothing else."},
     "venv": {"safety": "local-write", "execution": "static", "blocked_reason": "Creates a real Python virtualenv (python3 -m venv); exercised only indirectly as an install-deps prerequisite where a pre-seeded fake venv already exists, so no behaviour is asserted."},
-    "install-hooks": {"safety": "local-write", "execution": "mocked", "tests": ["PythonTargetTests.test_frontend_and_hook_targets"], "note": "pip-installs pre-commit then registers the pre-commit and commit-msg hooks."},
+    "install-hooks": {"safety": "local-write", "execution": "mocked", "tests": ["PythonTargetTests.test_frontend_and_hook_targets"], "note": "pip-installs pre-commit then registers the pre-commit, commit-msg and pre-push hooks (BITB-243)."},
     "setup-dev": {"safety": "local-write", "execution": "static", "blocked_reason": "Installs Python (requirements-dev + tools) and Node dependencies via `npm install` against live package indexes; never run in the offline sandbox."},
     "lint": {"safety": "read-only", "execution": "mocked", "tests": ["PythonTargetTests.test_lint_format_typecheck_security_command_lines", "MakePlumbingTests.test_absolute_venv_override_is_not_prefixed_with_cwd"], "note": "ruff + black --check (api) and npm run lint (frontend); read-only checks."},
     "format": {"safety": "local-write", "execution": "mocked", "tests": ["PythonTargetTests.test_lint_format_typecheck_security_command_lines"], "note": "Rewrites source: black, isort, ruff --fix, prettier --write."},
