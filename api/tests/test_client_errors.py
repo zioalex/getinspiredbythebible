@@ -140,16 +140,40 @@ def test_telemetry_over_limit_is_429_and_chat_limiter_unused(limited):
 
 
 @pytest.mark.asyncio
-async def test_telemetry_bucket_is_independent_of_other_scopes(limited):
+async def test_telemetry_bucket_is_scope_prefixed_and_leaves_chat_alone(limited):
+    """The bucket key must carry the `telemetry:` scope prefix.
+
+    Under the production `postgres` backend every scoped limiter shares the
+    `rate_limit_hits` table, so that prefix is the *only* thing separating telemetry
+    from the chat IP bucket — asserting the key is what makes dropping it
+    (`utils/security.py`, `f"{scope}:{ip_address}"`) fail here. Comparing two
+    *separately constructed* limiters would not: under the memory backend each one
+    gets its own store, so isolation would hold by construction whatever the key.
+    End-to-end isolation against a real shared table is BITB-345.
+    """
     h = {"X-Test-IP": "3.3.3.3"}
-    for _ in range(TELEMETRY_LIMIT):
-        assert limited.post("/api/v1/client-errors", json=ERROR_BODY, headers=h).status_code == 200
-    assert limited.post("/api/v1/client-errors", json=ERROR_BODY, headers=h).status_code == 429
-    # Same IP, same per-minute number, other scopes / chat: all still have full budget.
-    for scope in ("feedback", "search"):
-        ok, _ = await get_scoped_rate_limiter(scope, TELEMETRY_LIMIT).check_rate_limit(
-            f"{scope}:3.3.3.3"
-        )
-        assert ok
+    telemetry = get_scoped_rate_limiter("telemetry", TELEMETRY_LIMIT)
+    inner = telemetry.check_rate_limit
+    keys: list = []
+
+    async def spy(key, *args, **kwargs):
+        keys.append(key)
+        return await inner(key, *args, **kwargs)
+
+    telemetry.check_rate_limit = spy  # type: ignore[method-assign]
+    try:
+        for _ in range(TELEMETRY_LIMIT):
+            assert (
+                limited.post("/api/v1/client-errors", json=ERROR_BODY, headers=h).status_code == 200
+            )
+        assert limited.post("/api/v1/client-errors", json=ERROR_BODY, headers=h).status_code == 429
+    finally:
+        telemetry.check_rate_limit = inner  # type: ignore[method-assign]
+
+    # Every charge went to the scope-prefixed key, never to the bare IP (the chat IP key).
+    assert keys == ["telemetry:3.3.3.3"] * (TELEMETRY_LIMIT + 1)
+    assert "3.3.3.3" not in keys
+
+    # The chat limiter's own bucket for that IP is untouched.
     ok, _ = await get_rate_limiter().check_rate_limit("3.3.3.3", None)
     assert ok
