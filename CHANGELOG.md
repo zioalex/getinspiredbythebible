@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.62.1](https://github.com/zioalex/getinspiredbythebible/compare/v1.62.0...v1.62.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **api:** trim public config, generic upstream errors, bounded metric labels (BITB-307) ([#1297](https://github.com/zioalex/getinspiredbythebible/issues/1297)) ([7caa36f](https://github.com/zioalex/getinspiredbythebible/commit/7caa36ffde979fee151c20d7fdfdb61d337f02ec))
+* **frontend:** allowlist picomatch ReDoS advisory with no patched release (BITB-339) ([#1315](https://github.com/zioalex/getinspiredbythebible/issues/1315)) ([2f2b587](https://github.com/zioalex/getinspiredbythebible/commit/2f2b5874d855357974991dfb0df4ec7012644ff7))
+* **frontend:** pre-rendered share images for all 11 locales (BITB-299) ([#1293](https://github.com/zioalex/getinspiredbythebible/issues/1293)) ([3f1419d](https://github.com/zioalex/getinspiredbythebible/commit/3f1419dcda7aa47286405307b6e6808e9cebf641))
+
 ## [1.62.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.61.0...v1.62.0) (2026-11-16)
 
 
