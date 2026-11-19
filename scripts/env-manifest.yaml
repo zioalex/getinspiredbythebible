@@ -188,6 +188,11 @@ variables:
     description: Max POST /church/search requests per IP per minute, independent of the chat limits (BITB-298)
     default: "6"
 
+  RATE_LIMIT_TELEMETRY_PER_MINUTE:
+    required_in: none
+    description: Max POST /api/v1/client-errors and /api/v1/client-events requests per IP per minute, independent of the chat limits (BITB-310)
+    default: "60"
+
   CONTENT_FILTER_ENABLED:
     required_in: remote
     description: Enable content filtering

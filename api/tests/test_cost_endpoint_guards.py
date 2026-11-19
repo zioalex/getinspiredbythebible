@@ -293,14 +293,3 @@ class TestChurchHonestHeaders:
         lowered = {k.lower() for k in headers}
         assert "origin" not in lowered and "referer" not in lowered
         assert "mozilla" not in headers["User-Agent"].lower()
-
-
-class TestTelemetryUnchanged:
-    """Requirement 8: client-events/-errors bodies carry no session_id, so they stay on the
-    shared limiter; this pins that assumption so adding a session_id later fails loudly."""
-
-    def test_bodies_have_no_session_id(self):
-        import main
-
-        assert "session_id" not in main.ClientErrorReport.model_fields
-        assert "session_id" not in main.ClientEvent.model_fields

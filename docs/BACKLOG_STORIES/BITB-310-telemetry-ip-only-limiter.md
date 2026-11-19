@@ -1,6 +1,6 @@
 ---
 id: BITB-310
-status: todo
+status: in-progress
 priority: P2
 size: XS
 created: 2026-11-13
