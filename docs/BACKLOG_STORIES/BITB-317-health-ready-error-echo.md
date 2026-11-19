@@ -1,6 +1,6 @@
 ---
 id: BITB-317
-status: todo
+status: in-progress
 priority: P2
 size: XS
 rank: 45
@@ -37,8 +37,8 @@ fragments. Same pattern (`error=str(e)`) appears in the LLM/embedding checks and
 
 ## Acceptance criteria
 
-- [ ] No `str(e)` reaches a response of a non-local-access route under `api/routes/`
-- [ ] Readiness probe behaviour unchanged (existing health tests green)
+- [x] No `str(e)` reaches a response of a non-local-access route under `api/routes/`
+- [x] Readiness probe behaviour unchanged (existing health tests green)
 
 ## Related
 
