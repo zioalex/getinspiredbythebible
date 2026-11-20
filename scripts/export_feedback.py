@@ -42,11 +42,13 @@ from urllib.parse import parse_qs, urlencode, urlsplit, urlunsplit
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "api"))
+sys.path.insert(0, str(REPO_ROOT / "scripts"))  # pg_tls (also when loaded via importlib)
 
 from config import settings  # noqa: E402
 from feedback.models import ContactSubmission, Feedback  # noqa: E402
 from sqlalchemy import case, create_engine, func, select  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
+from pg_tls import default_sslrootcert  # noqa: E402
 
 FEEDBACK_FIELDS = [
     "id",
@@ -118,13 +120,16 @@ def sync_database_url(url: str) -> str:
     if ssl_value and "sslmode" not in query:
         query["sslmode"] = [ssl_value]
     # libpq's verify-full/verify-ca need a root cert; without ~/.postgresql/root.crt they fail on
-    # a fresh machine. ``sslrootcert=system`` (libpq >= 16) uses the OS trust store instead.
+    # a fresh machine. scripts/pg_tls.py supplies the Azure roots (the OS store often lacks the
+    # Microsoft RSA root, and psycopg2's bundled OpenSSL may not read it at all).
     if (
         query.get("sslmode", [None])[0] in ("verify-full", "verify-ca")
         and "sslrootcert" not in query
         and not os.environ.get("PGSSLROOTCERT")
     ):
-        query["sslrootcert"] = ["system"]
+        root = default_sslrootcert()
+        if root:
+            query["sslrootcert"] = [root]
     return urlunsplit(parts._replace(query=urlencode(query, doseq=True)))
 
 
