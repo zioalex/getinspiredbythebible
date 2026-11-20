@@ -1,6 +1,6 @@
 ---
 id: BITB-296
-status: in-review
+status: done
 priority: P0
 size: S
 rank: 10

@@ -1,6 +1,6 @@
 ---
 id: BITB-299
-status: in-review
+status: done
 priority: P1
 size: S
 rank: 10

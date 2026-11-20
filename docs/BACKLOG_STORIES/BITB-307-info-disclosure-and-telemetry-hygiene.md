@@ -1,6 +1,6 @@
 ---
 id: BITB-307
-status: in-review
+status: done
 priority: P2
 size: S
 rank: 40

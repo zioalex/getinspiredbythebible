@@ -25,7 +25,7 @@ jobs:
   read-aloud-e2e:
     name: Read-aloud e2e (${{ matrix.project }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -52,12 +52,68 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3000/e2e-api
         run: npm run build
 
-      - name: Install Playwright browser
+      - name: Resolve Playwright browser
+        id: browser
         # Chromium is the base install for every project; WebKit also serves Mobile Safari.
-        run: >-
-          npx playwright install --with-deps ${{ matrix.project == 'Mobile Safari' && 'webkit' || matrix.project }}
+        run: |
+          if [ "$PROJECT" = "Mobile Safari" ]; then
+            echo "name=webkit" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=$PROJECT" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          PROJECT: ${{ matrix.project }}
+
+      # BITB-341 budget. The apt half is NOT retry-wrapped: `timeout` TERMs `npx`, orphaning
+      # the `sudo apt-get` it spawned, which keeps /var/lib/dpkg/lock-frontend -- a second
+      # attempt would then die instantly on "Could not get lock". apt already retries its own
+      # downloads (Acquire::Retries), so it just gets a generous single attempt instead. Only
+      # the browser download (plain CDN fetch, no system locks) is retried.
+      #   deps 14m + browser 3 x 2m = 6m + spec 6m = 26m, inside the job's 30m, leaving ~4m for
+      #   checkout / npm ci / build. A healthy leg finishes the whole job in ~4m; the 2026-11-17
+      #   slow-mirror event needed ~13m for apt alone and was cancelled at 15m.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ steps.browser.outputs.name }}-${{ hashFiles('frontend/package-lock.json') }}
+          restore-keys: |
+            pw-${{ runner.os }}-${{ steps.browser.outputs.name }}-
+
+      - name: Install Playwright system deps
+        # The apt half: never cacheable, and what stalls when the Ubuntu mirror crawls. One
+        # attempt by design (see the budget comment above) -- the step timeout is the bound.
+        timeout-minutes: 14
+        run: npx playwright install-deps ${{ steps.browser.outputs.name }}
+
+      - name: Install Playwright browser
+        # The binary half: a CDN download, safe to retry. Not gated on the cache hit --
+        # `playwright install` is a no-op when the binary is present, and gating would break a
+        # partially restored cache.
+        timeout-minutes: 8
+        run: |
+          for attempt in $(seq 1 3); do
+            echo "playwright install: attempt $attempt of 3"
+            rc=0
+            timeout 2m npx playwright install ${{ steps.browser.outputs.name }} || rc=$?
+            if [ "$rc" -eq 0 ]; then
+              exit 0
+            fi
+            if [ "$rc" -eq 124 ]; then
+              echo "::warning::playwright install attempt $attempt timed out after 2m (stalled CDN?)"
+            else
+              echo "::warning::playwright install attempt $attempt failed with exit code $rc"
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep 15
+            fi
+          done
+          echo "::error::playwright install failed after 3 attempts"
+          exit 1
 
       - name: Run read-aloud spec
+        timeout-minutes: 6
         # CI=true (set by Actions) makes playwright.config.ts start `npm run start` on :3000.
         run: npx playwright test e2e/read-aloud.spec.ts --project="${{ matrix.project }}"
 
