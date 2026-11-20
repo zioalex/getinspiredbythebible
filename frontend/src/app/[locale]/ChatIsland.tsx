@@ -162,6 +162,17 @@ export default function ChatIsland({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const versesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // BITB-340: false once the island unmounts, so an in-flight submitMessage
+  // does not touch state (or log) after navigation / test teardown.
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      abortControllerRef.current?.abort();
+    };
+  }, []);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Smart auto-scroll state
@@ -379,7 +390,11 @@ export default function ChatIsland({
         crisisResources: m.crisisResources,
         follow_ups: m.follow_ups,
       })),
-    ).then(() => setHistoryRefresh((n) => n + 1));
+    ).then(() => {
+      // BITB-340: the IndexedDB write can settle after unmount / jsdom
+      // teardown; a setState then throws "window is not defined".
+      if (isMountedRef.current) setHistoryRefresh((n) => n + 1);
+    });
   }, [messages, isLoading, conversationId]);
 
   // Save preference, scoped to the active UI locale, when changed (BITB-115).
@@ -851,6 +866,9 @@ export default function ChatIsland({
             : "network_error";
       }
 
+      // BITB-340: unmounted mid-stream — nothing left to update.
+      if (!isMountedRef.current) return;
+
       // Resilience guard: the stream completed without error but no content
       // arrived (empty LLM output, or chunks lost upstream). Don't leave the
       // user staring at a blank assistant bubble — replace it with a clear,
@@ -885,6 +903,8 @@ export default function ChatIsland({
         }
       }
 
+      if (!isMountedRef.current) return;
+
       // Stream complete - increment interaction count for church finder
       setInteractionCount((prev) => {
         const newCount = prev + 1;
@@ -908,6 +928,9 @@ export default function ChatIsland({
       setIsLoading(false);
     } catch (error) {
       abortControllerRef.current = null;
+      // BITB-340: unmounted (navigation / teardown) — skip all state updates
+      // and the error log; the abort or stream failure is expected.
+      if (!isMountedRef.current) return;
       // User-initiated cancellation: keep partial content, don't show an error.
       if (
         controller.signal.aborted ||

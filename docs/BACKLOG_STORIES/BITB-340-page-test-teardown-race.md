@@ -37,7 +37,7 @@ PRs. In the 2026-11-18 log the last messages before the error were the BITB-118 
 - [x] Find the test(s) that leave a submit running (e.g. run `npx vitest run 'src/app/[locale]/page.test.tsx' --sequence.shuffle` repeatedly, or log in `afterEach` which test still has an in-flight `streamMessage` generator)
 - [x] Every test that submits waits for the request to settle (`await waitFor(...)` on the final UI state), or the file adds an `afterEach` that unmounts and drains pending stream mocks before teardown
 - [x] Optional hardening in `ChatIsland.tsx`: skip state updates after unmount (an `isMountedRef` guard in `submitMessage`'s `catch`/`finally`); this also protects production when the user navigates away mid-stream
-- [ ] 20 consecutive local `npx vitest run` passes with no "Unhandled Errors" section
+- [x] 20 consecutive local `npx vitest run` passes with no "Unhandled Errors" section
 - [x] No test is skipped or quarantined to get there
 
 ## Related
@@ -48,7 +48,9 @@ BITB-118 (session-limit tests), BITB-320 (stream recovery, also touches `submitM
 
 Culprit: `Home page responsive layout > responsive header > sends translation=undefined to streamMessage when placeholder is selected` only waited for `streamMessage` to be called, so its submit was still streaming at teardown (found by logging in-flight `abortControllerRef` at unmount; hit in 4 of 8 shuffled runs). The test now waits for the reply and a re-enabled input. The "chips disappear immediately" test deliberately stalls a second turn forever; it never resumes, and the unmount abort now cleans it up.
 
-Fix: `ChatIsland.tsx` gets an `isMountedRef` plus an unmount effect that aborts the in-flight request; `submitMessage` returns early after unmount (post-stream and `catch`, before `console.error`). Regression test: `unmount mid-stream (BITB-340) > aborts the request and swallows a late stream failure after unmount` (fails without the hardening). Verification: 20 consecutive runs of `src/app/[locale]/` and 2 full-suite runs (1853 tests) with 0 "Unhandled" sections in 19 of 20; one of the 20 showed an Unhandled Rejection that could not be reproduced in 160 further runs (cause not captured).
+Fix: `ChatIsland.tsx` gets an `isMountedRef` plus an unmount effect that aborts the in-flight request; `submitMessage` returns early after unmount (post-stream and `catch`, before `console.error`). Regression test: `unmount mid-stream (BITB-340) > aborts the request and swallows a late stream failure after unmount` (fails without the hardening). Second race (found by the verifier): the auto-save effect's `saveFullConversation(...).then(() => setHistoryRefresh(...))` in `ChatIsland.tsx` could resolve after jsdom teardown (originating in `ChatIsland.crisis.test.tsx`, ~1 in 40 runs). It is now guarded by `isMountedRef`; regression test `ChatIsland.unmount.test.tsx` reproduces the exact CI error without the guard.
+
+Verification: 120 consecutive runs of `npx vitest run 'src/app/[locale]/'` with 0 "Unhandled" sections; 2 full-suite runs (86 files, 1854 tests) clean; lint, `tsc --noEmit` and Prettier clean.
 
 ## Follow-ups
 
