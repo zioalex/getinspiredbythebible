@@ -901,10 +901,11 @@ Optional, off by default (`enable_azure_content_safety = false` in `terraform.tf
 Terraform creates an `azurerm_cognitive_account` (kind `ContentSafety`, SKU `azure_content_safety_sku`
 = `F0` or `S0`, region `azure_content_safety_location` or `location`) and wires
 `AZURE_CONTENT_SAFETY_*` plus `CONTENT_SAFETY_ML_FAILOVER_CHAIN=openai_moderation,azure` into the
-backend. No GitHub secret: `azure-deploy.yml` pre-seeds a placeholder `azure-content-safety-key` ACA
-secret before apply and sets the real key (from the `azure_content_safety_key` terraform output) after
+backend. No GitHub secret is needed: `azure-deploy.yml` pre-seeds a placeholder ACA secret named
+`azure-content-safety-key` before apply and sets the real key (from the `azure_content_safety_key` terraform output) after
 apply, in the *Populate out-of-band secrets* step. It sends user message text to Azure, so the privacy
-policy must disclose it first (BITB-353). Details: `docs/HOW-TO-ENABLE-CONTENT-SAFETY.md`.
+policy must disclose it first (BITB-353). Keep `content_safety_mode = "ml_only"`: in `hybrid` mode Azure
+screens every message (not just failovers), which would exhaust the F0 quota. Details: `docs/HOW-TO-ENABLE-CONTENT-SAFETY.md`.
 
 ### Verifying Setup
 

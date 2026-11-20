@@ -1150,8 +1150,12 @@ jobs:
       - name: Pre-seed azure-content-safety-key secret on existing backend app (BITB-294)
         working-directory: deployment
         run: |
-          if ! terraform show -json tfplan \
-               | jq -e '[.resource_changes[]? | select(.address == "azurerm_cognitive_account.content_safety[0]") | select(.change.actions != ["delete"])] | length > 0' >/dev/null; then
+          # Capture first so a failing `terraform show` fails the step (no pipefail here).
+          plan_json=$(terraform show -json tfplan)
+          cs_addr='azurerm_cognitive_account.content_safety[0]'
+          filter='[.resource_changes[]? | select(.address == $a)'
+          filter="$filter"' | select(.change.actions != ["delete"])] | length > 0'
+          if ! echo "$plan_json" | jq -e --arg a "$cs_addr" "$filter" >/dev/null; then
             echo "Plan does not include the Content Safety account - skipping."
             exit 0
           fi
@@ -1268,10 +1272,17 @@ jobs:
           if [ -n "${OPENAI_API_KEY:-}" ]; then
             pairs+=("openai-api-key=$OPENAI_API_KEY")
           fi
-          cs_endpoint=$(terraform output -raw azure_content_safety_endpoint 2>/dev/null || echo "")
+          # No error suppression: after apply the output always exists ("" when
+          # disabled), so a failed read must fail the step, not silently leave the
+          # placeholder key live (BITB-294).
+          cs_endpoint=$(terraform output -raw azure_content_safety_endpoint)
           if [ -n "$cs_endpoint" ]; then
             CS_KEY=$(terraform output -raw azure_content_safety_key)
             echo "::add-mask::$CS_KEY"
+            if [ -z "$CS_KEY" ]; then
+              echo "::error::azure_content_safety_key output is empty while the endpoint is set."
+              exit 1
+            fi
             pairs+=("azure-content-safety-key=$CS_KEY")
           fi
           if [ "${#pairs[@]}" -eq 0 ]; then

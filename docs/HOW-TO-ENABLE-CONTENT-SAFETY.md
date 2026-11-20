@@ -219,7 +219,12 @@ enable_azure_content_safety = true      # default false
 - Enabling creates an `azurerm_cognitive_account` (kind `ContentSafety`) and sets
   `AZURE_CONTENT_SAFETY_ENABLED/ENDPOINT/TIMEOUT/KEY` and `CONTENT_SAFETY_ML_FAILOVER_CHAIN` on the
   backend Container App. Disabled, only `CONTENT_SAFETY_ML_FAILOVER_CHAIN=openai_moderation`
-  (the app default) is set, so nothing changes.
+  (the app default) is set: behaviour is unchanged (the first apply rolls one new backend revision
+  for the new env var).
+- **Keep `content_safety_mode = "ml_only"`.** In `hybrid` mode Azure screens every message, not
+  just failovers, which exhausts the F0 quota (5,000 text records/month) quickly.
+- **Disabling again** leaves a stale `azure-content-safety-key` secret on the Container App
+  (ignored by Terraform, harmless); remove it with `az containerapp secret remove` if wanted.
 - **Key flow (out-of-band, like BITB-288):** the backend app ignores `secret` drift, so
   `azure-deploy.yml` (1) pre-seeds a placeholder `azure-content-safety-key` secret before
   `Terraform Apply` (only if the plan creates the account and the app lacks that secret; it never
