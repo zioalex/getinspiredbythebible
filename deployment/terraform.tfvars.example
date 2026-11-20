@@ -153,6 +153,15 @@ rate_limit_requests_per_minute = 10
 # filter tuning; read them with `make export-blocked-samples` (BITB-326)
 blocked_sample_capture_enabled = false
 
+# Azure AI Content Safety: adds the `azure` hop to the ml_only failover chain (BITB-294).
+# OFF by default; enable only after the privacy policy discloses it (BITB-353).
+# F0 = free (5,000 text records/month, one per subscription), S0 = paid.
+enable_azure_content_safety = false
+# azure_content_safety_sku      = "F0"
+# azure_content_safety_location = ""   # empty = var.location
+# azure_content_safety_timeout  = 3
+# content_safety_ml_failover_chain = "" # empty = auto (openai_moderation[,azure])
+
 # Content filtering (blocks profanity, spam, URLs)
 content_filter_enabled = true
 max_message_length     = 500
