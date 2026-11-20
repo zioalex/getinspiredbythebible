@@ -1,6 +1,6 @@
 ---
 id: BITB-307
-status: in-review
+status: done
 priority: P2
 size: S
 rank: 40
@@ -89,13 +89,88 @@ CORS, if one does.
 
 ## Acceptance criteria
 
-- [ ] `curl https://api.voxquieta.org/config` shows no provider or model (**owner step**
-      after deploy)
-- [ ] No client or workflow broke: frontend, Android and integration suites are green
-- [ ] No client-chosen value is used as a metric label anywhere
-      (`grep -rn "session_token" api --include=*.py` outside tests shows no metric call)
-- [ ] Production CORS no longer lists localhost
-- [ ] The cross-origin smoke probe is green after deploy (**owner step**)
+All five verified against production on 2026-11-18, after #1297 merged
+(see *Post-deploy verification* below for the commands).
+
+- [x] `curl https://api.voxquieta.org/config` shows no provider or model (**owner step**
+      after deploy) — live response is `chat` / `features` / `security` only; the
+      `has("llm") or has("embedding") or has("telemetry") | not` check returns `true`
+- [x] No client or workflow broke: frontend, Android and integration suites are green —
+      Backend API Tests, Frontend Tests (22.x and 26.x) and Integration Tests all green on
+      the merged head `f063c20`; Android was untouched by the diff
+- [x] No client-chosen value is used as a metric label anywhere
+      (`grep -rn "session_token" api --include=*.py` outside tests shows no metric call) —
+      the remaining hits are `api/utils/session_tracker.py` SQL and log calls, no metric
+      attributes
+- [x] Production CORS no longer lists localhost — a live preflight from
+      `http://localhost:3000` is refused (`400`), while `https://voxquieta.org` is allowed
+      with `access-control-allow-methods: GET, POST, OPTIONS` and no
+      `access-control-allow-credentials`
+- [x] The cross-origin smoke probe is green after deploy (**owner step**) — `Prod Browser
+      Smoke` (BITB-064) and `Prod Monitor`, which includes the synthetic preflight, are
+      both green on post-merge `main`
+
+## Post-deploy verification
+
+The recipe an operator can re-run at any time (also in #1297's description).
+
+**Public endpoint — only the client allowlist comes back:**
+
+```bash
+curl -fsS https://api.voxquieta.org/config | jq -S 'map_values(keys)'
+```
+
+```json
+{
+  "chat": ["max_message_length", "session_max_requests"],
+  "features": ["tts_enabled"],
+  "security": ["turnstile_enabled", "turnstile_site_key"]
+}
+```
+
+Mechanical pass/fail — prints `true` and exits 0 when the trimmed config is live:
+
+```bash
+curl -fsS https://api.voxquieta.org/config | jq -e 'has("llm") or has("embedding") or has("telemetry") | not'
+```
+
+If `llm`, `embedding` or `telemetry` is still present, an old revision is still serving
+traffic; check the `azure-deploy` run and the backend Container App revision, then re-run.
+
+**Operator endpoint — the same detail behind the probe secret.** The repo secret
+`MONITOR_PROBE_SECRET` cannot be read back from GitHub; read the same value off the
+Container App, via an env var so it stays out of shell history:
+
+```bash
+export MONITOR_PROBE_SECRET=$(az containerapp secret show --name bible-app-backend --resource-group bible-app-rg --secret-name monitor-probe-secret --query value -o tsv)
+curl -fsS https://api.voxquieta.org/api/v1/admin/config -H "X-Monitor-Probe-Secret: $MONITOR_PROBE_SECRET" | jq -S 'map_values(keys)'
+```
+
+That returns the three public blocks plus the three that moved off `/config`:
+`embedding` (`dimensions`, `model`, `provider`), `llm` (`max_tokens`, `model`, `provider`,
+`temperature`) and `telemetry` (`appinsights_configured`, `appinsights_initialized`).
+
+**The guard is fail-closed —** both of these print `401`:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://api.voxquieta.org/api/v1/admin/config
+curl -s -o /dev/null -w '%{http_code}\n' https://api.voxquieta.org/api/v1/admin/config -H 'X-Monitor-Probe-Secret: wrong'
+```
+
+`/api/v1/admin/config` is registered `include_in_schema=False`, so its absence from
+`/docs` and `/openapi.json` is by design, not a failed deploy.
+
+**CORS:**
+
+```bash
+curl -s -o /dev/null -D - -X OPTIONS https://api.voxquieta.org/api/v1/chat \
+  -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: POST' \
+  -w 'http_code=%{http_code}\n' | grep -i 'access-control-allow-origin\|http_code'
+```
+
+Production must refuse that origin (`400`, no `access-control-allow-origin`); swapping in
+`Origin: https://voxquieta.org` must return `200` with
+`access-control-allow-methods: GET, POST, OPTIONS`.
 
 ## Out of scope
 
