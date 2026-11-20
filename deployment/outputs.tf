@@ -344,3 +344,17 @@ output "next_steps" {
     ============================================================
   EOT
 }
+
+# BITB-294: Azure AI Content Safety endpoint + key (empty when disabled). The deploy
+# workflow reads these after apply to set the backend `azure-content-safety-key` ACA
+# secret out-of-band and to decide whether the pre-apply seed is needed.
+output "azure_content_safety_endpoint" {
+  description = "Azure AI Content Safety endpoint (empty when enable_azure_content_safety is false)"
+  value       = try(azurerm_cognitive_account.content_safety[0].endpoint, "")
+}
+
+output "azure_content_safety_key" {
+  description = "Azure AI Content Safety primary key (empty when disabled)"
+  value       = try(azurerm_cognitive_account.content_safety[0].primary_access_key, "")
+  sensitive   = true
+}

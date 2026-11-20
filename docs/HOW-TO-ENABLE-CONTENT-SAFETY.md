@@ -201,6 +201,36 @@ region of your resource; Microsoft may state different retention for abuse monit
 preview features. Verify the current terms for your region and subscription before enabling.
 This service never logs the message text, only a short hash.
 
+#### Production (Terraform) -- BITB-294
+
+Production wiring for the `azure` hop is in Terraform, **shipped switched off**:
+
+```hcl
+# deployment/terraform.tfvars
+enable_azure_content_safety = true      # default false
+# azure_content_safety_sku      = "F0"  # F0 free (5,000 text records/month, ONE per subscription) or S0 paid
+# azure_content_safety_location = ""    # empty = var.location; set if the region lacks Content Safety
+# azure_content_safety_timeout  = 3
+# content_safety_ml_failover_chain = "" # empty = auto: "openai_moderation,azure" when enabled
+```
+
+- **Prerequisite:** the privacy policy must disclose Azure AI Content Safety first (BITB-353);
+  the hop sends user message text to the resource. Do not flip the flag before that lands.
+- Enabling creates an `azurerm_cognitive_account` (kind `ContentSafety`) and sets
+  `AZURE_CONTENT_SAFETY_ENABLED/ENDPOINT/TIMEOUT/KEY` and `CONTENT_SAFETY_ML_FAILOVER_CHAIN` on the
+  backend Container App. Disabled, only `CONTENT_SAFETY_ML_FAILOVER_CHAIN=openai_moderation`
+  (the app default) is set, so nothing changes.
+- **Key flow (out-of-band, like BITB-288):** the backend app ignores `secret` drift, so
+  `azure-deploy.yml` (1) pre-seeds a placeholder `azure-content-safety-key` secret before
+  `Terraform Apply` (only if the plan creates the account and the app lacks that secret; it never
+  overwrites an existing value), then (2) after apply reads the `azure_content_safety_key`
+  (sensitive) terraform output, masks it, and sets it in the *Populate out-of-band secrets* step,
+  which restarts the revision once. No GitHub secret is needed.
+- **Verify:** the API startup log has no "azure ... incomplete" warning; a forced double outage
+  (Llama Guard and OpenAI Moderation failing) increments
+  `content_safety.failover_total{to_stage="azure"}`; then run
+  `scripts/run_safety_golden_set.py --classifier azure` (BITB-293).
+
 ---
 
 ## Gradual Rollout Plan

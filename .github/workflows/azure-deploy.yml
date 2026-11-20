@@ -1141,6 +1141,58 @@ jobs:
             sleep $((i * 5))
           done
 
+      # BITB-294: same ignore_changes = [secret] trap as BITB-288 for the Azure AI
+      # Content Safety key. When the plan creates the Content Safety account, the
+      # new revision will reference the `azure-content-safety-key` secretRef, which
+      # Terraform will not add to an existing app. Seed a placeholder BEFORE apply
+      # (the real key is only known after apply; the populate step below sets it).
+      # Never overwrites an existing secret: that would clobber the real key.
+      - name: Pre-seed azure-content-safety-key secret on existing backend app (BITB-294)
+        working-directory: deployment
+        run: |
+          if ! terraform show -json tfplan \
+               | jq -e '[.resource_changes[]? | select(.address == "azurerm_cognitive_account.content_safety[0]") | select(.change.actions != ["delete"])] | length > 0' >/dev/null; then
+            echo "Plan does not include the Content Safety account - skipping."
+            exit 0
+          fi
+          # Skip only on a genuine not-found; any other error must fail the job.
+          if ! show_err=$(az containerapp show \
+               --name "${{ env.BACKEND_APP_NAME }}" \
+               --resource-group "${{ env.RESOURCE_GROUP }}" \
+               --output none 2>&1); then
+            if echo "$show_err" | grep -qiE 'ResourceNotFound|ResourceGroupNotFound|was not found'; then
+              echo "Backend app does not exist yet - Terraform will create the secret."
+              exit 0
+            fi
+            echo "::error::Could not query backend app before pre-seeding azure-content-safety-key."
+            echo "$show_err" >&2
+            exit 1
+          fi
+          existing=$(az containerapp secret list \
+            --name "${{ env.BACKEND_APP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "[].name" --output tsv)
+          if echo "$existing" | grep -qx 'azure-content-safety-key'; then
+            echo "azure-content-safety-key already exists - not overwriting."
+            exit 0
+          fi
+          for i in 1 2 3 4; do
+            if az containerapp secret set \
+                 --name "${{ env.BACKEND_APP_NAME }}" \
+                 --resource-group "${{ env.RESOURCE_GROUP }}" \
+                 --secrets "azure-content-safety-key=set-out-of-band-see-azure-deploy-yml" \
+                 --output none; then
+              echo "Pre-seeded azure-content-safety-key placeholder on ${{ env.BACKEND_APP_NAME }}."
+              break
+            fi
+            if [ "$i" -eq 4 ]; then
+              echo "::error::Failed to pre-seed azure-content-safety-key after retries."
+              exit 1
+            fi
+            echo "secret set attempt $i failed; retrying..."
+            sleep $((i * 5))
+          done
+
       - name: Terraform Apply
         working-directory: deployment
         run: terraform apply -auto-approve tfplan
@@ -1195,7 +1247,11 @@ jobs:
       # out-of-band, so rotating them never forces a full app replacement (main.tf's
       # `secret` blocks now hold only a bootstrap placeholder — see backend_secret_trigger).
       # No-op for a given secret if its repo secret is empty (feature disabled).
+      # BITB-294: the Azure Content Safety key is read from the terraform output
+      # (it is created by Terraform, not a GitHub secret), masked, and added to the
+      # same `secret set` so there is still a single revision restart.
       - name: Populate out-of-band secrets in backend Container App (BITB-067, BITB-288)
+        working-directory: deployment
         env:
           MONITOR_PROBE_SECRET: ${{ secrets.MONITOR_PROBE_SECRET }}
           SMOKE_PROBE_SECRET: ${{ secrets.SMOKE_PROBE_SECRET }}
@@ -1211,6 +1267,12 @@ jobs:
           fi
           if [ -n "${OPENAI_API_KEY:-}" ]; then
             pairs+=("openai-api-key=$OPENAI_API_KEY")
+          fi
+          cs_endpoint=$(terraform output -raw azure_content_safety_endpoint 2>/dev/null || echo "")
+          if [ -n "$cs_endpoint" ]; then
+            CS_KEY=$(terraform output -raw azure_content_safety_key)
+            echo "::add-mask::$CS_KEY"
+            pairs+=("azure-content-safety-key=$CS_KEY")
           fi
           if [ "${#pairs[@]}" -eq 0 ]; then
             echo "No out-of-band secrets configured — skipping."

@@ -589,3 +589,55 @@ variable "turnstile_site_key" {
   type        = string
   default     = ""
 }
+
+# -----------------------------------------------------------------------------
+# Azure AI Content Safety failover hop (BITB-294)
+# -----------------------------------------------------------------------------
+
+variable "enable_azure_content_safety" {
+  description = "Provision Azure AI Content Safety and add the `azure` hop to the ml_only failover chain (BITB-294). Off until the owner sets it (after the privacy policy discloses it, BITB-353)."
+  type        = bool
+  default     = false
+}
+
+variable "azure_content_safety_sku" {
+  description = "Azure AI Content Safety SKU: F0 (free, 5,000 text records/month; only ONE F0 account per subscription) or S0 (paid, per record)."
+  type        = string
+  default     = "F0"
+
+  validation {
+    condition     = contains(["F0", "S0"], var.azure_content_safety_sku)
+    error_message = "azure_content_safety_sku must be F0 or S0."
+  }
+}
+
+variable "azure_content_safety_location" {
+  description = "Region for the Content Safety account. Empty = var.location."
+  type        = string
+  default     = ""
+}
+
+variable "azure_content_safety_timeout" {
+  description = "Seconds before an Azure Content Safety call counts as a failed failover hop (AZURE_CONTENT_SAFETY_TIMEOUT)."
+  type        = number
+  default     = 3
+
+  validation {
+    condition     = var.azure_content_safety_timeout > 0
+    error_message = "azure_content_safety_timeout must be greater than 0."
+  }
+}
+
+variable "content_safety_ml_failover_chain" {
+  description = "Ordered ml_only failover chain (CONTENT_SAFETY_ML_FAILOVER_CHAIN). Empty = auto: \"openai_moderation,azure\" when enable_azure_content_safety, else \"openai_moderation\"."
+  type        = string
+  default     = ""
+
+  validation {
+    condition = var.content_safety_ml_failover_chain == "" || alltrue([
+      for s in split(",", var.content_safety_ml_failover_chain) :
+      contains(["openai_moderation", "azure"], lower(trimspace(s)))
+    ])
+    error_message = "content_safety_ml_failover_chain entries must each be openai_moderation or azure (comma-separated), or the whole value empty."
+  }
+}
