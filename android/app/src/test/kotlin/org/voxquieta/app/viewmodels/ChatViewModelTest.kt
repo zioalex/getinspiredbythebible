@@ -423,6 +423,44 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `setLocale to a new language resets the conversation and rotates the session (BITB-331)`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Hi", done = true),
+        )
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.messages.isNotEmpty())
+
+        val changed = viewModel.setLocale("ar")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(changed)
+        val state = viewModel.uiState.value
+        assertTrue(state.messages.isEmpty())
+        assertNull(state.currentConversationId)
+        assertTrue(state.followUps.isEmpty())
+        assertEquals("ar", state.currentLocale)
+        coVerify(exactly = 1) { sessionPreferences.resetSessionId() }
+    }
+
+    @Test
+    fun `setLocale to the same language keeps the conversation (BITB-331)`() = runTest {
+        every { repository.chatStream(any()) } returns flowOf(
+            StreamChunk(content = "Hi", done = true),
+        )
+        viewModel.sendMessage("Hello")
+        testDispatcher.scheduler.advanceUntilIdle()
+        val current = viewModel.uiState.value.currentLocale
+        val before = viewModel.uiState.value.messages
+
+        val changed = viewModel.setLocale(current)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(changed)
+        assertEquals(before, viewModel.uiState.value.messages)
+    }
+
+    @Test
     fun `setLocale updates selectedLanguage StateFlow`() = runTest {
         viewModel.setLocale("de")
         testDispatcher.scheduler.advanceUntilIdle()
@@ -3493,7 +3531,7 @@ class ChatViewModelTest {
             "startNewConversation" to { viewModel.startNewConversation() },
             "clearConversation" to { viewModel.clearConversation() },
             "clearAllConversations" to { viewModel.clearAllConversations() },
-            "setLocale" to { viewModel.setLocale("it") },
+            "setLocale" to { viewModel.setLocale("it"); Unit },
             "stopSpeaking" to { viewModel.stopSpeaking() },
         )
         for ((name, action) in actions) {

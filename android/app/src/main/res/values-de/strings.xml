@@ -7,7 +7,7 @@
     <string name="chat_stop_button">Stoppen</string>
     <string name="action_clear_conversation">Gespräch löschen</string>
     <string name="welcome_title">Lass dich täglich von Gottes Wort inspirieren</string>
-    <string name="welcome_subtitle">Bringe deine Lasten zu Gottes Wort. Die Heilige Schrift spricht Trost, Kraft und Hoffnung in jede Lebenslage.</string>
+    <string name="welcome_subtitle">Bringe deine Lasten zu Gottes Wort. Die Heilige Schrift schenkt Trost, Kraft und Hoffnung in jeder Lebenslage.</string>
 
     <!-- Suggested prompts on welcome screen -->
     <string name="prompt_suggestion_1">Ich kämpfe und brauche Gottes Trost</string>

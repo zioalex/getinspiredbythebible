@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "@/i18n/navigation";
 import { ChevronDown, Globe } from "lucide-react";
 import { routing } from "@/i18n/routing";
 import { localeLabels } from "@/i18n/localeLabels";
+import { markFreshChat } from "@/lib/conversationStore";
 
 export { localeLabels };
 
@@ -17,6 +18,7 @@ export default function LanguageSwitcher() {
   const pathname = usePathname();
 
   const handleChange = (newLocale: string) => {
+    if (newLocale !== locale) markFreshChat(); // BITB-331: new language, new chat
     router.replace(pathname, { locale: newLocale });
   };
 
