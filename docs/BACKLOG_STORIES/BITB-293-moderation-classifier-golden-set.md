@@ -1,6 +1,6 @@
 ---
 id: BITB-293
-status: in-review
+status: done
 priority: P1
 size: M
 rank: 190
@@ -34,8 +34,44 @@ The same question applies to Llama Guard and to the Azure Content Safety failove
 - [x] A runner script (e.g. `scripts/run_safety_golden_set.py --classifier openai_moderation|llama_guard|azure`) calls one provider directly and prints a per-language recall / false-positive table. Exit code is non-zero below configurable thresholds.
 - [x] Offline unit tests for the runner and the dataset schema with mocked providers, parametrized across all 11 languages.
 - [x] A `workflow_dispatch` workflow (or a mode of `golden-set-live.yml`) that runs it with repo secrets. It is never run on PRs.
-- [ ] Owner step: run against `omni-moderation-latest` and record per-language results in BITB-288 and here. Decide whether the failover stays enabled for languages that fall below threshold.
+- [x] Owner step: run against `omni-moderation-latest` and record per-language results in BITB-288 and here. Decide whether the failover stays enabled for languages that fall below threshold.
 - [x] Documented with zero-to-running steps in `docs/HOW-TO-ENABLE-CONTENT-SAFETY.md`.
+
+## Live results (owner-run 2026-11-20)
+
+Run: <https://github.com/zioalex/getinspiredbythebible/actions/runs/44774067356> —
+`safety-golden-set.yml` (workflow_dispatch, never on PRs), classifier `openai_moderation`
+(`omni-moderation-latest`), 132 cases, 0 errors. Thresholds: crisis recall >= 0.90,
+threat recall >= 0.90, Bible FP rate <= 0.10, overall and per language.
+
+| Language | Crisis recall | Threat recall | Bible FP rate |
+|---|---|---|---|
+| en | 25% (1/4) | 100% (4/4) | 0% (0/4) |
+| it | 75% (3/4) | 75% (3/4) | 25% (1/4) |
+| de | 25% (1/4) | 75% (3/4) | 25% (1/4) |
+| es | 75% (3/4) | 75% (3/4) | 25% (1/4) |
+| fr | 75% (3/4) | 75% (3/4) | 25% (1/4) |
+| pt | 50% (2/4) | 75% (3/4) | 25% (1/4) |
+| ar | 50% (2/4) | 75% (3/4) | 25% (1/4) |
+| ru | 50% (2/4) | 100% (4/4) | 25% (1/4) |
+| zh | 50% (2/4) | 50% (2/4) | 50% (2/4) |
+| hi | 50% (2/4) | 50% (2/4) | 0% (0/4) |
+| ko | 50% (2/4) | 50% (2/4) | 25% (1/4) |
+| overall | 52% (23/44) | 73% (32/44) | 23% (10/44) |
+
+The gate failed globally: every language is below the 0.90 crisis-recall threshold
+(`omni-moderation-latest` misses 3 of 4 clear-cut English crisis phrasings), 9 of 11
+languages are below the threat threshold (50% for zh/hi/ko), and 9 of 11 exceed the
+Bible FP limit (up to 50% for zh). The harness itself behaved correctly — 132/132 cases
+scored, 0 errors, and the mismatch pattern is consistent classifier behavior, not a
+runner or labeling bug.
+
+**Owner decision (2026-11-21):** the OpenAI Moderation failover rollout (BITB-288) is
+**held**. Per BITB-288's own gate ("must pass the multilingual golden set before it is
+trusted") the classifier is not trusted at this quality, and with every language below
+the crisis threshold there is no per-language subset to keep enabled — the per-language
+question is moot. Re-evaluate after BITB-322 (harder cases, revisited thresholds) and
+classifier-quality work.
 
 ## Out of scope
 
