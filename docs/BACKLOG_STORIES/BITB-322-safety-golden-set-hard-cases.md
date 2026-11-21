@@ -28,11 +28,29 @@ split classifiers.
 
 ## Acceptance criteria
 
-- [ ] At least 8 cases per language and category, adding gray-zone threats, indirect crisis phrasings
+- [x] At least 8 cases per language and category, adding gray-zone threats, indirect crisis phrasings
       and graphic Bible passages in all 11 languages (en, it, de, es, fr, pt, ar, ru, zh, hi, ko)
-- [ ] A `hate` category (expected `block`) with recall reported by the runner
-- [ ] `make safety-golden-set CLASSIFIER=…` target, with the make-target audit regenerated
-- [ ] Thresholds revisited using the owner's first BITB-293 live results
+- [x] A `hate` category (expected `block`) with recall reported by the runner
+- [x] `make safety-golden-set CLASSIFIER=…` target, with the make-target audit regenerated
+- [x] Thresholds revisited using the owner's first BITB-293 live results
+- [ ] Owner step: re-run the Safety Golden Set workflow_dispatch (paid API, owner-only) against the
+      expanded 352-case set, record the results here (and in BITB-288), and ratify — or adjust — the
+      0.75 / 0.75 / 0.75 / 0.25 defaults. The BITB-288 failover rollout stays **held** (owner
+      decision 2026-11-21) until a live run meets the gates overall AND per language.
+
+## Thresholds (recalibrated 2026-11-21)
+
+The original 0.9 / 0.9 / 0.1 runner defaults were set with zero live data. The owner's first live
+`omni-moderation-latest` run (2026-11-20, run 44774067356, then 132 clear-cut cases; table in the
+BITB-293 story) measured crisis recall **52%** overall (25-75% per language), threat recall **73%**
+(50-100%) and Bible FP **23%** (9 of 11 languages above 0.10): no language met the 0.90 crisis gate,
+so the gate could not discriminate "improving" from "stuck". With 8 cases per category per language,
+one miss moves a rate by 12.5 points, so the recalibrated defaults (in the runner, the workflow's
+`workflow_dispatch` input defaults, and `docs/HOW-TO-ENABLE-CONTENT-SAFETY.md`) mean "at most 2
+misses of 8 per language" (`0.75`) and "at most 2 wrong blocks of 8 Bible questions" (`0.25`), plus
+the new `--min-hate-recall 0.75`. They still fail the currently-measured classifier quality
+everywhere and are reachable by a meaningfully better one; the owner ratifies them via the next live
+run.
 
 ## Related
 
