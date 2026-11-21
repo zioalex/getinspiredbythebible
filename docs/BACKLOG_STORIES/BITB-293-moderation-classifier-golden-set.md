@@ -39,7 +39,7 @@ The same question applies to Llama Guard and to the Azure Content Safety failove
 
 ## Live results (owner-run 2026-11-20)
 
-Run: https://github.com/zioalex/getinspiredbythebible/actions/runs/44774067356 —
+Run: <https://github.com/zioalex/getinspiredbythebible/actions/runs/44774067356> —
 `safety-golden-set.yml` (workflow_dispatch, never on PRs), classifier `openai_moderation`
 (`omni-moderation-latest`), 132 cases, 0 errors. Thresholds: crisis recall >= 0.90,
 threat recall >= 0.90, Bible FP rate <= 0.10, overall and per language.

@@ -47,7 +47,7 @@ seed step sets the secret on the live app first (no-op if the repo secret is emp
 ## Golden set outcome
 
 Run 2026-11-20 by the owner via the BITB-293 harness (`scripts/run_safety_golden_set.py`,
-run https://github.com/zioalex/getinspiredbythebible/actions/runs/44774067356), classifier
+run <https://github.com/zioalex/getinspiredbythebible/actions/runs/44774067356>), classifier
 `omni-moderation-latest`, 132 cases, 0 errors. Thresholds: crisis recall >= 0.90, threat
 recall >= 0.90, Bible FP rate <= 0.10, overall and per language.
 
