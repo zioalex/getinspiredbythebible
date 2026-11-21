@@ -4,6 +4,7 @@ status: in-review
 priority: P3
 size: XS
 created: 2026-11-21
+prs: [1326]
 ---
 
 # BITB-357: Subagent Content-Filter Dispatch Failures Lose Work — Codify the Recovery Ritual
