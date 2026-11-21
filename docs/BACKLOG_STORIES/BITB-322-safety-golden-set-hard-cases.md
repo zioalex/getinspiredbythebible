@@ -1,10 +1,11 @@
 ---
 id: BITB-322
-status: in-progress
+status: in-review
 priority: P2
 size: S
 rank: 195
 created: 2026-11-16
+prs: [1325]
 depends_on: [BITB-293]
 ---
 
