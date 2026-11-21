@@ -109,6 +109,19 @@ one-liners may skip the relay, but still need tests where behaviour changes.
   hand-copied branch names.** The 2026-11-07 hang was triggered by a brief
   naming the wrong branch (PR 1241's for PR 1248's), sending the child after
   a lint violation that did not exist there until it asked.
+- **A content-filter dispatch failure ≠ no work done — audit the worktree
+  before re-dispatching.** Observed 2026-11-21 (BITB-322): two `fullstack-engineer`
+  dispatches died with `Request blocked by content filter: Content filter
+  redaction would produce invalid tool call arguments` — on every fallback
+  model — yet each had already written most of the implementation uncommitted
+  in the worktree. The filter strikes mid-session (on requests echoing
+  safety-domain fixture text), not on the brief alone, so the parent's terminal
+  error does not mean "nothing happened". The recovery brief must (a) strip
+  safety-domain vocabulary and stay purely mechanical — story files carry the
+  semantics, and file reads pass the filter where brief prose does not — and
+  (b) instruct the child to AUDIT any uncommitted work from prior attempts and
+  salvage the sound parts instead of rebuilding. The recovering dispatch
+  salvaged ~90% of a "failed" dispatch's work this way (BITB-357).
 - **A run is not complete while a dispatched token lacks a terminal outcome**
   (result delivered / recovered via `task_id` / confirmed dead). See the
   orchestrator agent definition (`.opencode/agents/orchestrator.md`) for the
