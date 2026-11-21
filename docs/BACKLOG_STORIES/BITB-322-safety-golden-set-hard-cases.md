@@ -6,6 +6,7 @@ size: S
 rank: 195
 created: 2026-11-16
 prs: [1325]
+follow_ups: [BITB-354, BITB-355, BITB-356]
 depends_on: [BITB-293]
 ---
 
@@ -56,3 +57,14 @@ run.
 ## Related
 
 BITB-293, BITB-288, BITB-292, BITB-294.
+
+## Follow-ups
+
+- BITB-354: evaluate Llama Guard (BITB-321 context) and Azure Content Safety (BITB-294 / PR #1323)
+  against the expanded 352-case set to find a classifier that can pass the recalibrated gates —
+  the only measured classifier (`omni-moderation-latest`) cannot, and the BITB-288 rollout stays
+  held.
+- BITB-355: native-speaker review of the 200 new machine-authored non-English fixture texts
+  (20 per language) before the set gates any rollout decision.
+- BITB-356: once PR #1302 (BITB-325) and this PR have both merged, re-run the make-target audit
+  regeneration and confirm `make test-makefile` is fully green on `main`.
