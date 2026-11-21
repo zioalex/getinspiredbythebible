@@ -6,7 +6,7 @@
 	android-test android-test-compose android-build android-build-prod android-lint android-clean \
 	android-security-check \
 	test-functional test-functional-local test-e2e test-e2e-local \
-	follow-up-eval follow-up-checklist golden-test golden-live \
+	follow-up-eval follow-up-checklist golden-test golden-live safety-golden-set \
 	gen-opencode-config verify-opencode-config sync-opencode-configmap sync-opencode-workspace test-opencode-plugin \
 	test-opencode-config-live test-opencode-config-live-selftest \
 	parity-export parity-check parity-registry-check \
@@ -348,6 +348,14 @@ golden-live: install-deps ## Run the interpretation golden cases against a runni
 	@echo "$(BLUE)Running golden set against $(or $(BASE_URL),http://localhost:8000) (live)...$(NC)"
 	@$(PYTHON) scripts/run_golden_set.py --base-url "$${BASE_URL:-http://localhost:8000}" --category "$${CATEGORY:-interpretation}" $(ARGS)
 	@echo "$(GREEN)✓ Live golden set run complete$(NC)"
+
+# BITB-322: no default CLASSIFIER on purpose -- a bare `make safety-golden-set` must never fire a
+# paid classifier API. Use `ARGS="--dry-run"` for the free offline dataset check. Live scoring of the
+# 11-language set is owner-run via the Safety Golden Set workflow (workflow_dispatch, never on PRs).
+safety-golden-set: install-deps ## Score ONE moderation classifier on the 11-language safety golden set (BITB-322; PAID API, owner-run). Usage: make safety-golden-set CLASSIFIER=openai_moderation|llama_guard|azure [ARGS="--dry-run|--languages ko,hi|..."]
+	@test -n "$(CLASSIFIER)" || { echo "ERROR: CLASSIFIER is required (openai_moderation | llama_guard | azure), e.g. make safety-golden-set CLASSIFIER=openai_moderation ARGS=--dry-run"; exit 2; }
+	@echo "$(BLUE)Safety golden set against $(CLASSIFIER) (single classifier, live)...$(NC)"
+	@$(PYTHON) scripts/run_safety_golden_set.py --classifier "$(CLASSIFIER)" $(ARGS)
 
 check-all: lint type-check security test validate-env ## Run all checks (pre-push validation)
 	@echo "$(GREEN)✓ All checks passed!$(NC)"
