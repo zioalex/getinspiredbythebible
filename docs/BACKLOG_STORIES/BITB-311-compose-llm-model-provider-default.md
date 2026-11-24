@@ -1,6 +1,7 @@
 ---
 id: BITB-311
 status: in-review
+prs: [1337]
 priority: P2
 size: XS
 rank: 10
