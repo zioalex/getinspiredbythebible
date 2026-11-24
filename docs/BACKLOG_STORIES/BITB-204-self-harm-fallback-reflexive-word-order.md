@@ -4,6 +4,7 @@ status: in-review
 priority: P2
 size: S
 created: 2026-10-19
+prs: [1336]
 ---
 
 # BITB-204: Self-Harm Fallback Misses "Kill Myself" Word-Order Variants (ru/zh/ko)
