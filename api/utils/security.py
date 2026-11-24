@@ -1759,12 +1759,18 @@ class MultiLanguageContentFilter:
             r"\bwish i was dead\b",
             r"\bno reason to live\b",
             # BITB-203: first-person suicidal phrasings that had no span (clean fallback)
-            r"\bsuicidal\b",
-            r"\bend it all\b",
+            r"\bsuicidal\b(?!\s+(?:friend|son|daughter|teen|teenager|people|person|patient|"
+            r"child|children|kids|brother|sister|wife|husband|mother|father|mom|dad)\b)",
+            # first-person lead + clause end ("end it all with a prayer" / "to end it all - sin" excluded)
+            r"\bi(?:'m|'ll|\s+am|\s+will)?\s+(?:(?:just|really)\s+)?"
+            r"(?:(?:want|wanna|need|going|gonna|might|could)\s+(?:to\s+)?)*end it all\b"
+            r"(?!\s+(?:with|on|for|in)\b)",
+            r"\bthinking (?:about|of) ending it all\b",
             r"\btak(?:e|ing) my (?:own )?life\b",
-            r"\bkilling myself\b",
+            r"\bkilling myself\b(?!\s+with laughter)",
             r"\bwant to be dead\b",
-            r"\bbetter off dead\b",
+            r"\bi(?:'d| would| am|'m)?\s+(?:be\s+)?better off dead\b",
+            r"\beveryone would be better off if i (?:was|were) dead\b",
         ],
         "it": [
             r"\bsuicidio\b",
@@ -1779,7 +1785,7 @@ class MultiLanguageContentFilter:
             r"\bammazzarmi\b",
             r"\bmi ammazzo\b",
             r"\btogliermi la vita\b",
-            r"\bfarla finita\b(?!\s+con\s+(?:(?:il|lo|la|i|le|gli)\s+)?pecc)",
+            r"\bfarla finita\b(?!\s+con\b)",
         ],
         "de": [
             r"\bselbstmord\b",
@@ -1792,7 +1798,7 @@ class MultiLanguageContentFilter:
             r"\bmich\s+(?:selbst\s+)?(?:zu\s+)?töten\b",
             r"\bbringe mich um\b",
             r"\bmir das leben nehmen\b",
-            r"\b(?:will|möchte|mag|kann)\s+nicht\s+mehr\s+leben\b(?!\s+(?:wie|als|in|mit|ohne|so)\b)",
+            r"\b(?:will|möchte|mag|kann)\s+nicht\s+mehr\s+leben\b(?!\s+(?:wie|als|in|mit|ohne|so|für)\b)(?!\s*,)",
             # BITB-196: split verb, "mich und meine Familie umbringen"
             r"\bmich\s+und\s+(?:meine[rn]?|mein|alle|die)\b[^.!?\n]{0,40}?\b(?:umbringen|töten)\b",
         ],
@@ -1809,7 +1815,8 @@ class MultiLanguageContentFilter:
             r"\bquitarme la vida\b",
             r"\bme quiero morir\b",
             r"\bquiero morirme\b",
-            r"\bquiero acabar con (?:mi vida|todo\b(?!\s+(?:mal|pecado|lo malo)))",
+            r"\bquiero acabar con mi vida\b",
+            r"\bquiero acabar con todo\b(?=\s*(?:[.!?,;\n]|$|ya\b|de una vez\b))",
         ],
         "fr": [
             r"\bsuicide\b",
@@ -1837,7 +1844,8 @@ class MultiLanguageContentFilter:
             r"\bsuicidar-me\b",
             r"\bme suicido\b",
             r"\btirar (?:a )?minha (?:própria )?vida\b",
-            r"\bquero acabar com (?:minha vida|tudo\b(?!\s+(?:que|o mal)\b))",
+            r"\bquero acabar com minha vida\b",
+            r"\bquero acabar com tudo\b(?=\s*(?:[.!?,;\n]|$|já\b|de uma vez\b))",
         ],
         "ar": [
             r"انتحار",
@@ -1889,7 +1897,7 @@ class MultiLanguageContentFilter:
             r"自殺",
             # BITB-204: "我想杀了(我)自己"; first-person/intent prefix required, never after 他/她
             # and never "自己的" (possessive: "他杀了自己的儿子").
-            r"(?<![他她它们們])(?:我(?:想要?|要|会|會|打算|准备|準備|真的)?|想要?|要|去|会|會|打算|准备|準備|真的)[杀殺][了死掉]?(?:我)?自己(?![的之])",
+            r"(?<![他她它们們参孙參孫扫罗掃羅犹大猶大])(?:我(?:想要?|要|会|會|打算|准备|準備|真的)?|想要?|会|會|打算|准备|準備|真的)[杀殺][了死掉]?(?:我)?自己(?![的之里裡心内內])",
             r"(?:没有|沒有|失去)[他她]活[着著][没沒]意思",
             # BITB-200: first-person question form ("我觉得这样活着没意思吗") is a plea, not exegesis.
             r"我(?:觉得|覺得)?(?:这样|這樣|真的|总是|總是|一直)?活[着著][没沒]意思",
@@ -1945,8 +1953,9 @@ class MultiLanguageContentFilter:
             r"죽어 ?버리고 ?싶",
             r"삶을 ?끝내",
             r"사라지고 ?싶(?!지 ?않)",
-            # BITB-204: "나를/날 죽이고 싶어"; "하나님이 나를 죽이고 싶어하실까" (God as subject) excluded
-            r"(?<!님이)(?<!님이 )(?<!님께서)(?<!님께서 )(?<!님은)(?<!님은 )(?:나를|날) ?죽이(?:고 ?싶|겠|려)\w{0,3}",
+            # BITB-204: first-person wish only; no other subject before 나를 (그가/아버지가 …), no 싶어해/한다,
+            # no 죽이겠/죽이려 (threats against the speaker are not self-harm)
+            r"(?:(?<![가-힣][이가은는] )|(?<=내가 )|(?<=나는 ))(?<!께서 )(?:나를|날|나 ?자신을|내 ?자신을) ?죽이고 ?싶(?!어 ?[하한해])[가-힣]{0,3}",
         ],
     }
 

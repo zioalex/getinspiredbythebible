@@ -4,6 +4,7 @@ status: in-review
 priority: P2
 size: M
 created: 2026-10-16
+follow_ups: [BITB-359, BITB-360]
 ---
 
 # BITB-203: Self-Harm Fallback — Missing Suicide Verbs Leave Murder-Suicide Clean
@@ -31,11 +32,17 @@ unchanged; murder-suicide phrasings that now have a span reach `self_harm_with_v
 **Decision:** a murder-suicide third-party match with NO self-harm span is deliberately NOT escalated to
 the ambiguous/blocked branch: the third-party tables (en "...and my family too.") would block benign
 prayers such as "Pray for me and my family.". The AC is satisfied through the new self-harm spans for the
-listed phrasings instead. Known accepted change: en "I want to end it all in a good way" is now
-compassionate (fails safe).
+listed phrasings instead. Idiom guards (verifier round 1): `end it all` needs a first-person lead and is not followed by
+with/on/for/in; `acabar con todo` / `acabar com tudo` match only at clause end; `farla finita` is
+never followed by `con …`; de `nicht mehr leben` skips `für`/`,`/`wie`.
 
 **Acceptance criteria**
 
 - [x] Add the missing self-harm phrasings per language
-- [x] A murder-suicide match with no self-harm span goes to the ambiguous branch (via the new self-harm spans; see Decision)
+- [x] The listed murder-suicide phrasings reach the ambiguous branch (via new self-harm spans; a span-less murder-suicide match is deliberately NOT escalated — see Decision)
 - [x] Parametrized across 11 languages (`api/tests/test_self_harm_fallback_phrasings.py`)
+
+## Follow-ups
+
+- BITB-359: more crisis phrasings that are still clean
+- BITB-360: third-person / idiom over-matches that get the crisis card

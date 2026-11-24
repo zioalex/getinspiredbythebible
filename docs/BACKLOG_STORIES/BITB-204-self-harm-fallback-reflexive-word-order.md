@@ -26,7 +26,7 @@ clean and the person gets no compassionate path.
 `clean (fallback)`.
 
 **Functional requirements:** add ru `себя убить`, zh first-person `(我|想|要…)杀(了|死)(我)自己` (never after
-他/她, never `自己的`), ko `나를/날 죽이고 싶` (never with 님이/님께서 as subject). Benign BITB-186/198 cases
+他/她, never `自己的`), ko final form: `(나를|날|나 자신을|내 자신을) ?죽이고 ?싶` only; the 죽이겠/죽이려 forms are dropped (they are threats against the speaker), no other subject (noun + 이/가/은/는/께서) may precede 나를/날 unless it is 내가/나는, and `싶어해/싶어한다` (third person) is excluded. Benign BITB-186/198 cases
 unchanged, asserted in `api/tests/test_self_harm_fallback_phrasings.py`.
 
 **Acceptance criteria**
