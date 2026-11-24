@@ -56,7 +56,7 @@ def _patched(service, cfg: Settings, path: str) -> ExitStack:
     return stack
 
 
-def _settings(monkeypatch, **env) -> Settings:
+def _settings(monkeypatch, **env):
     for key in ("LLM_MODEL", "OLLAMA_LLM_MODEL", "LLM_PROVIDER"):
         monkeypatch.delenv(key, raising=False)
     for key, value in env.items():
