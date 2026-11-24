@@ -55,5 +55,6 @@ Env, `.env` and Azure/k8s deployments are not affected.
   `OLLAMA_LLM_MODEL` defaulting to `mistral:7b`. local-prod files just drop the OpenRouter slug default.
 - Tests: `tests/test_runtime_alignment.py` (blank/Claude/Ollama resolution),
   `tests/test_compose_llm_model_default.py` (compose files).
-- Not fixed: in `docker-compose.yml` the ollama container still pulls `${LLM_MODEL:-mistral:7b}`,
-  so setting `LLM_MODEL=claude-...` there would try to pull a Claude ID (dev file already uses `OLLAMA_LLM_MODEL`).
+- Checked, no follow-up needed: `docker-compose.yml`'s Ollama container still reads
+  `${LLM_MODEL:-mistral:7b}`, but `scripts/init-ollama.sh` only pulls it when `LLM_PROVIDER=ollama`,
+  so a Claude model ID is never pulled.

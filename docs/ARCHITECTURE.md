@@ -208,7 +208,8 @@ class Settings(BaseSettings):
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LLM_PROVIDER` | `ollama` | Backend for chat generation |
-| `LLM_MODEL` | `llama3:8b` | Model identifier |
+| `LLM_MODEL` | `llama3:8b` (Ollama only; `claude` uses its own default unless set; empty = unset) | Model identifier |
+| `OLLAMA_LLM_MODEL` | unset (Compose: `mistral:7b`) | Ollama model used when `LLM_MODEL` is unset (BITB-311) |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `EMBEDDING_MODEL` | `mxbai-embed-large` | Model for vector generation (multilingual) |
 | `EMBEDDING_DIMENSIONS` | `1024` | Vector size (must match model/deployment — `1536` with `EMBEDDING_PROVIDER=azure_openai` and `text-embedding-3-small`/`text-embedding-ada-002`, `3072` with `text-embedding-3-large`; enforced at Settings() startup for both Ollama and Azure deployments, BITB-107) |
