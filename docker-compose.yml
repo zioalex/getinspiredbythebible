@@ -15,7 +15,8 @@ services:
       # BITB-311: only pass LLM_MODEL when the operator set it (empty = unset), so
       # LLM_PROVIDER=claude keeps its own default model. OLLAMA_LLM_MODEL is the Ollama default.
       - LLM_MODEL=${LLM_MODEL:-}
-      - OLLAMA_LLM_MODEL=${LLM_MODEL:-mistral:7b}
+      # Same expression as the ollama container's pull below, so the two always agree.
+      - OLLAMA_LLM_MODEL=${OLLAMA_LLM_MODEL:-${LLM_MODEL:-mistral:7b}}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
       - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1024}
@@ -58,7 +59,7 @@ services:
       - "0.0.0.0:11434:11434"
     environment:
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
-      - LLM_MODEL=${LLM_MODEL:-mistral:7b}
+      - LLM_MODEL=${OLLAMA_LLM_MODEL:-${LLM_MODEL:-mistral:7b}}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
     volumes:

@@ -49,8 +49,45 @@ def test_backend_does_not_hard_default_llm_model(path, name, svc):
     assert re.fullmatch(r"|\$\{LLM_MODEL(:?-)?\}", value), f"{path.name} {name}: LLM_MODEL={value}"
 
 
-@pytest.mark.parametrize("filename", ["docker-compose.yml", "docker-compose.dev.yml"])
-def test_ollama_stacks_default_ollama_llm_model(filename):
+_VAR = re.compile(r"\$\{(\w+):-((?:[^${}]|\$\{[^}]*\})*)\}")
+
+
+def _interpolate(value: str, env: dict[str, str]) -> str:
+    """Minimal Compose ``${VAR:-default}`` interpolation (nested defaults allowed)."""
+    while True:
+        new = _VAR.sub(lambda m: env.get(m.group(1)) or m.group(2), value)
+        if new == value:
+            return new
+        value = new
+
+
+def _ollama_env(filename: str) -> tuple[dict, dict]:
     services = yaml.safe_load((REPO_ROOT / filename).read_text(encoding="utf-8"))["services"]
-    value = _env(services["api"]).get("OLLAMA_LLM_MODEL")
-    assert value is not None and value.endswith(":-mistral:7b}"), value
+    return _env(services["api"]), _env(services["ollama"])
+
+
+@pytest.mark.parametrize("filename", ["docker-compose.yml", "docker-compose.dev.yml"])
+@pytest.mark.parametrize(
+    "operator_env,expected",
+    [
+        ({}, "mistral:7b"),
+        ({"OLLAMA_LLM_MODEL": "phi3"}, "phi3"),
+    ],
+)
+def test_backend_ollama_model_matches_the_pulled_model(filename, operator_env, expected):
+    """The api's OLLAMA_LLM_MODEL must resolve to what the ollama container pulls."""
+    api, ollama = _ollama_env(filename)
+    assert "OLLAMA_LLM_MODEL" in api, f"{filename}: api lacks OLLAMA_LLM_MODEL"
+    assert _interpolate(api["OLLAMA_LLM_MODEL"], operator_env) == expected
+    assert _interpolate(ollama["LLM_MODEL"], operator_env) == expected
+    # Backend LLM_MODEL stays unset unless the operator set it (BITB-311).
+    assert _interpolate(api["LLM_MODEL"], operator_env) == ""
+
+
+def test_main_stack_keeps_legacy_llm_model_override():
+    """docker-compose.yml: an operator-set LLM_MODEL still drives both api and pull."""
+    api, ollama = _ollama_env("docker-compose.yml")
+    env = {"LLM_MODEL": "qwen"}
+    assert _interpolate(api["LLM_MODEL"], env) == "qwen"
+    assert _interpolate(api["OLLAMA_LLM_MODEL"], env) == "qwen"
+    assert _interpolate(ollama["LLM_MODEL"], env) == "qwen"
