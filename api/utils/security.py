@@ -1770,11 +1770,12 @@ class MultiLanguageContentFilter:
             r"child|children|kids|brother|sister|wife|husband|mother|father|mom|dad|neighbor|neighbour|"
             r"veteran|veterans)\b)",
             # first-person lead + clause end ("end it all with a prayer" / "to end it all - sin" excluded)
-            r"\b" + _EN_FP_LEAD + r"end it all\b(?!\s+(?:with|on|for|in)\b)",
+            r"\b" + _EN_FP_LEAD + r"end it all\b(?!\s+(?:with|on|for|in)\b)(?!\s*(?:—|–|-)\s)",
             r"\bthinking (?:about|of) ending it all\b",
             # first-person lead required: "He wants to take my life" is a threat, not self-harm
-            r"\b" + _EN_FP_LEAD + r"tak(?:e|ing) my (?:own )?life\b",
-            r"\bkilling myself\b(?!\s+with laughter)",
+            r"\b" + _EN_FP_LEAD + r"tak(?:e|ing) my (?:own )?life\b"
+            r"(?!\s+(?:back|in|into|to|more|seriously|savings)\b)",
+            r"\bkilling myself\b(?!\s+(?:at|over|trying|to|for|laughing|with)\b)",
             r"\bwant to be dead\b",
             r"\bi(?:['’]?d|\s+would|\s+am|['’]?m)?\s+(?:be\s+)?better off dead\b",
             r"\beveryone would be better off if i (?:was|were) dead\b",
@@ -1792,7 +1793,9 @@ class MultiLanguageContentFilter:
             r"\b(?:voglio|vorrei|devo|penso di|ho deciso di|sto pensando di)\s+"
             r"(?:ammazzarmi|togliermi la vita)\b",
             r"\bmi ammazzo\b",
-            r"\bfarla finita\b(?!\s+(?:con|col|coi|colla|cogli|coll['’])\b)(?![^.!?\n]{0,30}\bcon\b)",
+            r"\b(?:voglio(?:\s+solo)?|vorrei|devo|penso di|ho deciso di|sto pensando di|la faccio)\s+"
+            r"farla finita\b(?!\s+(?:con|col|coi|colla|cogli|coll['’]|qui|lì)\b)"
+            r"(?![^.!?\n]{0,30}\bcon\b)",
         ],
         "de": [
             r"\bselbstmord\b",
@@ -1824,7 +1827,7 @@ class MultiLanguageContentFilter:
             r"quitarme la vida\b",
             r"\bme quiero morir\b",
             r"\bquiero morirme\b",
-            r"\bquiero acabar con mi vida\b(?!\s+(?:pasada|vieja|anterior|de)\b)",
+            r"\bquiero acabar con mi vida\b(?!\s+(?:sedentaria|pasada|vieja|anterior|de)\b)",
             r"\bquiero acabar con todo\b(?=\s*(?:[.!?,;\n]|$|ya\b|de una vez\b))",
         ],
         "fr": [
@@ -1839,7 +1842,7 @@ class MultiLanguageContentFilter:
             r"\b(?:je veux|je voudrais|je vais|je dois|je pense à|j['’]ai envie de|envie de)\s+"
             r"mettre fin à mes jours\b",
             r"(?<!\bami )(?<!\bamie )(?<!\bun )(?<!\bune )\bsuicidaire\b",
-            r"\bje veux en finir\b(?!\s+avec\b)",
+            r"\bje veux en finir\b(?!\s+(?:avec|rapidement|une fois pour toutes)\b)",
             r"\ben finir avec (?:la vie|ma vie)\b",
         ],
         "pt": [
@@ -1866,7 +1869,7 @@ class MultiLanguageContentFilter:
             # BITB-203: first-person imperfect "I commit suicide" (hamza); the hamza-less
             # past "انتحر" is third-person ("why did Judas...") and stays unmatched.
             r"(?<!\w)(?:س|و)?أنتحر(?!\w)",
-            r"أنهي حياتي(?!\s+(?:القديمة|السابقة))",
+            r"أنهي حياتي(?!\s+(?:الجامعية|المهنية|القديمة|السابقة))",
         ],
         # BITB-183: ru uses \b (Cyrillic is word-char safe); zh/hi/ko use plain
         # substrings because there are no spaces (CJK) or \b is unreliable with
@@ -1879,7 +1882,7 @@ class MultiLanguageContentFilter:
             r"\bпокончу с собой\b",
             r"\bубить себя\b",
             r"\bсебя убить\b",  # BITB-204 word-order variant
-            r"\bпокончить с жизнью\b",  # BITB-203
+            r"\b(?:я\s+(?:решил[а]?|хочу|думаю|собираюсь)|хочу|хочется|думаю|собираюсь)\s+покончить с жизнью\b",  # BITB-203
             # BITB-186 known limitation (accepted): the "не" guard is a fixed-width lookbehind,
             # so a double space ("не  хочу") or an intervening word ("не очень хочу умереть")
             # defeats it. Failing toward the compassionate path is the safe direction.
@@ -1907,7 +1910,7 @@ class MultiLanguageContentFilter:
             r"自殺",
             # BITB-204: "我想杀了(我)自己"; first-person/intent prefix required, never after 他/她
             # and never "自己的" (possessive: "他杀了自己的儿子").
-            r"(?<![人他她它们們参孙參孫扫罗掃羅犹大猶大])(?:我(?:想要?|要|会|會|打算|准备|準備|真的)?|想要?|会|會|打算|准备|準備|真的)[杀殺][了死掉]?(?:我)?自己(?![的之里裡心内內])",
+            r"(?<![人他她它们們参孙參孫扫罗掃羅犹大猶大])(?:我(?:想要?|要|会|會|打算|准备|準備|真的)?|^想要?)[杀殺][了死掉]?(?:我)?自己(?![的之里裡心内內])",
             r"(?:没有|沒有|失去)[他她]活[着著][没沒]意思",
             # BITB-200: first-person question form ("我觉得这样活着没意思吗") is a plea, not exegesis.
             r"我(?:觉得|覺得)?(?:这样|這樣|真的|总是|總是|一直)?活[着著][没沒]意思",

@@ -38,6 +38,18 @@ response?
   deliberately not extended with thoughts/ideation, which are genuine crisis wording).
 - ko God-as-question forms with an unusual subject/marker layout; the guard is subject-marker based.
 
+## Third-person "X is/was suicidal" (new in #1336, fails toward compassionate)
+
+`suicidal` / `suicidaire` / `suizidal` carry no subject guard, so on main (clean) these now take the
+compassionate path: "Was Judas suicidal?", "Why was Saul suicidal?", "Elijah was suicidal under the
+broom tree", "Élie était-il suicidaire ?", "War Elia suizidal?", and relatives "My mom is suicidal",
+"Mon fils est suicidaire", "Mein Sohn ist suizidal", zh "丈夫想杀了自己和我" (the last is a 杀了自己 pattern
+with a 丈夫 subject; it is clean after the round-3 guard, listed for completeness).
+**OWNER DECISION:** accept the over-match to the compassionate card (consistent with bare "suicide" on
+main) vs. require a first-person lead (risk: missing "suicidal" in short crisis messages such as
+"so suicidal tonight"). Also accepted-or-owner-decision: it "Mio figlio vuole farla finita" (relative
+case) is now clean.
+
 ## Acceptance criteria
 
 - [ ] Add third-person guards where a reliable guard exists, without regressing first-person phrasings
