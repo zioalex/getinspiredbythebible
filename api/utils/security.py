@@ -666,6 +666,8 @@ _MURDER_SUICIDE_PATTERNS: dict[str, list[str]] = {
         + _MS_DE_N
         + _ms_end("auch|mit|gleich|zuerst|umbringen|töten|mitnehmen|mit\\s+in\\s+den\\s+tod"),
         r"\balle(?:\s+anderen)?\s+mit\s+in\s+den\s+tod\b",
+        # BITB-203: "...und nehme alle mit" (verb between "und" and the target)
+        r"\b(?:nehme|nehm|reiße|reisse|ziehe)\s+" + _MS_DE_N + r"\s+(?:alle\s+)?mit\b",
         r"\b(?:mit\s+in\s+den\s+tod\s+nehmen|erweiterter\s+suizid)\b",
     ],
     "es": [
@@ -702,6 +704,8 @@ _MURDER_SUICIDE_PATTERNS: dict[str, list[str]] = {
         r"(?:想|要|打算|准备|準備)[^，。,.？?\n]{0,6}同归于尽",
         r"(?:想|要|打算|准备|準備)[^，。,.？?\n]{0,6}同歸於盡",
         r"[杀殺]了?" + _MS_ZH_N,
+        # BITB-203: "杀了自己和家人" (self first, family second)
+        r"自己(?:和|与|與|跟|及|还有|還有)" + _MS_ZH_N,
         r"一家人?(?:一起)?(?:去死|自[杀殺]|上路)",
     ],
     "hi": [
@@ -1754,6 +1758,13 @@ class MultiLanguageContentFilter:
             r"\bwant to die\b",
             r"\bwish i was dead\b",
             r"\bno reason to live\b",
+            # BITB-203: first-person suicidal phrasings that had no span (clean fallback)
+            r"\bsuicidal\b",
+            r"\bend it all\b",
+            r"\btak(?:e|ing) my (?:own )?life\b",
+            r"\bkilling myself\b",
+            r"\bwant to be dead\b",
+            r"\bbetter off dead\b",
         ],
         "it": [
             r"\bsuicidio\b",
@@ -1762,6 +1773,13 @@ class MultiLanguageContentFilter:
             r"\bautolesionism",
             r"\btagliarmi\b",
             r"\bvoglio morire\b",
+            # BITB-203: first-person reflexive forms only (third-person "si è suicidato" excluded)
+            r"\bsuicidarmi\b",
+            r"\bmi (?:voglio )?suicid(?:o|are)\b",
+            r"\bammazzarmi\b",
+            r"\bmi ammazzo\b",
+            r"\btogliermi la vita\b",
+            r"\bfarla finita\b(?!\s+con\s+(?:(?:il|lo|la|i|le|gli)\s+)?pecc)",
         ],
         "de": [
             r"\bselbstmord\b",
@@ -1769,6 +1787,12 @@ class MultiLanguageContentFilter:
             r"\bmich umbringen\b",
             r"\bselbstverletzung\b",
             r"\bich will sterben\b",
+            # BITB-203
+            r"\bsuizidal",
+            r"\bmich\s+(?:selbst\s+)?(?:zu\s+)?töten\b",
+            r"\bbringe mich um\b",
+            r"\bmir das leben nehmen\b",
+            r"\b(?:will|möchte|mag|kann)\s+nicht\s+mehr\s+leben\b(?!\s+(?:wie|als|in|mit|ohne|so)\b)",
             # BITB-196: split verb, "mich und meine Familie umbringen"
             r"\bmich\s+und\s+(?:meine[rn]?|mein|alle|die)\b[^.!?\n]{0,40}?\b(?:umbringen|töten)\b",
         ],
@@ -1778,6 +1802,14 @@ class MultiLanguageContentFilter:
             r"\bterminar con mi vida\b",
             r"\bautolesion",
             r"\bquiero morir\b",
+            # BITB-203: first-person only (third-person "se suicidó" excluded)
+            r"\bsuicidarme\b",
+            r"\bme (?:quiero|voy a) suicidar\b",
+            r"\bme suicido\b",
+            r"\bquitarme la vida\b",
+            r"\bme quiero morir\b",
+            r"\bquiero morirme\b",
+            r"\bquiero acabar con (?:mi vida|todo\b(?!\s+(?:mal|pecado|lo malo)))",
         ],
         "fr": [
             r"\bsuicide\b",
@@ -1785,6 +1817,13 @@ class MultiLanguageContentFilter:
             r"\bmettre fin à ma vie\b",
             r"\bauto.mutilation\b",
             r"\bje veux mourir\b",
+            # BITB-203
+            r"\bme suicider\b",
+            r"\bje me suicide\b",
+            r"\bmettre fin à mes jours\b",
+            r"\bsuicidaire\b",
+            r"\bje veux en finir\b(?!\s+avec\b)",
+            r"\ben finir avec (?:la vie|ma vie)\b",
         ],
         "pt": [
             r"\bsuicídio\b",
@@ -1793,6 +1832,12 @@ class MultiLanguageContentFilter:
             r"\bautomutilação\b",
             r"\bquero morrer\b",
             r"\bquero que eu morra\b",
+            # BITB-203: first-person only (third-person "se suicidou" excluded)
+            r"\bme suicidar\b",
+            r"\bsuicidar-me\b",
+            r"\bme suicido\b",
+            r"\btirar (?:a )?minha (?:própria )?vida\b",
+            r"\bquero acabar com (?:minha vida|tudo\b(?!\s+(?:que|o mal)\b))",
         ],
         "ar": [
             r"انتحار",
@@ -1800,6 +1845,10 @@ class MultiLanguageContentFilter:
             r"إنهاء حياتي",
             r"إيذاء النفس",
             r"أريد أن أموت",
+            # BITB-203: first-person imperfect "I commit suicide" (hamza); the hamza-less
+            # past "انتحر" is third-person ("why did Judas...") and stays unmatched.
+            r"(?<!\w)(?:س|و)?أنتحر(?!\w)",
+            r"أنهي حياتي",
         ],
         # BITB-183: ru uses \b (Cyrillic is word-char safe); zh/hi/ko use plain
         # substrings because there are no spaces (CJK) or \b is unreliable with
@@ -1811,6 +1860,8 @@ class MultiLanguageContentFilter:
             r"\bпокончить с собой\b",
             r"\bпокончу с собой\b",
             r"\bубить себя\b",
+            r"\bсебя убить\b",  # BITB-204 word-order variant
+            r"\bпокончить с жизнью\b",  # BITB-203
             # BITB-186 known limitation (accepted): the "не" guard is a fixed-width lookbehind,
             # so a double space ("не  хочу") or an intervening word ("не очень хочу умереть")
             # defeats it. Failing toward the compassionate path is the safe direction.
@@ -1836,6 +1887,9 @@ class MultiLanguageContentFilter:
             r"(?<!所罗门)(?<![他她])活[着著]没意思(?![吗嗎])",
             r"(?<!所羅門)(?<![他她])活[着著]沒意思(?![吗嗎])",
             r"自殺",
+            # BITB-204: "我想杀了(我)自己"; first-person/intent prefix required, never after 他/她
+            # and never "自己的" (possessive: "他杀了自己的儿子").
+            r"(?<![他她它们們])(?:我(?:想要?|要|会|會|打算|准备|準備|真的)?|想要?|要|去|会|會|打算|准备|準備|真的)[杀殺][了死掉]?(?:我)?自己(?![的之])",
             r"(?:没有|沒有|失去)[他她]活[着著][没沒]意思",
             # BITB-200: first-person question form ("我觉得这样活着没意思吗") is a plea, not exegesis.
             r"我(?:觉得|覺得)?(?:这样|這樣|真的|总是|總是|一直)?活[着著][没沒]意思",
@@ -1869,6 +1923,8 @@ class MultiLanguageContentFilter:
             r"मरना चाहती",
             r"अपनी जान ले(?!कर)",
             r"ख\u093c?ुद को (?:नुक\u093c?सान|चोट|मार)",
+            # BITB-203: "खुद को और अपने परिवार को मारना" (intervening target, <=40 chars)
+            r"ख\u093c?ुद को\s+और\s+[^.!?\n]{0,40}?\s+मार(?:ना|ने|डाल)",
             r"ख\u093c?ुदकुशी",
             r"मर जाना चाहत",
             r"जीना नहीं चाहता",
@@ -1889,6 +1945,8 @@ class MultiLanguageContentFilter:
             r"죽어 ?버리고 ?싶",
             r"삶을 ?끝내",
             r"사라지고 ?싶(?!지 ?않)",
+            # BITB-204: "나를/날 죽이고 싶어"; "하나님이 나를 죽이고 싶어하실까" (God as subject) excluded
+            r"(?<!님이)(?<!님이 )(?<!님께서)(?<!님께서 )(?<!님은)(?<!님은 )(?:나를|날) ?죽이(?:고 ?싶|겠|려)\w{0,3}",
         ],
     }
 
