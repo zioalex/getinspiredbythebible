@@ -69,8 +69,9 @@ def test_pyproject_tool_targets_match_python_version():
 
 
 # --------------------------------------------------------------------- Claude factory
-def _claude_settings(monkeypatch, **overrides):
-    monkeypatch.delenv("LLM_MODEL", raising=False)
+def _claude_settings(monkeypatch, keep_env=False, **overrides):
+    if not keep_env:
+        monkeypatch.delenv("LLM_MODEL", raising=False)
     return Settings(
         _env_file=None,
         database_url=DB_URL,
@@ -202,3 +203,53 @@ async def test_claude_stream_sends_no_temperature_and_no_null_system():
     sent = stream.call_args.kwargs
     assert "temperature" not in sent
     assert "system" not in sent
+
+
+# ------------------------------------------------- BITB-311: blank LLM_MODEL is "unset"
+@pytest.mark.parametrize("blank", ["", "  ", "\t"])
+def test_blank_llm_model_env_uses_claude_default(monkeypatch, blank):
+    from providers.factory import effective_llm_model
+
+    monkeypatch.setenv("LLM_MODEL", blank)
+    cfg = _claude_settings(monkeypatch, keep_env=True)
+    assert "llm_model" not in cfg.model_fields_set
+    provider = create_llm_provider(cfg)
+    assert isinstance(provider, ClaudeProvider)
+    assert provider.model == DEFAULT_CLAUDE_MODEL
+    assert effective_llm_model(cfg) == DEFAULT_CLAUDE_MODEL
+
+
+def test_claude_ignores_ollama_llm_model(monkeypatch):
+    from providers.factory import effective_llm_model
+
+    monkeypatch.setenv("LLM_MODEL", "")
+    monkeypatch.setenv("OLLAMA_LLM_MODEL", "mistral:7b")
+    cfg = _claude_settings(monkeypatch, keep_env=True)
+    assert create_llm_provider(cfg).model == DEFAULT_CLAUDE_MODEL
+    assert effective_llm_model(cfg) == DEFAULT_CLAUDE_MODEL
+
+
+def _ollama_settings(monkeypatch, **env):
+    for key in ("LLM_MODEL", "OLLAMA_LLM_MODEL"):
+        monkeypatch.delenv(key, raising=False)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    return Settings(_env_file=None, llm_provider="ollama", database_url=DB_URL)
+
+
+@pytest.mark.parametrize(
+    "env,expected",
+    [
+        ({"LLM_MODEL": "", "OLLAMA_LLM_MODEL": "mistral:7b"}, "mistral:7b"),
+        ({"OLLAMA_LLM_MODEL": "mistral:7b"}, "mistral:7b"),
+        ({}, "llama3:8b"),
+        ({"LLM_MODEL": "", "OLLAMA_LLM_MODEL": " "}, "llama3:8b"),
+        ({"LLM_MODEL": "phi3", "OLLAMA_LLM_MODEL": "mistral:7b"}, "phi3"),
+    ],
+)
+def test_ollama_model_resolution(monkeypatch, env, expected):
+    from providers.factory import effective_llm_model
+
+    cfg = _ollama_settings(monkeypatch, **env)
+    assert create_llm_provider(cfg).model == expected
+    assert effective_llm_model(cfg) == expected

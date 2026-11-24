@@ -41,6 +41,14 @@ variables:
     description: Model name for the ollama and claude providers (claude - unset uses the provider default)
     default: llama3:8b
 
+  # Ollama-only fallback used when LLM_MODEL is unset/empty (BITB-311). Docker Compose
+  # sets it to mistral:7b so LLM_MODEL stays unset (and Claude keeps its default).
+  OLLAMA_LLM_MODEL:
+    required_in: none
+    condition: LLM_PROVIDER=ollama
+    description: Ollama model used when LLM_MODEL is unset or empty
+    default: ""
+
   OLLAMA_HOST:
     required_in: local
     condition: LLM_PROVIDER=ollama

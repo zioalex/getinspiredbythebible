@@ -124,7 +124,8 @@ vox-quieta/
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LLM_PROVIDER` | `ollama` | LLM backend: `ollama`, `claude`, `openrouter`, `openai` |
-| `LLM_MODEL` | `llama3:8b` (compose default: `mistral:7b`) | Model name |
+| `LLM_MODEL` | unset (Ollama falls back to `llama3:8b`; Claude to its own default) | Model name; an empty value counts as unset |
+| `OLLAMA_LLM_MODEL` | unset (Compose sets `mistral:7b`) | Ollama model used when `LLM_MODEL` is unset |
 | `OLLAMA_HOST` | `http://localhost:11434` | Ollama server URL |
 | `EMBEDDING_MODEL` | `mxbai-embed-large` | Embedding model (multilingual, 1024 dims) |
 | `DATABASE_URL` | `postgresql://...` | PostgreSQL connection |

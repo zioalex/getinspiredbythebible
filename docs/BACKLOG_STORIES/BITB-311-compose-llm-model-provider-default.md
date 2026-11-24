@@ -1,6 +1,6 @@
 ---
 id: BITB-311
-status: todo
+status: in-review
 priority: P2
 size: XS
 rank: 10
@@ -42,5 +42,18 @@ Env, `.env` and Azure/k8s deployments are not affected.
 
 ## Acceptance criteria
 
-- [ ] `LLM_PROVIDER=claude` under `make docker-up` uses the Claude default model
-- [ ] The local Ollama stack still starts with its existing default model
+- [x] `LLM_PROVIDER=claude` under `make docker-up` uses the Claude default model
+- [x] The local Ollama stack still starts with its existing default model
+
+## Implementation
+
+- `Settings` drops a blank/whitespace `LLM_MODEL` / `OLLAMA_LLM_MODEL` (before-validator), so it is
+  not in `model_fields_set`. New optional `ollama_llm_model` (`OLLAMA_LLM_MODEL`).
+- `providers/factory.py::_ollama_model` (shared by `create_llm_provider` and `effective_llm_model`):
+  explicit `LLM_MODEL`, else `OLLAMA_LLM_MODEL`, else `llama3:8b`. Claude unchanged.
+- Compose `api` services: `LLM_MODEL=${LLM_MODEL:-}`; `docker-compose.yml` / `.dev.yml` add
+  `OLLAMA_LLM_MODEL` defaulting to `mistral:7b`. local-prod files just drop the OpenRouter slug default.
+- Tests: `tests/test_runtime_alignment.py` (blank/Claude/Ollama resolution),
+  `tests/test_compose_llm_model_default.py` (compose files).
+- Not fixed: in `docker-compose.yml` the ollama container still pulls `${LLM_MODEL:-mistral:7b}`,
+  so setting `LLM_MODEL=claude-...` there would try to pull a Claude ID (dev file already uses `OLLAMA_LLM_MODEL`).

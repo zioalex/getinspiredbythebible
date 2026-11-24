@@ -12,7 +12,10 @@ services:
       # BITB-307: localhost CORS origins are opt-in (dev only)
       - CORS_ALLOW_LOCALHOST=true
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
-      - LLM_MODEL=${LLM_MODEL:-mistral:7b}
+      # BITB-311: only pass LLM_MODEL when the operator set it (empty = unset), so
+      # LLM_PROVIDER=claude keeps its own default model. OLLAMA_LLM_MODEL is the Ollama default.
+      - LLM_MODEL=${LLM_MODEL:-}
+      - OLLAMA_LLM_MODEL=${LLM_MODEL:-mistral:7b}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-ollama}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-mxbai-embed-large}
       - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1024}

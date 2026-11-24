@@ -104,6 +104,9 @@ class Settings(BaseSettings):
     # LLM Configuration
     llm_provider: Literal["ollama", "claude", "openrouter"] = "ollama"
     llm_model: str = "llama3:8b"
+    # Ollama-only model (BITB-311). Used when LLM_MODEL is unset; lets Compose supply the
+    # local Ollama default without making LLM_MODEL look operator-set for Claude.
+    ollama_llm_model: str | None = None
     llm_temperature: float = 0.7
     llm_max_tokens: int = 1024
 
@@ -558,6 +561,22 @@ class Settings(BaseSettings):
         if not 1 <= v <= 90:
             raise ValueError("retrieval_miss_retention_days must be between 1 and 90")
         return v
+
+    @model_validator(mode="before")
+    @classmethod
+    def blank_llm_models_are_unset(cls, data):
+        """BITB-311: an empty/whitespace LLM_MODEL / OLLAMA_LLM_MODEL means "not set".
+
+        Docker Compose passes ``LLM_MODEL=${LLM_MODEL:-}`` as an empty string. Dropping the
+        key keeps it out of ``model_fields_set`` so provider defaults apply.
+        """
+        if isinstance(data, dict):
+            data = dict(data)
+            for key in ("llm_model", "ollama_llm_model"):
+                value = data.get(key)
+                if isinstance(value, str) and not value.strip():
+                    del data[key]
+        return data
 
     @model_validator(mode="after")
     def validate_feedback_retention(self) -> "Settings":
