@@ -22,6 +22,22 @@ pre-existing patterns such as `убить себя`), probed 2026-11-24:
   profanity / repeated-char route filter steps aside for those messages.
 - Any further over-match found in review.
 
+## Victim-of-threat (pre-existing on main)
+
+On origin/main, victims of threats already get `possible_help_seeking (fallback)`: es "Mi padre quiere
+matarme", fr "Mon mari veut me tuer", pt "Meu marido quer me matar", de "Mein Vater will mich
+umbringen" (pre-existing `matarme` / `me tuer` / `me matar` / `mich umbringen`). The new BITB-203/204
+patterns require a first-person lead so they do not widen this. **Owner decision needed:** should a
+victim of threats get the compassionate/crisis card (current), a block, or a dedicated victim-safety
+response?
+
+## Residuals not closed in BITB-203/204
+
+- en "Satan wants me to believe I'm better off dead", "Is suicidal ideation addressed in the Psalms?"
+  and "My neighbor is suicidal" take the compassionate path (the `suicidal` exclusion list is
+  deliberately not extended with thoughts/ideation, which are genuine crisis wording).
+- ko God-as-question forms with an unusual subject/marker layout; the guard is subject-marker based.
+
 ## Acceptance criteria
 
 - [ ] Add third-person guards where a reliable guard exists, without regressing first-person phrasings

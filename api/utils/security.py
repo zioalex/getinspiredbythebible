@@ -292,6 +292,13 @@ def require_ip_rate_limit(scope: str, per_minute: Callable[[], int] | int):
     return _dependency
 
 
+# First-person lead for English crisis idioms; "im" and curly apostrophes included (BITB-203).
+_EN_FP_LEAD = (
+    r"i(?:['’]?m|['’]?ll|\s+am|\s+will)?\s+(?:(?:just|really|keep|often)\s+)*"
+    r"(?:(?:want|wanna|need|going|gonna|might|could|think about|thinking about|thinking of|"
+    r"plan|planning|decided|have decided)\s+(?:to\s+)?)*"
+)
+
 # Cosmetic violations that must never pre-empt the crisis path (BITB-255).
 _CRISIS_BYPASS_VIOLATIONS = frozenset({ViolationType.PROFANITY, ViolationType.REPEATED_CHARS})
 
@@ -1760,16 +1767,16 @@ class MultiLanguageContentFilter:
             r"\bno reason to live\b",
             # BITB-203: first-person suicidal phrasings that had no span (clean fallback)
             r"\bsuicidal\b(?!\s+(?:friend|son|daughter|teen|teenager|people|person|patient|"
-            r"child|children|kids|brother|sister|wife|husband|mother|father|mom|dad)\b)",
+            r"child|children|kids|brother|sister|wife|husband|mother|father|mom|dad|neighbor|neighbour|"
+            r"veteran|veterans)\b)",
             # first-person lead + clause end ("end it all with a prayer" / "to end it all - sin" excluded)
-            r"\bi(?:'m|'ll|\s+am|\s+will)?\s+(?:(?:just|really)\s+)?"
-            r"(?:(?:want|wanna|need|going|gonna|might|could)\s+(?:to\s+)?)*end it all\b"
-            r"(?!\s+(?:with|on|for|in)\b)",
+            r"\b" + _EN_FP_LEAD + r"end it all\b(?!\s+(?:with|on|for|in)\b)",
             r"\bthinking (?:about|of) ending it all\b",
-            r"\btak(?:e|ing) my (?:own )?life\b",
+            # first-person lead required: "He wants to take my life" is a threat, not self-harm
+            r"\b" + _EN_FP_LEAD + r"tak(?:e|ing) my (?:own )?life\b",
             r"\bkilling myself\b(?!\s+with laughter)",
             r"\bwant to be dead\b",
-            r"\bi(?:'d| would| am|'m)?\s+(?:be\s+)?better off dead\b",
+            r"\bi(?:['’]?d|\s+would|\s+am|['’]?m)?\s+(?:be\s+)?better off dead\b",
             r"\beveryone would be better off if i (?:was|were) dead\b",
         ],
         "it": [
@@ -1782,10 +1789,10 @@ class MultiLanguageContentFilter:
             # BITB-203: first-person reflexive forms only (third-person "si è suicidato" excluded)
             r"\bsuicidarmi\b",
             r"\bmi (?:voglio )?suicid(?:o|are)\b",
-            r"\bammazzarmi\b",
+            r"\b(?:voglio|vorrei|devo|penso di|ho deciso di|sto pensando di)\s+"
+            r"(?:ammazzarmi|togliermi la vita)\b",
             r"\bmi ammazzo\b",
-            r"\btogliermi la vita\b",
-            r"\bfarla finita\b(?!\s+con\b)",
+            r"\bfarla finita\b(?!\s+(?:con|col|coi|colla|cogli|coll['’])\b)(?![^.!?\n]{0,30}\bcon\b)",
         ],
         "de": [
             r"\bselbstmord\b",
@@ -1795,10 +1802,11 @@ class MultiLanguageContentFilter:
             r"\bich will sterben\b",
             # BITB-203
             r"\bsuizidal",
-            r"\bmich\s+(?:selbst\s+)?(?:zu\s+)?töten\b",
+            r"\bich\s+(?:(?:will|möchte|werde|kann|muss|würde|sollte)\s+)?mich\s+"
+            r"(?:selbst\s+)?(?:zu\s+)?töten\b",
             r"\bbringe mich um\b",
-            r"\bmir das leben nehmen\b",
-            r"\b(?:will|möchte|mag|kann)\s+nicht\s+mehr\s+leben\b(?!\s+(?:wie|als|in|mit|ohne|so|für)\b)(?!\s*,)",
+            r"\bich\s+(?:(?:will|möchte|werde|kann|muss|würde|sollte)\s+)?mir\s+das\s+leben\s+nehmen\b",
+            r"\bich\s+(?:will|möchte|mag|kann)\s+nicht\s+mehr\s+leben\b(?!\s+(?:wie|als|in|mit|ohne|so|für)\b)(?!\s*,)",
             # BITB-196: split verb, "mich und meine Familie umbringen"
             r"\bmich\s+und\s+(?:meine[rn]?|mein|alle|die)\b[^.!?\n]{0,40}?\b(?:umbringen|töten)\b",
         ],
@@ -1812,10 +1820,11 @@ class MultiLanguageContentFilter:
             r"\bsuicidarme\b",
             r"\bme (?:quiero|voy a) suicidar\b",
             r"\bme suicido\b",
-            r"\bquitarme la vida\b",
+            r"\b(?:quiero|quisiera|voy a|pienso(?:\s+en)?|deseo|necesito|debo|decidí)\s+"
+            r"quitarme la vida\b",
             r"\bme quiero morir\b",
             r"\bquiero morirme\b",
-            r"\bquiero acabar con mi vida\b",
+            r"\bquiero acabar con mi vida\b(?!\s+(?:pasada|vieja|anterior|de)\b)",
             r"\bquiero acabar con todo\b(?=\s*(?:[.!?,;\n]|$|ya\b|de una vez\b))",
         ],
         "fr": [
@@ -1827,8 +1836,9 @@ class MultiLanguageContentFilter:
             # BITB-203
             r"\bme suicider\b",
             r"\bje me suicide\b",
-            r"\bmettre fin à mes jours\b",
-            r"\bsuicidaire\b",
+            r"\b(?:je veux|je voudrais|je vais|je dois|je pense à|j['’]ai envie de|envie de)\s+"
+            r"mettre fin à mes jours\b",
+            r"(?<!\bami )(?<!\bamie )(?<!\bun )(?<!\bune )\bsuicidaire\b",
             r"\bje veux en finir\b(?!\s+avec\b)",
             r"\ben finir avec (?:la vie|ma vie)\b",
         ],
@@ -1843,8 +1853,8 @@ class MultiLanguageContentFilter:
             r"\bme suicidar\b",
             r"\bsuicidar-me\b",
             r"\bme suicido\b",
-            r"\btirar (?:a )?minha (?:própria )?vida\b",
-            r"\bquero acabar com minha vida\b",
+            r"\b(?:quero|vou|penso em|preciso|pretendo|decidi)\s+tirar (?:a )?minha (?:própria )?vida\b",
+            r"\bquero acabar com minha vida\b(?!\s+(?:de|antiga|passada)\b)",
             r"\bquero acabar com tudo\b(?=\s*(?:[.!?,;\n]|$|já\b|de uma vez\b))",
         ],
         "ar": [
@@ -1856,7 +1866,7 @@ class MultiLanguageContentFilter:
             # BITB-203: first-person imperfect "I commit suicide" (hamza); the hamza-less
             # past "انتحر" is third-person ("why did Judas...") and stays unmatched.
             r"(?<!\w)(?:س|و)?أنتحر(?!\w)",
-            r"أنهي حياتي",
+            r"أنهي حياتي(?!\s+(?:القديمة|السابقة))",
         ],
         # BITB-183: ru uses \b (Cyrillic is word-char safe); zh/hi/ko use plain
         # substrings because there are no spaces (CJK) or \b is unreliable with
@@ -1897,7 +1907,7 @@ class MultiLanguageContentFilter:
             r"自殺",
             # BITB-204: "我想杀了(我)自己"; first-person/intent prefix required, never after 他/她
             # and never "自己的" (possessive: "他杀了自己的儿子").
-            r"(?<![他她它们們参孙參孫扫罗掃羅犹大猶大])(?:我(?:想要?|要|会|會|打算|准备|準備|真的)?|想要?|会|會|打算|准备|準備|真的)[杀殺][了死掉]?(?:我)?自己(?![的之里裡心内內])",
+            r"(?<![人他她它们們参孙參孫扫罗掃羅犹大猶大])(?:我(?:想要?|要|会|會|打算|准备|準備|真的)?|想要?|会|會|打算|准备|準備|真的)[杀殺][了死掉]?(?:我)?自己(?![的之里裡心内內])",
             r"(?:没有|沒有|失去)[他她]活[着著][没沒]意思",
             # BITB-200: first-person question form ("我觉得这样活着没意思吗") is a plea, not exegesis.
             r"我(?:觉得|覺得)?(?:这样|這樣|真的|总是|總是|一直)?活[着著][没沒]意思",
@@ -1932,7 +1942,7 @@ class MultiLanguageContentFilter:
             r"अपनी जान ले(?!कर)",
             r"ख\u093c?ुद को (?:नुक\u093c?सान|चोट|मार)",
             # BITB-203: "खुद को और अपने परिवार को मारना" (intervening target, <=40 chars)
-            r"ख\u093c?ुद को\s+और\s+[^.!?\n]{0,40}?\s+मार(?:ना|ने|डाल)",
+            r"ख\u093c?ुद को\s+और\s+[^.!?\n]{0,40}?\s+मार(?:ना|ने|डाल)(?!\s*से|\s+की\s+धमकी|[^.!?\n]{0,15}वाल)",
             r"ख\u093c?ुदकुशी",
             r"मर जाना चाहत",
             r"जीना नहीं चाहता",
@@ -1955,7 +1965,9 @@ class MultiLanguageContentFilter:
             r"사라지고 ?싶(?!지 ?않)",
             # BITB-204: first-person wish only; no other subject before 나를 (그가/아버지가 …), no 싶어해/한다,
             # no 죽이겠/죽이려 (threats against the speaker are not self-harm)
-            r"(?:(?<![가-힣][이가은는] )|(?<=내가 )|(?<=나는 ))(?<!께서 )(?:나를|날|나 ?자신을|내 ?자신을) ?죽이고 ?싶(?!어 ?[하한해])[가-힣]{0,3}",
+            r"(?:(?<![가-힣][이가은는] )|(?<=내가 )|(?<=나는 ))(?<!께서 )(?<!, )(?<!,)(?<!다들 )(?<!모두 )(?<!사람들 )"
+            r"(?:나를|날|나 ?자신을|내 ?자신을) ?죽이고 ?싶(?!어 ?[하한해])(?!은가|으신가|으냐|은지|으니)"
+            r"(?![가-힣]{0,4}\s*\?)[가-힣]{0,3}",
         ],
     }
 
