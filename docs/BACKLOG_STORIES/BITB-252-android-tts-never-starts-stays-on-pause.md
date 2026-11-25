@@ -1,6 +1,6 @@
 ---
 id: BITB-252
-status: todo
+status: in-review
 priority: P2
 size: S
 rank: 770
@@ -25,9 +25,19 @@ counterpart of the web bug fixed in BITB-241/248, where the web button now reset
 
 ## Acceptance criteria
 
-- [ ] After the start watchdog fires and a short grace period passes with still no callback, the reading
+- [x] After the start watchdog fires and a short grace period passes with still no callback, the reading
       stops, the control returns to Listen, and a localized "speech engine didn't respond" message shows
       (strings in all 11 locales)
-- [ ] A late start (a callback arriving within the grace period) keeps playing normally
-- [ ] `tts_start_failed` is still reported exactly once per Listen
-- [ ] Unit tests in `AndroidSpeechEngineTest` / `ChatViewModelTest` with the fake scheduler
+- [x] A late start (a callback arriving within the grace period) keeps playing normally
+- [x] `tts_start_failed` is still reported exactly once per Listen
+- [x] Unit tests in `AndroidSpeechEngineTest` / `ChatViewModelTest` with the fake scheduler
+
+## Implementation
+
+- `AndroidSpeechEngine` schedules a second timer (`START_GRACE_MS`, 3 s) when the start watchdog fires; total
+  budget 6 s, matching the web. A callback in the grace period cancels it and the reading continues. If none
+  arrives, the engine calls `stop()` and emits `SpeechEvent.GaveUp`.
+- `GaveUp` is a UI-only signal: `ChatViewModel` reports no telemetry for it, so `tts_start_failed` stays once
+  per Listen.
+- `ChatViewModel` sets `ChatUiState.speechNotice` (`tts_engine_no_response`, all 11 locales) and `ChatScreen`
+  shows it as a short snackbar, then calls `clearSpeechNotice()`.

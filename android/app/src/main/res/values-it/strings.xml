@@ -321,6 +321,7 @@
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">Ascolta la risposta</string>
     <string name="action_pause_listening">Metti in pausa la lettura</string>
+    <string name="tts_engine_no_response">Il sintetizzatore vocale del dispositivo non ha risposto.</string>
     <string name="action_resume_listening">Riprendi la lettura</string>
     <string name="state_listening">In lettura</string>
     <string name="state_not_listening">Lettura ferma</string>

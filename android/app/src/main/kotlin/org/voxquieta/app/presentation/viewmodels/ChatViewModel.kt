@@ -100,6 +100,8 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
+    /** BITB-252: one-shot notice that the TTS engine never started; shown as a snackbar. */
+    val speechNotice: String? = null,
     // Empty string = no explicit user preference; backend auto-detects from message text.
     val currentLocale: String = "",
     val isTurnstileReady: Boolean = false,
@@ -429,8 +431,17 @@ class ChatViewModel @Inject constructor(
                     is SpeechEvent.Completed -> AnalyticsHelper.EVENT_TTS_COMPLETED
                     is SpeechEvent.Error -> AnalyticsHelper.EVENT_TTS_ERROR
                     is SpeechEvent.StartFailed -> AnalyticsHelper.EVENT_TTS_START_FAILED
+                    // BITB-252: UI-only; tts_start_failed was already reported by StartFailed.
+                    is SpeechEvent.GaveUp -> {
+                        _uiState.update {
+                            it.copy(speechNotice = context.getString(R.string.tts_engine_no_response))
+                        }
+                        null
+                    }
                 }
-                reportTtsEvent(name, speechLanguage(_uiState.value.currentLocale))
+                if (name != null) {
+                    reportTtsEvent(name, speechLanguage(_uiState.value.currentLocale))
+                }
             }
         }
         // BITB-119: count devices that would show Listen but have no on-device voice for the
@@ -1342,6 +1353,11 @@ class ChatViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    /** BITB-252: clears the one-shot "speech engine didn't respond" notice once shown. */
+    fun clearSpeechNotice() {
+        _uiState.update { it.copy(speechNotice = null) }
     }
 
     /** Clears the session-limit flag without starting a new conversation. */

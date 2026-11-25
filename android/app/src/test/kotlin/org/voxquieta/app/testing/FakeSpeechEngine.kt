@@ -68,6 +68,18 @@ class FakeSpeechEngine(
         _pausedId.value = null
     }
 
+    /** Emits [SpeechEvent.StartFailed] WITHOUT stopping the reading (the real engine's behaviour). */
+    fun emitStartFailedKeepSpeaking(id: String) {
+        _events.tryEmit(SpeechEvent.StartFailed(id))
+    }
+
+    /** Simulates the engine giving up after the grace period (emits [SpeechEvent.GaveUp]). */
+    fun emitGaveUp() {
+        _speakingId.value?.let { _events.tryEmit(SpeechEvent.GaveUp(it)) }
+        _speakingId.value = null
+        _pausedId.value = null
+    }
+
     override fun warmUp() {
         warmUpCalls++
     }

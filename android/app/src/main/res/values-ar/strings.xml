@@ -324,6 +324,7 @@
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">الاستماع إلى الإجابة</string>
     <string name="action_pause_listening">إيقاف القراءة مؤقتًا</string>
+    <string name="tts_engine_no_response">لم يستجب محرك الكلام في جهازك.</string>
     <string name="action_resume_listening">استئناف القراءة</string>
     <string name="state_listening">جارٍ القراءة بصوت عالٍ</string>
     <string name="state_not_listening">القراءة متوقفة</string>

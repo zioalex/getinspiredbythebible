@@ -320,6 +320,7 @@
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">Antwort anhören</string>
     <string name="action_pause_listening">Vorlesen pausieren</string>
+    <string name="tts_engine_no_response">Die Sprachausgabe deines Geräts hat nicht reagiert.</string>
     <string name="action_resume_listening">Vorlesen fortsetzen</string>
     <string name="state_listening">Wird vorgelesen</string>
     <string name="state_not_listening">Wird nicht vorgelesen</string>

@@ -319,6 +319,7 @@
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">답변 듣기</string>
     <string name="action_pause_listening">읽기 일시정지</string>
+    <string name="tts_engine_no_response">기기의 음성 엔진이 응답하지 않았습니다.</string>
     <string name="action_resume_listening">읽기 재개</string>
     <string name="state_listening">소리 내어 읽는 중</string>
     <string name="state_not_listening">읽기 중지됨</string>

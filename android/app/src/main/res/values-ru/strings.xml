@@ -322,6 +322,7 @@
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">Прослушать ответ</string>
     <string name="action_pause_listening">Приостановить чтение</string>
+    <string name="tts_engine_no_response">Речевой движок вашего устройства не ответил.</string>
     <string name="action_resume_listening">Продолжить чтение</string>
     <string name="state_listening">Идёт чтение вслух</string>
     <string name="state_not_listening">Чтение остановлено</string>
