@@ -11,7 +11,7 @@
 	test-opencode-config-live test-opencode-config-live-selftest \
 	parity-export parity-check parity-registry-check \
 	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
-	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
+	test-dns-watchdog test-scripts deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
 	validate-env validate-env-strict export-blocked-samples export-feedback \
 	clean clean-all fix-permissions update-baseline \
 	check-env-production check-local-api-url \
@@ -212,6 +212,21 @@ backlog-check: ## Validate every story file's front matter (BITB-313)
 test-makefile: ## Audit the Makefile itself: unit tests + doc freshness (no docker/cloud/network)
 	@$(SCRIPT_PYTHON) -m unittest scripts.test_make_targets scripts.test_az_logs -v
 	@$(SCRIPT_PYTHON) scripts/audit_make_targets.py --check
+
+# BITB-274: catch-all for the scripts/ test family. Every scripts/test_*.py runs unless it is
+# listed here, so a new test file needs no CI edit. Each exclusion needs a reason in
+# docs/CONTRIBUTING.md (scripts/test_scripts_tests_guard.py enforces that).
+#   test_openrouter_fallback.py : manual live script (exits without OPENROUTER_API_KEY and calls
+#                                 the real API at import time), not a pytest module
+#   test_make_targets.py        : red on main until BITB-325 / PR #1302 merges; remove this
+#                                 exclusion then
+SCRIPTS_TEST_EXCLUDE := scripts/test_openrouter_fallback.py scripts/test_make_targets.py
+SCRIPTS_TEST_FILES := $(filter-out $(SCRIPTS_TEST_EXCLUDE),$(sort $(wildcard scripts/test_*.py)))
+
+test-scripts: ## Run every scripts/test_*.py except documented exclusions (offline, BITB-274; needs api deps)
+	@echo "$(BLUE)Running $(words $(SCRIPTS_TEST_FILES)) scripts test files...$(NC)"
+	@DATABASE_URL="$${DATABASE_URL:-postgresql://test:test@localhost/test}" $(SCRIPT_PYTHON) -m pytest $(SCRIPTS_TEST_FILES) -q  # pragma: allowlist secret
+	@echo "$(GREEN)✓ scripts tests complete$(NC)"
 
 alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrade against $DATABASE_URL (BITB-004). MUTATES the target database -- local/CI only, NEVER point DATABASE_URL at prod.
 	@echo "$(BLUE)Running Alembic migration roundtrip...$(NC)"

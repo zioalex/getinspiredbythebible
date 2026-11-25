@@ -1,0 +1,56 @@
+name: Scripts Tests (BITB-274)
+
+# Catch-all for the scripts/ test family. `make test-scripts` globs scripts/test_*.py, so a new
+# test file runs here with no CI edit. The dedicated workflows (opencode-ci, parity-ci, backlog,
+# ...) stay as the fast path for their own areas; this job guarantees nothing ships unexecuted.
+# Exclusions live in the Makefile (SCRIPTS_TEST_EXCLUDE) and docs/CONTRIBUTING.md.
+"on":
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "scripts/**"
+      - "Makefile"
+      - ".github/workflows/scripts-tests.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/**"
+      - "Makefile"
+      - ".github/workflows/scripts-tests.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scripts-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scripts-tests:
+    name: scripts/test_*.py (make test-scripts)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+          cache: pip
+          cache-dependency-path: |
+            api/requirements.txt
+            api/requirements-dev.txt
+
+      # Some script tests import the api package (fastapi, sqlalchemy, pydantic), so install
+      # the API's pinned requirements, plus pyyaml/requests used by the tooling tests.
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api/requirements-dev.txt pyyaml requests
+
+      - name: Run every scripts test
+        run: make test-scripts SCRIPT_PYTHON=python

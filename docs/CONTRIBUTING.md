@@ -34,6 +34,25 @@ Run either locally: `python3 scripts/check_configured_models.py` (set `ANTHROPIC
 the Claude check) or `python3 scripts/report_dependency_majors.py`. Their tests are
 `scripts/test_check_configured_models.py` and `scripts/test_report_dependency_majors.py`.
 
+### Scripts tests catch-all (BITB-274)
+
+`scripts-tests.yml` runs `make test-scripts` on every PR/push that touches `scripts/**`, the
+`Makefile` or the workflow itself. The target globs `scripts/test_*.py`, so a new test file runs
+with no CI edit. The dedicated workflows (`opencode-ci`, `parity-ci`, `backlog`, ...) stay as the
+fast path for their own areas; the catch-all only guarantees nothing ships unexecuted.
+
+Run it locally with the project venv (the API requirements must be installed, because some
+tests import `api/`): `make test-scripts`. `DATABASE_URL` defaults to a placeholder URL; no
+database or network is used.
+
+Files that cannot run there are listed in `SCRIPTS_TEST_EXCLUDE` in the `Makefile`, and each needs
+a reason here (`scripts/test_scripts_tests_guard.py` fails otherwise):
+
+| Excluded file | Reason |
+| ------------- | ------ |
+| `scripts/test_openrouter_fallback.py` | Manual live script, not a pytest module: exits without `OPENROUTER_API_KEY` and calls the real OpenRouter API at import time. Run it by hand. |
+| `scripts/test_make_targets.py` | Red on `main` until BITB-325 / PR #1302 merges; remove this exclusion then. Still runs via `make test-makefile`. |
+
 ### Python version (BITB-304)
 
 The backend's Python minor version lives in one place, `.python-version` (currently `3.14`).
