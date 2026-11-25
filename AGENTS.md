@@ -320,6 +320,7 @@ See `android/COMPOSE_TESTS.md` for the full tier description and rollout plan.
 
 ```bash
 make test                  # Backend + frontend
+make test-scripts          # Every scripts/test_*.py (catch-all, BITB-274; exclusions in docs/CONTRIBUTING.md)
 make android-test          # Android JVM unit tests
 make android-test-compose  # Android Compose UI tests (Robolectric — separate tier)
 ```
