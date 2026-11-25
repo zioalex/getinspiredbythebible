@@ -225,8 +225,7 @@ SCRIPTS_TEST_FILES := $(filter-out $(SCRIPTS_TEST_EXCLUDE),$(sort $(wildcard scr
 
 test-scripts: ## Run every scripts/test_*.py except documented exclusions (offline, BITB-274; needs api deps)
 	@echo "$(BLUE)Running $(words $(SCRIPTS_TEST_FILES)) scripts test files...$(NC)"
-	@DATABASE_URL="$${DATABASE_URL:-postgresql://user:pass@localhost:5432/bibledb}" \
-		$(SCRIPT_PYTHON) -m pytest $(SCRIPTS_TEST_FILES) -q
+	@DATABASE_URL="$${DATABASE_URL:-postgresql://test:test@localhost/test}" $(SCRIPT_PYTHON) -m pytest $(SCRIPTS_TEST_FILES) -q  # pragma: allowlist secret
 	@echo "$(GREEN)✓ scripts tests complete$(NC)"
 
 alembic-roundtrip: install-deps ## Run Alembic upgrade->check->downgrade->upgrade against $DATABASE_URL (BITB-004). MUTATES the target database -- local/CI only, NEVER point DATABASE_URL at prod.

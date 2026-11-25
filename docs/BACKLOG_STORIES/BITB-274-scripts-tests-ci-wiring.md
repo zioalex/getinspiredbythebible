@@ -5,6 +5,7 @@ priority: P2
 size: S
 rank: 80
 created: 2026-11-08
+follow_ups: [BITB-361]
 ---
 
 # BITB-274: Wire All scripts/test_*.py Into CI — One Job, Not One-off Wiring
@@ -82,6 +83,7 @@ Implementation: `make test-scripts` (Makefile, `SCRIPTS_TEST_EXCLUDE`), `.github
 
 ## Follow-ups
 
+- BITB-361: shrink the exclusion list to zero.
 - When PR #1302 (BITB-325) merges: drop `scripts/test_make_targets.py` from `SCRIPTS_TEST_EXCLUDE` and the
   CONTRIBUTING table row, and regenerate `docs/MAKE_TARGET_AUDIT.md` (`python3 scripts/audit_make_targets.py --write`;
   it is already stale on main and now also needs the `test-scripts` row).
