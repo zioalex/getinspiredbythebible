@@ -5,6 +5,7 @@ priority: P2
 size: S
 rank: 770
 created: 2026-10-28
+prs: [1339]
 ---
 
 # BITB-252: Android Read Aloud Stays on Pause When the TTS Engine Never Starts
