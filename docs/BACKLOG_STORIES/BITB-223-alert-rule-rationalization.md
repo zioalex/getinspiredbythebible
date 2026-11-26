@@ -2,6 +2,7 @@
 id: BITB-223
 status: in-progress
 priority: P2
+kind: nfr
 size: M
 rank: 250
 created: 2026-10-23

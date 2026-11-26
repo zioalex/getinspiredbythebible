@@ -2,6 +2,7 @@
 id: BITB-318
 status: todo
 priority: P3
+kind: nfr
 size: M
 rank: 50
 created: 2026-11-15

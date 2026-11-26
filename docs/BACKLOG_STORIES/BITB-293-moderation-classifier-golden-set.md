@@ -2,6 +2,8 @@
 id: BITB-293
 status: done
 priority: P1
+kind: chore
+milestone: R1
 size: M
 rank: 190
 created: 2026-11-11

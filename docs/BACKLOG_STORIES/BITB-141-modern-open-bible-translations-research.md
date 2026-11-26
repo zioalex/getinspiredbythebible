@@ -2,6 +2,7 @@
 id: BITB-141
 status: todo
 priority: P2
+kind: spike
 size: L
 created: 2026-06-17
 ---
