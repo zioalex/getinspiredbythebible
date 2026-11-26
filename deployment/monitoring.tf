@@ -120,13 +120,13 @@
 #
 #   (BITB-223) recalibrated rules (breach gating added; BITB-372 moved the cadence to PT15M):
 #   - backend_5xx_rate — 15 minutes of sustained 5xx (three consecutive five-minute bins at
-#     >=3 breaches each; PT15M frequency over a PT30M window since BITB-372) so deploy-time app-replacement blips don't page (BITB-067
+#     >=3 breaches each; PT15M frequency over a PT45M window since BITB-372) so deploy-time app-replacement blips don't page (BITB-067
 #     gap #5). Sustained-window gating preferred over time-of-day suppression —
 #     deploy windows vary.
 #   - content_safety_fallback_rate — REMOVED in BITB-290, replaced by the two
 #     content_safety_fallback_burn_* share-of-checks burn-rate rules (see above).
 #   - backend_probe_failures — kept (BITB-224): it reads ContainerAppSystemLogs_CL
-#     ReplicaUnhealthy, not the availability web tests. The two web-test metric alerts
+#     ReplicaUnhealthy, not the availability web tests. The web-test metric alert
 #     (backend_preflight_availability) only fires while the web
 #     test is Enabled; that is guarded by prod-deploy-drift.yml `webtests-enabled`.
 #   - rate_limiter_fail_closed — untouched security fail-closed insurance (BITB-061).
@@ -413,7 +413,7 @@ resource "azurerm_monitor_metric_alert" "backend_preflight_availability" {
   # BITB-372: the web test runs every 15 min from ONE location, so the window must
   # span a full run (PT15M) and a single failed location is the only possible count.
   frequency   = "PT5M"
-  window_size = "PT15M"
+  window_size = "PT30M" # >= 2x the 900s test interval, so scheduling jitter can't leave a window empty
 
   application_insights_web_test_location_availability_criteria {
     web_test_id           = azurerm_application_insights_standard_web_test.backend_preflight[0].id
@@ -1097,20 +1097,22 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "rate_limiter_fail_clo
 # because deploy windows vary. Severity 1 unchanged.
 #
 # (BITB-372) Cost: evaluated every 15 minutes (a PT5M rule bills ~3x). To keep SLIDING
-# semantics at that cadence, each evaluation looks back 30 minutes (billing follows the
+# semantics at that cadence, each evaluation looks back 45 minutes (billing follows the
 # frequency, not the window), builds a zero-filled series of COMPLETE 5-minute bins
 # (the in-progress bin is excluded) and alerts when any three consecutive bins each
-# hold >=3 5xx. A sustained 15-minute breach is therefore detected at the next
-# evaluation, i.e. within about 15-20 minutes of the third bad bin completing (worst
-# case ~20 min; a tumbling 15-minute window would have missed an outage straddling two
-# evaluations). Look-back 30m x 1 period is far under Azure's 48h cap.
+# hold >=3 5xx. Every triple of bins is seen by two evaluations, so ingestion lag on
+# the newest bin cannot make a breach slip out of the window. Detection: within <=15 min
+# (+ ingestion lag) of the third bad bin completing, i.e. ~15-35 min after outage onset
+# (was ~15-20 min at PT5M; accepted by the owner for the cost cut). A tumbling 15-minute
+# window would have missed an outage straddling two evaluations. Look-back 45m x 1
+# period is far under Azure's 48h cap.
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-backend-5xx-rate"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
   evaluation_frequency = "PT15M"
-  window_duration      = "PT30M"
+  window_duration      = "PT45M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 1
   description          = "Backend returned HTTP 5xx, or another success==false response that isn't an expected client rejection (401/403/429), at >=3 requests per 5 minutes, sustained for the last 15 minutes (3 consecutive 5-minute windows). Broad catch-all for server-side failures not covered by the specific metric/log alerts. Turnstile/bot 403s, auth 401s, and rate-limit 429s are excluded — see backend_client_rejection_spike for those. Deploy-time app-replacement blips (seconds of 502s) do not sustain 15 minutes. NOTE: a crash inside the OTel ASGI middleware records no requests row — see backend_asgi_exceptions for that class."
@@ -1118,12 +1120,12 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
   criteria {
     query                   = <<-KQL
       requests
-      | where timestamp > ago(30m)
+      | where timestamp > ago(45m)
       | where toint(resultCode) >= 500
           or (success == false and toint(resultCode) !in (401, 403, 429))
       // Zero-filled 5-minute series of complete bins (to bin(now(), 5m) excludes the
       // in-progress bin; an empty bin is 0, never a missing row) (BITB-372).
-      | make-series total = count() default=0 on timestamp from bin(ago(30m), 5m) to bin(now(), 5m) step 5m
+      | make-series total = count() default=0 on timestamp from bin(ago(45m), 5m) to bin(now(), 5m) step 5m
       | mv-expand timestamp to typeof(datetime), total to typeof(long)
       | order by timestamp asc
       | serialize

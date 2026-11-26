@@ -115,8 +115,11 @@ jobs:
           while IFS= read -r ref; do
             attrs=$(az acr repository show --name "$ACR_NAME" --image "$ref" \
               --query "[changeableAttributes.writeEnabled, changeableAttributes.deleteEnabled]" -o tsv)
-            write_prev=$(echo "$attrs" | sed -n 1p | tr 'A-Z' 'a-z')
-            delete_prev=$(echo "$attrs" | sed -n 2p | tr 'A-Z' 'a-z')
+            write_prev=$(echo "$attrs" | sed -n 1p)
+            delete_prev=$(echo "$attrs" | sed -n 2p)
+            # Only true/false can be restored; anything else (empty, None) restores the ACR default.
+            case "$write_prev" in true | false) ;; *) write_prev=true ;; esac
+            case "$delete_prev" in true | false) ;; *) delete_prev=true ;; esac
             printf '%s\t%s\t%s\n' "$ref" "${write_prev:-true}" "${delete_prev:-true}" \
               >> "$RUNNER_TEMP/locked-state.tsv"
             echo "Locking $ref (was write=${write_prev:-true} delete=${delete_prev:-true})"

@@ -93,7 +93,7 @@
               "version": "KqlItem/1.0",
               "query": "availabilityResults\n| where timestamp > ago(7d)\n| extend in1h = timestamp > ago(1h), in24h = timestamp > ago(24h)\n| summarize\n    hits1h   = countif(success == true and in1h),\n    total1h  = countif(in1h),\n    hits24h  = countif(success == true and in24h),\n    total24h = countif(in24h),\n    hits7d   = countif(success == true),\n    total7d  = count()\n| union (print hits1h = 0, total1h = 1, hits24h = 0, total24h = 1, hits7d = 0, total7d = 1)\n| summarize hits1h = max(hits1h), total1h = max(total1h), hits24h = max(hits24h), total24h = max(total24h), hits7d = max(hits7d), total7d = max(total7d)\n| project\n    [\"Last 1h\"]  = round(100.0 * hits1h  / max(1, total1h),  1),\n    [\"Last 24h\"] = round(100.0 * hits24h / max(1, total24h), 1),\n    [\"Last 7d\"]  = round(100.0 * hits7d  / max(1, total7d),  1)",
               "size": 4,
-              "title": "Availability (health probe)",
+              "title": "Availability (CORS preflight test)",
               "timeContext": { "durationMs": 604800000 },
               "queryType": 0,
               "resourceType": "microsoft.insights/components",

@@ -41,13 +41,13 @@ projected, against a $50/month budget. Projected to 30 days (USD/month):
 - `deployment/main.tf`: deleted `backend_availability` web test; `backend_preflight` now has one geo
   (West Europe) and `frequency = 900`; stale "$25-40/month" header replaced by a pointer to the README.
 - `deployment/monitoring.tf`: deleted the `backend_availability` metric alert; `backend_preflight_availability`
-  is `failed_location_count = 1`, `window_size = PT15M`, `frequency = PT5M` (metric alerts bill per time
+  is `failed_location_count = 1`, `window_size = PT30M` (2x the test interval, tolerant of scheduling jitter), `frequency = PT5M` (metric alerts bill per time
   series, so frequency barely matters). Moved to PT15M: `backend_probe_failures`, `backend_errors`,
   `scripture_grounding_errors`, `scripture_pipeline_errors` (windows widened PT10M -> PT15M, queries `ago(15m)`),
   `scripture_search_latency_p95`, `backend_5xx_rate`, `content_safety_fallback_burn_fast` (short window 5m -> 15m).
-  `backend_5xx_rate` evaluates every PT15M over a PT30M window (1-of-1; billing follows frequency, not window):
+  `backend_5xx_rate` evaluates every PT15M over a PT45M window (1-of-1, so every bin triple is seen twice; billing follows frequency, not window):
   a zero-filled `make-series` of complete 5-minute bins, alerting when any three consecutive bins each hold
-  >= 3 5xx (`prev()`), so a sustained 15-minute breach is detected within about 15-20 minutes (a tumbling
+  >= 3 5xx (`prev()`), so a sustained 15-minute breach is detected within <=15 min of its third bad bin completing (~15-35 min after onset, was ~15-20 min) (a tumbling
   15-minute window missed outages straddling two evaluations). It emits an `AlertSummary` column.
   The shared `backend-error-filter.kql` no longer carries a time window; `backend_errors` adds `ago(15m)` and
   the prod-monitor.yml log-scan adds `ago(10m)` (a hard-coded `ago(10m)` there had capped the PT15M rule).
@@ -60,17 +60,17 @@ projected, against a $50/month budget. Projected to 30 days (USD/month):
 
 ## Expected effect
 
-About -$40/month (web tests ~ -$29, log alerts ~ -$6.4 for the seven rules moved at ~$0.92 each, ACR ~ -$4.7),
+About -$40/month (web tests ~ -$27.5 (the slimmed preflight test still costs ~$1.5), log alerts ~ -$6.4 for the seven rules moved at ~$0.92 each, ACR ~ -$4.7),
 taking the run rate from ~$134 to about $90-95/month. **This does not reach the $50 budget.** The remaining
 gap is the Postgres SKU/storage (~$57/month), tracked as BITB-231, gated on BITB-230.
 
 ## Acceptance criteria
 
 - [x] Only the preflight web test exists; 1 location, every 900 s, `enabled`/`retry_enabled` true
-- [x] `backend_preflight_availability` valid for one location (`failed_location_count = 1`, `PT15M` window)
+- [x] `backend_preflight_availability` valid for one location (`failed_location_count = 1`, `PT30M` window)
 - [x] Only `rate_limiter_fail_closed` and `backend_asgi_exceptions` evaluate at PT5M (guard test)
 - [x] Every rule's look-back stays <= 48h (existing guard test)
-- [x] `backend_5xx_rate` keeps sliding sustained-15-minute semantics (PT30M window, PT15M frequency)
+- [x] `backend_5xx_rate` keeps sliding sustained-15-minute semantics (PT45M window, PT15M frequency)
 - [x] Shared error filter has no baked-in time window; each consumer sets its own (guard test)
 - [x] Weekly ACR purge workflow with dry-run, deployed-image lock/unlock, usage before/after
 - [x] Drift guard expects only `bible-app-preflight`

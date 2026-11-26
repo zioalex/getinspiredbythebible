@@ -11,7 +11,7 @@ Deploy the **Vox Quieta** application on Azure using Container Apps with scale-t
 | Container Registry | Basic (weekly `acr-purge.yml` keeps storage under the included 10 GB, BITB-372) |
 | Container Apps | Consumption, `min_replicas = 1` on both (always-on; scale-to-zero NOT in use — cold starts on a chat UI) |
 | Log Analytics | PerGB2018, 30-day retention |
-| Monitoring | App Insights (workspace-based), 1 CORS-preflight web test (1 location, every 15 min), ~30 alert rules |
+| Monitoring | App Insights (workspace-based), 1 CORS-preflight web test (1 location, every 15 min), ~28 alert rules |
 
 Actual spend is measured and tracked by the Phase 0 cost-evidence tooling
 (`scripts/collect_cost_evidence.py`, weekly via `.github/workflows/cost-evidence-weekly.yml`).

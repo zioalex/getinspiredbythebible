@@ -42,7 +42,7 @@ def test_5xx_rule_uses_sliding_zero_filled_series() -> None:
     """15-minute evaluations over a 30-minute window keep sliding sustained-breach semantics."""
     body = _RULES["backend_5xx_rate"]
     assert re.search(r'^\s*evaluation_frequency\s*=\s*"PT15M"', body, re.MULTILINE)
-    assert re.search(r'^\s*window_duration\s*=\s*"PT30M"', body, re.MULTILINE)
+    assert re.search(r'^\s*window_duration\s*=\s*"PT45M"', body, re.MULTILINE)
     assert re.search(r"number_of_evaluation_periods\s*=\s*1\b", body)
     assert "make-series" in body and "default=0" in body  # empty bins count as 0, not missing
     assert "prev(total, 1)" in body or "prev1" in body
@@ -75,7 +75,7 @@ def test_preflight_alert_matches_single_location() -> None:
     assert match
     body = match.group(1)
     assert re.search(r"failed_location_count\s*=\s*1\b", body)
-    assert 'window_size = "PT15M"' in body
+    assert 'window_size = "PT30M"' in body
 
 
 _FILE_INCLUDE = re.compile(r'\$\{file\("\$\{path\.module\}/([^"]+)"\)\}')
@@ -116,7 +116,7 @@ def test_query_look_back_matches_window_duration(name: str) -> None:
 
 def test_shared_error_filter_has_no_time_window() -> None:
     kql = (_MODULE / "azure-monitor" / "queries" / "backend-error-filter.kql").read_text()
-    code = "\n".join(l for l in kql.splitlines() if not l.lstrip().startswith("//"))
+    code = "\n".join(line for line in kql.splitlines() if not line.lstrip().startswith("//"))
     assert "ago(" not in code, "each consumer of the shared filter must set its own window"
     workflow = (_REPO_ROOT / ".github" / "workflows" / "prod-monitor.yml").read_text()
     assert "TimeGenerated > ago(10m)" in workflow  # log-scan keeps its 10-minute window
