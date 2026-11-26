@@ -4,7 +4,7 @@ status: in-progress
 priority: P1
 size: L
 created: 2026-11-26
-prs: []
+prs: [1347]
 ---
 
 # BITB-370: Migrate KubeOpenCode from opencode 1.18.31 to opencode 2.4.2
