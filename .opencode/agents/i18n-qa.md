@@ -1,7 +1,7 @@
 ---
 description: i18n QA across all 11 UI languages — translation completeness, locale routing, RTL/CJK rendering, per-language fallbacks
 mode: subagent
-model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+model: llama-cpp/gemma-4-26b
 fallback_models:
   - openrouter/nvidia/nemotron-3.5-lightning:free
   - openrouter/z-ai/glm-5.3
