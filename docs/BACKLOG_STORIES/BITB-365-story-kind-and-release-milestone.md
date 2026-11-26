@@ -5,6 +5,7 @@ priority: P1
 kind: chore
 size: M
 created: 2026-11-26
+prs: [1345]
 follow_ups: [BITB-366, BITB-367]
 ---
 
