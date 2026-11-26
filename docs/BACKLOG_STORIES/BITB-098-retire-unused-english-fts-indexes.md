@@ -2,6 +2,7 @@
 id: BITB-098
 status: todo
 priority: P3
+kind: nfr
 size: S
 created: 2026-08-18
 ---

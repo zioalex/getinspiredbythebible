@@ -2,6 +2,7 @@
 id: BITB-176
 status: todo
 priority: P3
+kind: feature
 size: M
 created: 2026-10-04
 ---
