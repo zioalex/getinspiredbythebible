@@ -1,5 +1,5 @@
 ---
-id: BITB-370
+id: BITB-372
 status: in-progress
 priority: P1
 size: S
@@ -7,7 +7,7 @@ created: 2026-11-26
 depends_on: [BITB-224]
 ---
 
-# BITB-370: Azure cost phase 1 - cut web-test, alert-rule and registry spend
+# BITB-372: Azure cost phase 1 - cut web-test, alert-rule and registry spend
 
 ## User story
 
@@ -45,19 +45,22 @@ projected, against a $50/month budget. Projected to 30 days (USD/month):
   series, so frequency barely matters). Moved to PT15M: `backend_probe_failures`, `backend_errors`,
   `scripture_grounding_errors`, `scripture_pipeline_errors` (windows widened PT10M -> PT15M, queries `ago(15m)`),
   `scripture_search_latency_p95`, `backend_5xx_rate`, `content_safety_fallback_burn_fast` (short window 5m -> 15m).
-  `backend_5xx_rate` is one PT15M evaluation, 1-of-1; the query bins the last 15 minutes into three fixed
-  5-minute bins (`bin_at(timestamp, 5m, ago(15m))`), keeps bins with >= 3 5xx and alerts when all three
-  breach (an empty bin has no row, so it cannot count). Same "15 minutes sustained" semantics as the old 3-of-3.
+  `backend_5xx_rate` evaluates every PT15M over a PT30M window (1-of-1; billing follows frequency, not window):
+  a zero-filled `make-series` of complete 5-minute bins, alerting when any three consecutive bins each hold
+  >= 3 5xx (`prev()`), so a sustained 15-minute breach is detected within about 15-20 minutes (a tumbling
+  15-minute window missed outages straddling two evaluations). It emits an `AlertSummary` column.
+  The shared `backend-error-filter.kql` no longer carries a time window; `backend_errors` adds `ago(15m)` and
+  the prod-monitor.yml log-scan adds `ago(10m)` (a hard-coded `ago(10m)` there had capped the PT15M rule).
   Header inventory comments updated.
 - `.github/workflows/prod-deploy-drift.yml`, `scripts/monitor/check_webtests_enabled.py`: expect only `bible-app-preflight`.
-- `.github/workflows/acr-purge.yml` (new): weekly purge, `dry_run` dispatch input (default true).
+- `.github/workflows/acr-purge.yml` (new): weekly purge (every tag newer than 14 days is kept, plus the 10 newest older tags per repo; the rest and untagged manifests are deleted), `dry_run` dispatch input (default true).
 - Tests: `api/tests/test_monitoring_alert_cadence.py` (new), `test_acr_purge_workflow.py` (new),
   `test_webtests_enabled_guard.py`, `test_monitoring_content_safety_slo.py`.
 - Docs: `deployment/README.md`, `docs/CONTRIBUTING.md`, `docs/TROUBLESHOOTING.md`, BITB-224 and BITB-150 amendments.
 
 ## Expected effect
 
-About -$40/month (web tests ~ -$29, log alerts ~ -$6 for the six rules moved plus smaller windows, ACR ~ -$4.7),
+About -$40/month (web tests ~ -$29, log alerts ~ -$6.4 for the seven rules moved at ~$0.92 each, ACR ~ -$4.7),
 taking the run rate from ~$134 to about $90-95/month. **This does not reach the $50 budget.** The remaining
 gap is the Postgres SKU/storage (~$57/month), tracked as BITB-231, gated on BITB-230.
 
@@ -67,7 +70,8 @@ gap is the Postgres SKU/storage (~$57/month), tracked as BITB-231, gated on BITB
 - [x] `backend_preflight_availability` valid for one location (`failed_location_count = 1`, `PT15M` window)
 - [x] Only `rate_limiter_fail_closed` and `backend_asgi_exceptions` evaluate at PT5M (guard test)
 - [x] Every rule's look-back stays <= 48h (existing guard test)
-- [x] `backend_5xx_rate` keeps sustained-15-minute semantics in a single evaluation
+- [x] `backend_5xx_rate` keeps sliding sustained-15-minute semantics (PT30M window, PT15M frequency)
+- [x] Shared error filter has no baked-in time window; each consumer sets its own (guard test)
 - [x] Weekly ACR purge workflow with dry-run, deployed-image lock/unlock, usage before/after
 - [x] Drift guard expects only `bible-app-preflight`
 - [x] Docs state the savings and the remaining gap plainly

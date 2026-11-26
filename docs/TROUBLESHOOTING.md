@@ -544,7 +544,7 @@ log line rather than the app's `| ERROR |` format, and records no App Insights `
 BITB-065). If none fired, verify `TF_VAR_ALERT_EMAIL` / `TELEGRAM_CHAT_ID` are set in the deploy env.
 
 > The `*-preflight-failed` alert only fires while the underlying App Insights web test is **Enabled**
-> (BITB-224: it was silently off because the provider default is `enabled = false`; BITB-370 retired the
+> (BITB-224: it was silently off because the provider default is `enabled = false`; BITB-372 retired the
 > `*-availability` test and its alert to save ~$29/month, so only the preflight test remains, 1 location every
 > 15 minutes). The `webtests-enabled` job in `prod-deploy-drift.yml` pages if the test is
 > disabled or missing; re-enable with `terraform apply` or

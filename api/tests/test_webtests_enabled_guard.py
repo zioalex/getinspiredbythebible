@@ -64,7 +64,7 @@ def test_webtest_blocks_found() -> None:
 
 
 def test_availability_webtest_retired() -> None:
-    # BITB-370: Standard Web Test Execution billed ~$29/month; /health/ready is covered by
+    # BITB-372: Standard Web Test Execution billed ~$29/month; /health/ready is covered by
     # the GitHub prod-monitor health probe and backend_probe_failures instead.
     assert not re.search(r'resource\s+"[\w]+"\s+"backend_availability"', _MAIN_TF.read_text())
     assert "backend_availability" not in _BLOCKS

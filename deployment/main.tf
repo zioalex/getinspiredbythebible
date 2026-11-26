@@ -296,7 +296,7 @@ resource "azurerm_application_insights" "main" {
 }
 
 # The /health/ready standard availability test (backend_availability) was retired
-# in BITB-370: 2 tests x 3 geos x every 5 min billed ~$29/month ("Standard Web Test
+# in BITB-372: 2 tests x 3 geos x every 5 min billed ~$29/month ("Standard Web Test
 # Execution", Nov 2026). /health/ready stays covered by the GitHub prod-monitor
 # health probe (every 5 min) and the backend_probe_failures alert.
 
@@ -308,7 +308,7 @@ resource "azurerm_application_insights" "main" {
 # so an always-on Azure-native alert fires on a preflight-only failure — not
 # just the 5-minute GitHub cross-origin-smoke probe. Complements it as the
 # second, independent channel.
-# BITB-370 cost: one location, every 15 min (~2.9k executions/month, ~$0.05/day)
+# BITB-372 cost: one location, every 15 min (~2.9k executions/month, ~$0.05/day)
 # instead of 3 geos every 5 min. `enabled` is Optional with no default in the
 # azurerm provider (BITB-224): pin it explicitly or the test is created disabled.
 resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
@@ -318,12 +318,12 @@ resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
   location                = azurerm_resource_group.main.location
   application_insights_id = azurerm_application_insights.main[0].id
 
-  geo_locations = ["emea-nl-ams-azr"] # West Europe only (BITB-370: web tests bill per location)
+  geo_locations = ["emea-nl-ams-azr"] # West Europe only (BITB-372: web tests bill per location)
 
   enabled       = true # BITB-224: provider default is false; omitting this kept both tests off
   retry_enabled = true
 
-  frequency = 900 # every 15 minutes (BITB-370)
+  frequency = 900 # every 15 minutes (BITB-372)
 
   request {
     url       = "https://${azurerm_container_app.backend.ingress[0].fqdn}/api/v1/chat/stream"

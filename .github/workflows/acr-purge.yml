@@ -1,15 +1,17 @@
 name: ACR Purge
 
-# BITB-370: the Basic container registry includes 10 GB; image storage above that is
+# BITB-372: the Basic container registry includes 10 GB; image storage above that is
 # billed (~$4.7/month in Nov 2026) and nothing ever deleted old images. This weekly job
 # purges old image tags and untagged manifests from the bible-backend / bible-frontend
 # repositories with `acr purge` (run as an ACR Task via `az acr run`).
 #
-# Retention: every tag older than 14 days is purged EXCEPT the newest 10 tags per
-# repository (--keep 10), plus any untagged manifests. azure-deploy.yml tags images
-# with the full commit SHA (plus the branch name and `latest`), so this keeps roughly
-# the 10 newest builds available for a `skip_build` + `image_tag` rollback; older SHAs
-# are gone by design. Normal deploys never need an old tag, only the freshly built one
+# Retention (`--ago 14d --keep 10 --untagged`): every tag newer than 14 days is kept; of the
+# tags older than 14 days only the newest 10 per repository are kept (--keep counts within
+# the --ago-eligible set); the rest and any untagged manifests are deleted.
+# azure-deploy.yml tags images with the full commit SHA (plus the branch name and
+# `latest`), so rollbacks via
+# `skip_build` + `image_tag` can target the last 14 days of builds plus 10 older ones; older
+# SHAs are gone by design. Normal deploys never need an old tag, only the freshly built one
 # or the currently deployed image reference.
 #
 # Deployed-image protection (chosen approach: LOCK, not "verify it is among the newest
@@ -18,7 +20,8 @@ name: ACR Purge
 # churns). So the job first reads the image references of the running backend and
 # frontend Container Apps and sets delete-enabled=false / write-enabled=false on those
 # exact tags; `acr purge` skips locked images. An `if: always()` step unlocks them
-# afterwards, and a final check fails the job if a deployed tag no longer exists.
+# afterwards (restoring each tag's recorded prior write/delete flags, not forcing true),
+# and a final check fails the job if a deployed tag no longer exists.
 #
 # Required Azure permissions (the ARM_* deploy service principal is Contributor on the
 # subscription / resource group, see deployment/scripts/setup-github-spn.sh):
@@ -61,7 +64,7 @@ jobs:
   purge:
     name: Purge old ACR images
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
 
@@ -106,8 +109,17 @@ jobs:
             echo "::error::No deployed ACR image found to protect; refusing to purge"
             exit 1
           fi
+          # Record each tag's current flags (tab-separated: ref, writeEnabled, deleteEnabled)
+          # so the unlock step restores exactly the prior state, then lock.
+          : > "$RUNNER_TEMP/locked-state.tsv"
           while IFS= read -r ref; do
-            echo "Locking $ref"
+            attrs=$(az acr repository show --name "$ACR_NAME" --image "$ref" \
+              --query "[changeableAttributes.writeEnabled, changeableAttributes.deleteEnabled]" -o tsv)
+            write_prev=$(echo "$attrs" | sed -n 1p | tr 'A-Z' 'a-z')
+            delete_prev=$(echo "$attrs" | sed -n 2p | tr 'A-Z' 'a-z')
+            printf '%s\t%s\t%s\n' "$ref" "${write_prev:-true}" "${delete_prev:-true}" \
+              >> "$RUNNER_TEMP/locked-state.tsv"
+            echo "Locking $ref (was write=${write_prev:-true} delete=${delete_prev:-true})"
             az acr repository update --name "$ACR_NAME" --image "$ref" \
               --write-enabled false --delete-enabled false
           done < "$RUNNER_TEMP/locked-images.txt"
@@ -126,19 +138,19 @@ jobs:
           PURGE_CMD="acr purge --filter 'bible-backend:.*' --filter 'bible-frontend:.*'"
           PURGE_CMD="$PURGE_CMD --ago 14d --keep 10 --untagged $DRY"
           echo "Running: $PURGE_CMD"
-          az acr run --registry "$ACR_NAME" --cmd "$PURGE_CMD" /dev/null
+          az acr run --registry "$ACR_NAME" --timeout 3600 --cmd "$PURGE_CMD" /dev/null
 
-      - name: Unlock deployed images
+      - name: Unlock deployed images (restore prior state)
         if: always() && steps.protect.outcome != 'skipped'
         run: |
           set -uo pipefail
-          [ -s "$RUNNER_TEMP/locked-images.txt" ] || exit 0
+          [ -s "$RUNNER_TEMP/locked-state.tsv" ] || exit 0
           rc=0
-          while IFS= read -r ref; do
-            echo "Unlocking $ref"
+          while IFS=$'\t' read -r ref write_prev delete_prev; do
+            echo "Restoring $ref (write=$write_prev delete=$delete_prev)"
             az acr repository update --name "$ACR_NAME" --image "$ref" \
-              --write-enabled true --delete-enabled true || rc=1
-          done < "$RUNNER_TEMP/locked-images.txt"
+              --write-enabled "$write_prev" --delete-enabled "$delete_prev" || rc=1
+          done < "$RUNNER_TEMP/locked-state.tsv"
           exit $rc
 
       - name: Verify deployed images still exist

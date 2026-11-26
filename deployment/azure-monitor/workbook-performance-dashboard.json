@@ -48,7 +48,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Overview — Error Detection\n\nHigh-level health indicators. **Green = healthy**, **Yellow = investigate**, **Red = urgent action required**.\n\n- **Error Rate %**: Percentage of requests returning HTTP 5xx. Above 5% warrants investigation; above 10% is critical.\n- **Response Time**: P50/P95/P99 latencies across all endpoints. P95 > 5 000 ms suggests capacity or LLM issues.\n- **Availability**: Based on the automated health-check probes (3 Azure regions, every 5 min)."
+              "json": "## Overview — Error Detection\n\nHigh-level health indicators. **Green = healthy**, **Yellow = investigate**, **Red = urgent action required**.\n\n- **Error Rate %**: Percentage of requests returning HTTP 5xx. Above 5% warrants investigation; above 10% is critical.\n- **Response Time**: P50/P95/P99 latencies across all endpoints. P95 > 5 000 ms suggests capacity or LLM issues.\n- **Availability**: Based on the CORS preflight test (1 Azure region, every 15 min)."
             }
           },
           {

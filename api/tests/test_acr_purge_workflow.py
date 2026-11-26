@@ -1,4 +1,4 @@
-"""BITB-370: the weekly ACR purge workflow must be safe (protect deployed images) and bounded."""
+"""BITB-372: the weekly ACR purge workflow must be safe (protect deployed images) and bounded."""
 
 import re
 from pathlib import Path
@@ -37,7 +37,7 @@ def test_dispatch_dry_run_defaults_to_true() -> None:
 def test_least_privilege_and_bounded() -> None:
     assert _DOC["permissions"] == {"contents": "read"}
     assert _DOC["concurrency"]["cancel-in-progress"] is False
-    assert _DOC["jobs"]["purge"]["timeout-minutes"] <= 60
+    assert _DOC["jobs"]["purge"]["timeout-minutes"] <= 120
 
 
 def test_purge_command_flags() -> None:
@@ -49,6 +49,14 @@ def test_purge_command_flags() -> None:
     assert keep and int(keep.group(1)) >= 5
     assert "bible-backend" in run and "bible-frontend" in run
     assert "--dry-run" in run  # dry_run input is wired to acr purge's --dry-run
+    assert re.search(r"--ago 14d\b", run)
+    assert re.search(r"--timeout \d+", run)
+    # dry_run comes from github.event.inputs.dry_run (empty on a schedule run => real purge)
+    # and only the literal 'true' enables --dry-run; an inverted test would dry-run schedules.
+    step = _STEPS[_index("Purge")]
+    assert step["env"]["DRY_RUN_INPUT"] == "${{ github.event.inputs.dry_run }}"
+    assert re.search(r'if \[ "\$DRY_RUN_INPUT" == "true" \]; then\s+DRY="--dry-run"', run)
+    assert "!=" not in re.search(r"if \[ \"\$DRY_RUN_INPUT.*", run).group(0)
 
 
 def test_deployed_images_locked_before_purge() -> None:
@@ -60,12 +68,43 @@ def test_deployed_images_locked_before_purge() -> None:
     assert "exit 1" in run  # fail closed when the deployed image cannot be read
 
 
-def test_unlock_always_runs_after_purge() -> None:
+def test_prior_lock_state_recorded_then_restored() -> None:
+    protect = _STEPS[_index("Lock currently deployed images")]["run"]
+    assert "changeableAttributes.writeEnabled" in protect
+    assert "changeableAttributes.deleteEnabled" in protect
+    assert protect.index("az acr repository show") < protect.index("--write-enabled false")
+    unlock = _STEPS[_index("Unlock deployed images")]["run"]
+    # restores the recorded values rather than forcing true
+    assert '--write-enabled "$write_prev"' in unlock and '--delete-enabled "$delete_prev"' in unlock
+
+
+def test_unlock_always_runs_after_purge_with_guard() -> None:
     unlock = _index("Unlock deployed images")
     assert unlock > _index("Purge")
-    assert "always()" in _STEPS[unlock]["if"]
-    run = _STEPS[unlock]["run"]
-    assert "--delete-enabled true" in run and "--write-enabled true" in run
+    cond = _STEPS[unlock]["if"]
+    assert "always()" in cond and "steps.protect.outcome" in cond
+
+
+def test_step_order_protect_purge_unlock_verify() -> None:
+    order = [
+        _index("Lock currently deployed images"),
+        _index("Purge"),
+        _index("Unlock deployed images"),
+        _index("Verify deployed images still exist"),
+    ]
+    assert order == sorted(order) and len(set(order)) == 4
+    assert "show-tags" in _STEPS[order[3]]["run"] and "exit 1" in _STEPS[order[3]]["run"]
+
+
+def test_telegram_step_supplies_required_action_inputs() -> None:
+    action = yaml.safe_load(
+        (_REPO_ROOT / ".github" / "actions" / "notify-telegram" / "action.yml").read_text()
+    )
+    required = {k for k, v in action["inputs"].items() if v.get("required")}
+    step = _STEPS[_index("Notify Telegram")]
+    assert step["uses"] == "./.github/actions/notify-telegram"
+    assert step["if"] == "always()"
+    assert required <= set(step["with"]), required - set(step["with"])
 
 
 def test_acr_name_matches_deploy_workflow() -> None:

@@ -13,7 +13,7 @@ created: 2026-09-12
 **Migration note (2026-11-13, size):** (the analysis is the deliverable; each fix it authorises is its own small story)
 **Prompted by:** Owner's spend review — "monitoring is ~25% of the cost, the DB is ~50%"
 
-**2026-11-26 update:** the Nov 2026 Cost Management export (1-26 Nov, 96.72 CHF, ~$134/month projected) is broken down in BITB-370 (web tests, alert cadence, ACR purge); the remaining DB gap is BITB-228 -> 230 -> 229 -> 231.
+**2026-11-26 update:** the Nov 2026 Cost Management export (1-26 Nov, 96.72 CHF, ~$134/month projected) is broken down in BITB-372 (web tests, alert cadence, ACR purge); the remaining DB gap is BITB-228 -> 230 -> 229 -> 231.
 
 ## User Story
 
