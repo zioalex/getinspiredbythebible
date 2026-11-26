@@ -2,6 +2,7 @@
 id: BITB-240
 status: todo
 priority: P3
+kind: fix
 size: M
 created: 2026-10-24
 ---

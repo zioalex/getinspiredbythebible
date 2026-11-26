@@ -2,6 +2,7 @@
 id: BITB-242
 status: todo
 priority: P2
+kind: nfr
 size: M
 rank: 210
 created: 2026-10-26

@@ -2,6 +2,8 @@
 id: BITB-322
 status: in-review
 priority: P2
+kind: chore
+milestone: R1
 size: S
 rank: 195
 created: 2026-11-16

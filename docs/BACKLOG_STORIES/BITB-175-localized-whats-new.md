@@ -2,13 +2,22 @@
 id: BITB-175
 status: todo
 priority: P3
+kind: feature
 size: M
 created: 2026-10-04
+depends_on: [BITB-367]
 ---
 
 # BITB-175: Localized What's New / Changelog Entries (Web + Android)
 
 **Prompted by:** BITB-119 verification — the What's New surfaces only show English text.
+
+**Scope added 2026-11-26 (BITB-368):** this story is the end-user layer of the product-release
+work (BITB-366..368). Besides being localized, the entries are curated: 3–5 plain-language bullets
+per release, features and user-visible fixes only, never the raw developer CHANGELOG (today the
+popup shows `opencode`/`kubeopencode` entries and BITB ids). Source: one file per release and
+locale, drafted from the milestone's `feature`/`fix` stories by `release_notes.py --user`; no
+popup when a release has none. The same text feeds the Play Store "What's new".
 
 ## User Story
 
