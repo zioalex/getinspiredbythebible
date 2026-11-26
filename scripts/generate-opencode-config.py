@@ -155,6 +155,20 @@ PLUGIN = [
     "file:///workspace/repo/.opencode/plugin/task-reliability.ts",
 ]
 
+# BITB-363: the privately-hosted llama.cpp server as an OPT-IN provider —
+# selected explicitly via `--model llama-cpp/gemma-4-26b` or a per-agent
+# `model:` frontmatter. It is never the global default and never a fallback
+# hop: the fallback graph stays OpenRouter-only (enforce_openrouter_for_paid
+# plus the BITB-279 free-tier tier-1 invariant), and this provider is
+# self-hosted and free. The egress path is opened by the supplemental netpol
+# `agent-egress-llama` (BITB-362). V1 config shape, validated live on
+# opencode 1.18.31 against the pod's working config: singular top-level
+# "provider", "api": "openai-compatible". The baseURL host is committed here
+# by design — the generator is the reproducible source for the generated
+# opencode.json — and follows the same single-home rule as the netpol
+# manifest: the address is not to be copy-pasted anywhere else.
+LLAMA_CPP_BASE_URL = "http://192.168.178.150:8080/v1"
+
 PROVIDER = {
     "opencode": {
         "options": {
@@ -163,7 +177,31 @@ PROVIDER = {
             "chunkTimeout": 120000,
             "setCacheKey": True,
         }
-    }
+    },
+    "llama-cpp": {
+        "api": "openai-compatible",
+        "name": "llama.cpp Server",
+        "options": {
+            "baseURL": LLAMA_CPP_BASE_URL,
+            # Not a secret: the LAN llama.cpp server ignores auth; "dummy"
+            # only satisfies opencode's non-empty-key requirement (mirrored
+            # from the live-validated workspace config, BITB-363).
+            "apiKey": "dummy",  # pragma: allowlist secret
+            "timeout": False,
+            "headerTimeout": False,
+            "chunkTimeout": False,
+        },
+        "models": {
+            "gemma-4-26b": {
+                "id": "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_M",
+                "name": "Gemma 4 26B (Q4_K_M)",
+                "limit": {
+                    "context": 32768,
+                    "output": 8192,
+                },
+            }
+        },
+    },
 }
 
 

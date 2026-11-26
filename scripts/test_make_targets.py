@@ -958,6 +958,10 @@ class MiscTargetTests(SandboxCase):
 
     def test_k8s_script_targets(self) -> None:
         self.assertEqual(self.make("verify-kubeopencode-netpol").argv("bash"), [["scripts/verify-kubeopencode-netpol.sh"]])
+        self.assertEqual(
+            self.make("verify-llama-egress").argv("bash"),
+            [["scripts/verify-kubeopencode-netpol.sh", "--llama-only"]],
+        )
         self.assertEqual(self.make("collect-k8s-diagnostics").argv("bash"), [["scripts/collect-k8s-diagnostics.sh"]])
         res = self.make("collect-k8s-diagnostics", NAMESPACE="my ns", POD_IP="10.0.0.9")
         self.assertEqual(res.argv("bash"), [["scripts/collect-k8s-diagnostics.sh", "--namespace", "my ns", "--pod-ip", "10.0.0.9"]])
