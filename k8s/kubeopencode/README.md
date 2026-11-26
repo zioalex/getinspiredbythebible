@@ -30,6 +30,7 @@ remains there pointing here.)
 | `rolebinding-agent.yaml` | Binds that Role to the SA; required before applying any Agent that sets `serviceAccountName: kubeopencode-agent`. |
 | `networkpolicy-default-deny.yaml` | `default-deny-all` egress deny for every pod in the namespace. **Must be applied LAST** — see *Sandbox hardening*. |
 | `networkpolicy-egress-strict.yaml` | `agent-egress-strict`: strict-tier egress for workspace pods (cluster DNS, K8s API, public 443/53; RFC1918/link-local/loopback denied by construction). |
+| `networkpolicy-allow-llama-egress.yaml` | `agent-egress-llama`: **supplemental** egress allow (BITB-362) realizing the security doc's *LAN opt-in* — opens the privately-hosted llama.cpp OpenAI-compatible LLM provider on exactly one host `/32`, TCP/8080 only, agent pods only (same `podSelector` as `agent-egress-strict`). Stacks on the agent tier; scope pinned by the T9 tests in `scripts/test_kubeopencode_netpol.py`. |
 | `networkpolicy-egress-server.yaml` | `server-egress-strict`: strict-tier egress for the platform pods (gateway/controller), selected by the absence of `app.kubernetes.io/managed-by`, plus the gateway→workspace `:4096` control-plane path. |
 | `networkpolicy-allow-server-ingress.yaml` | `allow-server-ingress`: ingress to workspace `:4096` from the platform gateway and `kube-system` probes. |
 | `ingress-server.yaml` | Optional traefik `Ingress` (`chat.home.local`) for LAN browser access to the platform gateway Service on `:2746`. |
@@ -595,13 +596,19 @@ kubectl -n kubeopencode-system delete pvc <workspace-pvc>
 ## Sandbox hardening (strict-tier egress)
 
 Strict tier enforces public `443/53` + cluster DNS + K8s API only; LAN/metadata/loopback-range
-IPs are denied by construction; agents cannot reach each other.
+IPs are denied by construction; agents cannot reach each other. One operator-approved
+exception is in force: the supplemental `agent-egress-llama`
+(`networkpolicy-allow-llama-egress.yaml`, BITB-362) opens the llama.cpp LLM provider —
+a single host `/32` on TCP/8080, agent pods only — via the security doc's *LAN opt-in*.
 
 ```bash
-# 1. allow-policies first (egress allow + ingress allow)
+# 1. allow-policies first (egress allow + ingress allow; the supplemental
+#    LAN opt-in agent-egress-llama rides with them, BITB-362)
 kubectl apply -f networkpolicy-egress-strict.yaml
 kubectl apply -f networkpolicy-egress-server.yaml
 kubectl apply -f networkpolicy-allow-server-ingress.yaml
+kubectl apply -f networkpolicy-allow-llama-egress.yaml
+#   pre-merge test for the supplemental: make verify-llama-egress (runbook below)
 # verify new agent: LLM OK, LAN blocked, /api/session -> 401, env clean
 # 2. default-deny LAST — it selects every pod in the namespace and enforces on apply
 kubectl apply -f networkpolicy-default-deny.yaml
@@ -609,14 +616,49 @@ kubectl apply -f agent-desktop.yaml
 ```
 
 > **⚠️ Warning:** `default-deny-all` uses `podSelector: {}` and enforces immediately.
-> Applying it before the three allow-policies kills DNS/egress for the gateway too —
+> Applying it before the tier allow-policies (`egress-strict`, `egress-server`,
+> `allow-server-ingress`) kills DNS/egress for the gateway too —
 > that is why the order exists.
 
 ### Verification
 
 ```bash
-make verify-kubeopencode-netpol      # live cluster
+make verify-kubeopencode-netpol      # live cluster: the full strict-tier suite
+make verify-llama-egress             # live cluster: the llama allow only (BITB-362, pre-merge runbook below)
 make test-kubeopencode-netpol        # static, runs in CI
+```
+
+### Testing an egress-policy change BEFORE merging (BITB-362)
+
+An egress *allow* is only provable live — the static suite pins the policy's
+shape, not the path. `agent-egress-llama` is additive, so applying it before
+merge leaves the cluster in its pre-PR state plus exactly one extra object.
+From a workstation with kubeconfig:
+
+```bash
+git fetch origin && git checkout origin/feature/netpol-llama-egress   # the PR branch carrying the change
+kubectl apply -f k8s/kubeopencode/networkpolicy-allow-llama-egress.yaml
+make verify-llama-egress
+```
+
+`make verify-llama-egress` runs the focused check
+(`scripts/verify-kubeopencode-netpol.sh --llama-only`): it spawns ONE
+throwaway agent-labeled probe pod, asserts it gets **HTTP 200** from the
+llama server's OpenAI-compatible `/v1/models` on the manifest's TCP port,
+and cleans up after itself (same probe-pod design as the full suite — agents
+scale to zero, so a check pinned to a live agent would flake). The probe
+target defaults by **extracting host:port from the committed manifest at
+runtime** — the address is deliberately written nowhere else — and
+`LLAMA_TARGET=<host:port>` overrides it for portability (same style as
+`LAN_TARGET`/`PUBLIC_URL`). `default-deny-all` must be in force, else the
+check exits early: without it "allowed" proves nothing.
+
+- **PASS** → merge the PR.
+- **FAIL** → the cluster is still in its pre-PR state except the one applied
+  object; roll it back and report:
+
+```bash
+kubectl -n kubeopencode-system delete networkpolicy agent-egress-llama
 ```
 
 ### Rollback
