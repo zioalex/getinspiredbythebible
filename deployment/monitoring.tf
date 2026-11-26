@@ -862,7 +862,7 @@ resource "azurerm_monitor_metric_alert" "db_storage_pregrow" {
   scopes              = [azurerm_postgresql_flexible_server.main.id]
   description         = "BITB-232: PostgreSQL storage averaged >70% over 15 minutes. Warns BEFORE auto-grow doubles the disk (a permanent cost step; Azure cannot shrink it). The 85% db_storage alert cannot catch the ratchet because utilization drops after a grow. Threshold is tuned above the observed p95 (63.6%) so normal variance does not page. Investigate what is writing (backfill, bloat, WAL) before auto-grow makes it moot."
   severity            = 3
-  frequency           = "PT5M"
+  frequency           = "PT15M" # BITB-223: sev3 next-day signal, no 3am action
   window_size         = "PT15M"
 
   criteria {

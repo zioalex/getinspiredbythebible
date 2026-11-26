@@ -1053,6 +1053,10 @@ shrink the disk; see BITB-229). Two guards watch it:
   provisioned `storageSizeGb` of every server in the resource group to
   `EXPECTED_DB_STORAGE_GB` and pages Telegram on any mismatch (or if it cannot verify).
   Utilization drops after a grow, so only this check sees the event itself.
+  A grow cannot be undone, so the mismatch persists: expect a re-page about every 30 min
+  (the notify action's repeat cadence) until a PR updates `EXPECTED_DB_STORAGE_GB`. That
+  is deliberate — it forces the baseline to be acknowledged in code. It is not a 3am
+  action: acknowledge it the next morning.
 
 **Expected size is 64 GB, not the declared 32 GB.** `main.tf` declares `storage_mb = 32768`
 (with `ignore_changes`), but the live disk already ratcheted to 64 GB. The workflow's

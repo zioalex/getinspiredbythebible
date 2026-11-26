@@ -63,7 +63,7 @@ def test_pregrow_alert_criteria() -> None:
     assert _attr(body, "aggregation") == '"Average"'
     assert _attr(body, "operator") == '"GreaterThan"'
     assert _attr(body, "window_size") == '"PT15M"'
-    assert _attr(body, "frequency") == '"PT5M"'
+    assert _attr(body, "frequency").startswith('"PT15M"')
     assert _attr(body, "severity") == "3"
     assert _attr(body, "name") == '"${local.name_prefix}-db-storage-pregrow"'
 

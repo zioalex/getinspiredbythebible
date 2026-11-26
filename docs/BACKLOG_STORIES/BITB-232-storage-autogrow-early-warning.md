@@ -70,6 +70,11 @@ risk isn't "disk full", it's "disk doubled".
 
 ## Implementation notes
 
+- **Re-page until acknowledged in code.** A grow is irreversible, so the tripwire
+  re-pages about every 30 min until a PR updates `EXPECTED_DB_STORAGE_GB` — accepted
+  as a forcing function (not a 3am action). BITB-229 now carries the matching update step.
+- **Cadence:** the pre-grow alert evaluates every PT15M over a PT15M window (BITB-223:
+  sev3 next-day signal, so not a PT5M rule).
 - **Deviation: baseline is 64 GB, not the declared 32 GB.** The live disk
   already ratcheted 32 -> 64 GB and Terraform cannot shrink it, so comparing to
   32 would page forever. `EXPECTED_DB_STORAGE_GB: "64"` lives in
