@@ -1,0 +1,170 @@
+name: ACR Purge
+
+# BITB-370: the Basic container registry includes 10 GB; image storage above that is
+# billed (~$4.7/month in Nov 2026) and nothing ever deleted old images. This weekly job
+# purges old image tags and untagged manifests from the bible-backend / bible-frontend
+# repositories with `acr purge` (run as an ACR Task via `az acr run`).
+#
+# Retention: every tag older than 14 days is purged EXCEPT the newest 10 tags per
+# repository (--keep 10), plus any untagged manifests. azure-deploy.yml tags images
+# with the full commit SHA (plus the branch name and `latest`), so this keeps roughly
+# the 10 newest builds available for a `skip_build` + `image_tag` rollback; older SHAs
+# are gone by design. Normal deploys never need an old tag, only the freshly built one
+# or the currently deployed image reference.
+#
+# Deployed-image protection (chosen approach: LOCK, not "verify it is among the newest
+# --keep"): `acr purge` has no exclude flag, and a deployed tag can be older than the
+# newest 10 (e.g. a backend that has not been rebuilt for weeks while the frontend
+# churns). So the job first reads the image references of the running backend and
+# frontend Container Apps and sets delete-enabled=false / write-enabled=false on those
+# exact tags; `acr purge` skips locked images. An `if: always()` step unlocks them
+# afterwards, and a final check fails the job if a deployed tag no longer exists.
+#
+# Required Azure permissions (the ARM_* deploy service principal is Contributor on the
+# subscription / resource group, see deployment/scripts/setup-github-spn.sh):
+#   - Microsoft.ContainerRegistry/registries/scheduleRun/action and
+#     .../runs/listLogSasUrl/action  (az acr run)
+#   - Microsoft.ContainerRegistry/registries/repositories/metadata/write  (lock/unlock)
+# Contributor includes all three. A narrower principal needs Contributor on the registry.
+#
+# Manual run: Actions -> ACR Purge -> Run workflow. `dry_run` defaults to true (lists
+# what would be deleted, deletes nothing). Scheduled runs are real purges.
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  schedule:
+    - cron: "23 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would be purged without deleting anything"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acr-purge
+  cancel-in-progress: false
+
+env:
+  # Real (Terraform-created) names; see the note in azure-deploy.yml.
+  BACKEND_APP_NAME: bible-app-backend
+  FRONTEND_APP_NAME: bible-app-frontend
+  ACR_NAME: bibleappacrmb0172
+  RESOURCE_GROUP: bible-app-rg
+  STATE_BRANCH: gh-monitor-state
+
+jobs:
+  purge:
+    name: Purge old ACR images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Registry usage before
+        run: az acr show-usage --registry "$ACR_NAME" -o table
+
+      - name: Lock currently deployed images
+        id: protect
+        run: |
+          set -euo pipefail
+          : > "$RUNNER_TEMP/locked-images.txt"
+          for app in "$BACKEND_APP_NAME" "$FRONTEND_APP_NAME"; do
+            images=$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" \
+              --query "properties.template.containers[].image" -o tsv)
+            if [ -z "$images" ]; then
+              echo "::error::Could not read the deployed image of $app; refusing to purge"
+              exit 1
+            fi
+            echo "$app runs: $images"
+            while IFS= read -r image; do
+              case "$image" in
+                "$ACR_NAME.azurecr.io/"*:*) ;;
+                *) echo "Skipping non-ACR or untagged image reference: $image"; continue ;;
+              esac
+              ref="${image#"$ACR_NAME.azurecr.io/"}"
+              echo "$ref" >> "$RUNNER_TEMP/locked-images.txt"
+            done <<< "$images"
+          done
+          sort -u -o "$RUNNER_TEMP/locked-images.txt" "$RUNNER_TEMP/locked-images.txt"
+          if [ ! -s "$RUNNER_TEMP/locked-images.txt" ]; then
+            echo "::error::No deployed ACR image found to protect; refusing to purge"
+            exit 1
+          fi
+          while IFS= read -r ref; do
+            echo "Locking $ref"
+            az acr repository update --name "$ACR_NAME" --image "$ref" \
+              --write-enabled false --delete-enabled false
+          done < "$RUNNER_TEMP/locked-images.txt"
+
+      - name: Purge old tags and untagged manifests
+        env:
+          DRY_RUN_INPUT: ${{ github.event.inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          # Scheduled runs have no inputs: treat an empty value as a real purge.
+          DRY=""
+          if [ "$DRY_RUN_INPUT" == "true" ]; then
+            DRY="--dry-run"
+            echo "DRY RUN: nothing will be deleted"
+          fi
+          PURGE_CMD="acr purge --filter 'bible-backend:.*' --filter 'bible-frontend:.*'"
+          PURGE_CMD="$PURGE_CMD --ago 14d --keep 10 --untagged $DRY"
+          echo "Running: $PURGE_CMD"
+          az acr run --registry "$ACR_NAME" --cmd "$PURGE_CMD" /dev/null
+
+      - name: Unlock deployed images
+        if: always() && steps.protect.outcome != 'skipped'
+        run: |
+          set -uo pipefail
+          [ -s "$RUNNER_TEMP/locked-images.txt" ] || exit 0
+          rc=0
+          while IFS= read -r ref; do
+            echo "Unlocking $ref"
+            az acr repository update --name "$ACR_NAME" --image "$ref" \
+              --write-enabled true --delete-enabled true || rc=1
+          done < "$RUNNER_TEMP/locked-images.txt"
+          exit $rc
+
+      - name: Verify deployed images still exist
+        run: |
+          set -euo pipefail
+          while IFS= read -r ref; do
+            repo="${ref%%:*}"
+            tag="${ref#*:}"
+            if ! az acr repository show-tags --name "$ACR_NAME" --repository "$repo" \
+                 --query "[?@=='$tag']" -o tsv | grep -q .; then
+              echo "::error::Deployed image $ref is missing from the registry"
+              exit 1
+            fi
+            echo "OK: $ref present"
+          done < "$RUNNER_TEMP/locked-images.txt"
+
+      - name: Registry usage after
+        if: always()
+        run: az acr show-usage --registry "$ACR_NAME" -o table || true
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: acr-purge
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}

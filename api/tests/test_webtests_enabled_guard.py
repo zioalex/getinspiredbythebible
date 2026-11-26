@@ -60,10 +60,17 @@ _WORKFLOW_YAML = yaml.safe_load(_WORKFLOW.read_text())
 
 
 def test_webtest_blocks_found() -> None:
-    assert {"backend_availability", "backend_preflight"} <= set(_BLOCKS)
+    assert set(_BLOCKS) == {"backend_preflight"}
 
 
-@pytest.mark.parametrize("name", ["backend_availability", "backend_preflight"])
+def test_availability_webtest_retired() -> None:
+    # BITB-370: Standard Web Test Execution billed ~$29/month; /health/ready is covered by
+    # the GitHub prod-monitor health probe and backend_probe_failures instead.
+    assert not re.search(r'resource\s+"[\w]+"\s+"backend_availability"', _MAIN_TF.read_text())
+    assert "backend_availability" not in _BLOCKS
+
+
+@pytest.mark.parametrize("name", ["backend_preflight"])
 @pytest.mark.parametrize("attr", ["enabled", "retry_enabled"])
 def test_webtest_pins_attribute_true(name: str, attr: str) -> None:
     assert re.search(
@@ -73,7 +80,7 @@ def test_webtest_pins_attribute_true(name: str, attr: str) -> None:
 
 def test_expected_webtests_env_matches_terraform_names() -> None:
     suffixes = []
-    for name in ("backend_availability", "backend_preflight"):
+    for name in ("backend_preflight",):
         match = re.search(
             r'^\s*name\s*=\s*"\$\{local\.name_prefix\}-(\w+)"', _BLOCKS[name], re.MULTILINE
         )

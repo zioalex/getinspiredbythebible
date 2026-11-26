@@ -20,23 +20,24 @@
 #       Key Vault (set out-of-band by the deploy workflow) and is read at run time via the
 #       Logic App's managed identity, so it never enters terraform state. Gated on
 #       telegram_enabled (= alerts_enabled && telegram_chat_id != "").
-#   - azurerm_monitor_metric_alert.backend_availability
-#       Wires the existing azurerm_application_insights_standard_web_test
-#       (defined in main.tf) to the action group. Without this, the web test
-#       runs but never alerts.
+#   - azurerm_monitor_metric_alert.backend_preflight_availability
+#       Wires the CORS-preflight azurerm_application_insights_standard_web_test
+#       (defined in main.tf; 1 location, every 15 min since BITB-370) to the action
+#       group. Without this, the web test runs but never alerts. The /health/ready
+#       test and its alert (backend_availability) were retired in BITB-370.
 #   - azurerm_monitor_metric_alert.backend_restarts
 #       Fires when the backend container app reports >0 restarts in 15 min.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_errors (BITB-056)
 #       ERROR-level backend log lines, categorised; shares backend-error-filter.kql
 #       with the prod-monitor.yml log-scan job. Sev2 for hard-failure categories.
-#       (BITB-223) PT5M survivor — actionable, 3am action: investigate the inlined
-#       category/sample/RequestIds.
+#       (BITB-223) PT5M survivor, (BITB-370) now PT15M for cost - actionable, 3am action:
+#       investigate the inlined category/sample/RequestIds.
 #   - azurerm_monitor_metric_alert.db_cpu/db_memory/db_storage/db_connections_failed (BITB-056)
 #       Postgres flexible-server resource saturation (the conc~32 threshold knee) + disk-full.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_search_latency_p95 (BITB-056)
 #       Semantic-search p95 > 2000ms — the user-facing signal of the DB saturation knee.
-#       (BITB-223) PT5M survivor — protects the BITB-062 latency work; 3am action: DB
-#       investigation.
+#       (BITB-223) PT5M survivor, (BITB-370) now PT15M for cost - protects the BITB-062
+#       latency work; 3am action: DB investigation.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_fetch_latency_p95 (BITB-041, BITB-223)
 #       Fires when p95 latency of verse/chapter DB reads exceeds 1000ms.
 #       (BITB-223) demoted PT15M — latency quality trend, not an emergency.
@@ -56,7 +57,7 @@
 #       error. These code paths swallow exceptions (fail open to a verse-less
 #       answer), so without this alert a broken search can run silently — exactly
 #       how the "# nosec inside SQL" syntax-error regression went unnoticed.
-#       (BITB-223) PT5M survivor — actionable, has a 3am action.
+#       (BITB-223) PT5M survivor, (BITB-370) now PT15M for cost - actionable, has a 3am action.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.verse_grounding_paraphrase_brackets (BITB-053, BITB-223)
 #       Observation alert: bracketed unquoted-paraphrase appends
 #       (chat.verse_grounding.paraphrase_detections, bracketed=true applied=true)
@@ -79,7 +80,7 @@
 #       messages (content_safety.fallback_total / content_safety.checks_total;
 #       utils/content_safety.py). They REPLACE content_safety_fallback_rate
 #       (BITB-061/BITB-223), which paged on any sustained fallback event with no
-#       denominator. Fast: Sev2, 14.4x budget over 1h AND 5m. Slow: Sev3, 6x budget
+#       denominator. Fast: Sev2, 14.4x budget over 1h AND 15m (BITB-370). Slow: Sev3, 6x budget
 #       over 6h AND 30m. Budget = var.content_safety_fallback_slo_target.
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.backend_client_rejection_spike (BITB-223)
 #       Sev3 companion to backend_5xx_rate: 401/403/429 responses are excluded from
@@ -113,16 +114,20 @@
 #       (BITB-223) demoted to PT1H — quality metric with no 3am action; gross
 #       latency/outage is caught by the synthetic-chat probe (30s timeouts).
 #
-#   (BITB-223) recalibrated PT5M rules (evaluation cadence kept, breach gating added):
-#   - backend_5xx_rate — 15 minutes of sustained 5xx (3 of 3 five-minute windows at
-#     >=3 breaches each) so deploy-time app-replacement blips don't page (BITB-067
+#   (BITB-370) COST CADENCE: only rate_limiter_fail_closed and backend_asgi_exceptions
+#   still evaluate every PT5M (~$1.38/month each); every other former PT5M log-search
+#   rule now runs PT15M (~$0.46/month). Guarded by tests/test_monitoring_alert_cadence.py.
+#
+#   (BITB-223) recalibrated rules (breach gating added; BITB-370 moved the cadence to PT15M):
+#   - backend_5xx_rate — 15 minutes of sustained 5xx (all three five-minute bins at
+#     >=3 breaches each, evaluated in one PT15M window since BITB-370) so deploy-time app-replacement blips don't page (BITB-067
 #     gap #5). Sustained-window gating preferred over time-of-day suppression —
 #     deploy windows vary.
 #   - content_safety_fallback_rate — REMOVED in BITB-290, replaced by the two
 #     content_safety_fallback_burn_* share-of-checks burn-rate rules (see above).
 #   - backend_probe_failures — kept (BITB-224): it reads ContainerAppSystemLogs_CL
 #     ReplicaUnhealthy, not the availability web tests. The two web-test metric alerts
-#     (backend_availability, backend_preflight_availability) only fire while the web
+#     (backend_preflight_availability) only fires while the web
 #     test is Enabled; that is guarded by prod-deploy-drift.yml `webtests-enabled`.
 #   - rate_limiter_fail_closed — untouched security fail-closed insurance (BITB-061).
 #
@@ -386,33 +391,10 @@ resource "azurerm_logic_app_action_custom" "telegram_send" {
   })
 }
 
-# Wire the existing standard web test to the action group so a region failing
-# to reach /health/ready triggers an email.
-resource "azurerm_monitor_metric_alert" "backend_availability" {
-  count               = local.alerts_enabled ? 1 : 0
-  name                = "${local.name_prefix}-availability-failed"
-  resource_group_name = azurerm_resource_group.main.name
-  scopes = [
-    azurerm_application_insights_standard_web_test.backend_availability[0].id,
-    azurerm_application_insights.main[0].id,
-  ]
-  description = "Backend availability test failing from one or more regions."
-  severity    = 1
-  frequency   = "PT1M"
-  window_size = "PT5M"
-
-  application_insights_web_test_location_availability_criteria {
-    web_test_id           = azurerm_application_insights_standard_web_test.backend_availability[0].id
-    component_id          = azurerm_application_insights.main[0].id
-    failed_location_count = 2
-  }
-
-  action {
-    action_group_id = azurerm_monitor_action_group.ops_email[0].id
-  }
-
-  tags = local.tags
-}
+# The /health/ready availability test and its metric alert (backend_availability)
+# were retired in BITB-370: Standard Web Test Execution billed ~$29/month in Nov 2026.
+# /health/ready stays covered by the GitHub prod-monitor health probe (every 5 min)
+# and backend_probe_failures.
 
 # Wire the CORS-preflight web test (BITB-064) to the action group so a
 # browser-only preflight failure (like the 2026-07-05 _IncludedRouter 500)
@@ -426,15 +408,17 @@ resource "azurerm_monitor_metric_alert" "backend_preflight_availability" {
     azurerm_application_insights_standard_web_test.backend_preflight[0].id,
     azurerm_application_insights.main[0].id,
   ]
-  description = "Backend CORS-preflight (OPTIONS /api/v1/chat/stream) availability test failing from one or more regions — the browser-only failure signature of the _IncludedRouter/OTel incident."
+  description = "Backend CORS-preflight (OPTIONS /api/v1/chat/stream) availability test failing from its location (West Europe, every 15 min) — the browser-only failure signature of the _IncludedRouter/OTel incident."
   severity    = 1
-  frequency   = "PT1M"
-  window_size = "PT5M"
+  # BITB-370: the web test runs every 15 min from ONE location, so the window must
+  # span a full run (PT15M) and a single failed location is the only possible count.
+  frequency   = "PT5M"
+  window_size = "PT15M"
 
   application_insights_web_test_location_availability_criteria {
     web_test_id           = azurerm_application_insights_standard_web_test.backend_preflight[0].id
     component_id          = azurerm_application_insights.main[0].id
-    failed_location_count = 2
+    failed_location_count = 1
   }
 
   action {
@@ -486,7 +470,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_probe_failure
   name                 = "${local.name_prefix}-backend-probe-failures"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
+  evaluation_frequency = "PT15M"
   window_duration      = "PT15M"
   scopes               = [azurerm_log_analytics_workspace.main.id]
   severity             = 2
@@ -540,11 +524,11 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
   name                 = "${local.name_prefix}-backend-error-logs"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT15M"
   scopes               = [azurerm_log_analytics_workspace.main.id]
   severity             = 2
-  description          = "Backend logged an actionable ERROR in the last 10 minutes. Category is one of: db_pool_timeout (DB connection-pool/server saturation), llm_all_models_down, chat_unhandled / chat_stream_unhandled (unhandled 5xx), verse_context_failed, scripture_search_failed, llm_provider_error. Per-category count, a sample log line and up to 5 RequestIds are inlined below, with a Details link to the full results."
+  description          = "Backend logged an actionable ERROR in the last 15 minutes. Category is one of: db_pool_timeout (DB connection-pool/server saturation), llm_all_models_down, chat_unhandled / chat_stream_unhandled (unhandled 5xx), verse_context_failed, scripture_search_failed, llm_provider_error. Per-category count, a sample log line and up to 5 RequestIds are inlined below, with a Details link to the full results."
 
   criteria {
     # Shared filter (ERROR-level + category extraction) + this rule's aggregation tail.
@@ -587,22 +571,22 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_errors" {
 # and _apply_verse_grounding each catch exceptions and degrade to a verse-less
 # answer (no 5xx). This rule surfaces those swallowed failures by matching the
 # exact log signatures they emit, so a broken search/grounding path can no longer
-# run silently. Runs every 5 minutes over the last 10 minutes of backend logs.
+# run silently. Runs every 15 minutes over the last 15 minutes of backend logs (BITB-370).
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_grounding_errors" {
   count                = local.alerts_enabled ? 1 : 0
   name                 = "${local.name_prefix}-scripture-grounding-errors"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT15M"
   scopes               = [azurerm_log_analytics_workspace.main.id]
   severity             = 2
-  description          = "Scripture search, cited-verse resolution, or verse grounding logged an error in the last 10 minutes (these paths fail open, so errors are otherwise invisible)."
+  description          = "Scripture search, cited-verse resolution, or verse grounding logged an error in the last 15 minutes (these paths fail open, so errors are otherwise invisible)."
 
   criteria {
     query                   = <<-KQL
       ContainerAppConsoleLogs_CL
-      | where TimeGenerated > ago(10m)
+      | where TimeGenerated > ago(15m)
       | where ContainerAppName_s == "${azurerm_container_app.backend.name}"
       | where Log_s matches regex "(?i)(scripture search failed|failed to resolve cited verse|verse grounding skipped|PostgresSyntaxError|InFailedSQLTransactionError|current transaction is aborted)"
       | extend RequestId = extract(@"\|\s*\[([^\]]*)\]\s*\|", 1, Log_s)
@@ -641,8 +625,8 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_pipeline_er
   name                 = "${local.name_prefix}-scripture-pipeline-errors"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT10M"
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT15M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 2
   description          = "A fail-open exception in the chat scripture pipeline (search/resolve/grounding) was caught and the response was silently degraded to verse-less. Emitted by scripture.pipeline.errors custom metric."
@@ -650,7 +634,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_pipeline_er
   criteria {
     query                   = <<-KQL
       customMetrics
-      | where timestamp > ago(10m)
+      | where timestamp > ago(15m)
       | where name == "scripture.pipeline.errors"
       | summarize total = sum(valueSum) by bin(timestamp, 5m)
       | where total > 0
@@ -884,7 +868,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "scripture_search_late
   name                 = "${local.name_prefix}-scripture-search-latency-p95"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
+  evaluation_frequency = "PT15M"
   window_duration      = "PT15M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 2
@@ -1106,8 +1090,11 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "rate_limiter_fail_clo
 # which paged 42 times in 30 days — mostly deploy-time app-replacement blips
 # (the brief 502/503 window while Container Apps swaps revisions; BITB-067
 # gap #5 documented this class). Now requires a SUSTAINED 15-minute breach:
-# >=3 5xx in every 5-minute window for 3 consecutive windows (failing_periods
-# 3 of 3 over a PT5M window_duration). A real outage (e.g. the 2026-07-05
+# >=3 5xx in every 5-minute window for 3 consecutive windows.
+# (BITB-370) Evaluated every 15 minutes: one PT15M window, query counts the three
+# fixed 5-minute bins with >=3 5xx and alerts when all three breach (failing_periods
+# 1 of 1) - same sustained semantics as the old 3-of-3 PT5M gate, a third of the
+# evaluations. A real outage (e.g. the 2026-07-05
 # _IncludedRouter class) is continuous and still pages within ~15 minutes; a
 # one-or-two-minute deploy blip does not. Sustained-window gating chosen over
 # time-of-day suppression because deploy windows vary. Severity 1 unchanged.
@@ -1116,8 +1103,8 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
   name                 = "${local.name_prefix}-backend-5xx-rate"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
-  window_duration      = "PT5M"
+  evaluation_frequency = "PT15M"
+  window_duration      = "PT15M"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 1
   description          = "Backend returned HTTP 5xx, or another success==false response that isn't an expected client rejection (401/403/429), at >=3 requests per 5 minutes, sustained for the last 15 minutes (3 consecutive 5-minute windows). Broad catch-all for server-side failures not covered by the specific metric/log alerts. Turnstile/bot 403s, auth 401s, and rate-limit 429s are excluded — see backend_client_rejection_spike for those. Deploy-time app-replacement blips (seconds of 502s) do not sustain 15 minutes. NOTE: a crash inside the OTel ASGI middleware records no requests row — see backend_asgi_exceptions for that class."
@@ -1125,19 +1112,23 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "backend_5xx_rate" {
   criteria {
     query                   = <<-KQL
       requests
-      | where timestamp > ago(5m)
+      | where timestamp > ago(15m)
       | where toint(resultCode) >= 500
           or (success == false and toint(resultCode) !in (401, 403, 429))
-      | summarize total = count() by bin(timestamp, 5m)
+      // Three fixed 5-minute bins anchored at ago(15m). A bin with no 5xx has no row,
+      // so it cannot count: the alert needs ALL THREE bins at >=3 (BITB-370).
+      | summarize total = count() by bin_at(timestamp, 5m, ago(15m))
       | where total >= 3
+      | summarize breached_bins = count()
+      | where breached_bins >= 3
     KQL
     time_aggregation_method = "Count"
     threshold               = 0
     operator                = "GreaterThan"
 
     failing_periods {
-      minimum_failing_periods_to_trigger_alert = 3
-      number_of_evaluation_periods             = 3
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
     }
   }
 
@@ -1314,9 +1305,10 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "frontend_client_error
 # Denominator: content_safety.checks_total (one per screened message, BITB-290).
 # Azure caps alert look-back at 48h, so the 7-day budget is enforced through
 # Google-SRE multi-window burn rates instead of a direct 7d query:
-#   fast: 14.4x budget over 1h AND 5m  (default 7.2% share)  -> Sev2, PT5M
+#   fast: 14.4x budget over 1h AND 15m (default 7.2% share)  -> Sev2, PT15M (BITB-370)
 #   slow:  6x   budget over 6h AND 30m (default 3% share)    -> Sev3, PT15M
-# The short window stops the alert staying red after recovery. A low-traffic
+# The short window stops the alert staying red after recovery. (BITB-370: the
+# fast rule's short window and evaluation cadence moved 5m -> 15m for cost.) A low-traffic
 # guard (>= 3 fallbacks in the long window) stops a single fallback among a
 # handful of messages from paging. (BITB-223) removed the any-fallback rule's
 # noise by sustained-window gating; this is the principled replacement.
@@ -1325,11 +1317,11 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallba
   name                 = "${local.name_prefix}-content-safety-fallback-burn-fast"
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
-  evaluation_frequency = "PT5M"
+  evaluation_frequency = "PT15M"
   window_duration      = "PT1H"
   scopes               = [azurerm_application_insights.main[0].id]
   severity             = 2
-  description          = "Keyword-fallback share of checked messages (content_safety.fallback_total / content_safety.checks_total) is burning the ${var.content_safety_fallback_slo_target} SLO error budget at 14.4x over BOTH the 1h and 5m windows (min 3 fallbacks in the long window, to ignore low-traffic noise). Replaces the BITB-223 any-fallback rule content_safety_fallback_rate (BITB-290). See docs/HOW-TO-ENABLE-CONTENT-SAFETY.md and the Content Safety section of the performance workbook."
+  description          = "Keyword-fallback share of checked messages (content_safety.fallback_total / content_safety.checks_total) is burning the ${var.content_safety_fallback_slo_target} SLO error budget at 14.4x over BOTH the 1h and 15m windows (min 3 fallbacks in the long window, to ignore low-traffic noise). Replaces the BITB-223 any-fallback rule content_safety_fallback_rate (BITB-290). See docs/HOW-TO-ENABLE-CONTENT-SAFETY.md and the Content Safety section of the performance workbook."
 
   criteria {
     query                   = <<-KQL
@@ -1342,7 +1334,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "content_safety_fallba
         | summarize fb = sumif(valueSum, name == "content_safety.fallback_total"),
                     chk = sumif(valueSum, name == "content_safety.checks_total");
       let short_w = m
-        | where timestamp > ago(5m)
+        | where timestamp > ago(15m)
         | summarize sfb = sumif(valueSum, name == "content_safety.fallback_total"),
                     schk = sumif(valueSum, name == "content_safety.checks_total");
       long_w

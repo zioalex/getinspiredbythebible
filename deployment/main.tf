@@ -6,7 +6,7 @@
 # - Azure Database for PostgreSQL Flexible Server (with pgvector)
 # - Azure Container Registry (for Docker images)
 #
-# Estimated cost: ~$25-40/month within $50 budget
+# Cost: see the "Cost" section of deployment/README.md (budget $50/month).
 # =============================================================================
 
 terraform {
@@ -295,40 +295,10 @@ resource "azurerm_application_insights" "main" {
   tags = local.tags
 }
 
-# Standard availability test — pings the backend /health/ready endpoint every
-# 5 minutes from multiple Azure locations.  This populates the "Availability"
-# tab in Application Insights (which is 0% without an explicit test).
-# BITB-224: `enabled` is Optional with no default in the azurerm provider, so
-# omitting it created (and on every apply re-set) the test as DISABLED — both
-# availability tests sat at Enabled=false in production. Pin it explicitly.
-resource "azurerm_application_insights_standard_web_test" "backend_availability" {
-  count                   = var.enable_application_insights ? 1 : 0
-  name                    = "${local.name_prefix}-availability"
-  resource_group_name     = azurerm_resource_group.main.name
-  location                = azurerm_resource_group.main.location
-  application_insights_id = azurerm_application_insights.main[0].id
-
-  geo_locations = [
-    "emea-nl-ams-azr", # West Europe
-    "emea-gb-db3-azr", # UK South
-    "us-va-ash-azr",   # East US
-  ]
-
-  enabled       = true # BITB-224: provider default is false; omitting this kept both tests off
-  retry_enabled = true
-
-  frequency = 300 # every 5 minutes
-
-  request {
-    url = "https://${azurerm_container_app.backend.ingress[0].fqdn}/health/ready"
-  }
-
-  validation_rules {
-    expected_status_code = 200
-  }
-
-  tags = local.tags
-}
+# The /health/ready standard availability test (backend_availability) was retired
+# in BITB-370: 2 tests x 3 geos x every 5 min billed ~$29/month ("Standard Web Test
+# Execution", Nov 2026). /health/ready stays covered by the GitHub prod-monitor
+# health probe (every 5 min) and the backend_probe_failures alert.
 
 # Browser CORS-preflight availability test (BITB-064). The /health/ready GET
 # test above stayed green through the 2026-07-05 _IncludedRouter outage because
@@ -338,6 +308,9 @@ resource "azurerm_application_insights_standard_web_test" "backend_availability"
 # so an always-on Azure-native alert fires on a preflight-only failure — not
 # just the 5-minute GitHub cross-origin-smoke probe. Complements it as the
 # second, independent channel.
+# BITB-370 cost: one location, every 15 min (~2.9k executions/month, ~$0.05/day)
+# instead of 3 geos every 5 min. `enabled` is Optional with no default in the
+# azurerm provider (BITB-224): pin it explicitly or the test is created disabled.
 resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
   count                   = var.enable_application_insights ? 1 : 0
   name                    = "${local.name_prefix}-preflight"
@@ -345,16 +318,12 @@ resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
   location                = azurerm_resource_group.main.location
   application_insights_id = azurerm_application_insights.main[0].id
 
-  geo_locations = [
-    "emea-nl-ams-azr", # West Europe
-    "emea-gb-db3-azr", # UK South
-    "us-va-ash-azr",   # East US
-  ]
+  geo_locations = ["emea-nl-ams-azr"] # West Europe only (BITB-370: web tests bill per location)
 
   enabled       = true # BITB-224: provider default is false; omitting this kept both tests off
   retry_enabled = true
 
-  frequency = 300 # every 5 minutes
+  frequency = 900 # every 15 minutes (BITB-370)
 
   request {
     url       = "https://${azurerm_container_app.backend.ingress[0].fqdn}/api/v1/chat/stream"

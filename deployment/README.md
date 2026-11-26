@@ -8,10 +8,10 @@ Deploy the **Vox Quieta** application on Azure using Container Apps with scale-t
 | Service | Actual Configuration |
 |---------|---------------------|
 | PostgreSQL Flexible | `Standard_B2s` (2 vCore, 4 GB), 64 GB storage (auto-grow ratchet; Terraform declares 32 GB — see BITB-150) |
-| Container Registry | Basic |
+| Container Registry | Basic (weekly `acr-purge.yml` keeps storage under the included 10 GB, BITB-370) |
 | Container Apps | Consumption, `min_replicas = 1` on both (always-on; scale-to-zero NOT in use — cold starts on a chat UI) |
 | Log Analytics | PerGB2018, 30-day retention |
-| Monitoring | App Insights (workspace-based), 2 availability web tests, 32 alert rules |
+| Monitoring | App Insights (workspace-based), 1 CORS-preflight web test (1 location, every 15 min), ~30 alert rules |
 
 Actual spend is measured and tracked by the Phase 0 cost-evidence tooling
 (`scripts/collect_cost_evidence.py`, weekly via `.github/workflows/cost-evidence-weekly.yml`).
@@ -20,6 +20,26 @@ removed — see `docs/BACKLOG_STORIES/BITB-150-azure-cost-analysis-monitoring-an
 and its follow-up stories (BITB-223…234) for the evidence-based analysis and the
 accepted optimization levers. `monthly_budget` in `terraform.tfvars` is set from
 the measured run rate, not from this README.
+
+### November 2026 meter breakdown (BITB-370)
+
+Cost Management export for `bible-app-rg`, 1-26 Nov 2026: 96.72 CHF (~$116), about $134/month projected
+against the $50 budget. Projected to 30 days:
+
+| Line | ~USD/month | Status |
+|------|-----------:|--------|
+| Postgres B2s compute + 64 GB storage | 57 | Unchanged; DB track BITB-228 -> 230 -> 229 -> 231 |
+| App Insights Standard Web Test Execution | 29 | Phase 1: one preflight test, 1 location, every 15 min (~$0.05/day) |
+| Log-search alert rules | 15 | Phase 1: all but `rate_limiter_fail_closed` / `backend_asgi_exceptions` evaluate every 15 min instead of 5 |
+| Container Apps | 16 | Unchanged |
+| Container Registry | 9 | Phase 1: weekly `.github/workflows/acr-purge.yml` (keep newest 10 tags, drop tags older than 14 days and untagged manifests; deployed tags are locked during the run) |
+| Log Analytics ingestion | 6.5 | Postgres log volume handled by BITB-233 |
+
+Phase 1 removes about $40/month, so the expected run rate is **~$90-95/month**. That does **not** reach $50:
+the remaining gap is the Postgres SKU and storage (BITB-231, gated on BITB-230). Re-export Cost Management
+about 7 days after deploying to confirm. The ACR purge needs the `ARM_*` deploy principal to be Contributor
+(ACR Tasks run + image lock permissions); run it first with `dry_run=true`. Cadence is guarded by
+`api/tests/test_monitoring_alert_cadence.py`.
 
 ## 🏗️ Architecture
 
