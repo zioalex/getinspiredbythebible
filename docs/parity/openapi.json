@@ -2011,7 +2011,7 @@
     },
     "/config": {
       "get": {
-        "description": "Get current configuration (non-sensitive).\n\nUseful for debugging and frontend configuration.",
+        "description": "Get public client configuration (limits, feature flags, Turnstile site key).",
         "operationId": "get_config_config_get",
         "responses": {
           "200": {

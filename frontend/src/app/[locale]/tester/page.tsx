@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Users, CheckCircle2, Smartphone, ArrowLeft } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
+import { getOgImageAlt } from "@/lib/ogImage";
 import { pageMetadata } from "@/lib/seo";
 import {
   TESTER_GROUP_URL,
@@ -28,6 +29,7 @@ export async function generateMetadata({
       path: "/tester",
       title: t("metaTitle"),
       description: t("metaDescription"),
+      ogImageAlt: await getOgImageAlt(locale),
     }),
     // The beta funnel is reachable by URL but must not be indexed.
     robots: { index: false, follow: false },

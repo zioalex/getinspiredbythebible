@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { buildJsonLd, pageMetadata, OG_LOCALE, SITE_URL } from "./seo";
 import { routing } from "@/i18n/routing";
+import { buildJsonLd, pageMetadata, OG_LOCALE, SITE_URL } from "./seo";
+
+type OgImage = { url: string; width: number; height: number; alt: string };
 
 describe("buildJsonLd", () => {
   it("returns a string that parses cleanly as JSON", () => {
@@ -70,9 +72,48 @@ describe("pageMetadata", () => {
       locale: "en",
       title: "Vox Quieta",
       description: "Get inspired daily by God's Word",
+      ogImageAlt: "Vox Quieta — Get inspired daily by God's Word",
     });
 
     expect(metadata.twitter?.card).toBe("summary_large_image");
+  });
+
+  describe.each(routing.locales)("share image (%s)", (locale) => {
+    const metadata = pageMetadata({
+      locale,
+      path: "/about",
+      title: "Page title",
+      description: "Page description",
+      ogImageAlt: `alt-${locale}`,
+    });
+
+    it("points og:image at the static per-locale PNG", () => {
+      const images = metadata.openGraph?.images as OgImage[];
+      expect(images[0].url).toBe(`/og/${locale}.png`);
+      expect(images[0].width).toBe(1200);
+      expect(images[0].height).toBe(630);
+      expect(images[0].alt).toBe(`alt-${locale}`);
+    });
+
+    it("points twitter:image at the same PNG with a non-empty alt", () => {
+      const images = metadata.twitter?.images as OgImage[];
+      expect(images[0].url).toBe(`/og/${locale}.png`);
+      expect(images[0].alt).toBeTruthy();
+    });
+  });
+
+  it("ends the Arabic and Hindi image URLs with /og/ar.png and /og/hi.png", () => {
+    for (const locale of ["ar", "hi"]) {
+      const m = pageMetadata({
+        locale,
+        title: "t",
+        description: "d",
+        ogImageAlt: "localized alt",
+      });
+      expect((m.openGraph?.images as OgImage[])[0].url).toMatch(
+        new RegExp(`/og/${locale}\\.png$`),
+      );
+    }
   });
 });
 
@@ -102,6 +143,7 @@ describe("pageMetadata Open Graph locale", () => {
         locale,
         title: "t",
         description: "d",
+        ogImageAlt: "alt",
       });
       const og = md.openGraph as {
         locale: string;

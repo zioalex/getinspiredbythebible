@@ -49,8 +49,8 @@ class TestMetrics:
             mock_record.assert_called_once_with(150.5)
 
         with patch.object(chat_sessions_counter, "add") as mock_add:
-            chat_sessions_counter.add(1, {"session_token": "test-session"})
-            mock_add.assert_called_once_with(1, {"session_token": "test-session"})
+            chat_sessions_counter.add(1)
+            mock_add.assert_called_once_with(1)
 
         with patch.object(chat_stream_counter, "add") as mock_add:
             chat_stream_counter.add(1)
