@@ -5,6 +5,7 @@ priority: P2
 size: S
 rank: 330
 created: 2026-10-23
+prs: [1340]
 ---
 
 # BITB-232: Storage Auto-Grow Early Warning — the Alert That Catches the Ratchet
