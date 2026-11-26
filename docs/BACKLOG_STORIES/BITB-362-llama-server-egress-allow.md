@@ -4,6 +4,7 @@ status: in-review
 priority: P2
 size: S
 created: 2026-11-26
+prs: [1342]
 ---
 
 # BITB-362: Allow Agent-Pod Egress to the llama.cpp LLM Provider (Supplemental Strict-Tier LAN Opt-In)
