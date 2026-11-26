@@ -4,7 +4,7 @@ status: in-review
 priority: P2
 size: S
 created: 2026-11-26
-prs: []
+prs: [1346]
 ---
 
 # BITB-369: Codify the delegation-hygiene lessons from the llama.cpp arc (CI-poll discipline + address-masking hazard)
