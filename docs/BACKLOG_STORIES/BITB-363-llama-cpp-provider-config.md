@@ -4,6 +4,7 @@ status: in-review
 priority: P2
 size: S
 created: 2026-11-26
+follow_ups: [BITB-364]
 ---
 
 # BITB-363: llama.cpp Server as an Opt-In opencode Provider in the Generated Config
@@ -98,6 +99,14 @@ proves the *committed* config does too.)
   runbook — merge first, then sync, then pod churn) is the owner's follow-up,
   NOT part of this PR
 - k8s/ or deployment/ doc updates (the netpol PR #1342 owns that lane)
+
+## Follow-ups
+
+- **BITB-364** — the pre-push git hook fails on new-branch pushes: it
+  falls back to all files, its write-mode hooks (prettier×2, markdownlint
+  --fix) rewrote ten unrelated files in this session's tree, and yamllint
+  then failed on prettier's own reflowed lines. Observed live while pushing
+  this branch; filed with the reproduction and the rewrite list.
 
 ## References
 
