@@ -2,6 +2,7 @@
 id: BITB-108
 status: in-progress
 priority: P2
+kind: nfr
 size: L
 created: 2026-08-22
 ---

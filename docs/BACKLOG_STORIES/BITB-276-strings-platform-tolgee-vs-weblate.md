@@ -2,6 +2,7 @@
 id: BITB-276
 status: todo
 priority: P3
+kind: spike
 size: M
 rank: 10
 created: 2026-11-08

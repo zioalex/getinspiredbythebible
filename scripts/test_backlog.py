@@ -66,6 +66,8 @@ def test_round_trip_preserves_fields_and_order() -> None:
         "rank": 30,
         "status": "in-review",
         "priority": "P0",
+        "milestone": "R2",
+        "kind": "nfr",
         "size": "XL",
         "created": "2026-01-02",
         "follow_ups": ["BITB-008"],
@@ -77,6 +79,8 @@ def test_round_trip_preserves_fields_and_order() -> None:
         "id",
         "status",
         "priority",
+        "kind",
+        "milestone",
         "size",
         "rank",
         "created",
@@ -242,7 +246,7 @@ def test_compact_format_and_truncation(sample: Path) -> None:
 
 def test_md_and_json_formats(sample: Path) -> None:
     stories = backlog.filter_stories(backlog.load_all(sample), priority="P0")
-    assert "| [BITB-005](BACKLOG_STORIES/BITB-005-top.md) | P0 | S | todo | - |" in (
+    assert "| [BITB-005](BACKLOG_STORIES/BITB-005-top.md) | P0 | - | - | S | todo | - |" in (
         backlog.format_md(stories)
     )
     rows = json.loads(backlog.format_json(stories))
@@ -510,3 +514,96 @@ def test_expand_ids_and_pr_requirement() -> None:
         "BITB-009",
     ]
     assert backlog.expand_ids("chore: nothing") == []
+
+
+# ---------------------------------------------------------------- kind + milestone (BITB-368)
+
+
+def _with(text: str, *lines: str) -> str:
+    """Insert front-matter lines right after `priority:`, where the backfill put them."""
+    out = []
+    for line in text.split("\n"):
+        out.append(line)
+        if line.startswith("priority:"):
+            out.extend(lines)
+    return "\n".join(out)
+
+
+def _dated(text: str, created: str) -> str:
+    return text.replace("created: 2026-11-13", f"created: {created}")
+
+
+def test_kind_and_milestone_valid(tmp_path: Path) -> None:
+    story = _dated(_with(_story("BITB-001"), "kind: nfr", "milestone: R1"), "2026-12-01")
+    assert _check(tmp_path, {S + "BITB-001-a.md": story}) == []
+
+
+@pytest.mark.parametrize(
+    ("lines", "needle"),
+    [
+        (("kind: epic",), "kind 'epic' invalid"),
+        (("kind: fix", "milestone: 1"), "milestone '1' invalid"),
+        (("kind: fix", "milestone: R0"), "milestone 'R0' invalid"),
+        (("kind: chore", "milestone: v1.63"), "milestone 'v1.63' invalid"),
+    ],
+)
+def test_kind_and_milestone_invalid(tmp_path: Path, lines: tuple[str, ...], needle: str) -> None:
+    errors = _check(tmp_path, {S + "BITB-001-a.md": _with(_story("BITB-001"), *lines)})
+    assert any(needle in e for e in errors), errors
+
+
+def test_kind_required_only_for_open_stories_from_the_cutover(tmp_path: Path) -> None:
+    cut = backlog.KIND_REQUIRED_FROM
+    files = {
+        S + "BITB-001-new.md": _dated(_story("BITB-001"), cut),
+        S + "BITB-002-old.md": _dated(_story("BITB-002"), "2026-11-26"),
+        S + "BITB-003-done.md": _dated(_story("BITB-003", status="done"), cut),
+        S + "BITB-004-cancelled.md": _dated(_story("BITB-004", status="cancelled"), cut),
+    }
+    errors = _check(tmp_path, files)
+    assert len(errors) == 1 and "BITB-001-new.md: open story has no 'kind'" in errors[0]
+
+
+def test_list_filters_by_kind_and_milestone(tmp_path: Path, capsys) -> None:
+    root = _repo(
+        tmp_path,
+        {
+            S + "BITB-001-a.md": _with(_story("BITB-001"), "kind: feature", "milestone: R1"),
+            S + "BITB-002-b.md": _with(_story("BITB-002"), "kind: nfr", "milestone: R2"),
+            S + "BITB-003-c.md": _with(_story("BITB-003"), "kind: chore"),
+            S + "BITB-004-d.md": _story("BITB-004"),
+        },
+    )
+    stories = backlog.load_all(root)
+    assert _ids(backlog.filter_stories(stories, kind="feature,nfr")) == ["BITB-001", "BITB-002"]
+    assert _ids(backlog.filter_stories(stories, milestone="r1")) == ["BITB-001"]
+    assert _ids(backlog.filter_stories(stories, kind="nfr", milestone="R1")) == []
+    assert backlog.main(["--root", str(root), "list", "--kind", "CHORE"]) == 0
+    assert capsys.readouterr().out.startswith("BITB-003 ")
+    with pytest.raises(SystemExit) as exc:
+        backlog.main(["--root", str(root), "list", "--kind", "epic"])
+    assert exc.value.code == 2
+    md = backlog.format_md(backlog.filter_stories(stories, kind="feature"))
+    assert "| P2 | feature | R1 | S | todo |" in md
+
+
+def test_kind_insert_and_status_flip_merge_cleanly(tmp_path: Path) -> None:
+    """The backfill adds `kind` after `priority`; an open PR flips `status` two lines up."""
+    version = subprocess.run(["git", "--version"], capture_output=True, text=True).stdout
+    _init(tmp_path)
+    path = S + "BITB-001-s.md"
+    _repo(tmp_path, {path: _story("BITB-001", title="S")})
+    _commit_all(tmp_path, "base")
+    _git(tmp_path, "checkout", "-q", "-b", "a")
+    (tmp_path / path).write_text(_with(_story("BITB-001", title="S"), "kind: fix", "milestone: R1"))
+    _commit_all(tmp_path, "chore: backfill kind")
+    _git(tmp_path, "checkout", "-q", "main")
+    _git(tmp_path, "checkout", "-q", "-b", "b")
+    (tmp_path / path).write_text(_story("BITB-001", status="in-review", title="S"))
+    _commit_all(tmp_path, "fix: BITB-001 (#1)")
+    probe = subprocess.run(
+        ["git", "merge-tree", "--write-tree", "a", "b"], cwd=tmp_path, capture_output=True
+    )
+    if probe.returncode not in (0, 1):
+        pytest.skip(f"git merge-tree --write-tree unsupported: {version.strip()}")
+    assert not _merge_tree_conflicts(tmp_path, "a", "b")

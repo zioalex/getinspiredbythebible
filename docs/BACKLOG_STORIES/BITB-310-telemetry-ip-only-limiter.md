@@ -2,6 +2,8 @@
 id: BITB-310
 status: todo
 priority: P2
+kind: nfr
+milestone: R1
 size: XS
 created: 2026-11-13
 ---
