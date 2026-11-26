@@ -2,6 +2,7 @@
 id: BITB-118
 status: in-progress
 priority: P2
+kind: feature
 size: M
 rank: 800
 created: 2026-09-04

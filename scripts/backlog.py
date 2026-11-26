@@ -8,6 +8,7 @@ cannot conflict on it. This script gives humans and coding agents (including sma
 models with a 32k context window) compact, offline, deterministic views:
 
     python3 scripts/backlog.py list [--status todo,in-progress] [--priority P1] [--grep TEXT]
+    python3 scripts/backlog.py list --kind feature,nfr --milestone R1
     python3 scripts/backlog.py show BITB-313 [--full]
     python3 scripts/backlog.py changelog [--since 2026-11-01] [--limit 50]
     python3 scripts/backlog.py check
@@ -39,12 +40,22 @@ STATUSES: tuple[str, ...] = ("todo", "in-progress", "in-review", "blocked", "don
 PRIORITIES: tuple[str, ...] = ("P0", "P1", "P2", "P3", "icebox")
 SIZES: tuple[str, ...] = ("XS", "S", "M", "L", "XL")
 CLOSED_STATUSES: frozenset[str] = frozenset({"done", "cancelled"})
+# What a story is for the product (BITB-365). See docs/backlog/LEGEND.md for the definitions.
+# Only feature, nfr and fix reach the product release notes; chore and spike never do.
+KINDS: tuple[str, ...] = ("feature", "nfr", "fix", "chore", "spike")
+PRODUCT_KINDS: frozenset[str] = frozenset({"feature", "nfr", "fix"})
+# Stories created on or after this date must carry a `kind` while open. Older stories were
+# backfilled on main; stories already claimed by open PRs before the cut-over get theirs at
+# triage, so this check does not turn those PRs red when main is merged into them.
+KIND_REQUIRED_FROM = "2026-11-27"
 
 # Fixed key order of the front matter (one key per line).
 FIELD_ORDER: tuple[str, ...] = (
     "id",
     "status",
     "priority",
+    "kind",
+    "milestone",
     "size",
     "rank",
     "created",
@@ -73,6 +84,7 @@ ALLOWED_SHARED_ID_GROUPS: tuple[frozenset[str], ...] = (
 _ID_RE = re.compile(r"^BITB-\d{3,}$")
 _FILENAME_ID_RE = re.compile(r"^(BITB-\d+)-")
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_MILESTONE_RE = re.compile(r"^R[1-9]\d*$")
 _TITLE_PREFIX_RE = re.compile(r"^BITB-\d+\s*:?\s*")
 _BOLD_HEADER_RE = re.compile(r"^\*\*(Status|Priority|Size|Created):\*\*")
 _FIX_HINT = "see docs/backlog/LEGEND.md for the front-matter schema"
@@ -185,6 +197,14 @@ class Story:
     @property
     def priority(self) -> str:
         return str(self.meta.get("priority", "?"))
+
+    @property
+    def kind(self) -> str:
+        return str(self.meta.get("kind", "-"))
+
+    @property
+    def milestone(self) -> str:
+        return str(self.meta.get("milestone", "-"))
 
     @property
     def size(self) -> str:
@@ -329,6 +349,25 @@ def check_stories(stories: list[Story]) -> list[str]:  # noqa: C901
                 f"{story.path}: priority {meta.get('priority')!r} invalid — use one of "
                 + ", ".join(PRIORITIES)
             )
+        if "kind" in meta and meta["kind"] not in KINDS:
+            errors.append(
+                f"{story.path}: kind {meta['kind']!r} invalid — use one of " + ", ".join(KINDS)
+            )
+        elif (
+            "kind" not in meta
+            and meta.get("status") not in CLOSED_STATUSES
+            and str(meta.get("created", "")) >= KIND_REQUIRED_FROM
+        ):
+            errors.append(
+                f"{story.path}: open story has no 'kind' — add 'kind: <"
+                + "|".join(KINDS)
+                + ">' after 'priority' (see docs/backlog/LEGEND.md)"
+            )
+        if "milestone" in meta and not _MILESTONE_RE.match(str(meta["milestone"])):
+            errors.append(
+                f"{story.path}: milestone {meta['milestone']!r} invalid — use R1, R2, ... "
+                "(the release milestone's number)"
+            )
         if "size" in meta and meta["size"] not in SIZES:
             errors.append(
                 f"{story.path}: size {meta['size']!r} invalid — use one of " + ", ".join(SIZES)
@@ -380,8 +419,12 @@ def filter_stories(
     size: str | None = None,
     grep: str | None = None,
     show_all: bool = False,
+    kind: str | None = None,
+    milestone: str | None = None,
 ) -> list[Story]:
     statuses = _csv(status)
+    kinds = _csv(kind)
+    milestones = {m.upper() for m in _csv(milestone) or set()}
     priorities = {p.upper() if p.upper().startswith("P") else p for p in _csv(priority) or set()}
     sizes = {s.upper() for s in _csv(size) or set()}
     needle = grep.lower() if grep else None
@@ -395,6 +438,10 @@ def filter_stories(
         if priorities and story.priority not in priorities:
             continue
         if sizes and story.size not in sizes:
+            continue
+        if kinds and story.kind not in kinds:
+            continue
+        if milestones and story.milestone not in milestones:
             continue
         if needle and needle not in f"{story.id} {story.title}".lower():
             continue
@@ -433,12 +480,15 @@ def format_compact(stories: list[Story], max_line: int = MAX_LINE_BYTES) -> str:
 
 
 def format_md(stories: list[Story]) -> str:
-    lines = ["| ID | Pri | Size | Status | PR | Title |", "|---|---|---|---|---|---|"]
+    lines = [
+        "| ID | Pri | Kind | MS | Size | Status | PR | Title |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
     for s in stories:
         title = s.title.replace("|", "\\|")
         lines.append(
-            f"| [{s.id}]({s.path.removeprefix('docs/')}) | {s.priority} | {s.size} | {s.status} "
-            f"| {_pr_label(s)} | {title} |"
+            f"| [{s.id}]({s.path.removeprefix('docs/')}) | {s.priority} | {s.kind} "
+            f"| {s.milestone} | {s.size} | {s.status} | {_pr_label(s)} | {title} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -559,6 +609,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p_list.add_argument("--status", help="comma list; default: every open status")
     p_list.add_argument("--priority", help="comma list, e.g. P0,P1")
     p_list.add_argument("--size", help="comma list, e.g. XS,S")
+    p_list.add_argument("--kind", help="comma list, e.g. feature,nfr")
+    p_list.add_argument("--milestone", help="comma list, e.g. R1,R2")
     p_list.add_argument("--grep", help="case-insensitive text in id + title")
     p_list.add_argument("--all", action="store_true", help="include done and cancelled")
     p_list.add_argument("--limit", type=int, help="print at most N stories")
@@ -630,6 +682,8 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:  # n
             size=_validated(parser, "--size", args.size, SIZES),
             grep=args.grep,
             show_all=args.all,
+            kind=_validated(parser, "--kind", args.kind, KINDS),
+            milestone=args.milestone,
         )
         if args.limit is not None:
             picked = picked[: args.limit]

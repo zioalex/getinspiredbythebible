@@ -2,6 +2,7 @@
 id: BITB-097
 status: in-progress
 priority: P1
+kind: nfr
 size: M
 rank: 1140
 created: 2026-08-18

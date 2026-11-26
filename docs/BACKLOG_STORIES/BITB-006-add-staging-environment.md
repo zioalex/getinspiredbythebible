@@ -2,6 +2,7 @@
 id: BITB-006
 status: todo
 priority: P2
+kind: chore
 size: L
 rank: 970
 ---

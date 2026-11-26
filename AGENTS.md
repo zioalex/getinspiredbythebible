@@ -539,9 +539,11 @@ avoid stale entries accumulating in `.git/worktrees/`.
 - **Story files are the single source of truth (BITB-313).** Every story file in
   `docs/BACKLOG_STORIES/` (and the older ones in `docs/DONE/`) starts with a YAML front-matter
   block: `id`, `status` (`todo | in-progress | in-review | blocked | done | cancelled`),
-  `priority` (`P0..P3 | icebox`), `size` (`XS..XL`), optional `rank`, `created`, `prs`,
+  `priority` (`P0..P3 | icebox`), `kind` (`feature | nfr | fix | chore | spike`), optional
+  `milestone` (`R1`, `R2`, ...), `size` (`XS..XL`), optional `rank`, `created`, `prs`,
   `follow_ups`, `depends_on`, `supersedes` — one key per line, fixed order, schema in
-  `docs/backlog/LEGEND.md`. The title is the single `# BITB-NNN: Title` heading.
+  `docs/backlog/LEGEND.md`. **Every new story gets a `kind`** (BITB-365): it decides whether
+  the change reaches the product release notes, independently of the commit type. The title is the single `# BITB-NNN: Title` heading.
   `docs/BACKLOG.md` is a ~50-line stub that **feature PRs never edit** (the `backlog-stub-guard`
   CI job fails any PR that touches it); there is no hand-written index and no hand-written changelog.
 - **Find stories with `make backlog`, never by reading a big file.** `make backlog ARGS="list"`
