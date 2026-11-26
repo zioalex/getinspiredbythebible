@@ -46,6 +46,27 @@
         "chunkTimeout": 120000,
         "setCacheKey": true
       }
+    },
+    "llama-cpp": {
+      "api": "openai-compatible",
+      "name": "llama.cpp Server",
+      "options": {
+        "baseURL": "http://192.168.178.150:8080/v1",
+        "apiKey": "dummy",
+        "timeout": false,
+        "headerTimeout": false,
+        "chunkTimeout": false
+      },
+      "models": {
+        "gemma-4-26b": {
+          "id": "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_M",
+          "name": "Gemma 4 26B (Q4_K_M)",
+          "limit": {
+            "context": 32768,
+            "output": 8192
+          }
+        }
+      }
     }
   },
   "agent": {

@@ -25,6 +25,13 @@ hop is impossible. The invariant that actually survives the observed failure
 is a FREE tier-1 — free models draw no credit, so the chain keeps serving
 while the paid key is exhausted. Paid tier-2 (glm-5.3 / deepseek-v3.2-exp)
 stays as the defense against free-tier rate caps and upstream 5xx/429.
+
+BITB-363 adds the self-hosted llama.cpp server as an OPT-IN provider
+(`--model llama-cpp/gemma-4-26b` or a deliberate per-agent `model:`): its V1
+shape is pinned below, and it must never leak into the global defaults or
+any fallback chain — OpenRouter stays the only provider in the fallback
+graph (the llama server is free but LAN-local, and a fallback hop to it
+would tie every agent's resilience to one home server).
 """
 
 import json
@@ -317,6 +324,57 @@ def test_provider_timeouts_present(config):
     opts = config["provider"]["opencode"]["options"]
     assert opts["timeout"] == 600000
     assert opts["setCacheKey"] is True
+
+
+def test_llama_cpp_provider_v1_shape(config):
+    """BITB-363: the self-hosted llama.cpp server is emitted with the exact
+    V1 shape validated live on opencode 1.18.31 — singular top-level
+    "provider" (NOT the V2 plural), api "openai-compatible", and the
+    api/name/options/models key set. The baseURL host is deliberately NOT
+    hardcoded here: the pattern pins http + a bare IPv4 host + :8080 + /v1,
+    so the test cannot go stale when the server moves (the generator and the
+    generated opencode.json are the address's only homes).
+    """
+    llama = config["provider"]["llama-cpp"]
+    assert llama["api"] == "openai-compatible"
+    assert llama["name"] == "llama.cpp Server"
+    opts = llama["options"]
+    assert re.fullmatch(r"http://(?:\d{1,3}\.){3}\d{1,3}:8080/v1", opts["baseURL"]), (
+        "baseURL must be http://<llama-host>:8080/v1"
+    )
+    # Not a secret (mirrors the generator): the LAN llama.cpp server ignores
+    # auth; "dummy" only satisfies opencode's non-empty-key requirement.
+    assert opts["apiKey"] == "dummy"  # pragma: allowlist secret
+    assert opts["timeout"] is False
+    assert opts["headerTimeout"] is False
+    assert opts["chunkTimeout"] is False
+    assert set(llama["models"]) == {"gemma-4-26b"}
+    model = llama["models"]["gemma-4-26b"]
+    assert model["id"] == "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_M"
+    assert model["name"] == "Gemma 4 26B (Q4_K_M)"
+    assert model["limit"] == {"context": 32768, "output": 8192}
+
+
+def test_llama_cpp_is_opt_in_only(config):
+    """BITB-363 regression guard: the llama.cpp provider is OPT-IN. The
+    global defaults must stay exactly as they were (paid GLM-5.3 primary,
+    free lightning small_model, BITB-279) and no agent may select a
+    llama-cpp model — reaching the provider happens only via an explicit
+    `--model llama-cpp/gemma-4-26b` or a deliberate per-agent `model:`
+    change (which must update this test alongside it).
+    """
+    assert config["model"] == STRONG_PRIMARY
+    assert config["small_model"] == OR_LIGHT_FREE
+    selected = [config["model"], config["small_model"]]
+    for spec in config["agent"].values():
+        if spec.get("model"):
+            selected.append(spec["model"])
+        selected.extend(spec.get("fallback_models") or [])
+    offenders = [m for m in selected if m.startswith("llama-cpp/")]
+    assert not offenders, (
+        f"llama-cpp leaked into model selection {offenders} — it is opt-in "
+        "only (no default, no fallback hop)"
+    )
 
 
 def test_every_agent_has_non_empty_prompt(config, md_agents):
