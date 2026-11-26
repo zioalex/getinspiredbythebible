@@ -28,6 +28,10 @@ rollout has already broken something. Every gap below is one that shipped:
   "pass" -- `/dev/tcp` is a bash builtin that the pods' `sh` (dash/busybox) does
   not have, and `kubectl auth can-i` without `--as=` tests the reader's admin
   rights instead of the agent's.
+- T9 (BITB-362): a supplemental egress allow (the security doc's *LAN opt-in*
+  pattern) that drifts from its advertised scope -- wider than a single-host
+  /32, extra ports, a diverging podSelector, or pods no tier policy covers --
+  silently un-hardens the strict tier, the same class as T6.
 """
 
 import pathlib
@@ -79,6 +83,18 @@ REQUIRED_EXCEPT_RANGES = {
     "192.168.0.0/16",
     "169.254.0.0/16",
 }
+
+
+# Supplemental egress allows (BITB-362): additive policies that open extra
+# destinations for pods a tier policy already covers. They are NOT part of the
+# T1 partition (asserted over the tier policies only): a supplemental may
+# never be a pod's only egress policy and never selects a pod that no tier
+# policy covers. Their scope is guarded by the T9 tests below.
+SUPPLEMENTAL_EGRESS_POLICIES = {"agent-egress-llama"}
+
+# A single host and nothing wider -- the LAN opt-in contract is "opening only
+# that IP:port", so a /31 or a subnet is the T6 class of silent un-hardening.
+SINGLE_HOST_CIDR = re.compile(r"^(?:\d{1,3}\.){3}\d{1,3}/32$")
 
 
 def load(name):
@@ -136,6 +152,17 @@ def egress_policies(policies):
     }
 
 
+def tier_egress_policies(policies):
+    """The partition: the egress allow-policies every pod is owned by exactly
+    one of. Supplemental allows are excluded -- they stack on top of a tier
+    policy and are scope-guarded by the T9 tests instead."""
+    return {
+        name: p
+        for name, p in egress_policies(policies).items()
+        if name not in SUPPLEMENTAL_EGRESS_POLICIES
+    }
+
+
 def allowed_ports(rules):
     return {port["port"] for rule in rules for port in rule.get("ports", [])}
 
@@ -158,11 +185,14 @@ def test_default_deny_is_egress_only(policies):
 @pytest.mark.parametrize("pod_name", sorted(ALL_PODS))
 def test_every_pod_is_covered_by_exactly_one_egress_policy(policies, pod_name):
     """The T1 regression, stated directly: under a default-deny that selects
-    everything, a pod selected by no allow-policy has no DNS and no egress."""
+    everything, a pod selected by no allow-policy has no DNS and no egress.
+    Asserted over the tier policies only: supplemental allows (BITB-362) stack
+    on top of a tier policy and are guarded by the T9 tests, so they do not
+    count towards the partition."""
     labels = ALL_PODS[pod_name]
     selecting = [
         name
-        for name, policy in egress_policies(policies).items()
+        for name, policy in tier_egress_policies(policies).items()
         if selector_matches(policy["spec"]["podSelector"], labels)
     ]
     assert selecting, (
@@ -329,3 +359,65 @@ def test_runbook_points_at_the_verify_script(doc_text):
 
 def test_verify_make_target_exists():
     assert "verify-kubeopencode-netpol:" in MAKEFILE.read_text()
+
+
+# --- T9 (BITB-362) --------------------------------------------------------
+
+
+@pytest.mark.parametrize("policy_name", sorted(SUPPLEMENTAL_EGRESS_POLICIES))
+def test_supplemental_never_solely_covers_a_pod(policies, policy_name):
+    """A supplemental egress allow may only add destinations for pods that a
+    tier policy already covers. Selecting anything else is the T1 regression
+    wearing a new name: the pod's egress would depend on a policy outside the
+    partition, and platform pods would gain the supplemental's destinations
+    (llama.cpp egress for the gateway/controller)."""
+    for pod_name, labels in ALL_PODS.items():
+        if not selector_matches(policies[policy_name]["spec"]["podSelector"], labels):
+            continue
+        tier_covering = [
+            name
+            for name, policy in tier_egress_policies(policies).items()
+            if selector_matches(policy["spec"]["podSelector"], labels)
+        ]
+        assert tier_covering, (
+            f"{pod_name} is selected by supplemental {policy_name} but by no "
+            "tier policy -- a supplemental must never be a pod's only egress"
+        )
+
+
+def test_llama_egress_opens_exactly_one_host_on_one_port(policies):
+    """The security doc's LAN opt-in contract: "Add a supplemental NetworkPolicy
+    opening only that IP:port." Anything broader -- a wider CIDR than /32, a
+    second peer, an extra port -- silently un-hardens the tier (T6 class)."""
+    policy = policies["agent-egress-llama"]
+    rules = policy["spec"]["egress"]
+    assert len(rules) == 1, f"expected exactly one egress rule, got {len(rules)}"
+    peers = rules[0].get("to", [])
+    assert len(peers) == 1, f"expected exactly one peer, got {len(peers)}"
+    cidr = peers[0].get("ipBlock", {}).get("cidr", "")
+    assert SINGLE_HOST_CIDR.match(cidr), (
+        f"llama peer must be a single host /32, got {cidr!r}"
+    )
+    ports = rules[0].get("ports", [])
+    assert ports == [{"port": 8080, "protocol": "TCP"}], (
+        f"llama egress must be TCP/8080 only, got {ports}"
+    )
+
+
+def test_llama_egress_selects_agents_like_the_strict_tier(policies):
+    """The supplemental must select agent pods exactly as agent-egress-strict
+    does. Broader: platform pods gain llama.cpp egress. Narrower or diverging:
+    a selector naming the wrong thing matches nothing, silently (T2/T3 class)."""
+    assert (
+        policies["agent-egress-llama"]["spec"]["podSelector"]
+        == policies["agent-egress-strict"]["spec"]["podSelector"]
+    )
+
+
+def test_llama_egress_carries_the_tier_metadata(policies):
+    policy = policies["agent-egress-llama"]
+    meta = policy["metadata"]
+    assert meta["namespace"] == "kubeopencode-system"
+    labels = meta["labels"]
+    assert labels["app.kubernetes.io/part-of"] == "kubeopencode"
+    assert labels["kubeopencode.io/tier"] == "strict"

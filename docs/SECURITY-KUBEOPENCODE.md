@@ -19,6 +19,9 @@ downloads. Strict tier allows public `443/53` but denies LAN by construction.
 * `localhost` always allowed (Ollama `http://localhost:11434/v1` keeps working)
 * server -> workspace `:4096` (control plane path only, `server-egress-strict`);
   agents still cannot reach each other on `:4096`
+* the llama.cpp LLM provider host on `TCP/8080` — the one LAN opt-in in force,
+  via the supplemental `agent-egress-llama` (BITB-362): a single host `/32`,
+  agent pods only, stacking on `agent-egress-strict` (see *LAN opt-in*)
 
 Native `NetworkPolicy` is allow-only, so deny is expressed via `except`.
 For per-domain filtering (`openrouter.ai` only) migrate to Cilium
@@ -35,6 +38,14 @@ metadata:
 ```
 
 Add a supplemental `NetworkPolicy` opening only that IP:port.
+
+The one live instance of the pattern is
+`k8s/kubeopencode/networkpolicy-allow-llama-egress.yaml` (`agent-egress-llama`,
+BITB-362) — the llama.cpp LLM provider (a privately-hosted OpenAI-compatible
+endpoint) on exactly one host `/32` and `TCP/8080`, selecting agent pods exactly
+as `agent-egress-strict` does. Its scope is pinned by the T9 tests in
+`scripts/test_kubeopencode_netpol.py` (`make test-kubeopencode-netpol`): one
+rule, one peer, `/32`, one port, tier-matching selector.
 
 > **Operator-only boundary.** `allow-lan` is a meaningful gate only because the
 > agent cannot set it itself: `k8s/kubeopencode/role-agent.yaml` (bound by
@@ -73,6 +84,7 @@ kubectl apply -f role-agent.yaml -f rolebinding-agent.yaml
 kubectl apply -f networkpolicy-egress-strict.yaml
 kubectl apply -f networkpolicy-egress-server.yaml
 kubectl apply -f networkpolicy-allow-server-ingress.yaml
+kubectl apply -f networkpolicy-allow-llama-egress.yaml   # supplemental LAN opt-in (BITB-362)
 # verify new agent: LLM OK, LAN blocked, /api/session -> 401, env clean
 kubectl apply -f networkpolicy-default-deny.yaml
 kubectl apply -f agent-desktop.yaml
