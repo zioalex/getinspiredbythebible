@@ -51,7 +51,9 @@ def test_no_postgres_diagnostic_setting():
     offenders = []
     for tf in sorted(_MAIN_TF.parent.glob("*.tf")):
         blocks = _resource_blocks(tf.read_text(), "azurerm_monitor_diagnostic_setting")
-        offenders += [f"{tf.name}:{n}" for n, b in blocks.items() if "postgresql_flexible_server" in b]
+        offenders += [
+            f"{tf.name}:{n}" for n, b in blocks.items() if "postgresql_flexible_server" in b
+        ]
     assert not offenders, (
         f"Diagnostic setting(s) {offenders} target the PostgreSQL server. That is BITB-233 "
         "Option B: update this test deliberately, together with a written cost estimate."
