@@ -10,7 +10,7 @@
 	gen-opencode-config verify-opencode-config sync-opencode-configmap sync-opencode-workspace test-opencode-plugin \
 	test-opencode-config-live test-opencode-config-live-selftest \
 	parity-export parity-check parity-registry-check \
-	test-kubeopencode-netpol verify-kubeopencode-netpol test-cluster-triage collect-k8s-diagnostics \
+	test-kubeopencode-netpol verify-kubeopencode-netpol verify-llama-egress test-cluster-triage collect-k8s-diagnostics \
 	test-dns-watchdog deploy-dns-watchdog lint-kubeopencode-dev-image build-kubeopencode-dev-image \
 	validate-env validate-env-strict export-blocked-samples export-feedback \
 	clean clean-all fix-permissions update-baseline \
@@ -465,6 +465,10 @@ test-kubeopencode-netpol: ## Static checks on the strict-tier NetworkPolicies (n
 verify-kubeopencode-netpol: ## Verify strict-tier NetworkPolicies against the LIVE cluster (BITB-152)
 	@echo "$(BLUE)Verifying KubeOpenCode strict-tier NetworkPolicies...$(NC)"
 	@bash scripts/verify-kubeopencode-netpol.sh
+
+verify-llama-egress: ## Live check: agent pods reach the llama.cpp provider via agent-egress-llama (BITB-362; pre-merge runbook in k8s/kubeopencode/README.md)
+	@echo "$(BLUE)Verifying the llama.cpp egress allow (agent tier)...$(NC)"
+	@bash scripts/verify-kubeopencode-netpol.sh --llama-only
 
 test-cluster-triage: ## Static checks on the cluster triage tooling (no cluster needed)
 	@$(SCRIPT_PYTHON) -m pytest scripts/test_cluster_triage.py -q
