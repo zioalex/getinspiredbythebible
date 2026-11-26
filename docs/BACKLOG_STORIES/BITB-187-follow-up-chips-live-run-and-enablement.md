@@ -2,6 +2,7 @@
 id: BITB-187
 status: todo
 priority: P2
+kind: spike
 size: S
 rank: 410
 created: 2026-10-11

@@ -2,6 +2,7 @@
 id: BITB-013
 status: in-progress
 priority: P1
+kind: nfr
 size: L
 rank: 820
 ---
