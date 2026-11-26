@@ -1,5 +1,5 @@
 ---
-id: BITB-365
+id: BITB-368
 status: in-review
 priority: P1
 kind: chore
@@ -9,7 +9,7 @@ prs: [1345]
 follow_ups: [BITB-366, BITB-367]
 ---
 
-# BITB-365: Every Story Says What It Is for the Product — `kind` and Release `milestone`
+# BITB-368: Every Story Says What It Is for the Product — `kind` and Release `milestone`
 
 ## User story
 

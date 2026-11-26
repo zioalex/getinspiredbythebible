@@ -5,7 +5,7 @@ priority: P1
 kind: chore
 size: M
 created: 2026-11-26
-depends_on: [BITB-365]
+depends_on: [BITB-368]
 ---
 
 # BITB-366: Label Every PR With Its Kind, Keep Tooling Out of `feat`/`fix`, and Cap Open Product PRs

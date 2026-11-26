@@ -516,7 +516,7 @@ def test_expand_ids_and_pr_requirement() -> None:
     assert backlog.expand_ids("chore: nothing") == []
 
 
-# ---------------------------------------------------------------- kind + milestone (BITB-365)
+# ---------------------------------------------------------------- kind + milestone (BITB-368)
 
 
 def _with(text: str, *lines: str) -> str:

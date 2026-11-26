@@ -5,7 +5,7 @@ priority: P1
 kind: chore
 size: L
 created: 2026-11-26
-depends_on: [BITB-365, BITB-366]
+depends_on: [BITB-368, BITB-366]
 ---
 
 # BITB-367: Product Releases — Milestones With an Outcome, a Gated Release PR, Stakeholder Notes
@@ -29,7 +29,7 @@ reliable or secure, and what moved to the next release.
    "Quality & reliability" (nfr) and "Fixes", one line per story, and "Moved to next"; appended to
    the GitHub Release body; `make release-notes` previews it. CHANGELOG.md stays as release-please
    writes it.
-4. Triage pass: create R1 "Safe and secure chat" (stories in BITB-365) and the next milestones,
+4. Triage pass: create R1 "Safe and secure chat" (stories in BITB-368) and the next milestones,
    label the open PRs, and decide #1316 (`release 1.62.1`): hotfix now or hold for R1.
 
 ## Acceptance criteria

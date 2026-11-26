@@ -542,7 +542,7 @@ avoid stale entries accumulating in `.git/worktrees/`.
   `priority` (`P0..P3 | icebox`), `kind` (`feature | nfr | fix | chore | spike`), optional
   `milestone` (`R1`, `R2`, ...), `size` (`XS..XL`), optional `rank`, `created`, `prs`,
   `follow_ups`, `depends_on`, `supersedes` — one key per line, fixed order, schema in
-  `docs/backlog/LEGEND.md`. **Every new story gets a `kind`** (BITB-365): it decides whether
+  `docs/backlog/LEGEND.md`. **Every new story gets a `kind`** (BITB-368): it decides whether
   the change reaches the product release notes, independently of the commit type. The title is the single `# BITB-NNN: Title` heading.
   `docs/BACKLOG.md` is a ~50-line stub that **feature PRs never edit** (the `backlog-stub-guard`
   CI job fails any PR that touches it); there is no hand-written index and no hand-written changelog.

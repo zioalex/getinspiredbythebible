@@ -40,7 +40,7 @@ STATUSES: tuple[str, ...] = ("todo", "in-progress", "in-review", "blocked", "don
 PRIORITIES: tuple[str, ...] = ("P0", "P1", "P2", "P3", "icebox")
 SIZES: tuple[str, ...] = ("XS", "S", "M", "L", "XL")
 CLOSED_STATUSES: frozenset[str] = frozenset({"done", "cancelled"})
-# What a story is for the product (BITB-365). See docs/backlog/LEGEND.md for the definitions.
+# What a story is for the product (BITB-368). See docs/backlog/LEGEND.md for the definitions.
 # Only feature, nfr and fix reach the product release notes; chore and spike never do.
 KINDS: tuple[str, ...] = ("feature", "nfr", "fix", "chore", "spike")
 PRODUCT_KINDS: frozenset[str] = frozenset({"feature", "nfr", "fix"})

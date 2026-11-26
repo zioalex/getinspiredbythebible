@@ -26,7 +26,7 @@ supersedes: free text
 | `id`         | `BITB-NNN`, must equal the filename prefix. Allocation rules: AGENTS.md, Story IDs.     |
 | `status`     | `todo`, `in-progress`, `in-review`, `blocked`, `done`, `cancelled`                     |
 | `priority`   | `P0` critical/blocker, `P1` high, `P2` medium, `P3` low, `icebox` ideas for later       |
-| `kind`       | What the story is for the product: `feature`, `nfr`, `fix`, `chore`, `spike` (see below). Required on open stories created from 2026-11-27 (BITB-365). |
+| `kind`       | What the story is for the product: `feature`, `nfr`, `fix`, `chore`, `spike` (see below). Required on open stories created from 2026-11-27 (BITB-368). |
 | `milestone`  | Optional `R1`, `R2`, ...: the product release the story ships in (see below)           |
 | `size`       | `XS` under 1 hr, `S` under 4 hrs, `M` 1-2 days, `L` 3-5 days, `XL` 1-2 weeks            |
 | `rank`       | Optional integer; order inside a priority (lower first). Seeded 10, 20, 30...          |
@@ -36,7 +36,7 @@ supersedes: free text
 | `depends_on` | IDs that must land first                                                               |
 | `supersedes` | Optional single-line free text                                                         |
 
-## Kind: what a story is for the product (BITB-365)
+## Kind: what a story is for the product (BITB-368)
 
 The commit type (`feat`, `fix`, ...) says what changed in the code and drives the version bump.
 `kind` says what the change means for the product and decides where it appears in the release
@@ -56,7 +56,7 @@ Only `feature`, `nfr` and `fix` appear in the product release notes. A `chore` o
 When it is unclear: if a user would notice it was missing or wrong → `fix`; if they would never
 notice but would be harmed without it (data leak, outage, slowness) → `nfr`.
 
-## Milestone: the product release (BITB-365)
+## Milestone: the product release (BITB-368)
 
 A release milestone (`R1`, `R2`, ...) is a GitHub milestone titled `R<n>: <outcome>`, whose
 description states the outcome for users and how we know it is met. A story's `milestone` key
