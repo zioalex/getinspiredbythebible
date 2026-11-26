@@ -5,6 +5,7 @@ priority: P2
 size: S
 rank: 340
 created: 2026-10-23
+prs: [1341]
 ---
 
 # BITB-233: PostgreSQL Server-Log Hygiene — Dead Parameters and the Unmade Diagnostic Decision
