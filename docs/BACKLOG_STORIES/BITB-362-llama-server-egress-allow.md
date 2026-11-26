@@ -49,23 +49,61 @@ opening the LAN.
    the *What strict allows* list, the *LAN opt-in* section and the rollout
    order in `docs/SECURITY-KUBEOPENCODE.md` — the new manifest applies with
    the other allow-policies, BEFORE `networkpolicy-default-deny.yaml`.
+4. A repeatable pre-merge test, `make verify-llama-egress`
+   (`scripts/verify-kubeopencode-netpol.sh --llama-only`, reusing the
+   BITB-152 live harness): ONE agent-labeled probe pod must get **HTTP 200**
+   from the provider's OpenAI-compatible `/v1/models`. The probe target is
+   extracted from the committed manifest at runtime — never hardcoded — with
+   a `LLAMA_TARGET` env override for portability. The full
+   `verify-kubeopencode-netpol` suite is unchanged in semantics (it is also a
+   regression suite; requiring llama reachability would break it for runners
+   without LAN access). The T9 static tests pin the harness: target present in
+   the Makefile, extraction matches the manifest (`--print-llama-target`),
+   agent-label probe + `/v1/models` + HTTP-200 expectation, and the address
+   existing nowhere outside the manifest.
 
 ## Acceptance criteria
 
 - [x] Manifest exists with exactly one egress rule, one `/32` `ipBlock` peer
       (the llama server host), one ports entry (TCP/8080), a `podSelector`
       identical to `agent-egress-strict`, and the sibling labels/namespace
-- [x] `make test-kubeopencode-netpol` green (23 tests, including the new T9
-      guards)
+- [x] `make test-kubeopencode-netpol` green (27 tests: the T9 scope guards
+      plus the live-harness guards)
+- [x] `make verify-llama-egress` exists as the repeatable pre-merge
+      verification method: ONE agent-labeled probe must get HTTP 200 from
+      the provider's OpenAI-compatible `/v1/models`; probe target extracted
+      from the committed manifest at runtime (never hardcoded, `LLAMA_TARGET`
+      override for portability); full `verify-kubeopencode-netpol` semantics
+      unchanged; registered in the make-target audit (BITB-220) with its
+      recipe pinned by `MiscTargetTests.test_k8s_script_targets`
 - [x] README and security doc enumerate the policy, its scope, and its place
-      in the apply order (before `networkpolicy-default-deny.yaml`); a reader
-      with none of the authoring session's context can find and apply it
-- [ ] (Owner step) Apply in the documented order, then run the connectivity
-      probe and the opencode end-to-end check below
+      in the apply order (before `networkpolicy-default-deny.yaml`), plus the
+      pre-merge runbook (*Testing an egress-policy change BEFORE merging*)
+      with the one-line rollback; a reader with none of the authoring
+      session's context can find, apply, and test it
+- [ ] (Owner step, pre-merge) On a workstation with kubeconfig: apply the
+      new manifest from the PR branch, run `make verify-llama-egress`, and
+      merge on PASS (runbook below)
+- [ ] (Owner step, post-merge / in-pod) the connectivity probe and the
+      opencode end-to-end check below
 
-## Owner apply step (unticked)
+## Owner steps (unticked)
 
-From `k8s/kubeopencode/`, with the other allow-policies, before default-deny:
+Pre-merge, from a workstation with kubeconfig (full runbook:
+`k8s/kubeopencode/README.md` → *Testing an egress-policy change BEFORE
+merging*):
+
+```bash
+git fetch origin && git checkout origin/feature/netpol-llama-egress
+kubectl apply -f k8s/kubeopencode/networkpolicy-allow-llama-egress.yaml
+make verify-llama-egress        # focused live check: agent probe -> /v1/models, expects HTTP 200
+# PASS -> merge the PR. FAIL -> the cluster is still pre-PR except this one
+# object; roll it back and report:
+#   kubectl -n kubeopencode-system delete networkpolicy agent-egress-llama
+```
+
+Post-merge full apply, from `k8s/kubeopencode/` (the tier policies are
+already live, so this is a no-op except the new file):
 
 ```bash
 kubectl apply -f networkpolicy-egress-strict.yaml
@@ -75,7 +113,7 @@ kubectl apply -f networkpolicy-allow-llama-egress.yaml
 kubectl apply -f networkpolicy-default-deny.yaml
 ```
 
-Verify from an agent pod — the llama server address is read from the live
+In-pod spot check — the llama server address is read from the live
 opencode config, never hardcoded here:
 
 ```bash

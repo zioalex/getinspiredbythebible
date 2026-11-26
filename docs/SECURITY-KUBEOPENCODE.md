@@ -118,7 +118,13 @@ pods differently, fix both `podSelector`s before relying on the tier --
 
 ```bash
 make verify-kubeopencode-netpol      # or: bash scripts/verify-kubeopencode-netpol.sh
+make verify-llama-egress             # focused llama allow only (BITB-362): agent-labeled probe -> /v1/models, expects HTTP 200
 ```
+
+The focused check is the pre-merge test for the supplemental allow — its
+probe target is extracted from the committed manifest at runtime, never
+hardcoded (see the runbook in `k8s/kubeopencode/README.md` → *Testing an
+egress-policy change BEFORE merging*).
 
 Exits non-zero if any guarantee below is broken, so it drops straight into a
 pipeline stage that has a kubeconfig. It stands up three throwaway pods and one

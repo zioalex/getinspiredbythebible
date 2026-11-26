@@ -31,11 +31,15 @@ rollout has already broken something. Every gap below is one that shipped:
 - T9 (BITB-362): a supplemental egress allow (the security doc's *LAN opt-in*
   pattern) that drifts from its advertised scope -- wider than a single-host
   /32, extra ports, a diverging podSelector, or pods no tier policy covers --
-  silently un-hardens the strict tier, the same class as T6.
+  silently un-hardens the strict tier, the same class as T6. The same tests
+  guard the change's live-verify harness (`make verify-llama-egress`): its
+  default probe target must be extracted from the manifest at runtime, and
+  the address must live nowhere else in the repo's runbook/tooling surface.
 """
 
 import pathlib
 import re
+import subprocess
 
 import pytest
 import yaml
@@ -44,6 +48,8 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 K8S_DIR = REPO_ROOT / "k8s" / "kubeopencode"
 SECURITY_DOC = REPO_ROOT / "docs" / "SECURITY-KUBEOPENCODE.md"
 MAKEFILE = REPO_ROOT / "Makefile"
+VERIFY_SCRIPT = REPO_ROOT / "scripts" / "verify-kubeopencode-netpol.sh"
+LLAMA_STORY = REPO_ROOT / "docs" / "BACKLOG_STORIES" / "BITB-362-llama-server-egress-allow.md"
 
 MANAGED_BY = "app.kubernetes.io/managed-by"
 NAME = "app.kubernetes.io/name"
@@ -421,3 +427,61 @@ def test_llama_egress_carries_the_tier_metadata(policies):
     labels = meta["labels"]
     assert labels["app.kubernetes.io/part-of"] == "kubeopencode"
     assert labels["kubeopencode.io/tier"] == "strict"
+
+
+def test_llama_verify_target_exists():
+    """`make verify-llama-egress` is the pre-merge runbook's entry point
+    (BITB-362). The make-target audit (BITB-220) separately enforces its
+    .PHONY membership, classification and recipe argv."""
+    assert "verify-llama-egress:" in MAKEFILE.read_text()
+
+
+def test_llama_default_target_is_extracted_from_the_manifest(policies):
+    """The focused verify mode must never hardcode the llama address: its
+    default probe target is extracted from the committed manifest at runtime.
+    Runs the REAL extractor (`--print-llama-target`, no cluster needed) so a
+    broken sed fails here, in CI, instead of on the owner's workstation."""
+    rule = policies["agent-egress-llama"]["spec"]["egress"][0]
+    cidr = rule["to"][0]["ipBlock"]["cidr"]
+    port = rule["ports"][0]["port"]
+    res = subprocess.run(
+        ["bash", str(VERIFY_SCRIPT), "--print-llama-target"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert res.returncode == 0, res.stderr
+    assert res.stdout.strip() == f"{cidr.split('/')[0]}:{port}"
+
+
+def test_llama_verify_probes_the_agent_tier_on_models():
+    """The focused check must probe with the agent-labeled pod (the label set
+    agent-egress-llama selects) against the OpenAI-compatible /v1/models path
+    over http, with the HTTP-200 expectation pinned -- not merely reachable."""
+    text = VERIFY_SCRIPT.read_text()
+    assert "--llama-only" in text, "focused mode dispatch missing"
+    assert '"$AGENT_POD" "http://${LLAMA_TARGET}/v1/models"' in text, (
+        "the llama check must go through the agent-labeled probe at /v1/models"
+    )
+    assert '"http-200"' in text, "the llama check must pin HTTP 200"
+
+
+def test_the_llama_address_lives_only_in_the_manifest(policies):
+    """Masking discipline, mechanically enforced: the llama server address
+    exists as the manifest's single /32 and NOWHERE else in the runbook and
+    tooling surface. A hardcoded copy anywhere below drifts the moment the
+    server moves and silently probes a stale address."""
+    cidr = policies["agent-egress-llama"]["spec"]["egress"][0]["to"][0]["ipBlock"]["cidr"]
+    host = cidr.split("/")[0]
+    for path in (
+        VERIFY_SCRIPT,
+        MAKEFILE,
+        K8S_DIR / "README.md",
+        SECURITY_DOC,
+        LLAMA_STORY,
+        pathlib.Path(__file__),
+    ):
+        assert host not in path.read_text(), (
+            f"{path.name} hardcodes the llama address; extract it from the "
+            "manifest at runtime instead"
+        )
