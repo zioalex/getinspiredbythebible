@@ -109,6 +109,27 @@ one-liners may skip the relay, but still need tests where behaviour changes.
   hand-copied branch names.** The 2026-11-07 hang was triggered by a brief
   naming the wrong branch (PR 1241's for PR 1248's), sending the child after
   a lint violation that did not exist there until it asked.
+- **Builder briefs never poll CI to green (BITB-369).** A brief that tells a
+  builder to "poll until green" parks a paid session in sleep loops —
+  observed 2026-11-26: 14 bounded status reads over ~7 idle minutes on the
+  netpol PR. The contract: ONE status read after push to confirm CI
+  started, then return. CI watching is the orchestrator's job (single
+  bounded reads) or, if delegated at all, a free-tier lane's
+  (i18n-qa / verse-parity-keeper). A red check found at that single read
+  goes back to the builder as a fix brief with the job name and a
+  ≤20-line excerpt.
+- **Dispatch briefs never carry raw host addresses (BITB-369).** The
+  redaction middleware that masks addresses in agent tool output also
+  rejects tool calls whose arguments carry address-shaped literals: a
+  brief containing a bare endpoint URL or an address-shaped regex dies
+  with "Request blocked by content filter", on dispatch AND on resume
+  (the poisoned brief text stays in the child's context). Real addresses
+  move ONLY by shell expansion from an on-disk file (jq/cut out of the
+  committed manifest or the workspace config) into a placeholder in
+  authored files — never as literal text in a brief, tool argument,
+  commit message, PR body, or prose. Observed both ways 2026-11-26: the
+  literal-carrying brief was blocked twice; the placeholder-plus-extraction
+  briefs shipped three PRs.
 - **A run is not complete while a dispatched token lacks a terminal outcome**
   (result delivered / recovered via `task_id` / confirmed dead). See the
   orchestrator agent definition (`.opencode/agents/orchestrator.md`) for the
