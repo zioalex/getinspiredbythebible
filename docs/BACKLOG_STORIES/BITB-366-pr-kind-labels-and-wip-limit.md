@@ -1,6 +1,6 @@
 ---
 id: BITB-366
-status: todo
+status: in-review
 priority: P1
 kind: chore
 size: M
@@ -30,9 +30,24 @@ fix, a chore or a spike, and which release it belongs to, without opening it.
    WIP limit in Branch & PR Hygiene — no new product PR (feature/nfr/fix) while 8 are open;
    `pr-kind.yml` posts a one-time warning comment when the limit is exceeded.
 
+## Decisions while building (2026-11-26)
+
+- A story created before the `kind` cut-over (2026-11-27) that has no `kind` gives a warning, not
+  a failure, so the PRs already open are not turned red; triage (BITB-367) sets their kinds.
+- `revert:` and `merge:` fit every kind. A breaking `!` is allowed.
+- Bot PRs (`*[bot]`) and release-please PRs (`release-please--*` branches) are skipped and need
+  no story. Fork PRs are classified but not labelled (read-only token).
+- The milestone is assigned only when an open GitHub milestone titled `R<n>: ...` exists; until
+  BITB-367 creates them, the check warns.
+- The WIP warning counts open, non-draft PRs labelled `kind/feature|nfr|fix` and is posted once
+  per PR (marker comment).
+
 ## Acceptance criteria
 
-- [ ] Unit tests for `pr_kind.py` (`scripts/test_pr_kind.py`) cover each failure and the bot skips
-- [ ] On a draft PR, a `chore` story with a `fix(opencode):` title fails; a `feature` story gets
+- [x] Unit tests for `pr_kind.py` (`scripts/test_pr_kind.py`) cover each failure, the bot skips,
+      the pre-cut-over warning, the CLI outputs, and real R1 titles against the real backlog
+- [x] This PR (a `chore` story with a `ci:` title) passes its own check and is labelled `kind/chore`
+- [ ] On a later PR: a `chore` story with a `fix(opencode):` title fails; a `feature` story gets
       `kind/feature` and its milestone; a Dependabot PR passes
-- [ ] Owner step: after merge, label the open PRs (triage pass in BITB-367)
+- [ ] Owner step: after merge, the triage pass (BITB-367) sets `kind` on the stories behind the
+      open PRs, which then get their labels on their next push or title edit
