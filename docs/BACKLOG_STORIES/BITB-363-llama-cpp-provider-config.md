@@ -4,6 +4,7 @@ status: in-review
 priority: P2
 size: S
 created: 2026-11-26
+prs: [1343]
 follow_ups: [BITB-364]
 ---
 
