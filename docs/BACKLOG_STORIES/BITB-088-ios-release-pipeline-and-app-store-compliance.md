@@ -2,7 +2,7 @@
 id: BITB-088
 status: todo
 priority: P3
-kind: chore
+kind: feature
 size: L
 rank: 260
 created: 2026-07-29

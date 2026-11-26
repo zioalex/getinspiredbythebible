@@ -2,7 +2,7 @@
 id: BITB-044
 status: in-progress
 priority: P2
-kind: feature
+kind: fix
 size: M
 rank: 910
 created: 2026-06-07
