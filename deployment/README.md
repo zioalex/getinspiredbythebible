@@ -1040,6 +1040,27 @@ View your spending in Azure Portal:
 
 Budget alerts will email you at 80% and 100% of your $50 limit.
 
+### PostgreSQL storage auto-grow guards (BITB-232)
+
+`auto_grow_enabled` stays on, but each auto-grow is a permanent cost step (Azure cannot
+shrink the disk; see BITB-229). Two guards watch it:
+
+- **Pre-grow warning:** `db_storage_pregrow` in `monitoring.tf` (sev3, `storage_percent`
+  >70% averaged over 15 min, same action group as `db_storage`). Tuned above the observed
+  p95 (63.6%). Investigate what is writing before the disk doubles.
+- **Post-grow tripwire:** the `db-storage-size` job in `.github/workflows/prod-deploy-drift.yml`
+  (every 15 min) runs `scripts/monitor/check_db_storage_size.py`, which compares the
+  provisioned `storageSizeGb` of every server in the resource group to
+  `EXPECTED_DB_STORAGE_GB` and pages Telegram on any mismatch (or if it cannot verify).
+  Utilization drops after a grow, so only this check sees the event itself.
+
+**Expected size is 64 GB, not the declared 32 GB.** `main.tf` declares `storage_mb = 32768`
+(with `ignore_changes`), but the live disk already ratcheted to 64 GB. The workflow's
+`EXPECTED_DB_STORAGE_GB` is therefore `64`; lower it to `32` when BITB-229's dump/restore
+shrinks the disk, and update it after any deliberate resize. Needs the same `ARM_*` and
+`TELEGRAM_*` secrets as the other drift jobs. Test-fire via Actions -> Prod Deploy Drift
+-> `force_alert=true`.
+
 ## 🔗 Resources
 
 - [Azure Container Apps Documentation](https://learn.microsoft.com/en-us/azure/container-apps/)

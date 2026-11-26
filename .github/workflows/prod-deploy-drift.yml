@@ -29,9 +29,16 @@ name: Prod Deploy Drift
 # Terraform now pins enabled=true; this job pages if a test is ever disabled or
 # missing again (scripts/monitor/check_webtests_enabled.py).
 #
+# BITB-232: the `db-storage-size` job pages when the PostgreSQL server's provisioned
+# storage differs from EXPECTED_DB_STORAGE_GB, i.e. storage auto-grow fired (a permanent
+# cost step; utilization % drops after a grow so no metric alert can see it)
+# (scripts/monitor/check_db_storage_size.py). The sev3 `db_storage_pregrow` alert in
+# deployment/monitoring.tf is the pre-grow warning.
+#
 # Manual run:
 #   Actions → Prod Deploy Drift → Run workflow
-#   (force_alert=true exercises the Telegram path without needing real drift)
+#   (force_alert=true exercises the Telegram path without needing real drift; it covers
+#   test-firing every job here, including webtests-enabled and db-storage-size)
 
 # yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
 "on":
@@ -60,6 +67,12 @@ env:
   # BITB-224: web tests that must exist and be Enabled (<project_name>-availability
   # / -preflight, from deployment/main.tf name_prefix).
   EXPECTED_WEBTESTS: bible-app-availability,bible-app-preflight
+  # BITB-232: expected provisioned PostgreSQL storage in GB. This is the *post-ratchet
+  # baseline*: auto-grow already doubled the live disk 32 -> 64 GB and Terraform cannot
+  # shrink it, so comparing to main.tf's storage_mb=32768 (only the provisioning size for a
+  # brand-new server) would alert forever. Lower to 32 when BITB-229's dump/restore lands;
+  # raise it only after a deliberate, reviewed resize.
+  EXPECTED_DB_STORAGE_GB: "64"
   # A component is only reported as drifted once its expected commit has been
   # sitting undeployed longer than this — a deploy already in flight (build +
   # terraform apply routinely take several minutes) must not trip a false
@@ -188,6 +201,39 @@ jobs:
         with:
           job_status: ${{ job.status }}
           job_name: webtests-enabled
+          state_branch: ${{ env.STATE_BRANCH }}
+          telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          force_alert: ${{ github.event.inputs.force_alert }}
+
+  db-storage-size:
+    name: PostgreSQL provisioned storage size
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.ARM_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.ARM_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.ARM_TENANT_ID }}"
+            }
+
+      - name: Check provisioned PostgreSQL storage size
+        id: dbstorage
+        run: python3 scripts/monitor/check_db_storage_size.py --detail-out "$RUNNER_TEMP/detail.txt"
+
+      - name: Notify Telegram
+        if: always()
+        uses: ./.github/actions/notify-telegram
+        with:
+          job_status: ${{ job.status }}
+          job_name: db-storage-size
           state_branch: ${{ env.STATE_BRANCH }}
           telegram_bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           telegram_chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}

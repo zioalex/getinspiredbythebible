@@ -1,6 +1,6 @@
 ---
 id: BITB-232
-status: todo
+status: in-review
 priority: P2
 size: S
 rank: 330
@@ -48,17 +48,36 @@ risk isn't "disk full", it's "disk doubled".
 
 ## Acceptance Criteria
 
-- [ ] 70%/15-min `storage_percent` alert added in `deployment/monitoring.tf`,
-      tuned so the current p95 (63.6%) does NOT page, and threshold + rationale
-      documented in the resource description
-- [ ] Provisioned-size tripwire implemented (weekly workflow step or Logic App)
-      — compares `az postgres flexible-server show` storage vs the declared
-      `storage_mb`; mismatch pages Telegram
-- [ ] Both tested once: forced test-fire each (temporary threshold / simulated
-      mismatch) and observed in Telegram
-- [ ] Alert wiring follows the existing action-group pattern (same channel as
+- [x] 70%/15-min `storage_percent` alert added in `deployment/monitoring.tf`
+      (`db_storage_pregrow`, sev3), tuned so the current p95 (63.6%) does NOT
+      page, and threshold + rationale documented in the resource description
+- [x] Provisioned-size tripwire implemented (`db-storage-size` job in
+      `prod-deploy-drift.yml` running `scripts/monitor/check_db_storage_size.py`)
+      — compares `az postgres flexible-server list` `storageSizeGb` vs the
+      expected size; mismatch pages Telegram (see Implementation notes for the
+      64 GB baseline)
+- [ ] Owner step: after deploy, test-fire the pre-grow alert once (temporarily
+      lower its threshold, or use the Azure portal "test action group") and
+      confirm delivery
+- [ ] Owner step: run Actions -> Prod Deploy Drift with `force_alert=true` and
+      confirm the `db-storage-size` Telegram message arrives (workflow_dispatch
+      cannot override the workflow-level `EXPECTED_DB_STORAGE_GB`, so
+      `force_alert` is the way to exercise the page path)
+- [x] Alert wiring follows the existing action-group pattern (same channel as
       other DB alerts)
-- [ ] `deployment/README.md` notes the guard and the 32 GB expectation
+- [x] `deployment/README.md` notes the guard and the 64 GB expectation
+      (declared 32 GB; BITB-229)
+
+## Implementation notes
+
+- **Deviation: baseline is 64 GB, not the declared 32 GB.** The live disk
+  already ratcheted 32 -> 64 GB and Terraform cannot shrink it, so comparing to
+  32 would page forever. `EXPECTED_DB_STORAGE_GB: "64"` lives in
+  `prod-deploy-drift.yml`; lower it to 32 when BITB-229 lands. `main.tf`'s
+  `storage_mb = 32768` is only the provisioning size for a new server.
+- The guard fails closed: zero servers, missing/non-numeric size, missing
+  expected value or an `az` failure all page rather than look green.
+- Tests: `api/tests/test_db_storage_size_guard.py`.
 
 ## Out of Scope
 
