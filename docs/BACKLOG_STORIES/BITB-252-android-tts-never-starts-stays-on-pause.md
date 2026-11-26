@@ -2,6 +2,7 @@
 id: BITB-252
 status: todo
 priority: P2
+kind: fix
 size: S
 rank: 770
 created: 2026-10-28
