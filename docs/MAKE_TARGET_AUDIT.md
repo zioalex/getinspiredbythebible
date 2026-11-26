@@ -15,10 +15,10 @@ Every target is dry-run with `make -n` (no recipe executes). *Executed* says how
 
 ## Summary
 
-- Targets: **142** (140 phony, 2 file rules)
-- Listed by `make help`: **138**; hidden on purpose: 4
-- Dry-run clean (`make -n`): **142/142**
-- Executed: real **0**, mocked **120**, static (blocked) **22**
+- Targets: **143** (141 phony, 2 file rules)
+- Listed by `make help`: **139**; hidden on purpose: 4
+- Dry-run clean (`make -n`): **143/143**
+- Executed: real **0**, mocked **121**, static (blocked) **22**
 
 | Safety class | Targets |
 |---|---|
@@ -27,7 +27,7 @@ Every target is dry-run with `make -n` (no recipe executes). *Executed* says how
 | `local-docker` | 32 |
 | `local-destructive` | 7 |
 | `network-read` | 7 |
-| `cloud-read` | 22 |
+| `cloud-read` | 23 |
 | `cloud-mutating` | 16 |
 | `cloud-destructive` | 3 |
 
@@ -109,101 +109,102 @@ Every target is dry-run with `make -n` (no recipe executes). *Executed* says how
 | `test-opencode-plugin` | 451 | yes | yes | `read-only` | static | ok | Runs `node --experimental-strip-types --test .opencode/plugin/task-reliability.test.ts`; the audit sandbox never executes recipes, and the suite needs node 22+ type stripping. Run for real by the opencode-ci.yml plugin-tests step, the BITB-280 live gate's [6/8] step, and the pod pre-flight (sync-opencode-workspace.sh). BITB-269: enforces the opencode 1.18.31 plugin-loader contract (single default function export; helpers in task-reliability-helpers.ts) and the stuck-watchdog event shape. |
 | `test-kubeopencode-netpol` | 454 | yes | yes | `read-only` | static | ok | Runs `pytest scripts/test_kubeopencode_netpol.py -q`; the sandbox pytest is a fake, so executing it asserts nothing. Command line pinned by MiscTargetTests.test_pytest_static_check_targets_run_their_suite (make -n). |
 | `verify-kubeopencode-netpol` | 457 | yes | yes | `cloud-read` | mocked | ok | bash scripts/verify-kubeopencode-netpol.sh (reads the live cluster). |
-| `test-cluster-triage` | 461 | yes | yes | `read-only` | static | ok | Runs `pytest scripts/test_cluster_triage.py -q`; fake pytest asserts nothing. Command line pinned by MiscTargetTests.test_pytest_static_check_targets_run_their_suite (make -n). |
-| `collect-k8s-diagnostics` | 464 | yes | yes | `cloud-read` | mocked | ok | bash scripts/collect-k8s-diagnostics.sh; NAMESPACE/POD_IP passed as single args. |
-| `test-dns-watchdog` | 469 | yes | yes | `read-only` | static | ok | Runs `pytest scripts/test_dns_watchdog.py -q`; fake pytest asserts nothing. SCRIPT_PYTHON selection pinned by ScriptPythonTests.test_script_python_prefers_venv_and_falls_back_to_python3 (make -n). |
-| `deploy-dns-watchdog` | 472 | yes | yes | `cloud-mutating` | mocked | ok | kubectl apply of the five dns-watchdog manifests to the live cluster. |
-| `lint-kubeopencode-dev-image` | 479 | yes | yes | `local-docker` | mocked | ok | docker run hadolint on the dev-image Dockerfile. |
-| `build-kubeopencode-dev-image` | 485 | yes | yes | `local-docker` | mocked | ok | docker build of the dev-toolchain image; TAG passed as a single arg. |
-| `validate-env` | 490 | yes | yes | `read-only` | mocked | ok | Run as a check-all prerequisite (scripts/validate-env.py; compares compose vs Terraform env vars). |
-| `validate-env-strict` | 495 | yes | yes | `read-only` | mocked | ok | scripts/validate-env.py --strict. |
-| `export-blocked-samples` | 500 | yes | yes | `read-only` | mocked | ok | scripts/export_blocked_samples.py (reads $DATABASE_URL); ARGS passed through. |
-| `export-feedback` | 503 | yes | yes | `read-only` | mocked | ok | scripts/export_feedback.py (reads $DATABASE_URL; feedback/contact rows incl. text within retention, BITB-329); ARGS passed through. |
-| `clean` | 506 | yes | yes | `local-destructive` | mocked | ok | Removes caches, frontend/.next and frontend/node_modules via `sudo -n rm \|\| rm` (D9). |
-| `clean-all` | 517 | yes | yes | `local-destructive` | mocked | ok | clean + removes the venv; prints the completion line exactly once. |
-| `fix-permissions` | 522 | yes | yes | `local-destructive` | mocked | ok | sudo chown of frontend/node_modules and frontend/.next (D8). |
-| `update-baseline` | 534 | yes | yes | `local-write` | mocked | ok | detect-secrets scan --baseline .secrets.baseline (D4; rewrites the baseline, open finding O2). |
-| `.env.local` | 549 | no | no | `local-write` | mocked | ok | File rule: copies .env.local.example once if .env.local is missing (not phony). |
-| `.env.dev` | 553 | no | no | `local-write` | mocked | ok | File rule: copies .env.dev.example; created as a docker-up-dev prerequisite (not phony). |
-| `check-env-production` | 558 | yes | no | `read-only` | mocked | ok | Guard prerequisite: fails if .env.production is missing. |
-| `docker-up` | 566 | yes | yes | `local-docker` | mocked | ok | docker compose --env-file .env.local up -d. |
-| `docker-up-gpu` | 575 | yes | yes | `local-docker` | mocked | ok | Local stack with the GPU compose overlay. |
-| `check-local-api-url` | 595 | yes | no | `read-only` | mocked | ok | Guard prerequisite: warns when NEXT_PUBLIC_API_URL is not localhost; strips surrounding quotes first (D13). |
-| `docker-up-local-prod` | 603 | yes | yes | `local-docker` | mocked | ok | Local containers wired to the PROD DB + cloud LLMs. |
-| `docker-up-local-prod-build` | 611 | yes | yes | `local-docker` | mocked | ok | Same, rebuilding images (--build). |
-| `docker-up-local-prod-acr-be` | 617 | yes | yes | `local-docker` | mocked | ok | ACR backend image + local frontend; TAG forwarded in the environment. |
-| `docker-down-local-prod` | 624 | yes | yes | `local-docker` | mocked | ok | Stops the local-prod stack. |
-| `docker-logs-local-prod` | 629 | yes | yes | `local-docker` | mocked | ok | Tails local-prod logs. |
-| `docker-restart-local-prod-api` | 632 | yes | yes | `local-docker` | mocked | ok | Restarts the local-prod api only. |
-| `docker-up-prod` | 635 | yes | yes | `local-docker` | mocked | ok | Legacy self-hosted prod stack (--env-file .env.production, --build). |
-| `docker-up-prod-gpu` | 643 | yes | yes | `local-docker` | mocked | ok | Same with the GPU overlay. |
-| `docker-up-dev` | 651 | yes | yes | `local-docker` | mocked | ok | Dev stack on shifted ports; creates the shared ollama_data volume if absent. |
-| `docker-up-dev-gpu` | 664 | yes | yes | `local-docker` | mocked | ok | Dev stack with GPU overlay. |
-| `docker-down-dev` | 670 | yes | yes | `local-docker` | mocked | ok | Stops the dev stack. |
-| `docker-logs-dev` | 675 | yes | yes | `local-docker` | mocked | ok | Tails dev logs. |
-| `docker-restart-dev` | 678 | yes | yes | `local-docker` | mocked | ok | Restarts all dev services. |
-| `docker-restart-dev-api` | 683 | yes | yes | `local-docker` | mocked | ok | Restarts the dev api only. |
-| `docker-restart-dev-frontend` | 688 | yes | yes | `local-docker` | mocked | ok | Restarts the dev frontend only. |
-| `docker-reinit-dev-db` | 693 | yes | yes | `local-docker` | mocked | ok | Recreates the dev db-init container. |
-| `docker-logs-dev-init` | 700 | yes | yes | `local-docker` | mocked | ok | Tails the dev db-init container logs. |
-| `docker-restart` | 703 | yes | yes | `local-docker` | mocked | ok | docker compose restart. |
-| `docker-restart-frontend` | 708 | yes | yes | `local-docker` | mocked | ok | Restarts the frontend only. |
-| `docker-restart-api` | 713 | yes | yes | `local-docker` | mocked | ok | Restarts the api only. |
-| `docker-down` | 718 | yes | yes | `local-docker` | mocked | ok | docker compose down. |
-| `docker-logs` | 723 | yes | yes | `local-docker` | mocked | ok | docker compose logs -f. |
-| `docker-build` | 726 | yes | yes | `local-docker` | mocked | ok | docker compose build. |
-| `docker-test` | 731 | yes | yes | `local-docker` | mocked | ok | Builds api/frontend then runs pytest in a throwaway api container. |
-| `docker-reset-db` | 742 | yes | yes | `local-destructive` | mocked | ok | down + removes the <project>_postgres_data volume (D7). |
-| `docker-reset-db-dev` | 752 | yes | yes | `local-destructive` | mocked | ok | down + removes getinspired-dev_postgres_data_dev (D6). |
-| `functional-test` | 758 | yes | yes | `local-docker` | mocked | ok | curl health + docker compose exec psql checks; degrades to exit 0 when services are down. |
-| `functional-test-dev` | 778 | yes | yes | `local-docker` | mocked | ok | Same against the dev stack. |
-| `docker-build-prod` | 795 | yes | yes | `cloud-mutating` | static | ok | Aggregate of docker-build-prod-backend + docker-build-prod-frontend; both push to ACR and are exercised individually. |
-| `docker-build-prod-backend` | 798 | yes | yes | `cloud-mutating` | mocked | ok | az acr login + docker build + docker push (bible-backend). |
-| `docker-build-prod-frontend` | 811 | yes | yes | `cloud-mutating` | mocked | ok | Stages CHANGELOG.md, builds with NEXT_PUBLIC_API_URL as one arg, pushes, then docker-verify-frontend; CHANGELOG unstaged even on failure. |
-| `docker-verify-frontend` | 832 | yes | yes | `local-docker` | mocked | ok | docker run grep over the built image; fails if localhost:8000 was baked in. |
-| `docker-update-tfvars` | 849 | yes | yes | `local-write` | mocked | ok | sed the git-SHA image tags into deployment/terraform.tfvars. |
-| `docker-deploy-prod` | 857 | yes | yes | `cloud-mutating` | mocked | ok | docker-update-tfvars then tf-apply-auto (deploys via Terraform). |
-| `docker-deploy-prod-quick` | 863 | yes | yes | `cloud-mutating` | mocked | ok | az containerapp update for backend + frontend (no Terraform). |
-| `docker-build-deploy-prod` | 876 | yes | yes | `cloud-mutating` | static | ok | Aggregate of docker-build-prod + docker-deploy-prod; both legs are exercised individually. |
-| `docker-get-backend-url` | 881 | yes | yes | `cloud-read` | mocked | ok | az containerapp show -> ingress fqdn; fails if az fails or fqdn is empty (D10). |
-| `update-env-backend-url` | 888 | yes | yes | `local-write` | static | ok | Runs scripts/update-env-backend-url.sh, which queries Azure and rewrites .env.production. Command line pinned by MiscTargetTests.test_update_env_backend_url_runs_the_helper (make -n). |
-| `az-acr-list-images` | 902 | yes | yes | `cloud-read` | mocked | ok | az acr repository show-tags --detail per repo; fails when az fails (D10). |
-| `az-acr-list-tags` | 916 | yes | yes | `cloud-read` | mocked | ok | Quick tag list per repo; fails when az fails (D10). |
-| `az-deployed-images` | 929 | yes | yes | `cloud-read` | mocked | ok | Resolves the deployed image digest per container app; fails on az error (D10). |
-| `az-image-info` | 974 | yes | yes | `cloud-read` | mocked | ok | az acr repository show-tags for REPO/TAG; usage error without both. |
-| `db-backup-info` | 1001 | yes | yes | `cloud-read` | mocked | ok | db-backup-restore.sh info (read-only). |
-| `db-backup` | 1004 | yes | yes | `local-write` | mocked | ok | db-backup-restore.sh dump (reads the server, writes a local dump). |
-| `db-backup-schema` | 1007 | yes | yes | `local-write` | mocked | ok | Schema-only dump (DUMP_ARGS prefixed with --schema-only). |
-| `db-restore-verify` | 1010 | yes | yes | `cloud-read` | mocked | ok | db-backup-restore.sh verify (post-restore checks, read-only). |
-| `db-restore-local` | 1013 | yes | yes | `local-docker` | mocked | ok | Restores a dump into a local pgvector container. |
-| `db-restore-new-server` | 1016 | yes | yes | `cloud-mutating` | mocked | ok | Azure PITR into a NEW server. |
-| `db-restore-same-server` | 1019 | yes | yes | `cloud-destructive` | mocked | ok | DESTRUCTIVE: replaces an existing database from a dump. |
-| `db-server-url` | 1022 | yes | yes | `cloud-read` | mocked | ok | Prints the DATABASE_URL for an Azure server; SERVER forwarded. |
-| `db-rehearse-alembic` | 1025 | yes | yes | `cloud-mutating` | mocked | ok | stamp->check->upgrade against a COPY of prod (BITB-089). |
-| `db-delete-server` | 1028 | yes | yes | `cloud-destructive` | mocked | ok | DESTRUCTIVE: deletes a restored Azure server; SERVER forwarded. |
-| `az-pg-add-ip` | 1043 | yes | yes | `cloud-mutating` | mocked | ok | Adds the caller IP to the PG firewall (--server-name/--name, D1); aborts if the IP lookup fails. |
-| `az-pg-list-rules` | 1055 | yes | yes | `cloud-read` | mocked | ok | Lists PG firewall rules; SERVER is a single argument. |
-| `az-pg-remove-ip` | 1062 | yes | yes | `cloud-mutating` | mocked | ok | Deletes a firewall rule by RULE (required); --name is the rule (D1). |
-| `az-logs-backend` | 1089 | yes | yes | `cloud-read` | mocked | ok | scripts/az-logs.sh tail: resolves latest ready revision + a running replica, then az containerapp logs show --type console --follow (BITB-319). |
-| `az-logs-frontend` | 1092 | yes | yes | `cloud-read` | mocked | ok | Same for the frontend. |
-| `az-logs-backend-system` | 1095 | yes | yes | `cloud-read` | mocked | ok | Backend system logs (--type system, no replica needed). |
-| `az-logs-frontend-system` | 1098 | yes | yes | `cloud-read` | mocked | ok | Frontend system logs. |
-| `az-logs-backend-query` | 1101 | yes | yes | `cloud-read` | mocked | ok | Past backend console logs from Log Analytics (HOURS/LEVEL/FILTER/LIMIT). Script logic in scripts/test_az_logs.py (BITB-319). |
-| `az-logs-frontend-query` | 1104 | yes | yes | `cloud-read` | mocked | ok | Same for the frontend. |
-| `az-chat-stream-errors` | 1107 | yes | yes | `cloud-read` | mocked | ok | Hourly counts of chat-stream failure signals from Log Analytics (DAYS) (BITB-319). |
-| `tf-check-version` | 1116 | yes | yes | `read-only` | mocked | ok | Compares local terraform version to the pipeline; warns, never fails. |
-| `tf-init` | 1134 | yes | yes | `cloud-read` | mocked | ok | terraform init; prefers backend.hcl, else detects the tfstate storage account via az. |
-| `tf-plan` | 1156 | yes | yes | `cloud-read` | mocked | ok | terraform plan with both var files; requires the secrets file. |
-| `tf-apply` | 1166 | yes | yes | `cloud-mutating` | mocked | ok | terraform apply (interactive) with both var files. |
-| `tf-apply-auto` | 1175 | yes | yes | `cloud-mutating` | mocked | ok | terraform apply -auto-approve. |
-| `tf-destroy` | 1184 | yes | yes | `cloud-destructive` | mocked | ok | terraform destroy; requires the secrets file. |
-| `tf-fmt` | 1193 | yes | yes | `local-write` | mocked | ok | terraform fmt -recursive. |
-| `tf-validate` | 1198 | yes | yes | `read-only` | mocked | ok | terraform init -backend=false + validate (local only). |
-| `tf-output` | 1204 | yes | yes | `cloud-read` | mocked | ok | terraform output (reads state). |
-| `tf-refresh` | 1208 | yes | yes | `cloud-mutating` | mocked | ok | terraform refresh; rewrites state to match real infra. |
-| `tf-state-list` | 1217 | yes | yes | `cloud-read` | mocked | ok | terraform state list. |
-| `repo-metrics` | 1221 | yes | yes | `local-write` | static | ok | Runs tools/repo-metrics analyze+render over git history and rewrites docs/metrics/. Interpreter (python3, not the venv) pinned by MiscTargetTests.test_metrics_targets_use_stdlib_python3 (make -n). |
-| `audit-metrics` | 1228 | yes | yes | `local-write` | static | ok | Runs tools/audit-metrics analyze+render and rewrites docs/audits/metrics/. Interpreter pinned by MiscTargetTests.test_metrics_targets_use_stdlib_python3 (make -n). |
+| `verify-llama-egress` | 461 | yes | yes | `cloud-read` | mocked | ok | bash scripts/verify-kubeopencode-netpol.sh --llama-only: the focused pre-merge check for the supplemental llama allow (BITB-362); probe target extracted from the committed manifest at runtime. |
+| `test-cluster-triage` | 465 | yes | yes | `read-only` | static | ok | Runs `pytest scripts/test_cluster_triage.py -q`; fake pytest asserts nothing. Command line pinned by MiscTargetTests.test_pytest_static_check_targets_run_their_suite (make -n). |
+| `collect-k8s-diagnostics` | 468 | yes | yes | `cloud-read` | mocked | ok | bash scripts/collect-k8s-diagnostics.sh; NAMESPACE/POD_IP passed as single args. |
+| `test-dns-watchdog` | 473 | yes | yes | `read-only` | static | ok | Runs `pytest scripts/test_dns_watchdog.py -q`; fake pytest asserts nothing. SCRIPT_PYTHON selection pinned by ScriptPythonTests.test_script_python_prefers_venv_and_falls_back_to_python3 (make -n). |
+| `deploy-dns-watchdog` | 476 | yes | yes | `cloud-mutating` | mocked | ok | kubectl apply of the five dns-watchdog manifests to the live cluster. |
+| `lint-kubeopencode-dev-image` | 483 | yes | yes | `local-docker` | mocked | ok | docker run hadolint on the dev-image Dockerfile. |
+| `build-kubeopencode-dev-image` | 489 | yes | yes | `local-docker` | mocked | ok | docker build of the dev-toolchain image; TAG passed as a single arg. |
+| `validate-env` | 494 | yes | yes | `read-only` | mocked | ok | Run as a check-all prerequisite (scripts/validate-env.py; compares compose vs Terraform env vars). |
+| `validate-env-strict` | 499 | yes | yes | `read-only` | mocked | ok | scripts/validate-env.py --strict. |
+| `export-blocked-samples` | 504 | yes | yes | `read-only` | mocked | ok | scripts/export_blocked_samples.py (reads $DATABASE_URL); ARGS passed through. |
+| `export-feedback` | 507 | yes | yes | `read-only` | mocked | ok | scripts/export_feedback.py (reads $DATABASE_URL; feedback/contact rows incl. text within retention, BITB-329); ARGS passed through. |
+| `clean` | 510 | yes | yes | `local-destructive` | mocked | ok | Removes caches, frontend/.next and frontend/node_modules via `sudo -n rm \|\| rm` (D9). |
+| `clean-all` | 521 | yes | yes | `local-destructive` | mocked | ok | clean + removes the venv; prints the completion line exactly once. |
+| `fix-permissions` | 526 | yes | yes | `local-destructive` | mocked | ok | sudo chown of frontend/node_modules and frontend/.next (D8). |
+| `update-baseline` | 538 | yes | yes | `local-write` | mocked | ok | detect-secrets scan --baseline .secrets.baseline (D4; rewrites the baseline, open finding O2). |
+| `.env.local` | 553 | no | no | `local-write` | mocked | ok | File rule: copies .env.local.example once if .env.local is missing (not phony). |
+| `.env.dev` | 557 | no | no | `local-write` | mocked | ok | File rule: copies .env.dev.example; created as a docker-up-dev prerequisite (not phony). |
+| `check-env-production` | 562 | yes | no | `read-only` | mocked | ok | Guard prerequisite: fails if .env.production is missing. |
+| `docker-up` | 570 | yes | yes | `local-docker` | mocked | ok | docker compose --env-file .env.local up -d. |
+| `docker-up-gpu` | 579 | yes | yes | `local-docker` | mocked | ok | Local stack with the GPU compose overlay. |
+| `check-local-api-url` | 599 | yes | no | `read-only` | mocked | ok | Guard prerequisite: warns when NEXT_PUBLIC_API_URL is not localhost; strips surrounding quotes first (D13). |
+| `docker-up-local-prod` | 607 | yes | yes | `local-docker` | mocked | ok | Local containers wired to the PROD DB + cloud LLMs. |
+| `docker-up-local-prod-build` | 615 | yes | yes | `local-docker` | mocked | ok | Same, rebuilding images (--build). |
+| `docker-up-local-prod-acr-be` | 621 | yes | yes | `local-docker` | mocked | ok | ACR backend image + local frontend; TAG forwarded in the environment. |
+| `docker-down-local-prod` | 628 | yes | yes | `local-docker` | mocked | ok | Stops the local-prod stack. |
+| `docker-logs-local-prod` | 633 | yes | yes | `local-docker` | mocked | ok | Tails local-prod logs. |
+| `docker-restart-local-prod-api` | 636 | yes | yes | `local-docker` | mocked | ok | Restarts the local-prod api only. |
+| `docker-up-prod` | 639 | yes | yes | `local-docker` | mocked | ok | Legacy self-hosted prod stack (--env-file .env.production, --build). |
+| `docker-up-prod-gpu` | 647 | yes | yes | `local-docker` | mocked | ok | Same with the GPU overlay. |
+| `docker-up-dev` | 655 | yes | yes | `local-docker` | mocked | ok | Dev stack on shifted ports; creates the shared ollama_data volume if absent. |
+| `docker-up-dev-gpu` | 668 | yes | yes | `local-docker` | mocked | ok | Dev stack with GPU overlay. |
+| `docker-down-dev` | 674 | yes | yes | `local-docker` | mocked | ok | Stops the dev stack. |
+| `docker-logs-dev` | 679 | yes | yes | `local-docker` | mocked | ok | Tails dev logs. |
+| `docker-restart-dev` | 682 | yes | yes | `local-docker` | mocked | ok | Restarts all dev services. |
+| `docker-restart-dev-api` | 687 | yes | yes | `local-docker` | mocked | ok | Restarts the dev api only. |
+| `docker-restart-dev-frontend` | 692 | yes | yes | `local-docker` | mocked | ok | Restarts the dev frontend only. |
+| `docker-reinit-dev-db` | 697 | yes | yes | `local-docker` | mocked | ok | Recreates the dev db-init container. |
+| `docker-logs-dev-init` | 704 | yes | yes | `local-docker` | mocked | ok | Tails the dev db-init container logs. |
+| `docker-restart` | 707 | yes | yes | `local-docker` | mocked | ok | docker compose restart. |
+| `docker-restart-frontend` | 712 | yes | yes | `local-docker` | mocked | ok | Restarts the frontend only. |
+| `docker-restart-api` | 717 | yes | yes | `local-docker` | mocked | ok | Restarts the api only. |
+| `docker-down` | 722 | yes | yes | `local-docker` | mocked | ok | docker compose down. |
+| `docker-logs` | 727 | yes | yes | `local-docker` | mocked | ok | docker compose logs -f. |
+| `docker-build` | 730 | yes | yes | `local-docker` | mocked | ok | docker compose build. |
+| `docker-test` | 735 | yes | yes | `local-docker` | mocked | ok | Builds api/frontend then runs pytest in a throwaway api container. |
+| `docker-reset-db` | 746 | yes | yes | `local-destructive` | mocked | ok | down + removes the <project>_postgres_data volume (D7). |
+| `docker-reset-db-dev` | 756 | yes | yes | `local-destructive` | mocked | ok | down + removes getinspired-dev_postgres_data_dev (D6). |
+| `functional-test` | 762 | yes | yes | `local-docker` | mocked | ok | curl health + docker compose exec psql checks; degrades to exit 0 when services are down. |
+| `functional-test-dev` | 782 | yes | yes | `local-docker` | mocked | ok | Same against the dev stack. |
+| `docker-build-prod` | 799 | yes | yes | `cloud-mutating` | static | ok | Aggregate of docker-build-prod-backend + docker-build-prod-frontend; both push to ACR and are exercised individually. |
+| `docker-build-prod-backend` | 802 | yes | yes | `cloud-mutating` | mocked | ok | az acr login + docker build + docker push (bible-backend). |
+| `docker-build-prod-frontend` | 815 | yes | yes | `cloud-mutating` | mocked | ok | Stages CHANGELOG.md, builds with NEXT_PUBLIC_API_URL as one arg, pushes, then docker-verify-frontend; CHANGELOG unstaged even on failure. |
+| `docker-verify-frontend` | 836 | yes | yes | `local-docker` | mocked | ok | docker run grep over the built image; fails if localhost:8000 was baked in. |
+| `docker-update-tfvars` | 853 | yes | yes | `local-write` | mocked | ok | sed the git-SHA image tags into deployment/terraform.tfvars. |
+| `docker-deploy-prod` | 861 | yes | yes | `cloud-mutating` | mocked | ok | docker-update-tfvars then tf-apply-auto (deploys via Terraform). |
+| `docker-deploy-prod-quick` | 867 | yes | yes | `cloud-mutating` | mocked | ok | az containerapp update for backend + frontend (no Terraform). |
+| `docker-build-deploy-prod` | 880 | yes | yes | `cloud-mutating` | static | ok | Aggregate of docker-build-prod + docker-deploy-prod; both legs are exercised individually. |
+| `docker-get-backend-url` | 885 | yes | yes | `cloud-read` | mocked | ok | az containerapp show -> ingress fqdn; fails if az fails or fqdn is empty (D10). |
+| `update-env-backend-url` | 892 | yes | yes | `local-write` | static | ok | Runs scripts/update-env-backend-url.sh, which queries Azure and rewrites .env.production. Command line pinned by MiscTargetTests.test_update_env_backend_url_runs_the_helper (make -n). |
+| `az-acr-list-images` | 906 | yes | yes | `cloud-read` | mocked | ok | az acr repository show-tags --detail per repo; fails when az fails (D10). |
+| `az-acr-list-tags` | 920 | yes | yes | `cloud-read` | mocked | ok | Quick tag list per repo; fails when az fails (D10). |
+| `az-deployed-images` | 933 | yes | yes | `cloud-read` | mocked | ok | Resolves the deployed image digest per container app; fails on az error (D10). |
+| `az-image-info` | 978 | yes | yes | `cloud-read` | mocked | ok | az acr repository show-tags for REPO/TAG; usage error without both. |
+| `db-backup-info` | 1005 | yes | yes | `cloud-read` | mocked | ok | db-backup-restore.sh info (read-only). |
+| `db-backup` | 1008 | yes | yes | `local-write` | mocked | ok | db-backup-restore.sh dump (reads the server, writes a local dump). |
+| `db-backup-schema` | 1011 | yes | yes | `local-write` | mocked | ok | Schema-only dump (DUMP_ARGS prefixed with --schema-only). |
+| `db-restore-verify` | 1014 | yes | yes | `cloud-read` | mocked | ok | db-backup-restore.sh verify (post-restore checks, read-only). |
+| `db-restore-local` | 1017 | yes | yes | `local-docker` | mocked | ok | Restores a dump into a local pgvector container. |
+| `db-restore-new-server` | 1020 | yes | yes | `cloud-mutating` | mocked | ok | Azure PITR into a NEW server. |
+| `db-restore-same-server` | 1023 | yes | yes | `cloud-destructive` | mocked | ok | DESTRUCTIVE: replaces an existing database from a dump. |
+| `db-server-url` | 1026 | yes | yes | `cloud-read` | mocked | ok | Prints the DATABASE_URL for an Azure server; SERVER forwarded. |
+| `db-rehearse-alembic` | 1029 | yes | yes | `cloud-mutating` | mocked | ok | stamp->check->upgrade against a COPY of prod (BITB-089). |
+| `db-delete-server` | 1032 | yes | yes | `cloud-destructive` | mocked | ok | DESTRUCTIVE: deletes a restored Azure server; SERVER forwarded. |
+| `az-pg-add-ip` | 1047 | yes | yes | `cloud-mutating` | mocked | ok | Adds the caller IP to the PG firewall (--server-name/--name, D1); aborts if the IP lookup fails. |
+| `az-pg-list-rules` | 1059 | yes | yes | `cloud-read` | mocked | ok | Lists PG firewall rules; SERVER is a single argument. |
+| `az-pg-remove-ip` | 1066 | yes | yes | `cloud-mutating` | mocked | ok | Deletes a firewall rule by RULE (required); --name is the rule (D1). |
+| `az-logs-backend` | 1093 | yes | yes | `cloud-read` | mocked | ok | scripts/az-logs.sh tail: resolves latest ready revision + a running replica, then az containerapp logs show --type console --follow (BITB-319). |
+| `az-logs-frontend` | 1096 | yes | yes | `cloud-read` | mocked | ok | Same for the frontend. |
+| `az-logs-backend-system` | 1099 | yes | yes | `cloud-read` | mocked | ok | Backend system logs (--type system, no replica needed). |
+| `az-logs-frontend-system` | 1102 | yes | yes | `cloud-read` | mocked | ok | Frontend system logs. |
+| `az-logs-backend-query` | 1105 | yes | yes | `cloud-read` | mocked | ok | Past backend console logs from Log Analytics (HOURS/LEVEL/FILTER/LIMIT). Script logic in scripts/test_az_logs.py (BITB-319). |
+| `az-logs-frontend-query` | 1108 | yes | yes | `cloud-read` | mocked | ok | Same for the frontend. |
+| `az-chat-stream-errors` | 1111 | yes | yes | `cloud-read` | mocked | ok | Hourly counts of chat-stream failure signals from Log Analytics (DAYS) (BITB-319). |
+| `tf-check-version` | 1120 | yes | yes | `read-only` | mocked | ok | Compares local terraform version to the pipeline; warns, never fails. |
+| `tf-init` | 1138 | yes | yes | `cloud-read` | mocked | ok | terraform init; prefers backend.hcl, else detects the tfstate storage account via az. |
+| `tf-plan` | 1160 | yes | yes | `cloud-read` | mocked | ok | terraform plan with both var files; requires the secrets file. |
+| `tf-apply` | 1170 | yes | yes | `cloud-mutating` | mocked | ok | terraform apply (interactive) with both var files. |
+| `tf-apply-auto` | 1179 | yes | yes | `cloud-mutating` | mocked | ok | terraform apply -auto-approve. |
+| `tf-destroy` | 1188 | yes | yes | `cloud-destructive` | mocked | ok | terraform destroy; requires the secrets file. |
+| `tf-fmt` | 1197 | yes | yes | `local-write` | mocked | ok | terraform fmt -recursive. |
+| `tf-validate` | 1202 | yes | yes | `read-only` | mocked | ok | terraform init -backend=false + validate (local only). |
+| `tf-output` | 1208 | yes | yes | `cloud-read` | mocked | ok | terraform output (reads state). |
+| `tf-refresh` | 1212 | yes | yes | `cloud-mutating` | mocked | ok | terraform refresh; rewrites state to match real infra. |
+| `tf-state-list` | 1221 | yes | yes | `cloud-read` | mocked | ok | terraform state list. |
+| `repo-metrics` | 1225 | yes | yes | `local-write` | static | ok | Runs tools/repo-metrics analyze+render over git history and rewrites docs/metrics/. Interpreter (python3, not the venv) pinned by MiscTargetTests.test_metrics_targets_use_stdlib_python3 (make -n). |
+| `audit-metrics` | 1232 | yes | yes | `local-write` | static | ok | Runs tools/audit-metrics analyze+render and rewrites docs/audits/metrics/. Interpreter pinned by MiscTargetTests.test_metrics_targets_use_stdlib_python3 (make -n). |
 
 ## Documentation references to missing targets
 
