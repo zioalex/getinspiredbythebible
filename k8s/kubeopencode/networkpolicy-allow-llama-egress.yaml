@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: agent-egress-llama
+  namespace: kubeopencode-system
+  labels:
+    app.kubernetes.io/part-of: kubeopencode
+    kubeopencode.io/tier: strict
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: kubeopencode
+  policyTypes:
+    - Egress
+  egress:
+    # Supplemental LAN opt-in (docs/SECURITY-KUBEOPENCODE.md -> "LAN opt-in"):
+    # the privately-hosted llama.cpp server opencode uses as an LLM provider
+    # (OpenAI-compatible endpoint, model unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_M).
+    # agent-egress-strict denies RFC1918 destinations by construction (its
+    # public-internet rule carries the RFC1918/link-local/loopback `except`
+    # list), so the provider is unreachable without this policy. Scope is
+    # exactly one host on exactly one port: the server's /32 on TCP/8080 --
+    # no other ports, no wider CIDR, no other pods. The podSelector matches
+    # agent pods exactly as agent-egress-strict does. Apply with the other
+    # allow-policies, BEFORE networkpolicy-default-deny.yaml (README order).
+    - to:
+        - ipBlock:
+            cidr: 192.168.178.150/32
+      ports:
+        - port: 8080
+          protocol: TCP
