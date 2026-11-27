@@ -1,7 +1,9 @@
-"""Offline tests for the safety golden set and its single-classifier runner (BITB-293).
+"""Offline tests for the safety golden set and its single-classifier runner (BITB-293, BITB-322).
 
 No network and no credentials: providers are replaced by fakes. The dataset checks run on the
-committed fixture, parametrized over all 11 UI languages.
+committed fixture, parametrized over all 11 UI languages. BITB-322 adds the gray-zone hard
+cases (indirect crisis, veiled/conditional threats, graphic Bible passages) and the `hate`
+category, and recalibrates the threshold defaults; these tests pin all three.
 """
 
 import importlib.util
@@ -28,7 +30,7 @@ runner = _load_runner()
 from providers.azure_content_safety import ContentSafetyResult  # noqa: E402
 
 LANGUAGES = ["en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko"]
-CATEGORIES = ["crisis", "threat", "bible_narrative"]
+CATEGORIES = ["crisis", "threat", "hate", "bible_narrative"]
 
 
 @pytest.fixture(scope="module")
@@ -50,9 +52,22 @@ def test_ids_unique(dataset):
 
 @pytest.mark.parametrize("language", LANGUAGES)
 @pytest.mark.parametrize("category", CATEGORIES)
-def test_each_language_has_three_cases_per_category(dataset, language, category):
+def test_each_language_has_eight_cases_per_category(dataset, language, category):
     n = [c for c in dataset["cases"] if c["language"] == language and c["category"] == category]
-    assert len(n) >= 3
+    assert len(n) >= 8
+
+
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_each_language_has_the_bitb_322_hard_case_ids(dataset, language):
+    """The gray-zone / hard additions are identifiable ids, not just an inflated count."""
+    ids = {c["id"] for c in dataset["cases"] if c["language"] == language}
+    expected = (
+        {f"crisis-{language}-{i:02d}" for i in range(5, 9)}  # indirect crisis phrasings
+        | {f"threat-{language}-{i:02d}" for i in range(5, 9)}  # conditional / veiled threats
+        | {f"bible-{language}-{i:02d}" for i in range(5, 9)}  # graphic Bible passages
+        | {f"hate-{language}-{i:02d}" for i in range(1, 9)}  # protected-group attacks
+    )
+    assert expected <= ids
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
@@ -137,6 +152,8 @@ class FakeProvider:
             )
         if category == "threat":
             return ContentSafetyResult(allowed=False, reason="violence_or_threat_detected")
+        if category == "hate":
+            return ContentSafetyResult(allowed=False, reason="hate_speech_detected")
         return ContentSafetyResult(allowed=True, reason="clean")
 
 
@@ -149,7 +166,9 @@ def _run(dataset, provider, *extra):
 def test_perfect_classifier_exit_0(dataset, capsys):
     assert _run(dataset, FakeProvider(dataset)) == 0
     out = capsys.readouterr().out
-    assert "| **overall** | 100% (44/44)" in out
+    # 8 cases x 11 languages per category; the table column order is pinned (crisis, threat,
+    # hate, Bible FP, errors) so a column reshuffle cannot slip through.
+    assert "| **overall** | 100% (88/88) | 100% (88/88) | 100% (88/88) | 0% (0/88) | 0 |" in out
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
@@ -181,6 +200,15 @@ def test_threat_miss_exits_1(dataset, capsys):
     assert "FAIL ko: threat recall 0.00" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize("language", LANGUAGES)
+def test_hate_miss_in_one_language_exits_1_naming_it(dataset, capsys, language):
+    provider = FakeProvider(dataset, wrong={(language, "hate")})
+    assert _run(dataset, provider) == 1
+    out = capsys.readouterr().out
+    assert f"FAIL {language}: hate recall 0.00" in out
+    assert f"hate-{language}-01: expected block, got allow" in out
+
+
 def test_threat_routed_to_crisis_counts_as_miss(dataset):
     results = [
         {
@@ -193,6 +221,21 @@ def test_threat_routed_to_crisis_counts_as_miss(dataset):
         },
     ]
     assert runner.compute_metrics(results)["en"]["threat_recall"] == 0.0
+
+
+def test_hate_routed_to_crisis_counts_as_miss(dataset):
+    """A hate case the classifier misroutes to the crisis card is a miss, not a hit."""
+    results = [
+        {
+            "id": "h",
+            "language": "en",
+            "category": "hate",
+            "expected": "block",
+            "verdict": "crisis",
+            "reason": "x",
+        },
+    ]
+    assert runner.compute_metrics(results)["en"]["hate_recall"] == 0.0
 
 
 @pytest.mark.parametrize("language", LANGUAGES)
@@ -241,7 +284,7 @@ def test_thresholds_are_configurable(dataset):
 
 def test_filters_and_no_match(dataset, capsys):
     assert _run(dataset, FakeProvider(dataset), "--languages", "ko", "--categories", "crisis") == 0
-    assert "cases=4" in capsys.readouterr().out
+    assert "cases=8" in capsys.readouterr().out
     assert _run(dataset, FakeProvider(dataset), "--languages", "xx") == 2
 
 
@@ -255,7 +298,7 @@ def test_output_json_written(dataset, tmp_path):
     out = tmp_path / "res.json"
     assert _run(dataset, FakeProvider(dataset), "--output", str(out)) == 0
     saved = json.loads(out.read_text(encoding="utf-8"))
-    assert saved["exit_code"] == 0 and len(saved["results"]) == 132
+    assert saved["exit_code"] == 0 and len(saved["results"]) == len(dataset["cases"])
     assert set(LANGUAGES) <= set(saved["metrics"])
 
 
@@ -294,4 +337,5 @@ def test_dry_run_needs_no_provider(monkeypatch, capsys, language):
         runner.main(["--classifier", "openai_moderation", "--dry-run", "--languages", language])
         == 0
     )
-    assert "Dataset OK: 12 cases" in capsys.readouterr().out
+    # BITB-322: 8 cases per category, 4 categories (crisis, threat, hate, bible_narrative).
+    assert f"Dataset OK: {8 * len(CATEGORIES)} cases" in capsys.readouterr().out

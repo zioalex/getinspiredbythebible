@@ -425,6 +425,34 @@ class PythonTargetTests(SandboxCase):
         self.assertEqual(args[args.index("--category") + 1], "a b")
         self.assertFalse((self.sb.dir / "pwned").exists())
 
+    def test_safety_golden_set_requires_a_classifier_and_quotes_it(self) -> None:
+        # BITB-322: no default CLASSIFIER -- a bare `make safety-golden-set` must never
+        # fire a paid classifier API. The value is quoted as a single shell argument.
+        # (install-deps still runs its fake-venv sentinel import; only the runner call is absent.)
+        missing = self.make("safety-golden-set")
+        self.assertNotEqual(missing.rc, 0)
+        self.assertEqual(missing.of("python", "scripts/run_safety_golden_set.py"), [])
+        res = self.make("safety-golden-set", CLASSIFIER="openai_moderation")
+        self.assertEqual(res.rc, 0, res.text)
+        self.assertEqual(
+            res.of("python")[-1].args,
+            ["scripts/run_safety_golden_set.py", "--classifier", "openai_moderation"],
+        )
+        evil = "openrouter;touch pwned"
+        res = self.make("safety-golden-set", CLASSIFIER=evil)
+        args = res.of("python")[-1].args
+        self.assertEqual(args[args.index("--classifier") + 1], evil)
+        self.assertFalse((self.sb.dir / "pwned").exists())
+
+    def test_safety_golden_set_passes_args_through(self) -> None:
+        # --dry-run is the free offline dataset check; thresholds ride in ARGS verbatim.
+        res = self.make("safety-golden-set", CLASSIFIER="llama_guard", ARGS="--dry-run --languages ko,hi")
+        self.assertEqual(res.rc, 0, res.text)
+        self.assertEqual(
+            res.of("python")[-1].args,
+            ["scripts/run_safety_golden_set.py", "--classifier", "llama_guard", "--dry-run", "--languages", "ko,hi"],
+        )
+
     def test_alembic_roundtrip_sequence_on_local_host(self) -> None:
         res = self.make("alembic-roundtrip", DATABASE_URL="postgresql+asyncpg://u:p@localhost:5432/db")
         self.assertEqual(res.rc, 0, res.text)
