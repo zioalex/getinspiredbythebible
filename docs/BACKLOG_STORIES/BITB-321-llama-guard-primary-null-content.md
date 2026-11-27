@@ -1,11 +1,13 @@
 ---
 id: BITB-321
-status: todo
+status: in-progress
 priority: P1
 kind: fix
 milestone: R1
 size: S
 created: 2026-11-15
+prs: []
+follow_ups: []
 ---
 
 # BITB-321: Llama Guard Primary Model Returns Null Content on Every Call
@@ -37,10 +39,18 @@ key) and compare `usage`, `finish_reason` and `provider`.
 
 ## Acceptance criteria
 
-- [ ] Root cause shown with a captured OpenRouter response (no message text in the repo).
+- [ ] Owner step: root cause shown with a captured OpenRouter response (no message text in the repo).
 - [ ] Fix (request parameters, provider pinning or a model swap) with a regression test on the
       response shape the route actually returns.
 - [ ] A metric or alert fires when the primary failure rate is above X% for an hour, so a
       silently dead primary is caught.
 - [ ] Owner step: after deploy, `make az-chat-stream-errors DAYS=1` shows `llama_guard_malformed`
       near zero and `content_safety` stage time back to its pre-failure level.
+
+## Progress (2026-11-17)
+
+Shipped diagnostics + tolerant parsing: malformed-response logs now carry `finish_reason`,
+`upstream_provider`, token usage and `has_reasoning`/`has_refusal` (never message text), and
+list-of-parts `content` is joined instead of rejected. Root cause still needs a live capture
+(no OpenRouter key in the automation sandbox) — read the new log fields after deploy.
+The failure-rate alert and the fix itself remain open acceptance criteria.
