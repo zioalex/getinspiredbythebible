@@ -49,8 +49,20 @@ class HealthResponse(BaseModel):
     memory: dict[str, Any]
 
 
-async def check_database_health(timeout: float | None = None) -> ComponentHealth:
+# Fixed, non-identifying errors for the PUBLIC readiness probe (BITB-317). The raw driver
+# exception can carry the DB host, port, user or SQL fragments; it is logged, never returned.
+_PUBLIC_DB_TIMEOUT_ERROR = "database check timed out"
+_PUBLIC_DB_UNAVAILABLE_ERROR = "database unavailable"
+
+
+async def check_database_health(
+    timeout: float | None = None, *, redact_errors: bool = False
+) -> ComponentHealth:
     """Check database connectivity and measure latency.
+
+    ``redact_errors=True`` (public ``/health/ready``) replaces the returned error with a
+    fixed string; the full exception is still logged. ``/health`` is local-access-only
+    and keeps the detail.
 
     ``timeout`` defaults to ``settings.health_check_timeout`` (the comprehensive
     ``/health`` budget). The readiness probe passes a shorter value so it answers
@@ -70,7 +82,7 @@ async def check_database_health(timeout: float | None = None) -> ComponentHealth
                 status="healthy",
                 latency_ms=round(latency_ms, 2),
             )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         latency_ms = (time.perf_counter() - start) * 1000
         # Log so a stalled DB is visible to the log-scan even though the platform
         # readiness probe gives up (and stays silent) before this returns.
@@ -79,7 +91,11 @@ async def check_database_health(timeout: float | None = None) -> ComponentHealth
         )
         return ComponentHealth(
             status="unhealthy",
-            error=f"Database check timed out after {timeout}s",
+            error=(
+                _PUBLIC_DB_TIMEOUT_ERROR
+                if redact_errors
+                else f"Database check timed out after {timeout}s"
+            ),
         )
     except Exception as e:
         latency_ms = (time.perf_counter() - start) * 1000
@@ -87,7 +103,7 @@ async def check_database_health(timeout: float | None = None) -> ComponentHealth
         return ComponentHealth(
             status="unhealthy",
             latency_ms=round(latency_ms, 2),
-            error=str(e),
+            error=_PUBLIC_DB_UNAVAILABLE_ERROR if redact_errors else str(e),
         )
 
 
@@ -106,7 +122,7 @@ async def check_llm_health() -> ComponentHealth:
             latency_ms=round(latency_ms, 2),
             details={"provider": provider.provider_name},
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(
             f"LLM health check timed out after {settings.health_check_timeout}s "
             f"(provider={settings.llm_provider})"
@@ -154,7 +170,7 @@ async def check_embedding_health() -> ComponentHealth:
                 "dimensions": len(result.embedding),
             },
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(
             f"Embedding health check timed out after {settings.health_check_timeout}s "
             f"(provider={settings.embedding_provider})"
@@ -291,7 +307,9 @@ async def readiness_probe():
     single-dependency inference degradation still serves (degraded) responses
     and must not bounce the pod.
     """
-    db_health = await check_database_health(timeout=settings.readiness_check_timeout)
+    db_health = await check_database_health(
+        timeout=settings.readiness_check_timeout, redact_errors=True
+    )
 
     dependencies = {"database": db_health.status}
 
