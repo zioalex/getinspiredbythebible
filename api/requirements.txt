@@ -1,12 +1,12 @@
 # Web Framework
-fastapi==0.162.5
+fastapi==0.165.0
 uvicorn[standard]==0.54.0
-pydantic==2.14.3
-pydantic-settings==2.16.2
-email-validator==2.3.0
+pydantic==2.14.4
+pydantic-settings==2.16.3
+email-validator==2.4.0
 
 # Database
-sqlalchemy[asyncio]==2.1.8
+sqlalchemy[asyncio]==2.1.9
 alembic==1.20.1
 asyncpg==0.32.0
 psycopg2-binary==2.9.13
@@ -41,7 +41,7 @@ python-dotenv==1.2.4
 # 1.26.4 was a hard blocker for Python 3.13+ images: its wheels stop at cp312
 # and its sdist cannot be built on newer CPython (PR #1240). 2.5.4 ships
 # cp312-cp315 wheels.
-numpy==2.5.4
+numpy==2.5.5
 lingua-language-detector==2.2.0
 pyyaml>=6.0.3
 

@@ -2,6 +2,7 @@
 id: BITB-188
 status: todo
 priority: P3
+kind: chore
 size: S
 rank: 90
 created: 2026-10-11

@@ -2,6 +2,7 @@
 id: BITB-143
 status: in-progress
 priority: P1
+kind: nfr
 size: L
 created: 2026-06-30
 ---

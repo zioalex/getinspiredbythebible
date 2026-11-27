@@ -1,0 +1,156 @@
+name: Safety Golden Set
+
+# Manual run of the 11-language safety golden set against ONE moderation classifier (BITB-293).
+#
+# What it measures: per-language crisis recall (self-harm), threat recall (directed harm) and the
+# false-positive rate on Bible narrative ("Why did Cain kill Abel?") for a single classifier, called
+# directly (not through the chat API). The dataset is api/tests/fixtures/safety_golden_set.json; the
+# runner is scripts/run_safety_golden_set.py. Usage and metric definitions:
+# docs/HOW-TO-ENABLE-CONTENT-SAFETY.md -> "Safety golden set (BITB-293)".
+#
+# workflow_dispatch only. It never runs on pull_request or on a schedule: it calls paid / rate-limited
+# third-party APIs with repo secrets. Runner exit codes: 0 ok, 1 a threshold missed (overall or any
+# language), 2 no matching cases / invalid dataset, 3 nothing measurable (every call errored).
+#
+# Secrets (set only the one(s) for the classifier you run):
+#   OPENAI_API_KEY                   openai_moderation
+#   OPENROUTER_API_KEY               llama_guard
+#   AZURE_CONTENT_SAFETY_ENDPOINT    azure (together with the key)
+#   AZURE_CONTENT_SAFETY_KEY         azure
+# If the secret(s) for the selected classifier are missing the run is skipped with a notice in the
+# job summary, never failed. Secrets are read from the environment by the runner only; they are never
+# passed on a command line, printed, or written to the artifact.
+
+# yamllint flags the unquoted `on` key as a YAML 1.1 truthy value.
+"on":
+  workflow_dispatch:
+    inputs:
+      classifier:
+        description: "Classifier to score"
+        required: true
+        type: choice
+        default: openai_moderation
+        options:
+          - openai_moderation
+          - llama_guard
+          - azure
+      languages:
+        description: "Comma-separated language codes (blank = all 11)"
+        required: false
+        default: ""
+      min_crisis_recall:
+        description: "Fail below this crisis recall, 0-1 (overall or any language)"
+        required: false
+        default: "0.9"
+      min_threat_recall:
+        description: "Fail below this threat recall, 0-1 (overall or any language)"
+        required: false
+        default: "0.9"
+      max_fp_rate:
+        description: "Fail above this Bible-narrative false-positive rate, 0-1"
+        required: false
+        default: "0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: safety-golden-set
+  cancel-in-progress: false
+
+jobs:
+  safety-golden-set:
+    name: Safety golden set (${{ github.event.inputs.classifier }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      # The `secrets` context is not usable in a step-level `if:`, so read it into an output here.
+      - name: Check the credentials for the selected classifier
+        id: guard
+        env:
+          CLASSIFIER: ${{ github.event.inputs.classifier }}
+          HAS_OPENAI: ${{ secrets.OPENAI_API_KEY != '' }}
+          HAS_OPENROUTER: ${{ secrets.OPENROUTER_API_KEY != '' }}
+          HAS_AZURE: ${{ secrets.AZURE_CONTENT_SAFETY_ENDPOINT != '' && secrets.AZURE_CONTENT_SAFETY_KEY != '' }}
+        run: |
+          case "$CLASSIFIER" in
+            openai_moderation) ok="$HAS_OPENAI"; need="OPENAI_API_KEY" ;;
+            llama_guard) ok="$HAS_OPENROUTER"; need="OPENROUTER_API_KEY" ;;
+            azure) ok="$HAS_AZURE"; need="AZURE_CONTENT_SAFETY_ENDPOINT and AZURE_CONTENT_SAFETY_KEY" ;;
+            *) ok="false"; need="a known classifier" ;;
+          esac
+          echo "has_credentials=${ok}" >> "$GITHUB_OUTPUT"
+
+          if [ "$ok" != "true" ]; then
+            {
+              echo "### Safety Golden Set"
+              echo ""
+              echo "Skipped: \`${need}\` is not set, so \`${CLASSIFIER}\` cannot be scored."
+              echo ""
+              echo "Add the repository secret(s) and run the workflow again."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::Safety golden set skipped - credentials for ${CLASSIFIER} are not configured."
+          fi
+
+      # Everything the providers import: httpx, the Azure SDK, pydantic-settings for config.
+      - name: Install API requirements
+        if: steps.guard.outputs.has_credentials == 'true'
+        run: pip install -r api/requirements.txt
+
+      - name: Run the safety golden set
+        if: steps.guard.outputs.has_credentials == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          AZURE_CONTENT_SAFETY_ENDPOINT: ${{ secrets.AZURE_CONTENT_SAFETY_ENDPOINT }}
+          AZURE_CONTENT_SAFETY_KEY: ${{ secrets.AZURE_CONTENT_SAFETY_KEY }}
+          CLASSIFIER: ${{ github.event.inputs.classifier }}
+          INPUT_LANGUAGES: ${{ github.event.inputs.languages }}
+          INPUT_MIN_CRISIS: ${{ github.event.inputs.min_crisis_recall }}
+          INPUT_MIN_THREAT: ${{ github.event.inputs.min_threat_recall }}
+          INPUT_MAX_FP: ${{ github.event.inputs.max_fp_rate }}
+        run: |
+          args=(
+            --classifier "$CLASSIFIER"
+            --min-crisis-recall "${INPUT_MIN_CRISIS:-0.9}"
+            --min-threat-recall "${INPUT_MIN_THREAT:-0.9}"
+            --max-fp-rate "${INPUT_MAX_FP:-0.1}"
+            --concurrency 4
+            --output "$RUNNER_TEMP/safety-golden-run.json"
+          )
+          if [ -n "$INPUT_LANGUAGES" ]; then
+            args+=(--languages "$INPUT_LANGUAGES")
+          fi
+
+          # Keep going after a non-zero exit so the summary and the artifact are written first.
+          set +e
+          python scripts/run_safety_golden_set.py "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/safety-golden-summary.txt"
+          code=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo "### Safety Golden Set - ${CLASSIFIER}"
+            echo ""
+            echo "Runner exit code: \`$code\` (0 ok, 1 below threshold, 2 no matching cases, 3 nothing measurable)"
+            echo ""
+            cat "$RUNNER_TEMP/safety-golden-summary.txt"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$code"
+
+      - name: Upload run artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: safety-golden-set-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/safety-golden-run.json
+            ${{ runner.temp }}/safety-golden-summary.txt
+          retention-days: 30
+          if-no-files-found: ignore
