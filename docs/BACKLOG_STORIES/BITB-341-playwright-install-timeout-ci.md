@@ -21,6 +21,15 @@ follow_ups: [BITB-342, BITB-343]
 
 These are not concurrency cancels: each was the newest run for its ref, with no later push.
 
+**It recurred while this fix sat unmerged.**
+[Run 127](https://github.com/zioalex/getinspiredbythebible/actions/runs/45304189532) on
+2026-11-24 01:19 UTC (dependabot styling PR) was cancelled the same way: the **webkit** leg's
+`Install Playwright browser` step ran 01:24:39 -> 01:38:49 (14m10s) and died on the 15-minute job
+timeout, while chromium, firefox and Mobile Safari installed in 16-25s on the same run. Six days
+after the first occurrence, same step, same engine. Over the 60 most recent `frontend-e2e` runs
+(2026-11-16 -> 2026-11-27) that is 2 newest-per-ref cancellations from this cause; the other 8
+`cancelled` runs in the window are ordinary `cancel-in-progress` supersessions.
+
 **Root cause.** Every matrix leg spends most of its budget in
 `npx playwright install --with-deps <browser>`, whose `--with-deps` half is an `apt-get install` of
 the engine's system libraries. The Ubuntu mirror (`us-east-2.ec2.archive.ubuntu.com`) crawled for

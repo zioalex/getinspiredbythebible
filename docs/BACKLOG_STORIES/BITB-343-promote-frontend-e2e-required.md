@@ -18,9 +18,13 @@ been stable for a while" — and BITB-250 shipped it on that understanding. It h
 promoted, so a genuine cross-browser read-aloud regression can merge unnoticed: the four engines are
 exactly the ones whose quirks caused BITB-210, BITB-248 and BITB-249, and nothing blocks on them.
 
-Promotion was blocked in practice by infra flake, not by the specs: BITB-341 documents three runs
-cancelled at the job timeout inside `playwright install`. With that fixed, the only thing left is
-evidence.
+Promotion was blocked in practice by infra flake, not by the specs: BITB-341 documents four runs
+cancelled at the job timeout inside `playwright install` -- three on 2026-11-17 and a fourth on
+2026-11-24, all on the webkit/Mobile Safari legs. With that fixed, the only thing left is evidence.
+
+Baseline to beat, measured 2026-11-27 over the 60 most recent runs (2026-11-16 -> 2026-11-27):
+13 newest-per-ref runs green, 2 cancelled by the BITB-341 cause. The window after BITB-341 merges
+must show zero of that cause.
 
 ## Fix
 
