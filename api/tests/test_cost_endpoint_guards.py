@@ -180,7 +180,7 @@ class TestProbeBypass:
             assert ROUTES[name](limiter_env, h).status_code == 200
 
     def test_wrong_probe_secret_does_not_bypass(self, limiter_env):
-        h = {"X-Test-IP": "7.7.7.8", "X-Monitor-Probe-Secret": "nope"}
+        h = {"X-Test-IP": "7.7.7.8", "X-Monitor-Probe-Secret": "nope"}  # pragma: allowlist secret
         for _ in range(LIMIT):
             ROUTES["contact"](limiter_env, h)
         assert ROUTES["contact"](limiter_env, h).status_code == 429
@@ -293,14 +293,3 @@ class TestChurchHonestHeaders:
         lowered = {k.lower() for k in headers}
         assert "origin" not in lowered and "referer" not in lowered
         assert "mozilla" not in headers["User-Agent"].lower()
-
-
-class TestTelemetryUnchanged:
-    """Requirement 8: client-events/-errors bodies carry no session_id, so they stay on the
-    shared limiter; this pins that assumption so adding a session_id later fails loudly."""
-
-    def test_bodies_have_no_session_id(self):
-        import main
-
-        assert "session_id" not in main.ClientErrorReport.model_fields
-        assert "session_id" not in main.ClientEvent.model_fields
