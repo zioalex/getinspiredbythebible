@@ -3,7 +3,6 @@
 // Consumed by two delivery channels, each of which appends its own aggregation tail:
 //   - deployment/monitoring.tf
 //       azurerm_monitor_scheduled_query_rules_alert_v2.backend_errors        (Sev2 email + Telegram)
-//       azurerm_monitor_scheduled_query_rules_alert_v2.backend_error_rate_other (Sev3)
 //   - .github/workflows/prod-monitor.yml  (log-scan job -> Telegram)
 //
 // Why level, not keywords: the backend already encodes signal-vs-noise in the log LEVEL
@@ -16,9 +15,11 @@
 // multi-line stack dumps.
 //
 // This file contains ONLY the filter + field extraction. Do NOT add a summarize/aggregation
-// here — each consumer appends its own (see the call sites above).
+// or a time window here — each consumer appends its own aggregation AND its own
+// `| where TimeGenerated > ago(N)` (BITB-372: a hard-coded ago(10m) here silently capped the
+// PT15M backend_errors rule at 10 minutes of look-back). Current windows: backend_errors
+// ago(15m); prod-monitor.yml log-scan ago(10m).
 ContainerAppConsoleLogs_CL
-| where TimeGenerated > ago(10m)
 | where ContainerAppName_s == "bible-app-backend"
 | where Log_s matches regex @"\|\s*ERROR\s*\|"          // level marker, not keywords
 | where Log_s !contains "bypassing rate limit"          // known-benign INFO line

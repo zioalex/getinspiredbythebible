@@ -5,6 +5,10 @@
 -- Actual configuration changes are applied via Terraform in deployment/main.tf
 -- (azurerm_postgresql_flexible_server_configuration resources)
 --
+-- BITB-233 (2026-11-26): Terraform is the source of truth for Azure. It now sets
+-- log_connections and log_checkpoints to 'off'; the 'on' values in the commented
+-- SQL and expected-output table below are the historical 2026-02 values.
+--
 -- Purpose: Tune PostgreSQL for optimal HNSW index builds and pgvector query performance
 --
 -- Issue: During migration 002, the HNSW index build hit maintenance_work_mem limit:
