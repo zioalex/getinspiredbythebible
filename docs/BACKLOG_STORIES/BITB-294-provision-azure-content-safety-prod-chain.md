@@ -2,6 +2,8 @@
 id: BITB-294
 status: todo
 priority: P1
+kind: nfr
+milestone: R1
 size: M
 rank: 200
 created: 2026-11-11

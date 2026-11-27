@@ -2,6 +2,7 @@
 id: BITB-235
 status: in-review
 priority: P3
+kind: chore
 size: S
 created: 2026-10-23
 prs: [1220, 1221]

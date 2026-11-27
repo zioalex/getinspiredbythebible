@@ -2,6 +2,7 @@
 id: BITB-314
 status: todo
 priority: P2
+kind: nfr
 size: S
 created: 2026-11-14
 ---
