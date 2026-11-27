@@ -2,6 +2,7 @@
 id: BITB-297
 status: done
 priority: P0
+kind: nfr
 size: M
 rank: 20
 created: 2026-11-11

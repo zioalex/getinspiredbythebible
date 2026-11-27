@@ -2,6 +2,7 @@
 id: BITB-002
 status: in-progress
 priority: P1
+kind: chore
 size: M
 rank: 780
 ---

@@ -25,6 +25,20 @@ hop is impossible. The invariant that actually survives the observed failure
 is a FREE tier-1 — free models draw no credit, so the chain keeps serving
 while the paid key is exhausted. Paid tier-2 (glm-5.3 / deepseek-v3.2-exp)
 stays as the defense against free-tier rate caps and upstream 5xx/429.
+
+BITB-363 adds the self-hosted llama.cpp server as an OPT-IN provider
+(`--model llama-cpp/gemma-4-26b` or a deliberate per-agent `model:`): its V1
+shape is pinned below, and it must never leak into the global defaults or
+any fallback chain — OpenRouter stays the only provider in the fallback
+graph (the llama server is free but LAN-local, and a fallback hop to it
+would tie every agent's resilience to one home server).
+
+BITB-365 puts the two mechanical lanes (i18n-qa, verse-parity-keeper) on
+that local server as their per-agent PRIMARY — mechanical work is
+low-value/high-volume, so it burns free-tier OpenRouter quota for nothing;
+the local server is zero-cost, rate-limit-free, and private. Their
+openrouter fallback chain is untouched (the safety net for a local outage)
+and every other lane stays exactly as it was.
 """
 
 import json
@@ -61,6 +75,12 @@ STALE_MODEL_IDS = (
     "opencode/mimo-v2.6-flash-free",
 )
 BUILTINS = ("build", "plan", "general", "explore", "compaction", "title", "summary")
+# BITB-365: the two mechanical lanes run the local llama.cpp server as
+# their per-agent primary (zero-cost, rate-limit-free, private); their
+# openrouter fallbacks stay as the safety net. This tuple is the ONLY
+# allowlist — extending it is a deliberate model-policy decision.
+LLAMA_MECHANICAL_LANES = ("i18n-qa", "verse-parity-keeper")
+LLAMA_MODEL = "llama-cpp/gemma-4-26b"
 PLUGIN_NAME = "opencode-runtime-fallback@0.2.4"
 # BITB-269: absolute in-pod path to the task-reliability plugin source
 # (only the generated opencode.json is synced into the ConfigMap — see the
@@ -104,13 +124,15 @@ def expected_chain(primary: str) -> list:
 
     - Workhorse/Builders (GLM-5.3 primary): [ultra free, DeepSeek V3.2 Exp]
     - Skeptics (DeepSeek V3.2 Exp primary): [ultra free, GLM-5.3]
-    - Mechanical (free ultra primary): [lightning free, GLM-5.3]
+    - Mechanical (local llama.cpp primary, BITB-365): [lightning free,
+      GLM-5.3] — the openrouter safety net when the local server is
+      unreachable; unchanged from the free-primary era
     """
     if primary == "openrouter/z-ai/glm-5.3":
         return [OR_STRONG_FREE, "openrouter/deepseek/deepseek-v3.2-exp"]
     if primary == "openrouter/deepseek/deepseek-v3.2-exp":
         return [OR_STRONG_FREE, "openrouter/z-ai/glm-5.3"]
-    # Free primary (mechanical lanes): tier-1 de-duplicated to lightning.
+    # Mechanical lanes (local llama.cpp primary, BITB-365): lightning tier-1.
     return [OR_LIGHT_FREE, "openrouter/z-ai/glm-5.3"]
 
 
@@ -317,6 +339,77 @@ def test_provider_timeouts_present(config):
     opts = config["provider"]["opencode"]["options"]
     assert opts["timeout"] == 600000
     assert opts["setCacheKey"] is True
+
+
+def test_llama_cpp_provider_v1_shape(config):
+    """BITB-363: the self-hosted llama.cpp server is emitted with the exact
+    V1 shape validated live on opencode 1.18.31 — singular top-level
+    "provider" (NOT the V2 plural), api "openai-compatible", and the
+    api/name/options/models key set. The baseURL host is deliberately NOT
+    hardcoded here: the pattern pins http + a bare IPv4 host + :8080 + /v1,
+    so the test cannot go stale when the server moves (the generator and the
+    generated opencode.json are the address's only homes).
+    """
+    llama = config["provider"]["llama-cpp"]
+    assert llama["api"] == "openai-compatible"
+    assert llama["name"] == "llama.cpp Server"
+    opts = llama["options"]
+    assert re.fullmatch(r"http://(?:\d{1,3}\.){3}\d{1,3}:8080/v1", opts["baseURL"]), (
+        "baseURL must be http://<llama-host>:8080/v1"
+    )
+    # Not a secret (mirrors the generator): the LAN llama.cpp server ignores
+    # auth; "dummy" only satisfies opencode's non-empty-key requirement.
+    assert opts["apiKey"] == "dummy"  # pragma: allowlist secret
+    assert opts["timeout"] is False
+    assert opts["headerTimeout"] is False
+    assert opts["chunkTimeout"] is False
+    assert set(llama["models"]) == {"gemma-4-26b"}
+    model = llama["models"]["gemma-4-26b"]
+    assert model["id"] == "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_M"
+    assert model["name"] == "Gemma 4 26B (Q4_K_M)"
+    assert model["limit"] == {"context": 32768, "output": 8192}
+
+
+def test_llama_cpp_is_opt_in_only(config):
+    """BITB-363/365 guard: llama.cpp is a per-lane opt-in, nothing more.
+
+    Three invariants:
+    1. The global defaults stay exactly as they were (paid GLM-5.3 primary,
+       free lightning small_model, BITB-279) — the local server is never
+       the global default.
+    2. EXACTLY the two mechanical lanes (LLAMA_MECHANICAL_LANES) carry a
+       llama-cpp model as their per-agent primary (BITB-365) — any other
+       agent adopting it must be a deliberate policy change that updates
+       the allowlist.
+    3. NO fallback hop anywhere may reference llama-cpp: a fallback to the
+       local server would tie every lane's resilience to one home server —
+       the fallback graph stays OpenRouter-only.
+    """
+    assert config["model"] == STRONG_PRIMARY
+    assert config["small_model"] == OR_LIGHT_FREE
+    llama_primaries = sorted(
+        name
+        for name, spec in config["agent"].items()
+        if (spec.get("model") or "").startswith("llama-cpp/")
+    )
+    assert llama_primaries == sorted(LLAMA_MECHANICAL_LANES), (
+        f"llama-cpp primaries must be exactly {sorted(LLAMA_MECHANICAL_LANES)}, "
+        f"got {llama_primaries}"
+    )
+    for name in LLAMA_MECHANICAL_LANES:
+        assert config["agent"][name]["model"] == LLAMA_MODEL, (
+            f"{name} must run {LLAMA_MODEL} as its primary (BITB-365)"
+        )
+    fallback_offenders = [
+        (name, fb)
+        for name, spec in config["agent"].items()
+        for fb in (spec.get("fallback_models") or [])
+        if fb.startswith("llama-cpp/")
+    ]
+    assert not fallback_offenders, (
+        f"llama-cpp leaked into fallback chains {fallback_offenders} — the "
+        "fallback graph stays OpenRouter-only"
+    )
 
 
 def test_every_agent_has_non_empty_prompt(config, md_agents):

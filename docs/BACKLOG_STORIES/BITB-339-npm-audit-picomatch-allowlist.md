@@ -2,6 +2,7 @@
 id: BITB-339
 status: done
 priority: P1
+kind: chore
 size: XS
 created: 2026-11-17
 prs: [1315]

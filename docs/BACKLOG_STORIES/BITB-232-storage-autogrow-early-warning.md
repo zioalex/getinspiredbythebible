@@ -2,6 +2,7 @@
 id: BITB-232
 status: todo
 priority: P2
+kind: nfr
 size: S
 rank: 330
 created: 2026-10-23

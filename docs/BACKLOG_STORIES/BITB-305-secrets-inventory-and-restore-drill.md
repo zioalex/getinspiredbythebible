@@ -2,6 +2,7 @@
 id: BITB-305
 status: done
 priority: P1
+kind: nfr
 size: M
 rank: 60
 created: 2026-11-11
