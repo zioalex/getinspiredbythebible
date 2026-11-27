@@ -394,7 +394,9 @@ jobs:
           # user-facing symptoms of those. `sample` is a KQL operator, so the column is
           # `sample_log`; each sample is prefixed with its ErrorCategory.
           filter=$(cat deployment/azure-monitor/queries/backend-error-filter.kql)
+          # The shared filter carries no time window (BITB-372); this job looks back 10m.
           query="${filter}
+            | where TimeGenerated > ago(10m)
             | summarize cnt = count(), sample_log = any(strcat('[', ErrorCategory, '] ', Log_s))
             | project cnt, sample_log"
           result=$(az monitor log-analytics query \
