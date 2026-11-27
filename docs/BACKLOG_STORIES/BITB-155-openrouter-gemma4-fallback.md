@@ -2,6 +2,7 @@
 id: BITB-155
 status: in-progress
 priority: P1
+kind: nfr
 size: S
 rank: 470
 created: 2026-09-15

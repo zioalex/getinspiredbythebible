@@ -1,10 +1,13 @@
 ---
 id: BITB-307
-status: todo
+status: in-review
 priority: P2
+kind: nfr
 size: S
 rank: 40
 created: 2026-11-11
+prs: [1297]
+follow_ups: [BITB-317, BITB-318]
 ---
 
 # BITB-307: Trim `/config`, Stop Leaking Upstream Errors, Drop the Session Metric Label, Tighten CORS
@@ -103,3 +106,8 @@ CORS, if one does.
 ## Related
 
 July audit O4, O5; BITB-064, BITB-118, BITB-156 (Android reads limits from `/config`).
+
+## Follow-ups
+
+- BITB-317 — `/health/ready` echoes raw database exception text to anonymous callers.
+- BITB-318 — chat responses still name the LLM provider and model (owner decision).

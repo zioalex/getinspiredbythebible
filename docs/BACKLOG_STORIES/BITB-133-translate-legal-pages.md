@@ -2,6 +2,7 @@
 id: BITB-133
 status: todo
 priority: P3
+kind: nfr
 ---
 
 # BITB-133: Translate Privacy Policy and Terms of Service into All Supported Languages

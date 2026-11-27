@@ -2,6 +2,7 @@
 id: BITB-105
 status: in-progress
 priority: P1
+kind: fix
 size: M
 rank: 1010
 created: 2026-08-21
