@@ -1,0 +1,163 @@
+---
+name: PR Kind
+
+# BITB-366: every PR says what it is for the product. scripts/pr_kind.py reads the BITB-NNN
+# stories named in the PR title and their front matter (`kind`, `milestone`; BITB-368,
+# docs/backlog/LEGEND.md), then this workflow:
+#
+#   - labels the PR kind/feature | kind/nfr | kind/fix | kind/chore | kind/spike,
+#   - assigns the GitHub milestone "R<n>: <outcome>" named by the stories' `milestone`,
+#   - fails when the stories mix kinds or milestones, a story is missing or has no kind, or a
+#     chore/spike PR uses feat:/fix: (that would put agent and CI tooling in the release notes),
+#   - comments once when more than WIP_LIMIT product PRs (feature/nfr/fix) are open.
+#
+# Bot PRs and release-please Release PRs are skipped. Fork PRs are classified but not labelled
+# (their token is read-only).
+
+"on":
+  pull_request:
+    branches:
+      - main
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-kind-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  kind:
+    name: PR Kind Check (BITB-366)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      # The merge ref: stories added by this PR plus everything already on main.
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - name: Classify the PR from its stories
+        id: classify
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set +e
+          python3 scripts/pr_kind.py --title "$PR_TITLE" --author "$PR_AUTHOR" \
+            --head-ref "$PR_HEAD_REF" --github-output "$GITHUB_OUTPUT"
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Apply the kind label and milestone
+        if: >-
+          steps.classify.outputs.skip != 'true' && steps.classify.outputs.kind != '' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          KIND: ${{ steps.classify.outputs.kind }}
+          MILESTONE: ${{ steps.classify.outputs.milestone }}
+        run: |
+          set -euo pipefail
+          declare -A colors=([feature]=1D76DB [nfr]=5319E7 [fix]=D93F0B [chore]=C5DEF5 [spike]=FBCA04)
+          declare -A about=(
+            [feature]="New capability a user can see or use"
+            [nfr]="Security, privacy, reliability, performance, cost or observability"
+            [fix]="Shipped behaviour was wrong"
+            [chore]="Tooling, CI, tests, deps, docs, backlog"
+            [spike]="Research or a decision; ships nothing"
+          )
+          existing="$(gh label list --repo "$REPO" --search "kind/" --json name --jq '.[].name')"
+          for k in feature nfr fix chore spike; do
+            if ! grep -qx "kind/$k" <<<"$existing"; then
+              gh label create "kind/$k" --repo "$REPO" --color "${colors[$k]}" \
+                --description "${about[$k]}" || true
+            fi
+          done
+
+          args=(--add-label "kind/$KIND")
+          current="$(gh pr view "$PR" --repo "$REPO" --json labels --jq '.labels[].name')"
+          while IFS= read -r label; do
+            if [[ "$label" == kind/* && "$label" != "kind/$KIND" ]]; then
+              args+=(--remove-label "$label")
+            fi
+          done <<<"$current"
+          gh pr edit "$PR" --repo "$REPO" "${args[@]}"
+          echo "Labelled kind/$KIND"
+
+          if [ -n "$MILESTONE" ]; then
+            title="$(gh api "repos/$REPO/milestones?state=open&per_page=100" | MS="$MILESTONE" python3 -c '
+          import json, os, sys
+          prefix = os.environ["MS"] + ":"
+          print(next((m["title"] for m in json.load(sys.stdin) if m["title"].startswith(prefix)), ""))
+          ')"
+            if [ -n "$title" ]; then
+              gh pr edit "$PR" --repo "$REPO" --milestone "$title"
+              echo "Milestone: $title"
+            else
+              echo "::warning::No open milestone titled '$MILESTONE: ...' yet (BITB-367 creates them)."
+            fi
+          fi
+
+      - name: Warn when too many product PRs are open
+        if: >-
+          steps.classify.outputs.product == 'true' && !github.event.pull_request.draft &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          WIP_LIMIT: ${{ steps.classify.outputs.wip_limit }}
+        run: |
+          set -euo pipefail
+          open="$(gh pr list --repo "$REPO" --state open --limit 300 --json number,isDraft,labels \
+            --jq '[.[] | select(.isDraft | not)
+                       | select([.labels[].name] | any(. == "kind/feature" or . == "kind/nfr" or . == "kind/fix"))
+                       | .number] | length')"
+          echo "Open product PRs: $open (limit $WIP_LIMIT)"
+          if [ "$open" -le "$WIP_LIMIT" ]; then
+            exit 0
+          fi
+          marker="<!-- pr-kind-wip-limit -->"
+          already="$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"$marker\")) | .id" | wc -l)"
+          if [ "$already" -gt 0 ]; then
+            echo "WIP comment already posted."
+            exit 0
+          fi
+          body="$marker
+          **WIP limit:** $open product PRs (feature/nfr/fix) are open; the limit is $WIP_LIMIT
+          (AGENTS.md -> Branch & PR Hygiene). Finish, merge or close one before opening more.
+          This is a warning, not a failing check."
+          gh pr comment "$PR" --repo "$REPO" --body "$body"
+
+      - name: Fail on rule violations
+        if: steps.classify.outputs.status != '0'
+        run: |
+          echo "See the annotations above (scripts/pr_kind.py, docs/backlog/LEGEND.md)."
+          exit 1
+
+  unit-tests:
+    name: PR Kind Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - run: pip install pytest
+
+      - run: python -m pytest scripts/test_pr_kind.py -v
