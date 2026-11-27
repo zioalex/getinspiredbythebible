@@ -299,6 +299,9 @@ class Settings(BaseSettings):
     chat_finalize_rate_limit_per_minute: int = 10  # POST /chat/finalize per IP (BITB-320)
     rate_limit_contact_per_minute: int = 3
     rate_limit_church_per_minute: int = 6
+    rate_limit_telemetry_per_minute: int = (
+        60  # POST /api/v1/client-errors and /client-events per IP (BITB-310)
+    )
     content_filter_enabled: bool = True
     content_filter_block_profanity: bool = True
     content_filter_block_spam: bool = True
