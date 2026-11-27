@@ -3,6 +3,7 @@ id: BITB-252
 status: todo
 priority: P2
 kind: fix
+milestone: R2
 size: S
 rank: 770
 created: 2026-10-28
