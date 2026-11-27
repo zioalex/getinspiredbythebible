@@ -10,6 +10,9 @@ created: 2026-11-11
 
 # BITB-306: Refresh the Roadmap, Archive Completed Backlog Entries, Unstick the Audit Trend
 
+**2026-11-27:** the roadmap refresh is done by BITB-367 (`docs/ROADMAP.md` now lists the release
+milestones R1/R2); the backlog-archive and audit-trend parts remain.
+
 **Prompted by:** [2026-11-11 verified review](../audits/2026-11-11-verified-review.md) rows P1, P2, P3.
 **Plan:** [2026-11-11 improvement plan](../audits/2026-11-11-improvement-plan.md), any wave.
 **Commit:** `docs: refresh roadmap and archive completed backlog entries (BITB-306)`
