@@ -1,11 +1,12 @@
 ---
 id: BITB-233
-status: todo
+status: in-review
 priority: P2
 kind: nfr
 size: S
 rank: 340
 created: 2026-10-23
+prs: [1341]
 ---
 
 # BITB-233: PostgreSQL Server-Log Hygiene — Dead Parameters and the Unmade Diagnostic Decision
@@ -28,8 +29,8 @@ Terraform**. Phase 0 evidence settles it:
 
 - `04-postgres-diagnostic-settings.json` = **`[]`** — confirmed: **no diagnostic
   setting exists**, in Terraform *or* as portal drift.
-- Therefore `log_connections = on` (main.tf:531-536), `log_checkpoints = on`
-  (:517-522) and `log_min_duration_statement = 100` (:510-515) write logs that
+- Therefore `log_connections = on` (`log_connections` resource in `deployment/main.tf`), `log_checkpoints = on`
+  (`log_checkpoints` resource) and `log_min_duration_statement = 100` (`log_min_duration_statement` resource) write logs that
   exist only on the server's local disk. Cost impact today: **zero ingestion**
   (nothing reaches Log Analytics). Operational value today: near zero (nobody
   reads server-local logs; they rotate away).
@@ -58,20 +59,39 @@ instant Terraform-invisible ingestion (the exact drift class BITB-150 warned
 about; `prod-deploy-drift.yml` doesn't watch diagnostic settings). This story
 makes the state *and the intent* explicit.
 
+## Decision (2026-11-26)
+
+**Option A.** Phase-0 evidence shows no diagnostic setting exists, so the logs go
+only to server-local disk and nothing reads them.
+
+- `log_connections` is noise on a pooled app: now `off`.
+- `log_checkpoints` matters little on a read-dominated workload: now `off`.
+- `log_min_duration_statement` stays at 100 ms: the one parameter a future reader
+  will plausibly want (slow-query diagnosis); costs nothing until a sink exists.
+- Both `off` resources are kept in Terraform so state is managed explicitly
+  (deleting a configuration resource resets the parameter to the Azure default, which is `on`).
+- **Restart impact:** `log_checkpoints` has context `sighup` and `log_connections`
+  has context `superuser-backend` (applies to new connections). Neither is a
+  static parameter, so Azure Flexible Server applies both without a restart.
+- `scripts/migrations/003_tune_postgresql_config.sql` is reference-only (SQL is
+  commented out); only a BITB-233 comment was added there.
+- Guard test: `api/tests/test_pg_server_log_params.py`.
+
 ## Acceptance Criteria
 
-- [ ] Decision (A or B) recorded here with reasoning
-- [ ] If A: `log_connections = off`, `log_checkpoints = off` in Terraform
+- [x] Decision (A or B) recorded here with reasoning
+- [x] If A: `log_connections = off`, `log_checkpoints = off` in Terraform
       (`azurerm_postgresql_flexible_server_configuration` blocks),
       `log_min_duration_statement` kept with a comment on why
-- [ ] If B: diagnostic setting codified in Terraform with the estimated
+- [ ] N/A (Option A chosen) — If B: diagnostic setting codified in Terraform with the estimated
       ingestion cost written down *before* enabling
-- [ ] Either way: a one-line note in `deployment/README.md` stating the
+- [x] Either way: a one-line note in `deployment/README.md` stating the
       decision, so the "should we log PG queries?" question has an answer on
       record
-- [ ] Server restart/connection-drain impact verified off-peak (parameter
-      changes recycle the server in some cases — confirm per parameter class
-      and schedule)
+- [ ] Owner step: no restart is expected because both parameters are non-static.
+      After the deploy, confirm with
+      `az postgres flexible-server parameter show --name log_connections ...`
+      (and `log_checkpoints`); `isConfigPendingRestart` should be false
 
 ## Out of Scope
 

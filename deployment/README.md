@@ -634,6 +634,19 @@ backend_cpu    = 1.0    # More CPU for embeddings
 backend_memory = "2Gi"  # More memory for vector operations
 ```
 
+### PostgreSQL server logs (BITB-233)
+
+- **No diagnostic setting:** PostgreSQL server logs are not shipped anywhere
+  (no `azurerm_monitor_diagnostic_setting` for the server), so they stay on the
+  server's local disk and cost nothing in Log Analytics.
+- `log_connections` and `log_checkpoints` are **off** (noise on a pooled,
+  read-dominated app).
+- `log_min_duration_statement` is kept at **100 ms** for slow-query diagnosis.
+- **Warning:** do not add a PostgreSQL diagnostic setting by hand in the portal.
+  That creates Terraform-invisible ingestion that `prod-deploy-drift.yml` does
+  not watch. If query logs are wanted, codify the setting in Terraform with a
+  cost estimate first (see BITB-233 Option B).
+
 ## 🔄 CI/CD with GitHub Actions
 
 ### Terraform Infrastructure Pipeline
