@@ -503,18 +503,25 @@ resource "azurerm_postgresql_flexible_server_configuration" "work_mem" {
   value     = "16384" # 16MB (in KB) - higher than default 4MB for vector operations
 }
 
-# Enable slow query logging (queries slower than 100ms)
+# Slow query logging (queries slower than 100ms). KEPT deliberately (BITB-233):
+# it is the one log parameter with a plausible future reader (slow-query
+# diagnosis). Logs stay on the server's local disk until a sink exists; there is
+# NO azurerm_monitor_diagnostic_setting for PGSQLLogs. Adding one is a deliberate
+# decision that needs a cost estimate first (BITB-233 Option B).
 resource "azurerm_postgresql_flexible_server_configuration" "log_min_duration_statement" {
   name      = "log_min_duration_statement"
   server_id = azurerm_postgresql_flexible_server.main.id
   value     = "100" # Log queries taking >100ms
 }
 
-# Enable checkpoint logging for performance analysis
+# Checkpoint logging OFF (BITB-233): only useful when tuning a write-heavy
+# server; this workload is read-dominated and nothing reads these local logs.
+# Kept as an explicit resource so Terraform manages the value (deleting it resets
+# the parameter to the Azure default, "on"). sighup context: no restart needed.
 resource "azurerm_postgresql_flexible_server_configuration" "log_checkpoints" {
   name      = "log_checkpoints"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "on"
+  value     = "off"
 }
 
 # Increase max_wal_size to reduce checkpoint frequency
@@ -524,11 +531,14 @@ resource "azurerm_postgresql_flexible_server_configuration" "max_wal_size" {
   value     = "2048" # 2GB (in MB) - reduces checkpoint storms
 }
 
-# Enable connection logging for monitoring
+# Connection logging OFF (BITB-233): on a pooled app this is a line per connection
+# establishment, pure noise. Kept as an explicit resource so Terraform manages
+# the value (deleting it resets the parameter to the Azure default, "on"). Applies to new
+# connections: no restart needed.
 resource "azurerm_postgresql_flexible_server_configuration" "log_connections" {
   name      = "log_connections"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "on"
+  value     = "off"
 }
 
 # Create the application database

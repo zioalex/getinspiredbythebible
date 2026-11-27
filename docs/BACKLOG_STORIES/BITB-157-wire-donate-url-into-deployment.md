@@ -2,6 +2,7 @@
 id: BITB-157
 status: in-progress
 priority: P3
+kind: fix
 size: S
 created: 2026-09-17
 ---

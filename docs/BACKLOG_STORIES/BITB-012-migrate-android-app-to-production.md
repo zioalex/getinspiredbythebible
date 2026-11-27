@@ -2,6 +2,7 @@
 id: BITB-012
 status: todo
 priority: P3
+kind: feature
 size: XL
 rank: 240
 ---
