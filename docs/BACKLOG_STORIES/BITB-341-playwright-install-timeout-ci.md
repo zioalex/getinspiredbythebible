@@ -1,10 +1,11 @@
 ---
 id: BITB-341
-status: in-progress
+status: in-review
 priority: P1
 kind: chore
 size: S
 created: 2026-11-18
+prs: [1317]
 follow_ups: [BITB-342, BITB-343]
 ---
 
