@@ -2,6 +2,7 @@
 id: BITB-345
 status: todo
 priority: P2
+kind: chore
 size: S
 created: 2026-11-19
 depends_on: [BITB-298, BITB-310]

@@ -2,6 +2,7 @@
 id: BITB-346
 status: todo
 priority: P2
+kind: nfr
 size: XS
 created: 2026-11-19
 depends_on: [BITB-310]
