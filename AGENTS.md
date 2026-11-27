@@ -109,6 +109,27 @@ one-liners may skip the relay, but still need tests where behaviour changes.
   hand-copied branch names.** The 2026-11-07 hang was triggered by a brief
   naming the wrong branch (PR 1241's for PR 1248's), sending the child after
   a lint violation that did not exist there until it asked.
+- **Builder briefs never poll CI to green (BITB-369).** A brief that tells a
+  builder to "poll until green" parks a paid session in sleep loops —
+  observed 2026-11-26: 14 bounded status reads over ~7 idle minutes on the
+  netpol PR. The contract: ONE status read after push to confirm CI
+  started, then return. CI watching is the orchestrator's job (single
+  bounded reads) or, if delegated at all, a free-tier lane's
+  (i18n-qa / verse-parity-keeper). A red check found at that single read
+  goes back to the builder as a fix brief with the job name and a
+  ≤20-line excerpt.
+- **Dispatch briefs never carry raw host addresses (BITB-369).** The
+  redaction middleware that masks addresses in agent tool output also
+  rejects tool calls whose arguments carry address-shaped literals: a
+  brief containing a bare endpoint URL or an address-shaped regex dies
+  with "Request blocked by content filter", on dispatch AND on resume
+  (the poisoned brief text stays in the child's context). Real addresses
+  move ONLY by shell expansion from an on-disk file (jq/cut out of the
+  committed manifest or the workspace config) into a placeholder in
+  authored files — never as literal text in a brief, tool argument,
+  commit message, PR body, or prose. Observed both ways 2026-11-26: the
+  literal-carrying brief was blocked twice; the placeholder-plus-extraction
+  briefs shipped three PRs.
 - **A run is not complete while a dispatched token lacks a terminal outcome**
   (result delivered / recovered via `task_id` / confirmed dead). See the
   orchestrator agent definition (`.opencode/agents/orchestrator.md`) for the
@@ -539,9 +560,11 @@ avoid stale entries accumulating in `.git/worktrees/`.
 - **Story files are the single source of truth (BITB-313).** Every story file in
   `docs/BACKLOG_STORIES/` (and the older ones in `docs/DONE/`) starts with a YAML front-matter
   block: `id`, `status` (`todo | in-progress | in-review | blocked | done | cancelled`),
-  `priority` (`P0..P3 | icebox`), `size` (`XS..XL`), optional `rank`, `created`, `prs`,
+  `priority` (`P0..P3 | icebox`), `kind` (`feature | nfr | fix | chore | spike`), optional
+  `milestone` (`R1`, `R2`, ...), `size` (`XS..XL`), optional `rank`, `created`, `prs`,
   `follow_ups`, `depends_on`, `supersedes` — one key per line, fixed order, schema in
-  `docs/backlog/LEGEND.md`. The title is the single `# BITB-NNN: Title` heading.
+  `docs/backlog/LEGEND.md`. **Every new story gets a `kind`** (BITB-368): it decides whether
+  the change reaches the product release notes, independently of the commit type. The title is the single `# BITB-NNN: Title` heading.
   `docs/BACKLOG.md` is a ~50-line stub that **feature PRs never edit** (the `backlog-stub-guard`
   CI job fails any PR that touches it); there is no hand-written index and no hand-written changelog.
 - **Find stories with `make backlog`, never by reading a big file.** `make backlog ARGS="list"`
