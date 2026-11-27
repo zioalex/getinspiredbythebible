@@ -2,6 +2,8 @@
 id: BITB-348
 status: todo
 priority: P3
+kind: chore
+milestone: R1
 size: XS
 created: 2026-11-19
 depends_on: [BITB-317]

@@ -2,6 +2,7 @@
 id: BITB-350
 status: todo
 priority: P2
+kind: chore
 size: S
 created: 2026-11-19
 ---

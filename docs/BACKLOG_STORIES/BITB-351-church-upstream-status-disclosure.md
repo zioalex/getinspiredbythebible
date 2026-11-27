@@ -2,6 +2,8 @@
 id: BITB-351
 status: todo
 priority: P3
+kind: nfr
+milestone: R1
 size: XS
 created: 2026-11-19
 ---
