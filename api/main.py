@@ -62,7 +62,7 @@ from utils.metrics import (  # noqa: E402
     translation_data_missing_counter,
 )
 from utils.metrics import meter as _metrics_meter  # noqa: F401, E402
-from utils.security import require_rate_limit  # noqa: E402
+from utils.security import require_ip_rate_limit  # noqa: E402
 from utils.tts_events import record_tts_event  # noqa: E402
 
 # Configure logging before anything else
@@ -527,8 +527,22 @@ _CLIENT_ERROR_TYPES = {
 }
 
 
+# BITB-310: telemetry endpoints use an IP-only limiter (shared bucket for both routes) so a stray
+# `session_id` in the body can never be charged against a chat session's lifetime cap.
+_telemetry_rate_limit = require_ip_rate_limit(
+    "telemetry", lambda: settings.rate_limit_telemetry_per_minute
+)
+
+
 class ClientErrorReport(BaseModel):
-    """Body for POST /api/v1/client-errors. `detail` is truncated server-side."""
+    """Body for POST /api/v1/client-errors. `detail` is truncated server-side.
+
+    extra="forbid" (BITB-310): the only shipped senders (frontend clientErrorReporter.ts and
+    turnstile.tsx) post exactly `{type, detail}` and Android does not call this endpoint
+    (verified 2026-11-19), so unknown fields such as `session_id` are rejected.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     type: str = Field(default="unknown", max_length=64)
     detail: str = Field(default="", max_length=4096)
@@ -547,7 +561,7 @@ def _normalize_client_error_type(raw: str) -> str:
 @app.post(
     "/api/v1/client-errors",
     include_in_schema=False,
-    dependencies=[Depends(require_rate_limit)],
+    dependencies=[Depends(_telemetry_rate_limit)],
 )
 async def report_client_error(report: ClientErrorReport, request: Request):
     """Receive client-side error reports (JS/render/API failures, Turnstile).
@@ -624,7 +638,7 @@ def _normalize_client_event_enum(raw: str, allowed: frozenset[str], default: str
 @app.post(
     "/api/v1/client-events",
     include_in_schema=False,
-    dependencies=[Depends(require_rate_limit)],
+    dependencies=[Depends(_telemetry_rate_limit)],
 )
 async def report_client_event(event: ClientEvent):
     """Count a whitelisted client telemetry event (no logging of IP / user agent)."""
