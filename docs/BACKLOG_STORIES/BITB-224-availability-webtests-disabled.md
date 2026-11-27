@@ -70,6 +70,8 @@ while `deployment/main.tf:288-350` defines both as active tests. Consequences:
       workspace ingestion, with web-test execution cost negligible
       (availabilityResults ingestion ≈ zero while disabled). Re-enable cost is
       immaterial to the bill; the decision is purely operational.
+      **Superseded 2026-11-26 (BITB-372):** wrong. Once re-enabled, the Nov 2026
+      meter showed Standard Web Test Execution ≈ $29/month; see the Decision section.
 
 ## The decision (record which, with reasoning)
 
@@ -87,6 +89,8 @@ tests **and** `backend_probe_failures` **and** update BITB-064's runbook note.
 **Option A re-enable — confirmed by the owner on 2026-10-29.** Code implements Option A
 (tests cost almost nothing; they are the only independent multi-geo vantage points, and the
 BITB-064 browser-only-outage safety net depends on them).
+
+**2026-11-26 (BITB-372):** the /health/ready availability test is retired and the preflight test slimmed to 1 geo every 15 min. The Nov 2026 meter showed Standard Web Test Execution ≈ $29/month (~21% of the bill), so the earlier "cost almost nothing" claim was wrong. /health/ready stays covered by the GitHub prod-monitor health probe (every 5 min) and backend_probe_failures.
 
 ## Acceptance Criteria
 
