@@ -2,6 +2,7 @@
 id: BITB-277
 status: todo
 priority: P2
+kind: chore
 size: L
 rank: 70
 created: 2026-11-08

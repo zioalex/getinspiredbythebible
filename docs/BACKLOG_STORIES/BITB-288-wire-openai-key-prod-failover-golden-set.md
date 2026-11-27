@@ -2,6 +2,8 @@
 id: BITB-288
 status: in-review
 priority: P1
+kind: nfr
+milestone: R1
 size: S
 rank: 140
 created: 2026-11-10

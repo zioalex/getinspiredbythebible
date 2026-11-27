@@ -2,6 +2,7 @@
 id: BITB-266
 status: in-review
 priority: P2
+kind: fix
 size: S
 created: 2026-11-04
 prs: [1283]
