@@ -2,6 +2,7 @@
 id: BITB-191
 status: todo
 priority: P3
+kind: fix
 size: XS
 rank: 50
 created: 2026-10-12
