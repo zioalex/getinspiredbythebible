@@ -257,6 +257,53 @@ class LlamaGuardProvider:
             violated_categories=list(violated_categories),
         )
 
+    @staticmethod
+    def _extract_content_text(content: object) -> object:
+        """Return message content as text; join OpenAI-style content-part lists.
+
+        Some OpenRouter routes return ``content`` as a list of ``{"type": "text",
+        "text": ...}`` parts instead of a string. Anything else is returned unchanged
+        so the caller can treat it as malformed.
+        """
+        if isinstance(content, list):
+            parts = [
+                part["text"]
+                for part in content
+                if isinstance(part, dict) and isinstance(part.get("text"), str)
+            ]
+            if parts:
+                return "".join(parts)
+        return content
+
+    @staticmethod
+    def _response_diagnostics(data: object) -> dict[str, object]:
+        """Non-sensitive shape facts about a malformed response (BITB-321).
+
+        Never includes message text: only finish_reason, serving provider, token usage
+        and whether reasoning/refusal fields are present, so the root cause of a null
+        ``content`` can be read from logs.
+        """
+        diag: dict[str, object] = {}
+        if not isinstance(data, dict):
+            return diag
+        provider = data.get("provider")
+        if isinstance(provider, str):
+            diag["upstream_provider"] = provider
+        usage = data.get("usage")
+        if isinstance(usage, dict):
+            for key in ("prompt_tokens", "completion_tokens"):
+                if isinstance(usage.get(key), int):
+                    diag[key] = usage[key]
+        choices = data.get("choices")
+        if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+            choice = choices[0]
+            diag["finish_reason"] = choice.get("finish_reason")
+            message = choice.get("message")
+            if isinstance(message, dict):
+                diag["has_reasoning"] = bool(message.get("reasoning"))
+                diag["has_refusal"] = bool(message.get("refusal"))
+        return diag
+
     async def _call_model(
         self,
         client: httpx.AsyncClient,
@@ -336,7 +383,7 @@ class LlamaGuardProvider:
 
             # Extract response text
             try:
-                response_text = data["choices"][0]["message"]["content"]
+                response_text = self._extract_content_text(data["choices"][0]["message"]["content"])
                 if not isinstance(response_text, str):
                     # Some upstream routes return finish_reason="stop" with
                     # content: null instead of an error — same failure mode
@@ -345,7 +392,12 @@ class LlamaGuardProvider:
             except (KeyError, IndexError, TypeError) as e:
                 logger.warning(
                     "Llama Guard API returned malformed response shape",
-                    extra={"text_hash": text_hash, "model": model, "error": str(e)},
+                    extra={
+                        "text_hash": text_hash,
+                        "model": model,
+                        "error": str(e),
+                        **self._response_diagnostics(data),
+                    },
                 )
                 raise LlamaGuardResponseError(
                     f"Malformed Llama Guard response shape: {e}",
