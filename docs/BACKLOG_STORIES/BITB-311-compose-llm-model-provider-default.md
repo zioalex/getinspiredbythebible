@@ -2,6 +2,7 @@
 id: BITB-311
 status: in-review
 priority: P2
+kind: chore
 size: XS
 rank: 10
 created: 2026-11-13

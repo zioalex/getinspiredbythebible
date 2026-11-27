@@ -2,6 +2,7 @@
 id: BITB-120
 status: todo
 priority: P2
+kind: feature
 size: L
 rank: 790
 created: 2026-09-04

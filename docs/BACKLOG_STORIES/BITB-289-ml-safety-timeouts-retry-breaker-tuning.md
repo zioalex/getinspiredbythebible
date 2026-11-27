@@ -2,6 +2,7 @@
 id: BITB-289
 status: in-progress
 priority: P1
+kind: nfr
 size: M
 rank: 150
 created: 2026-11-10

@@ -2,6 +2,7 @@
 id: BITB-254
 status: in-progress
 priority: P1
+kind: fix
 size: M
 rank: 240
 created: 2026-10-28

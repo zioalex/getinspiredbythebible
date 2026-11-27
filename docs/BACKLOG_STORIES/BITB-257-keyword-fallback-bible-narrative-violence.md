@@ -2,6 +2,7 @@
 id: BITB-257
 status: in-review
 priority: P1
+kind: fix
 size: M
 rank: 110
 created: 2026-10-29

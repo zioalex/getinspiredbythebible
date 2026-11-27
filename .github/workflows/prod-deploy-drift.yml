@@ -26,6 +26,7 @@ name: Prod Deploy Drift
 # availability web tests. `azurerm_application_insights_standard_web_test.enabled`
 # defaults to false and main.tf never set it, so both tests sat disabled in prod
 # and the *-availability-failed / *-preflight-failed alerts could never fire.
+# (BITB-372 retired the /health/ready availability test; only preflight remains.)
 # Terraform now pins enabled=true; this job pages if a test is ever disabled or
 # missing again (scripts/monitor/check_webtests_enabled.py).
 #
@@ -57,9 +58,9 @@ env:
   FRONTEND_APP_NAME: bible-app-frontend
   RESOURCE_GROUP: bible-app-rg
   STATE_BRANCH: gh-monitor-state
-  # BITB-224: web tests that must exist and be Enabled (<project_name>-availability
-  # / -preflight, from deployment/main.tf name_prefix).
-  EXPECTED_WEBTESTS: bible-app-availability,bible-app-preflight
+  # BITB-224: web tests that must exist and be Enabled (<project_name>-preflight,
+  # from deployment/main.tf name_prefix). BITB-372 retired the -availability test.
+  EXPECTED_WEBTESTS: bible-app-preflight
   # A component is only reported as drifted once its expected commit has been
   # sitting undeployed longer than this — a deploy already in flight (build +
   # terraform apply routinely take several minutes) must not trip a false

@@ -1,7 +1,7 @@
 ---
 description: Keeps the three verse-reference parsers (backend, frontend, Android) in sync across all 11 languages and representative Bible versions
 mode: subagent
-model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+model: llama-cpp/gemma-4-26b
 fallback_models:
   - openrouter/nvidia/nemotron-3.5-lightning:free
   - openrouter/z-ai/glm-5.3

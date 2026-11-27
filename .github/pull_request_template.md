@@ -2,8 +2,19 @@
 Title must follow Conventional Commits (enforced by commitlint):
   type(scope): short imperative summary
   e.g. feat(api): add per-language model fallback chain (BITB-144)
+Name every story the PR implements (BITB-NNN); they must share one `kind`
+(docs/backlog/LEGEND.md), and chore/spike work never uses feat:/fix:.
 Keep the PR small and focused on a single concern.
 -->
+
+## Outcome
+
+<!-- Filled from the stories in the title by pr-kind.yml (BITB-366): the PR is labelled
+     kind/<kind> and put in the stories' milestone. One kind and one milestone per PR. -->
+
+- **Kind:** <!-- feature | nfr | fix | chore | spike — from the story's front matter -->
+- **Milestone:** <!-- R1, R2, ... or none -->
+- **Outcome:** <!-- one sentence, in the user's words: what changes for them (chore: for us) -->
 
 ## What
 
