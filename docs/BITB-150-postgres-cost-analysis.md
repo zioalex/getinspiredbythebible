@@ -179,7 +179,7 @@ COMMIT;
 - **Savings:** ~3.8 GB disk → avoids next auto-grow step (saves ~$11/mo at 64→128 GB)
 - **Memory:** Fits working set in RAM → p95 latency improvement
 - **Risk:** Full table rewrite + index rebuild (2-3 hours off-peak), recall validation required
-- **Prerequisite:** Golden-set recall test (`make golden-set-eval`) must pass with `halfvec`
+- **Prerequisite:** Golden-set recall test (`python scripts/run_search_eval.py --run`, BITB-139; see `docs/SEARCH_EVAL_HOWTO.md`) must pass with `halfvec`
 
 ---
 
@@ -266,7 +266,7 @@ Migration 007 explicitly states: *"Upgraded from B1ms (1 vCore / 2 GB) so the pe
 | Lever | Risk | Mitigation |
 |-------|------|------------|
 | Reserved capacity | SKU retired in region | Exchangeable within family; B-series stable |
-| halfvec | Recall regression on multilingual search | Golden-set eval (`make golden-set-eval`) mandatory before cutover; run A/B in staging |
+| halfvec | Recall regression on multilingual search | Golden-set retrieval eval (`python scripts/run_search_eval.py --run`) mandatory before cutover; run A/B in staging |
 | halfvec | Storage auto-grow during rewrite | Schedule off-peak; pre-scale to 64 GB manually; `ignore_changes` absorbs |
 | Right-size down (B1ms) | Partial indexes evicted → p95 latency spike | Only if CPU p95 < 30% AND memory p95 < 60% sustained 90 days |
 | Right-size up (D2s) | 3.6× cost increase | Only if CPU credits exhausted (p50 > 40% sustained) |
