@@ -83,8 +83,8 @@ High P99 with low P50 usually points to one of:
 
 **Availability** (tile, always fixed 7-day window)
 
-Driven by the automated health-check web test (`/health/ready` endpoint, 5-minute
-cadence from 3 Azure regions). Zero recent data means the web test is not yet
+Driven by the CORS-preflight web test (OPTIONS on the chat stream endpoint, 15-minute
+cadence from 1 Azure region, BITB-372). Zero recent data means the web test is not yet
 deployed — check `enable_application_insights` and re-run `make tf-apply`.
 
 | Value | Colour | Meaning |

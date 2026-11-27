@@ -2,9 +2,11 @@
 id: BITB-297
 status: in-review
 priority: P0
+kind: nfr
 size: M
 rank: 20
 created: 2026-11-11
+prs: [1286]
 ---
 
 # BITB-297: Trusted Client IP — Close the Local-Only Bypass and Stop Keying Limits on a Forged Header

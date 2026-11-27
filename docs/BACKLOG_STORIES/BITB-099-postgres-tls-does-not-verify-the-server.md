@@ -2,6 +2,7 @@
 id: BITB-099
 status: in-progress
 priority: P2
+kind: nfr
 size: M
 created: 2026-08-18
 prs: [1058]

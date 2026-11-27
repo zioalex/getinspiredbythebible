@@ -2,6 +2,7 @@
 id: BITB-007
 status: todo
 priority: P2
+kind: nfr
 size: M
 rank: 980
 ---

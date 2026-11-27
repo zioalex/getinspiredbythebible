@@ -104,3 +104,18 @@ async def get_request_chain(request: Request):
     if not is_monitor_probe(request):
         raise HTTPException(status_code=401, detail="Unauthorized")
     return describe_request_chain(request)
+
+
+@router.get("/config", include_in_schema=False)
+async def get_admin_config(request: Request):
+    """Diagnostic configuration (LLM/embedding provider + model, telemetry) (BITB-307).
+
+    The public ``GET /config`` no longer exposes these. Guarded by the monitor-probe
+    shared secret (``X-Monitor-Probe-Secret``); fail-closed (401) when unset.
+    """
+    if not is_monitor_probe(request):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    # Imported lazily: main imports this router at module load.
+    from main import build_admin_config
+
+    return build_admin_config()

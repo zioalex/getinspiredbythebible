@@ -2,6 +2,7 @@
 id: BITB-010
 status: todo
 priority: P3
+kind: nfr
 size: XL
 rank: 220
 ---

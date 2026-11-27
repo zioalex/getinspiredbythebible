@@ -2,6 +2,7 @@
 id: BITB-282
 status: in-progress
 priority: P1
+kind: chore
 size: M
 rank: 80
 created: 2026-11-09
