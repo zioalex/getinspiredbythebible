@@ -1,8 +1,11 @@
 # Product Roadmap
 
-High-level planning for Vox Quieta - organized into Now / Next / Later / Icebox.
+What Vox Quieta ships next, as product releases. Each release is a GitHub milestone titled
+`R<n>: <outcome>` that states what changes for users and how we know it is done
+(docs/RELEASE_PROCESS.md, "Product releases (milestones)"). The stories behind it carry
+`milestone: R<n>` in their front matter (docs/backlog/LEGEND.md).
 
-**Last Updated:** 2026-02-23
+**Last updated:** 2026-11-27 (BITB-367; replaces the February 2026 M1–M6 plan).
 
 ---
 
@@ -18,266 +21,41 @@ scripture based on their life situations through:
 
 ---
 
-## Now (Current Focus - Feb 2026)
+## Now — R1: Safe and secure chat
 
-### Theme: Stability & Security
+**Outcome:** a person in distress gets a safe answer in all 11 languages even when a moderation
+provider fails, and the public API does not leak data or let others spend what they should not.
 
-Focus on fixing critical bugs, securing the platform, and cleaning up technical debt
-from the initial launch.
+**Done when:**
 
-### M1–M2 Milestones
+- Llama Guard returns content again instead of failing over on every call (BITB-321, fix)
+- The OpenAI moderation failover is live in production (BITB-288, nfr)
+- Azure Content Safety is provisioned as the next hop (BITB-294, nfr)
+- The keyword fallback catches the missing suicidal phrasings (BITB-203, BITB-204, fix)
+- Telemetry endpoints have their own rate limit (BITB-310, nfr) and `/health/ready` stops
+  echoing database errors (BITB-317, nfr)
+- The safety golden sets pass in all 11 languages (BITB-293, BITB-322: the evidence)
 
-#### 🚀 M1: Production Stability (In Progress)
+Live list: `make backlog ARGS="list --milestone R1"` · draft notes: `make release-notes ARGS="--milestone R1"`.
 
-**Target:** End of Feb 2026
+## Next — R2: Smoother chat on web and Android
 
-**Goals:**
+**Outcome:** switching language, reading aloud and search landing pages behave the way users
+expect.
 
-- ✅ Fix Turnstile 403 errors on web app (PR #171)
-- 🚧 Sync all open PRs with main (PR #167, #168, #169, #170)
-- 🎯 Enable Turnstile on Android app (BITB-003)
-- 🎯 Secure database from public internet (BITB-005)
+- Changing the UI language starts a new chat on web and Android (BITB-331, BITB-334, fix)
+- Android read aloud no longer stays paused when the speech engine never starts (BITB-252, fix)
+- Headings, descriptions, the localized 404 and sitemap dates are right (BITB-300, fix)
 
-**Success Metrics:**
+## Later
 
-- Zero user-reported 403 errors on web app
-- All open PRs merged or closed
-- Android app ready for internal testing with bot protection
-- PostgreSQL accessible only via Azure VNet
+Not yet in a release. Candidates are picked into the next milestone when R1 ships; query them by
+kind instead of keeping a second list here:
 
-**User Value:**
-
-- Web users get immediate, error-free responses
-- Mobile users get secure, bot-protected experience
-- Infrastructure hardened against attacks
-
----
-
-#### 🔧 M2: Developer Experience (Next Up)
-
-**Target:** Mid-March 2026
-
-**Goals:**
-
-- 🎯 Add database migration framework (BITB-004)
-- 🎯 Add request tracing with correlation IDs (BITB-008)
-- 🎯 Improve embedding generation performance (BITB-007)
-
-**Success Metrics:**
-
-- Schema changes deployed via Alembic migrations
-- All logs include request trace IDs
-- Embedding generation completes in <10 minutes (down from 30-60 min)
-
-**User Value:**
-
-- Faster feature delivery (easier database changes)
-- Better support (can trace user issues through logs)
-- Faster data updates (improved embedding script)
-
----
-
-## Next (Upcoming Quarter - Q2 2026)
-
-### Theme: Quality & Testing
-
-Build confidence in the codebase with comprehensive testing and improve code quality.
-
-### M3–M4 Milestones
-
-#### 🧪 M3: Testing & Quality
-
-**Target:** End of Q2 2026
-
-**Goals:**
-
-- 🎯 Add frontend testing suite (BITB-011)
-- 🎯 Refactor SQLAlchemy models to 2.0 syntax (BITB-009)
-- 🎯 Add staging environment (BITB-006)
-
-**Success Metrics:**
-
-- 80%+ frontend test coverage
-- Zero MyPy suppressions in scripture/*and routes/*
-- Staging environment deployed and used for all pre-production validation
-
-**User Value:**
-
-- Fewer UI bugs in production
-- Faster, safer feature releases
-- More reliable service
-
----
-
-#### 📱 M4: Android Production Launch
-
-**Target:** End of Q2 2026
-
-**Goals:**
-
-- 🎯 Complete Android app (BITB-012)
-- 🎯 Submit to Google Play Store
-- 🎯 Public beta launch
-
-**Dependencies:**
-
-- M1 must be complete (Turnstile on Android)
-- Privacy policy and terms of service written
-- App icon and branding finalized
-
-**Success Metrics:**
-
-- App approved by Google Play Store
-- 100+ beta users onboarded
-- <5% crash rate in production
-- 4+ star rating on Play Store
-
-**User Value:**
-
-- Mobile-native experience for Android users
-- Offline-capable scripture search (Ollama embeddings on-device)
-- Faster, more responsive than web app
-
----
-
-## Later (Future - Q3 2026 and Beyond)
-
-### Theme: Scale & Features
-
-Expand capabilities, improve performance, and add user-requested features.
-
-### M5–M6 Milestones
-
-#### 🚀 M5: Scale & Performance
-
-**Timeframe:** Q3 2026
-
-**Goals:**
-
-- 🎯 Add blue-green deployment (BITB-010)
-- 🎯 Add OpenTelemetry metrics and APM (TASKS.md #5.2)
-- 🎯 Add alerting for operational metrics (TASKS.md #5.3)
-- 🎯 Optimize API response times (target: <500ms p95)
-
-**Success Metrics:**
-
-- Zero-downtime deployments
-- Comprehensive dashboards for all services
-- Alerts catch issues before users report them
-- p95 API latency <500ms (down from current ~1-2s)
-
-**User Value:**
-
-- Uninterrupted service during updates
-- Proactive issue detection and resolution
-- Faster responses
-
----
-
-#### 🌍 M6: Multi-Bible Translation Support
-
-**Timeframe:** Q4 2026
-
-**Goals:**
-
-- Support multiple English translations (KJV, NIV, ESV, NKJV)
-- User preference for default translation
-- Parallel verse display (compare translations)
-
-**Success Metrics:**
-
-- 3+ translations available
-- User can switch translation in <2 clicks
-- Semantic search works across all translations
-
-**User Value:**
-
-- Read scripture in their preferred translation
-- Compare translations side-by-side
-- Deeper biblical study
-
-### Gated Platform Expansion
-
-- **iOS App (BITB-087):** Later and unscheduled. Native SwiftUI is provisional until the physical-device
-  Turnstile probe passes and hard prerequisites BITB-086 and BITB-109 are complete. See
-  `docs/ios/delivery-approach.md`.
-
----
-
-## Icebox (Ideas - No Timeline)
-
-Features and ideas worth considering but not yet prioritized:
-
-### User Features
-
-- **Daily Devotional Notifications**: Push notifications with daily verses
-- **Verse Memorization Game**: Gamified scripture memorization
-- **Community Prayer Requests**: Social feature for sharing prayer needs
-- **Audio Bible Integration**: Read-along audio for verses
-- **Offline Mode (Web)**: Service worker for offline scripture access
-- **Dark Mode**: User preference for light/dark theme
-- **Verse Sharing**: Generate shareable images of verses for social media
-- **Bookmarks & Favorites**: Save verses for later
-- **Reading Plans**: Guided plans (e.g., "Read the Bible in a Year")
-
-### Platform Expansion
-
-- **Desktop App**: Electron or Tauri app for Windows/Mac/Linux
-- **Browser Extension**: Quick scripture lookup from any webpage
-- **API for Third Parties**: Public API for scripture search
-
-### Infrastructure
-
-- **Multi-Region Deployment**: Deploy to Europe, Asia for lower latency
-- **CDN for Static Assets**: Cloudflare CDN for frontend
-- **Database Read Replicas**: Scale read-heavy workloads
-- **Elasticsearch for Full-Text Search**: Faster, more powerful text search
-
-### Monetization (Future Consideration)
-
-- **Premium Features**: Advanced search, unlimited history, ad-free
-- **Church Partnerships**: White-label version for churches
-- **API Licensing**: Charge for API access beyond free tier
-
----
-
-## Dependencies & Blockers
-
-### Current Blockers
-
-- **M1 (Production Stability)**: PR #171 awaiting human approval and merge
-- **M4 (Android Launch)**: Blocked by M1 (Turnstile requirement)
-
-### Technical Debt Preventing Scale
-
-See `docs/TECHNICAL_DEBT.md` for full list. Key items:
-
-- SQLAlchemy models (blocks type-safe database code)
-- Frontend testing (blocks confident UI changes)
-- Database migration framework (blocks schema evolution)
-
-### Infrastructure Limitations
-
-- **Ollama Dependency**: Embedding generation requires Ollama, limiting deployment options
-  - **Mitigation**: Implement OpenAI embeddings provider (tracked in TECHNICAL_DEBT.md)
-- **Single Region**: All infrastructure in one Azure region (no failover)
-  - **Mitigation**: M6 (multi-region deployment)
-
----
-
-## Release Strategy
-
-### Web App (Live Production)
-
-- **Deployment**: Automatic on merge to `main` via GitHub Actions
-- **Rollback**: Manual via Azure Portal (revert to previous container revision)
-- **Versioning**: Not yet formalized (tracked by git commits)
-
-### Android App (Pre-Production)
-
-- **Current State**: Bootstrap merged (PR #156), not yet on Play Store
-- **Target**: Public beta in Q2 2026 (M4)
-- **Versioning**: Semantic versioning (1.0.0 for first Play Store release)
+- `make backlog ARGS="list --kind feature"`: e.g. topic landing pages (BITB-301), chapter pages
+  (BITB-302), verse of the day (BITB-303), ask by voice (BITB-120), iOS (BITB-085/087/088)
+- `make backlog ARGS="list --kind nfr --priority P0,P1"`: security, privacy and reliability work
+- `make backlog ARGS="list --priority icebox"`: ideas with no timeline
 
 ---
 
@@ -310,10 +88,10 @@ See `docs/TECHNICAL_DEBT.md` for full list. Key items:
 
 ## How This Roadmap Is Maintained
 
-1. **Product Owner** updates this roadmap monthly
-2. **Backlog** (story files in `docs/BACKLOG_STORIES/`; query with `make backlog`, see `docs/BACKLOG.md`) contains detailed user stories
-3. **Technical Debt** (`docs/TECHNICAL_DEBT.md`) tracks engineering improvements
-4. **Tasks** (`docs/TASKS.md`) contains tactical to-do items
-5. **WIP Tracking** (`docs/WIP/`) tracks active PR work
-
-**Next Review:** End of March 2026
+1. When a release ships, its milestone closes automatically (release-please.yml, product-notes
+   job). Move **Next** to **Now**, pick the following milestone, and update this file in the same PR
+   that creates the new milestone.
+2. Stories (`docs/BACKLOG_STORIES/`, `make backlog`) are the source of truth for scope; this file
+   only names the outcome and the stories that prove it.
+3. A story joins a release by setting `milestone: R<n>`; the PR that implements it then gets the
+   GitHub milestone automatically (pr-kind.yml, BITB-366).
