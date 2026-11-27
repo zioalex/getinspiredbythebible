@@ -362,7 +362,9 @@ class TestReadinessProbe:
         # Readiness must be cheap and bounded: only the DB is probed, with the short
         # readiness timeout. The LLM/embedding providers are deliberately NOT called
         # here (probing them every scrape flapped the pod for weeks).
-        mock_db_health.assert_awaited_once_with(timeout=settings.readiness_check_timeout)
+        mock_db_health.assert_awaited_once_with(
+            timeout=settings.readiness_check_timeout, redact_errors=True
+        )
         mock_llm_health.assert_not_called()
         mock_embedding_health.assert_not_called()
 
