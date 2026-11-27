@@ -2,6 +2,8 @@
 id: BITB-359
 status: todo
 priority: P2
+kind: fix
+milestone: R1
 size: S
 created: 2026-11-24
 ---
