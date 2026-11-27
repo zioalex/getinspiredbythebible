@@ -293,6 +293,17 @@ def require_ip_rate_limit(scope: str, per_minute: Callable[[], int] | int):
 
 
 # First-person lead for English crisis idioms; "im" and curly apostrophes included (BITB-203).
+# Single-script self-harm tables: every match starts with a letter of that script, so a
+# one-character lookahead gate lets re reject other positions before trying ~20 branches
+# with lookbehinds (BITB-203 perf; tests/test_violence_keyword_fallback_languages.py budget).
+_SELF_HARM_SCRIPT_GATE = {
+    "ru": "(?=[а-яё])",
+    "zh": "(?=[\u3400-\u9fff\uf900-\ufaff])",
+    "ko": "(?=[\uac00-\ud7a3])",
+    "ar": "(?=[\u0600-\u06ff])",
+    "hi": "(?=[\u0900-\u097f])",
+}
+
 _EN_FP_LEAD = (
     r"i(?:['’]?m|['’]?ll|\s+am|\s+will)?\s+(?:(?:just|really|keep|often)\s+)*"
     r"(?:(?:want|wanna|need|going|gonna|might|could|think about|thinking about|thinking of|"
@@ -1841,7 +1852,9 @@ class MultiLanguageContentFilter:
             r"\bje me suicide\b",
             r"\b(?:je veux|je voudrais|je vais|je dois|je pense à|j['’]ai envie de|envie de)\s+"
             r"mettre fin à mes jours\b",
-            r"(?<!\bami )(?<!\bamie )(?<!\bun )(?<!\bune )\bsuicidaire\b",
+            # Literal first so re can prefix-scan (BITB-203 perf); the guards look back over the word.
+            r"suicidaire\b(?<!\wsuicidaire)(?<!\bami suicidaire)(?<!\bamie suicidaire)"
+            r"(?<!\bun suicidaire)(?<!\bune suicidaire)",
             r"\bje veux en finir\b(?!\s+(?:avec|rapidement|une fois pour toutes)\b)",
             r"\ben finir avec (?:la vie|ma vie)\b",
         ],
@@ -1968,7 +1981,8 @@ class MultiLanguageContentFilter:
             r"사라지고 ?싶(?!지 ?않)",
             # BITB-204: first-person wish only; no other subject before 나를 (그가/아버지가 …), no 싶어해/한다,
             # no 죽이겠/죽이려 (threats against the speaker are not self-harm)
-            r"(?:(?<![가-힣][이가은는] )|(?<=내가 )|(?<=나는 ))(?<!께서 )(?<!, )(?<!,)(?<!다들 )(?<!모두 )(?<!사람들 )"
+            # (?=[나날내]) first: a cheap one-char gate so the lookbehinds only run at candidates (perf).
+            r"(?=[나날내])(?:(?<![가-힣][이가은는] )|(?<=내가 )|(?<=나는 ))(?<!께서 )(?<!, )(?<!,)(?<!다들 )(?<!모두 )(?<!사람들 )"
             r"(?:나를|날|나 ?자신을|내 ?자신을) ?죽이고 ?싶(?!어 ?[하한해])(?!은가|으신가|으냐|은지|으니)"
             r"(?![가-힣]{0,4}\s*\?)[가-힣]{0,3}",
         ],
@@ -2079,7 +2093,12 @@ class MultiLanguageContentFilter:
 
         # Compile self-harm patterns
         for lang, patterns in self.SELF_HARM_PATTERNS.items():
-            self._self_harm_regex[lang] = re.compile("|".join(patterns), re.IGNORECASE | re.UNICODE)
+            # No IGNORECASE: every caller passes normalize_text() output, which is already
+            # lower-cased, and the flag disables re's literal-prefix scan (BITB-203 perf).
+            gate = _SELF_HARM_SCRIPT_GATE.get(lang, "")
+            self._self_harm_regex[lang] = re.compile(
+                gate + "(?:" + "|".join(patterns) + ")", re.UNICODE
+            )
 
         # Compile hate speech patterns
         self._hate_speech_regex = re.compile(
