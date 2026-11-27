@@ -943,3 +943,64 @@ def test_llama_guard_settings_reject_max_cooldown_below_base():
                 "llama_guard_breaker_max_cooldown_seconds": 10.0,
             }
         )
+
+
+@pytest.mark.parametrize(
+    "content,expected",
+    [
+        ("safe", "safe"),
+        ([{"type": "text", "text": "unsafe\nS10"}], "unsafe\nS10"),
+        ([{"type": "text", "text": "uns"}, {"type": "text", "text": "afe"}], "unsafe"),
+        (None, None),
+        ([], []),
+        ([{"type": "image"}], [{"type": "image"}]),
+    ],
+)
+def test_extract_content_text(content, expected):
+    """BITB-321: list-of-parts content is joined; unusable content passes through
+    unchanged so the caller still treats it as malformed."""
+    assert LlamaGuardProvider._extract_content_text(content) == expected
+
+
+@pytest.mark.asyncio
+async def test_content_parts_response_is_parsed():
+    provider = LlamaGuardProvider(api_key="test-key", threshold=0.5)
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {
+            "choices": [{"message": {"content": [{"type": "text", "text": "safe"}]}}]
+        }
+        resp.raise_for_status = lambda: None
+        mock_post.return_value = resp
+        result = await provider.analyze_text("hello", "en")
+    assert result.allowed is True
+    assert mock_post.await_count == 1  # primary succeeded, no secondary retry
+
+
+def test_response_diagnostics_has_shape_facts_but_no_text():
+    data = {
+        "provider": "Together",
+        "usage": {"prompt_tokens": 120, "completion_tokens": 20, "secret": "x"},
+        "choices": [
+            {
+                "finish_reason": "length",
+                "message": {"content": None, "reasoning": "thinking about it", "refusal": None},
+            }
+        ],
+    }
+    diag = LlamaGuardProvider._response_diagnostics(data)
+    assert diag == {
+        "upstream_provider": "Together",
+        "prompt_tokens": 120,
+        "completion_tokens": 20,
+        "finish_reason": "length",
+        "has_reasoning": True,
+        "has_refusal": False,
+    }
+    assert "thinking" not in str(diag)
+
+
+@pytest.mark.parametrize("data", [None, [], "x", {}, {"choices": []}, {"choices": ["x"]}])
+def test_response_diagnostics_tolerates_garbage(data):
+    assert isinstance(LlamaGuardProvider._response_diagnostics(data), dict)
