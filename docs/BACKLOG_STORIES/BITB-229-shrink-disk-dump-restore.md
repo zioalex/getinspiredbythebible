@@ -77,6 +77,10 @@ still true (and `ignore_changes` retained, per BITB-150's ratchet note).
 - [ ] Old server deleted only after 48h of green probes on the new one
 - [ ] Terraform state reconciled: the managed server is the new one; no
       duplicate-cost drift
+- [ ] BITB-232 guard updated in the same PR: lower `EXPECTED_DB_STORAGE_GB` in
+      `.github/workflows/prod-deploy-drift.yml` from 64 to 32. During the migration the
+      `db-storage-size` job checks every server in `bible-app-rg`, so the new 32 GB server
+      pages (32 vs 64) until cutover — expected, announce it before the window
 - [ ] Post-change evidence re-collected (the `05a` equivalent shows 32 GB;
       storage meter line drops in the next Cost Management pull)
 

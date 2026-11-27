@@ -33,6 +33,10 @@
 #       category/sample/RequestIds.
 #   - azurerm_monitor_metric_alert.db_cpu/db_memory/db_storage/db_connections_failed (BITB-056)
 #       Postgres flexible-server resource saturation (the conc~32 threshold knee) + disk-full.
+#   - azurerm_monitor_metric_alert.db_storage_pregrow (BITB-232)
+#       Sev3 warning at storage_percent >70% (15 min) — fires before auto-grow doubles the
+#       disk. The post-grow event itself is caught by scripts/monitor/check_db_storage_size.py
+#       (prod-deploy-drift.yml `db-storage-size` job).
 #   - azurerm_monitor_scheduled_query_rules_alert_v2.scripture_search_latency_p95 (BITB-056)
 #       Semantic-search p95 > 2000ms — the user-facing signal of the DB saturation knee.
 #       (BITB-223) PT5M survivor — protects the BITB-062 latency work; 3am action: DB
@@ -840,6 +844,33 @@ resource "azurerm_monitor_metric_alert" "db_storage" {
     aggregation      = "Average"
     operator         = "GreaterThan"
     threshold        = 85
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.ops_email[0].id
+  }
+
+  tags = local.tags
+}
+
+# BITB-232: early warning for the auto-grow ratchet. db_storage (>85%) cannot catch it:
+# auto-grow keeps the disk from staying full, and after a grow utilization *drops*.
+resource "azurerm_monitor_metric_alert" "db_storage_pregrow" {
+  count               = local.alerts_enabled ? 1 : 0
+  name                = "${local.name_prefix}-db-storage-pregrow"
+  resource_group_name = azurerm_resource_group.main.name
+  scopes              = [azurerm_postgresql_flexible_server.main.id]
+  description         = "BITB-232: PostgreSQL storage averaged >70% over 15 minutes. Warns BEFORE auto-grow doubles the disk (a permanent cost step; Azure cannot shrink it). The 85% db_storage alert cannot catch the ratchet because utilization drops after a grow. Threshold is tuned above the observed p95 (63.6%) so normal variance does not page. Investigate what is writing (backfill, bloat, WAL) before auto-grow makes it moot."
+  severity            = 3
+  frequency           = "PT15M" # BITB-223: sev3 next-day signal, no 3am action
+  window_size         = "PT15M"
+
+  criteria {
+    metric_namespace = "Microsoft.DBforPostgreSQL/flexibleServers"
+    metric_name      = "storage_percent"
+    aggregation      = "Average"
+    operator         = "GreaterThan"
+    threshold        = 70
   }
 
   action {
