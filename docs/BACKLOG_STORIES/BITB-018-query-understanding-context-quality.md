@@ -2,6 +2,7 @@
 id: BITB-018
 status: in-review
 priority: P1
+kind: feature
 size: L
 rank: 660
 created: 2026-02-24

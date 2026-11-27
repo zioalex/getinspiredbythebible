@@ -2,6 +2,7 @@
 id: BITB-127
 status: in-progress
 priority: P3
+kind: chore
 size: S
 rank: 130
 created: 2026-09-10

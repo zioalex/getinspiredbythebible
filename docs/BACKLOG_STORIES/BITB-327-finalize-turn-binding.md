@@ -2,6 +2,7 @@
 id: BITB-327
 status: todo
 priority: P3
+kind: nfr
 size: S
 created: 2026-11-16
 depends_on: [BITB-320]

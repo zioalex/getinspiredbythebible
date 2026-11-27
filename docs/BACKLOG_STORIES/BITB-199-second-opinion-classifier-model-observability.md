@@ -2,6 +2,7 @@
 id: BITB-199
 status: todo
 priority: P3
+kind: nfr
 size: S
 rank: 30
 created: 2026-10-13

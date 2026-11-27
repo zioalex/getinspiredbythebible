@@ -2,6 +2,7 @@
 id: BITB-300
 status: todo
 priority: P1
+kind: fix
 size: S
 rank: 20
 created: 2026-11-11
