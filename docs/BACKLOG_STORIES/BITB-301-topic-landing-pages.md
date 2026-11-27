@@ -2,6 +2,7 @@
 id: BITB-301
 status: todo
 priority: P1
+kind: feature
 size: L
 rank: 30
 created: 2026-11-11

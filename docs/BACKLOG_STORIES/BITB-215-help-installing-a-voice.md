@@ -2,6 +2,7 @@
 id: BITB-215
 status: todo
 priority: P3
+kind: feature
 size: S
 created: 2026-10-22
 ---

@@ -2,6 +2,8 @@
 id: BITB-204
 status: todo
 priority: P2
+kind: fix
+milestone: R1
 size: S
 created: 2026-10-19
 ---

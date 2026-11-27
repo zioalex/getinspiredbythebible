@@ -2,6 +2,7 @@
 id: BITB-140
 status: in-progress
 priority: P2
+kind: fix
 size: M
 created: 2026-06-16
 ---

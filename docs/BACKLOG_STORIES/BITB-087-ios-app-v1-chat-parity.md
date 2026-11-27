@@ -2,6 +2,7 @@
 id: BITB-087
 status: blocked
 priority: P3
+kind: feature
 size: XL
 rank: 250
 created: 2026-07-29

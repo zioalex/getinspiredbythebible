@@ -2,6 +2,7 @@
 id: BITB-151
 status: in-progress
 priority: P1
+kind: feature
 size: M
 rank: 500
 created: 2026-09-12

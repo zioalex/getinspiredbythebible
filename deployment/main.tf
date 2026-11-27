@@ -6,7 +6,7 @@
 # - Azure Database for PostgreSQL Flexible Server (with pgvector)
 # - Azure Container Registry (for Docker images)
 #
-# Estimated cost: ~$25-40/month within $50 budget
+# Cost: see the "Cost" section of deployment/README.md (budget $50/month).
 # =============================================================================
 
 terraform {
@@ -295,40 +295,10 @@ resource "azurerm_application_insights" "main" {
   tags = local.tags
 }
 
-# Standard availability test — pings the backend /health/ready endpoint every
-# 5 minutes from multiple Azure locations.  This populates the "Availability"
-# tab in Application Insights (which is 0% without an explicit test).
-# BITB-224: `enabled` is Optional with no default in the azurerm provider, so
-# omitting it created (and on every apply re-set) the test as DISABLED — both
-# availability tests sat at Enabled=false in production. Pin it explicitly.
-resource "azurerm_application_insights_standard_web_test" "backend_availability" {
-  count                   = var.enable_application_insights ? 1 : 0
-  name                    = "${local.name_prefix}-availability"
-  resource_group_name     = azurerm_resource_group.main.name
-  location                = azurerm_resource_group.main.location
-  application_insights_id = azurerm_application_insights.main[0].id
-
-  geo_locations = [
-    "emea-nl-ams-azr", # West Europe
-    "emea-gb-db3-azr", # UK South
-    "us-va-ash-azr",   # East US
-  ]
-
-  enabled       = true # BITB-224: provider default is false; omitting this kept both tests off
-  retry_enabled = true
-
-  frequency = 300 # every 5 minutes
-
-  request {
-    url = "https://${azurerm_container_app.backend.ingress[0].fqdn}/health/ready"
-  }
-
-  validation_rules {
-    expected_status_code = 200
-  }
-
-  tags = local.tags
-}
+# The /health/ready standard availability test (backend_availability) was retired
+# in BITB-372: 2 tests x 3 geos x every 5 min billed ~$29/month ("Standard Web Test
+# Execution", Nov 2026). /health/ready stays covered by the GitHub prod-monitor
+# health probe (every 5 min) and the backend_probe_failures alert.
 
 # Browser CORS-preflight availability test (BITB-064). The /health/ready GET
 # test above stayed green through the 2026-07-05 _IncludedRouter outage because
@@ -338,6 +308,9 @@ resource "azurerm_application_insights_standard_web_test" "backend_availability"
 # so an always-on Azure-native alert fires on a preflight-only failure — not
 # just the 5-minute GitHub cross-origin-smoke probe. Complements it as the
 # second, independent channel.
+# BITB-372 cost: one location, every 15 min (~2.9k executions/month, ~$0.05/day)
+# instead of 3 geos every 5 min. `enabled` is Optional with no default in the
+# azurerm provider (BITB-224): pin it explicitly or the test is created disabled.
 resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
   count                   = var.enable_application_insights ? 1 : 0
   name                    = "${local.name_prefix}-preflight"
@@ -345,16 +318,12 @@ resource "azurerm_application_insights_standard_web_test" "backend_preflight" {
   location                = azurerm_resource_group.main.location
   application_insights_id = azurerm_application_insights.main[0].id
 
-  geo_locations = [
-    "emea-nl-ams-azr", # West Europe
-    "emea-gb-db3-azr", # UK South
-    "us-va-ash-azr",   # East US
-  ]
+  geo_locations = ["emea-nl-ams-azr"] # West Europe only (BITB-372: web tests bill per location)
 
   enabled       = true # BITB-224: provider default is false; omitting this kept both tests off
   retry_enabled = true
 
-  frequency = 300 # every 5 minutes
+  frequency = 900 # every 15 minutes (BITB-372)
 
   request {
     url       = "https://${azurerm_container_app.backend.ingress[0].fqdn}/api/v1/chat/stream"
@@ -534,18 +503,25 @@ resource "azurerm_postgresql_flexible_server_configuration" "work_mem" {
   value     = "16384" # 16MB (in KB) - higher than default 4MB for vector operations
 }
 
-# Enable slow query logging (queries slower than 100ms)
+# Slow query logging (queries slower than 100ms). KEPT deliberately (BITB-233):
+# it is the one log parameter with a plausible future reader (slow-query
+# diagnosis). Logs stay on the server's local disk until a sink exists; there is
+# NO azurerm_monitor_diagnostic_setting for PGSQLLogs. Adding one is a deliberate
+# decision that needs a cost estimate first (BITB-233 Option B).
 resource "azurerm_postgresql_flexible_server_configuration" "log_min_duration_statement" {
   name      = "log_min_duration_statement"
   server_id = azurerm_postgresql_flexible_server.main.id
   value     = "100" # Log queries taking >100ms
 }
 
-# Enable checkpoint logging for performance analysis
+# Checkpoint logging OFF (BITB-233): only useful when tuning a write-heavy
+# server; this workload is read-dominated and nothing reads these local logs.
+# Kept as an explicit resource so Terraform manages the value (deleting it resets
+# the parameter to the Azure default, "on"). sighup context: no restart needed.
 resource "azurerm_postgresql_flexible_server_configuration" "log_checkpoints" {
   name      = "log_checkpoints"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "on"
+  value     = "off"
 }
 
 # Increase max_wal_size to reduce checkpoint frequency
@@ -555,11 +531,14 @@ resource "azurerm_postgresql_flexible_server_configuration" "max_wal_size" {
   value     = "2048" # 2GB (in MB) - reduces checkpoint storms
 }
 
-# Enable connection logging for monitoring
+# Connection logging OFF (BITB-233): on a pooled app this is a line per connection
+# establishment, pure noise. Kept as an explicit resource so Terraform manages
+# the value (deleting it resets the parameter to the Azure default, "on"). Applies to new
+# connections: no restart needed.
 resource "azurerm_postgresql_flexible_server_configuration" "log_connections" {
   name      = "log_connections"
   server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "on"
+  value     = "off"
 }
 
 # Create the application database

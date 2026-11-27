@@ -2,6 +2,7 @@
 id: BITB-167
 status: in-progress
 priority: P3
+kind: fix
 size: S
 rank: 120
 created: 2026-09-30
