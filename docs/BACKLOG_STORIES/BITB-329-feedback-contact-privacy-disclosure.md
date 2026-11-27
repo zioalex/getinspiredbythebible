@@ -2,6 +2,7 @@
 id: BITB-329
 status: in-review
 priority: P1
+kind: nfr
 size: L
 created: 2026-11-16
 prs: [1311]

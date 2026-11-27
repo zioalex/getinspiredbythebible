@@ -14,8 +14,8 @@ documents the model tiering held in that generated `agent` section (primary
 | infra-engineer | `openrouter/z-ai/glm-5.3` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, free‑first‑paid‑last |
 | android-gemini | `openrouter/z-ai/glm-5.3` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, free‑first‑paid‑last |
 | data-engineer | `openrouter/z-ai/glm-5.3` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/deepseek/deepseek-v3.2-exp` | PAID primary, free‑first‑paid‑last |
-| verse-parity-keeper | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/nvidia/nemotron-3.5-lightning:free` | `openrouter/z-ai/glm-5.3` | Free primary + de‑duplicated free tier‑1, PAID tier‑2 |
-| i18n-qa | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/nvidia/nemotron-3.5-lightning:free` | `openrouter/z-ai/glm-5.3` | Free primary + de‑duplicated free tier‑1, PAID tier‑2 |
+| verse-parity-keeper | `llama-cpp/gemma-4-26b` | `openrouter/nvidia/nemotron-3.5-lightning:free` | `openrouter/z-ai/glm-5.3` | LOCAL llama.cpp primary (mechanical lane, BITB-365: zero-cost, rate-limit-free), free tier-1 + PAID tier-2 as the safety net when the local server is unreachable |
+| i18n-qa | `llama-cpp/gemma-4-26b` | `openrouter/nvidia/nemotron-3.5-lightning:free` | `openrouter/z-ai/glm-5.3` | LOCAL llama.cpp primary (mechanical lane, BITB-365: zero-cost, rate-limit-free), free tier-1 + PAID tier-2 as the safety net when the local server is unreachable |
 | verifier | `openrouter/deepseek/deepseek-v3.2-exp` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/z-ai/glm-5.3` | PAID primary, free‑first‑paid‑last |
 | risk-auditor | `openrouter/deepseek/deepseek-v3.2-exp` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/z-ai/glm-5.3` | PAID primary, free‑first‑paid‑last |
 | failure-forecaster | `openrouter/deepseek/deepseek-v3.2-exp` | `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free` | `openrouter/z-ai/glm-5.3` | PAID primary, free‑first‑paid‑last |
@@ -42,8 +42,9 @@ the agent graph:
    paid key.
 2. **Tier 1 (free)**: always a free `openrouter/:free` nemotron — the
    strong `nemotron-3-ultra-550b-a55b:free` for the paid lanes, and
-   `nemotron-3.5-lightning:free` for the mechanical lanes (where the ultra
-   model is itself the primary, so the hop de-duplicates). BITB-279
+   `nemotron-3.5-lightning:free` for the mechanical lanes, where it is the
+   openrouter safety net under the local llama.cpp primary (BITB-365).
+   BITB-279
    (2026-11-08 key-exhaustion incident): free models draw no credit, so
    this hop keeps serving while the paid key is exhausted. Cross-provider
    hops are impossible — OpenRouter is the only provider with credentials
@@ -61,7 +62,7 @@ credentialed provider in this graph):
 |---|---|
 | Paid key exhausted (e.g. weekly OpenRouter limit — the 2026-11-08 21:30 incident) | Free tier-1 absorbs traffic; agents keep serving at zero credit |
 | Free-model rate caps / upstream 5xx/429 | Paid tier-2 rescues |
-| OpenRouter gateway fully down | Whole graph down — accepted single-provider trade-off; revisit if a second credentialed provider is ever added |
+| OpenRouter gateway fully down | Heavy lanes down — accepted single-provider trade-off. The two mechanical lanes keep serving on their LOCAL llama.cpp primary (BITB-365); only their fallbacks are dead. Revisit if a second credentialed provider is ever added |
 
 > **Note (BITB-173, historical):** the pre-BITB-173 chain *intended* its
 > tier-1 to be a free Zen model, but that ID (`opencode/nemotron-3-super-free`)
@@ -101,3 +102,10 @@ generation loudly if a billable model is ever attached to another provider, so
 a repeat of the `github-copilot/claude-opus-5` outage (paid primary on a
 subscription-credit provider, empty responses when credits ran out) cannot land
 silently. Free-tier models may live on any provider.
+
+> **One exemption (BITB-365):** the self-hosted llama.cpp provider
+> (`llama-cpp`, BITB-363) serves its models on local hardware at zero cost,
+> so its non-`:free` id (`gemma-4-26b`) is not billable and the two mechanical
+> lanes run it as their per-agent primary. The generator's exemption is
+> provider-narrow — any other non-openrouter, non-free model still fails
+> generation.

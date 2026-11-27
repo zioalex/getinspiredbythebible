@@ -2,6 +2,8 @@
 id: BITB-204
 status: in-review
 priority: P2
+kind: fix
+milestone: R1
 size: S
 created: 2026-10-19
 prs: [1336]
