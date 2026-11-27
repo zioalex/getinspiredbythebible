@@ -327,6 +327,42 @@ builds. To publish a fresh build to a specific track:
 
 ---
 
+## Product releases (milestones)
+
+A release ships a stated outcome, not "whatever landed" (BITB-367). The outcome is a GitHub
+milestone titled `R<n>: <outcome>`; its description says what changes for users and how we know it
+is done. Stories join it with `milestone: R<n>` in their front matter, and the PR Kind workflow
+(BITB-366) puts their PRs in the milestone. `docs/ROADMAP.md` names the current (Now) and next
+(Next) milestones.
+
+```
+stories with milestone: R1 ──► their PRs merge (kind/feature|nfr|fix, milestone R1)
+        │
+        ▼  release-please keeps the Release PR open the whole time
+Release Gate (release-gate.yml) on the Release PR:
+        • red while R1 has open stories or open PRs  ──► preview comment lists them
+        • green once R1 is done                     ──► merge the Release PR
+        ▼
+tag + Play upload (unchanged) ──► product-notes job: notes appended to the GitHub Release,
+                                   milestone R1 closed with "Shipped in vX.Y.Z"
+```
+
+- **The current milestone** is the lowest open `R<n>: …` milestone.
+- **Preview:** the Release Gate keeps one comment on the Release PR with what is still open and the
+  draft product notes. Locally: `make release-notes ARGS="--milestone R1"`.
+- **Product notes** have three sections: _New features_ (`feature`), _Quality & reliability_ (`nfr`)
+  and _Fixes_ (`fix`), one line per done story, plus a count of internal changes (`chore`, `spike`)
+  and _Still open_ for product stories that move to the next release. The developer
+  `CHANGELOG.md` stays as release-please writes it.
+- **Urgent fix before the milestone is done:** add the `release/hotfix` label to the Release PR. The
+  gate passes with a warning, the release ships, and the milestone stays open (no product notes are
+  added for a hotfix release).
+- **Not a required check:** the gate is advice the owner can override by merging.
+- **Starting the next milestone:** create `R<n+1>: <outcome>` with an `Outcome:` line in its
+  description, set `milestone: R<n+1>` on its stories, and update `docs/ROADMAP.md`.
+
+---
+
 ## Reviewing a Release PR before merging
 
 The Release PR is the manual review surface — you are not expected to merge
