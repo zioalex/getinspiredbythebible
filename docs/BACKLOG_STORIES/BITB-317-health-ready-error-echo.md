@@ -1,12 +1,14 @@
 ---
 id: BITB-317
-status: todo
+status: in-review
 priority: P2
 kind: nfr
 milestone: R1
 size: XS
 rank: 45
 created: 2026-11-15
+prs: [1321]
+follow_ups: [BITB-348, BITB-349, BITB-350, BITB-351]
 ---
 
 # BITB-317: `/health/ready` Echoes Raw Database Exception Text to Anonymous Callers
@@ -39,8 +41,22 @@ fragments. Same pattern (`error=str(e)`) appears in the LLM/embedding checks and
 
 ## Acceptance criteria
 
-- [ ] No `str(e)` reaches a response of a non-local-access route under `api/routes/`
-- [ ] Readiness probe behaviour unchanged (existing health tests green)
+- [x] No `str(e)` reaches a response of a non-local-access route under `api/routes/`
+- [x] Readiness probe behaviour unchanged (existing health tests green)
+
+## Follow-ups
+
+Filed with this story's PR:
+
+- **BITB-348** — nothing pins `/health` as local-access-only, so the three component checks that
+  deliberately keep `error=str(e)` could silently become public again.
+- **BITB-349** — the static guard added here is a text scan; it misses `detail=f"...{e}"`
+  interpolation and other re-introduction forms. An AST check over all of `api/routes/` is sturdier.
+- **BITB-350** — `make venv` has no Python version floor (`Makefile` uses bare `python3`), so it
+  builds an unusable 3.11 virtualenv where `python3` predates the `requires-python = ">=3.12"` floor.
+- **BITB-351** — `api/routes/church.py` still interpolates the upstream HTTP status code into a
+  public 502 detail. Not `str(e)`, so out of scope here, but it is why BITB-349's widened guard
+  needs an exemption until it is fixed.
 
 ## Related
 
