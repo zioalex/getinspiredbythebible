@@ -1,0 +1,163 @@
+---
+name: Release Gate
+
+# BITB-367: a product release ships a milestone's outcome, not "whatever landed". On the
+# release-please Release PR this workflow:
+#
+#   - finds the current milestone: the lowest open GitHub milestone titled "R<n>: <outcome>",
+#   - fails while that milestone still has open stories (scripts/release_notes.py gate) or open
+#     PRs, unless the Release PR carries the `release/hotfix` label (urgent fix/nfr patches),
+#   - keeps one comment on the Release PR with what is still open and the draft release notes.
+#
+# Not a required check: the owner can still merge past it. See docs/RELEASE_PROCESS.md,
+# "Product releases (milestones)".
+
+"on":
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Release Gate (BITB-367)
+    if: startsWith(github.event.pull_request.head.ref, 'release-please--')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - name: Find the current milestone
+        id: ms
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$REPO/milestones?state=open&per_page=100" > milestones.json
+          python3 scripts/release_notes.py github-milestone < milestones.json > current.json
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json
+          m = json.load(open("current.json"))
+          for key in ("number", "key", "title"):
+              print(f"{key}={m.get(key, '') or ''}")
+          EOF
+          python3 -c 'import json; print(json.load(open("current.json")).get("outcome", ""))' > outcome.txt
+          cat current.json
+
+      - name: Check the milestone and draft the notes
+        id: gate
+        if: steps.ms.outputs.key != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          KEY: ${{ steps.ms.outputs.key }}
+          TITLE: ${{ steps.ms.outputs.title }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set +e
+          python3 scripts/release_notes.py gate --milestone "$KEY" > gate.txt
+          stories_status=$?
+          set -e
+          gh pr list --repo "$REPO" --state open --limit 200 --search "milestone:\"$TITLE\"" \
+            --json number,title --jq ".[] | select(.number != $PR) | \"- #\(.number) \(.title)\"" > open_prs.txt
+          python3 scripts/release_notes.py notes --milestone "$KEY" --title "$TITLE" \
+            --outcome "$(cat outcome.txt)" > notes.md
+          if [ "$stories_status" -eq 0 ] && [ ! -s open_prs.txt ]; then
+            echo "complete=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "complete=false" >> "$GITHUB_OUTPUT"
+          fi
+          cat gate.txt open_prs.txt
+
+      - name: Update the preview comment on the Release PR
+        if: steps.ms.outputs.key != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          TITLE: ${{ steps.ms.outputs.title }}
+          COMPLETE: ${{ steps.gate.outputs.complete }}
+        run: |
+          set -euo pipefail
+          marker="<!-- release-gate-preview -->"
+          {
+            echo "$marker"
+            if [ "$COMPLETE" = "true" ]; then
+              echo "### ✅ $TITLE is complete — this Release PR can ship it"
+            else
+              echo "### ⏸️ Held for $TITLE"
+              echo
+              echo "This release ships when the milestone is done. Still open:"
+              echo
+              grep '^- ' gate.txt || true
+              cat open_prs.txt
+              echo
+              echo "Urgent fix-only release? Add the \`release/hotfix\` label (docs/RELEASE_PROCESS.md)."
+            fi
+            echo
+            echo "<details><summary>Draft product release notes</summary>"
+            echo
+            cat notes.md
+            echo
+            echo "</details>"
+          } > body.md
+          existing="$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"$marker\")) | .id" | head -n1)"
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -F body=@body.md > /dev/null
+          else
+            gh pr comment "$PR" --repo "$REPO" --body-file body.md
+          fi
+
+      - name: Pass, or hold the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          KEY: ${{ steps.ms.outputs.key }}
+          COMPLETE: ${{ steps.gate.outputs.complete }}
+          HOTFIX: ${{ contains(github.event.pull_request.labels.*.name, 'release/hotfix') }}
+        run: |
+          gh label create "release/hotfix" --repo "$REPO" --color B60205 \
+            --description "Ship this Release PR before the milestone is done (urgent fix)" 2>/dev/null || true
+          if [ -z "$KEY" ]; then
+            echo "::notice::No open 'R<n>: ...' milestone; nothing to gate."
+          elif [ "$COMPLETE" = "true" ]; then
+            echo "$KEY is complete."
+          elif [ "$HOTFIX" = "true" ]; then
+            echo "::warning::$KEY is not complete; shipping anyway because of the release/hotfix label."
+          else
+            echo "::error::$KEY is not complete (see the preview comment). Add release/hotfix for an urgent fix."
+            exit 1
+          fi
+
+  unit-tests:
+    name: Release Notes Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - run: pip install pytest
+
+      - run: python -m pytest scripts/test_release_notes.py -v
