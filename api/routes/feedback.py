@@ -101,7 +101,7 @@ async def submit_feedback(
             "Invalid feedback request",
             extra={"error": str(e), "message_id": request.message_id},
         )
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Invalid feedback request.") from e
     except Exception as e:
         logger.error(
             "Failed to save feedback",
