@@ -2,6 +2,7 @@
 id: BITB-320
 status: in-review
 priority: P1
+kind: fix
 size: L
 created: 2026-11-15
 prs: [1299]

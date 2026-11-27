@@ -2,6 +2,7 @@
 id: BITB-255
 status: in-review
 priority: P0
+kind: feature
 size: L
 rank: 40
 created: 2026-10-28
