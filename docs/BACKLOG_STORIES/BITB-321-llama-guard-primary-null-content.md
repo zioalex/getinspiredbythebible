@@ -2,6 +2,8 @@
 id: BITB-321
 status: in-progress
 priority: P1
+kind: fix
+milestone: R1
 size: S
 created: 2026-11-15
 prs: []

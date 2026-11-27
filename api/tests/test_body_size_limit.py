@@ -254,11 +254,15 @@ class TestRealApp:
         resp = client.post(
             "/api/v1/chat",
             content=b"x" * 5000,
-            headers={"Origin": "http://localhost:3000", "content-type": "application/json"},
+            # BITB-307: localhost is opt-in, so use the always-allowed production origin.
+            headers={
+                "Origin": settings.production_frontend_url,
+                "content-type": "application/json",
+            },
         )
         assert resp.status_code == 413
         assert resp.json() == EXPECTED_413
-        assert resp.headers.get("access-control-allow-origin") == "http://localhost:3000"
+        assert resp.headers.get("access-control-allow-origin") == settings.production_frontend_url
         assert "x-request-id" in resp.headers
 
     def test_oversized_stream_endpoint_gets_413(self, monkeypatch):

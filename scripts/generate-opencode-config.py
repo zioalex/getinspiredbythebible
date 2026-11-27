@@ -42,13 +42,17 @@ SCHEMA = "https://opencode.ai/config.json"
 #   - Skeptics (4 agents):
 #     primary — `openrouter/deepseek/deepseek-v3.2-exp` (paid), tier 1 —
 #     ultra-free, tier 2 — `openrouter/z-ai/glm-5.3` (paid).
-#   - Mechanical (2 agents, free by design per BITB-236):
-#     primary — ultra-free, tier 1 —
-#     `openrouter/nvidia/nemotron-3.5-lightning:free` (de-duplicated: the
-#     ultra model IS the primary), tier 2 — `openrouter/z-ai/glm-5.3` (paid).
+#   - Mechanical (2 agents, free by design per BITB-236): primary — the
+#     local llama.cpp server `llama-cpp/gemma-4-26b` (BITB-365: mechanical
+#     lanes burn free-tier quota on low-value work; the local server is
+#     zero-cost, rate-limit-free, and private), tier 1 —
+#     `openrouter/nvidia/nemotron-3.5-lightning:free` (the safety net when
+#     the local server is unreachable), tier 2 — `openrouter/z-ai/glm-5.3`
+#     (paid).
 #   - small_model (title/summary/compaction) — lightning-free: cheap ops
 #     stay free-tier and light.
-#   - tier 2 is ALWAYS paid and always OpenRouter (enforce_openrouter_for_paid).
+#   - tier 2 is ALWAYS paid and always OpenRouter (enforce_openrouter_for_paid
+#     — whose one exemption is the zero-cost self-hosted llama-cpp provider).
 DEFAULT_MODEL = "openrouter/z-ai/glm-5.3"
 DEFAULT_SMALL_MODEL = "openrouter/nvidia/nemotron-3.5-lightning:free"
 # Live-catalog-verified IDs (glm/deepseek via `opencode models` 2026-10-24;
@@ -155,6 +159,20 @@ PLUGIN = [
     "file:///workspace/repo/.opencode/plugin/task-reliability.ts",
 ]
 
+# BITB-363: the privately-hosted llama.cpp server as an OPT-IN provider —
+# selected explicitly via `--model llama-cpp/gemma-4-26b` or a per-agent
+# `model:` frontmatter. It is never the global default and never a fallback
+# hop: the fallback graph stays OpenRouter-only (enforce_openrouter_for_paid
+# plus the BITB-279 free-tier tier-1 invariant), and this provider is
+# self-hosted and free. The egress path is opened by the supplemental netpol
+# `agent-egress-llama` (BITB-362). V1 config shape, validated live on
+# opencode 1.18.31 against the pod's working config: singular top-level
+# "provider", "api": "openai-compatible". The baseURL host is committed here
+# by design — the generator is the reproducible source for the generated
+# opencode.json — and follows the same single-home rule as the netpol
+# manifest: the address is not to be copy-pasted anywhere else.
+LLAMA_CPP_BASE_URL = "http://192.168.178.150:8080/v1"
+
 PROVIDER = {
     "opencode": {
         "options": {
@@ -163,7 +181,31 @@ PROVIDER = {
             "chunkTimeout": 120000,
             "setCacheKey": True,
         }
-    }
+    },
+    "llama-cpp": {
+        "api": "openai-compatible",
+        "name": "llama.cpp Server",
+        "options": {
+            "baseURL": LLAMA_CPP_BASE_URL,
+            # Not a secret: the LAN llama.cpp server ignores auth; "dummy"
+            # only satisfies opencode's non-empty-key requirement (mirrored
+            # from the live-validated workspace config, BITB-363).
+            "apiKey": "dummy",  # pragma: allowlist secret
+            "timeout": False,
+            "headerTimeout": False,
+            "chunkTimeout": False,
+        },
+        "models": {
+            "gemma-4-26b": {
+                "id": "unsloth/gemma-4-26B-A4B-it-GGUF:UD-Q4_K_M",
+                "name": "Gemma 4 26B (Q4_K_M)",
+                "limit": {
+                    "context": 32768,
+                    "output": 8192,
+                },
+            }
+        },
+    },
 }
 
 
@@ -242,7 +284,7 @@ def parse_agent_md(path: pathlib.Path):
 
 
 def enforce_openrouter_for_paid(config: dict) -> None:
-    """Fail generation if a paid model is not served via OpenRouter.
+    """Fail generation if a billable model is not served via OpenRouter.
 
     Convention: free-tier models (":free" / "-free" suffix) may live on any
     provider; anything billable must be "openrouter/..." — the only provider
@@ -250,7 +292,14 @@ def enforce_openrouter_for_paid(config: dict) -> None:
     from silently re-attaching a paid primary elsewhere (cf. the retired
     github-copilot/claude-opus-5 primary, which died with exhausted
     subscription credits and returned empty responses).
+
+    One exemption (BITB-365): the self-hosted llama.cpp provider
+    ("llama-cpp") serves models on local hardware at ZERO cost — a
+    non-":free" id there is not billable, so the two mechanical lanes may
+    run it as their per-agent primary. The exemption is provider-narrow:
+    any other non-openrouter, non-free model still fails generation loudly.
     """
+    zero_cost_providers = {"llama-cpp"}
     violations = []
     checked = {
         "<global>/model": config["model"],
@@ -263,7 +312,11 @@ def enforce_openrouter_for_paid(config: dict) -> None:
             checked[f"{name}/fallback_models[{i}]"] = fb
     for where, model_id in checked.items():
         provider, _, model = model_id.partition("/")
-        if not (model.endswith(":free") or model.endswith("-free")) and provider != "openrouter":
+        if (
+            not (model.endswith(":free") or model.endswith("-free"))
+            and provider != "openrouter"
+            and provider not in zero_cost_providers
+        ):
             violations.append(f"{where}={model_id}")
     if violations:
         raise SystemExit("Paid models must use the openrouter provider: " + ", ".join(violations))

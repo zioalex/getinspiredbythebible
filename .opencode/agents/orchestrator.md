@@ -123,6 +123,22 @@ If you catch yourself doing any of these, stop and dispatch instead:
   that copied the wrong branch name (PR 1241's for PR 1248's) sent a child
   hunting a lint violation that did not exist on that branch — the child
   then asked a question and deadlocked the whole run (see BITB-269 below)
+- Builders return after push + ONE CI status read — never put "poll until
+  green" in a builder brief. Paid lanes parked in sleep loops burn session
+  budget for nothing (observed 2026-11-26: 14 reads over ~7 idle minutes).
+  CI watching is YOURS (single bounded `gh pr view --json statusCheckRollup`
+  reads) or, if delegated, a free-tier lane's (i18n-qa /
+  verse-parity-keeper). A red check found at the child's single read comes
+  back to you as job name + ≤20-line excerpt → new fix brief + new token
+- Never put raw host addresses in a dispatch brief — no endpoint URLs with
+  host literals, no address-shaped regex patterns. The redaction middleware
+  that masks addresses in tool output also BLOCKS tool calls whose arguments
+  carry them ("Request blocked by content filter"), on dispatch AND on
+  resume — the poisoned brief text stays in the child's context (observed
+  2026-11-26: one brief blocked twice, its rewrite shipped three PRs).
+  Addresses move only via shell extraction from on-disk files (jq/cut out
+  of the committed manifest or the workspace config) into a placeholder in
+  authored files
 - Subagents never ask questions — `question` is denied for every
   `mode: subagent` agent (BITB-269). A confused child must report blockers
   and recommendations in its task result, not park itself on a question

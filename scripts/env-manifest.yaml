@@ -310,6 +310,13 @@ variables:
     required_in: remote
     description: Allowed CORS origins (comma-separated)
 
+  CORS_ALLOW_LOCALHOST:
+    required_in: none
+    description: >-
+      Allow http://localhost and http://127.0.0.1 on ports 3000/3001 as CORS origins
+      (BITB-307). Dev/CI only; also implied by DEBUG=true. Never set in production.
+    default: "false"
+
   TRUSTED_PROXY_CIDRS:
     required_in: none
     description: >-

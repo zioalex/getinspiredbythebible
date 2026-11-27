@@ -74,15 +74,17 @@ WHERE last_activity >= NOW() - INTERVAL '30 days';
 **From Application Insights (KQL):**
 
 ```kql
-// Daily Active Users
+// Chat requests carrying a session ID per day — NOT distinct sessions (BITB-307: the
+// metric carries no session_token dimension;
+// distinct-session counts come from the `sessions` table above)
 customMetrics
 | where name == "chat.sessions.active"
-| summarize dcount(tostring(customDimensions.session_token)) by bin(timestamp, 1d)
+| summarize session_chat_events = sum(valueSum) by bin(timestamp, 1d)
 
-// Monthly Active Users
+// Chat requests carrying a session ID per 30 days (not distinct sessions)
 customMetrics
 | where name == "chat.sessions.active"
-| summarize dcount(tostring(customDimensions.session_token)) by bin(timestamp, 30d)
+| summarize session_chat_events = sum(valueSum) by bin(timestamp, 30d)
 ```
 
 ---

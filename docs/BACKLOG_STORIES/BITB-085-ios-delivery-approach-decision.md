@@ -2,6 +2,7 @@
 id: BITB-085
 status: in-progress
 priority: P2
+kind: spike
 size: M
 rank: 1110
 created: 2026-07-29

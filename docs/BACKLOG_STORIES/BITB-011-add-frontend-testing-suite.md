@@ -2,6 +2,7 @@
 id: BITB-011
 status: todo
 priority: P3
+kind: chore
 size: XL
 rank: 230
 ---

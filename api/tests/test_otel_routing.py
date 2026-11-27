@@ -50,13 +50,11 @@ def _build_instrumented_app() -> FastAPI:
         return {"ok": True}
 
     FastAPIInstrumentor.instrument_app(app)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[ALLOWED_ORIGIN],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    # BITB-307: mirror the real CORS config (methods/headers/credentials), production origin only.
+    from main import get_cors_middleware_kwargs
+
+    cors_kwargs = {**get_cors_middleware_kwargs(), "allow_origins": [ALLOWED_ORIGIN]}
+    app.add_middleware(CORSMiddleware, **cors_kwargs)
     app.include_router(router, prefix="/api/v1")
 
     return app

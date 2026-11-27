@@ -41,4 +41,11 @@ describe("Middleware config", () => {
     const catchAll = config.matcher.find((m: string) => m.includes("(?!"));
     expect(catchAll).toContain("\\.");
   });
+
+  it("does not match the static share images under /og (BITB-299)", () => {
+    const catchAll = config.matcher.find((m: string) => m.includes("(?!"));
+    const re = new RegExp(`^${catchAll}$`);
+    expect(re.test("/og/ar.png")).toBe(false);
+    expect(re.test("/ar/about")).toBe(true);
+  });
 });
