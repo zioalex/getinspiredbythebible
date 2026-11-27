@@ -4,8 +4,9 @@ Guard: the Application Insights availability web tests must be Enabled.
 BITB-224: `azurerm_application_insights_standard_web_test.enabled` is Optional
 with no default (=> false), and deployment/main.tf never set it, so both
 synthetic availability tests (`<project>-availability`, `<project>-preflight`)
-sat at `Enabled: false` in production. The `*-availability-failed` /
-`*-preflight-failed` metric alerts only fire while the web test runs, so a
+sat at `Enabled: false` in production (BITB-372 later retired the `-availability`
+test; only `<project>-preflight` remains). The `*-preflight-failed`
+metric alert only fires while the web test runs, so a
 disabled test silently switches that monitoring layer off. Nothing watched the
 property — this script does.
 
