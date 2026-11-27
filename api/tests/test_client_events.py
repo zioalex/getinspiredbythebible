@@ -9,8 +9,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import _normalize_client_event_locale, app  # noqa: E402
-from utils.security import require_rate_limit  # noqa: E402
+from main import _normalize_client_event_locale, _telemetry_rate_limit, app  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -23,9 +22,9 @@ def _no_db_write():
 @pytest.fixture(autouse=True)
 def _bypass_rate_limit():
     """The shared limiter needs Postgres; its wiring is asserted separately below."""
-    app.dependency_overrides[require_rate_limit] = lambda: None
+    app.dependency_overrides[_telemetry_rate_limit] = lambda: None
     yield
-    app.dependency_overrides.pop(require_rate_limit, None)
+    app.dependency_overrides.pop(_telemetry_rate_limit, None)
 
 
 client = TestClient(app)
@@ -245,4 +244,4 @@ def test_client_events_is_rate_limited():
 
     route = next(r for r in app.routes if getattr(r, "path", "") == "/api/v1/client-events")
     assert route.endpoint is report_client_event
-    assert any(d.call is require_rate_limit for d in route.dependant.dependencies)
+    assert any(d.call is _telemetry_rate_limit for d in route.dependant.dependencies)
