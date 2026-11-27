@@ -2,6 +2,7 @@
 id: BITB-144
 status: todo
 priority: P2
+kind: nfr
 size: M
 created: 2026-07-11
 ---

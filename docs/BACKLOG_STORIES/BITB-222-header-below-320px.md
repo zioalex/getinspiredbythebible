@@ -2,6 +2,7 @@
 id: BITB-222
 status: todo
 priority: P3
+kind: fix
 size: XS
 created: 2026-10-23
 ---

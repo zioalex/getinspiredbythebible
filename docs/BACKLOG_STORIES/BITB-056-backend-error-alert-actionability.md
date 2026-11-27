@@ -2,6 +2,7 @@
 id: BITB-056
 status: in-progress
 priority: P2
+kind: nfr
 size: M
 created: 2026-06-26
 ---

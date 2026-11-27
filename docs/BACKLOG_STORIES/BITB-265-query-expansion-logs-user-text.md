@@ -2,6 +2,7 @@
 id: BITB-265
 status: in-review
 priority: P1
+kind: nfr
 size: S
 rank: 210
 created: 2026-11-03
