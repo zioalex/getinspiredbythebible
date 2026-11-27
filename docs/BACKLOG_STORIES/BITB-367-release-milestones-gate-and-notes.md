@@ -5,6 +5,7 @@ priority: P1
 kind: chore
 size: L
 created: 2026-11-26
+prs: [1350]
 depends_on: [BITB-368, BITB-366]
 ---
 
