@@ -24,7 +24,7 @@ _RULES = _rule_blocks(_MONITORING_TF.read_text())
 
 # name -> (severity, evaluation_frequency, long window, short window, burn factor)
 _BURN_RULES = {
-    "content_safety_fallback_burn_fast": (2, "PT5M", "1h", "5m", "14.4"),
+    "content_safety_fallback_burn_fast": (2, "PT15M", "1h", "15m", "14.4"),
     "content_safety_fallback_burn_slow": (3, "PT15M", "6h", "30m", "6"),
 }
 
