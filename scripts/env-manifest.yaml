@@ -58,7 +58,10 @@ variables:
   OPENAI_API_KEY:
     required_in: both
     condition: LLM_PROVIDER=openai
-    description: OpenAI API key (also used by OpenAI Moderation in content safety keyword_only/hybrid modes, and as the ml_only failover when Llama Guard is down, BITB-272). Remote wiring is optional and out-of-band via repo secret OPENAI_API_KEY (BITB-288)
+    description:
+      OpenAI API key (also used by OpenAI Moderation in content safety keyword_only/hybrid modes, and as the ml_only
+      failover when Llama Guard is down, BITB-272). Remote wiring is optional and out-of-band via repo secret
+      OPENAI_API_KEY (BITB-288)
     sensitive: true
 
   # OpenRouter-specific
@@ -165,12 +168,16 @@ variables:
 
   RATE_LIMIT_SEARCH_PER_MINUTE:
     required_in: none
-    description: Max GET /scripture/search and /scripture/search/text requests per IP per minute, independent of the chat limits (BITB-298)
+    description:
+      Max GET /scripture/search and /scripture/search/text requests per IP per minute, independent of the chat limits
+      (BITB-298)
     default: "30"
 
   CHAT_FINALIZE_RATE_LIMIT_PER_MINUTE:
     required_in: none
-    description: Max POST /chat/finalize (client stream-recovery) requests per IP per minute, independent of the chat limits (BITB-320)
+    description:
+      Max POST /chat/finalize (client stream-recovery) requests per IP per minute, independent of the chat limits
+      (BITB-320)
     default: "10"
 
   RATE_LIMIT_FEEDBACK_PER_MINUTE:
@@ -188,6 +195,13 @@ variables:
     description: Max POST /church/search requests per IP per minute, independent of the chat limits (BITB-298)
     default: "6"
 
+  RATE_LIMIT_TELEMETRY_PER_MINUTE:
+    required_in: none
+    description:
+      Max POST /api/v1/client-errors and /api/v1/client-events requests per IP per minute, independent of the chat
+      limits (BITB-310)
+    default: "60"
+
   CONTENT_FILTER_ENABLED:
     required_in: remote
     description: Enable content filtering
@@ -196,19 +210,23 @@ variables:
   CONTENT_SAFETY_ML_FAILOVER_ENABLED:
     required_in: none
     description:
-      In ml_only mode, fail over to OpenAI Moderation (needs OPENAI_API_KEY) when Llama Guard fails, before the keyword fallback (BITB-272)
+      In ml_only mode, fail over to OpenAI Moderation (needs OPENAI_API_KEY) when Llama Guard fails, before the keyword
+      fallback (BITB-272)
     default: "true"
 
   CONTENT_SAFETY_ML_FAILOVER_CHAIN:
     required_in: none
     description:
-      Ordered, comma-separated ml_only failover hops tried after Llama Guard fails - openai_moderation (needs OPENAI_API_KEY) and/or azure (needs AZURE_CONTENT_SAFETY_ENABLED/ENDPOINT/KEY); unconfigured hops are skipped, unknown entries fail at startup, empty = default (BITB-292)
+      Ordered, comma-separated ml_only failover hops tried after Llama Guard fails - openai_moderation (needs
+      OPENAI_API_KEY) and/or azure (needs AZURE_CONTENT_SAFETY_ENABLED/ENDPOINT/KEY); unconfigured hops are skipped,
+      unknown entries fail at startup, empty = default (BITB-292)
     default: "openai_moderation"
 
   AZURE_CONTENT_SAFETY_TIMEOUT:
     required_in: none
     description:
-      Seconds before an Azure Content Safety SDK call is abandoned (counts as a failed hop in the ml_only failover chain) (BITB-292)
+      Seconds before an Azure Content Safety SDK call is abandoned (counts as a failed hop in the ml_only failover
+      chain) (BITB-292)
     default: "3"
 
   CONTENT_SAFETY_SECOND_OPINION_ENABLED:
@@ -245,7 +263,9 @@ variables:
   # ---------------------------------------------------------------------------
   FEEDBACK_TEXT_RETENTION_DAYS:
     required_in: none
-    description: Days feedback free text (message, AI reply, comment) is kept before it is set to NULL; 1 <= this <= FEEDBACK_RETENTION_DAYS (BITB-329)
+    description:
+      Days feedback free text (message, AI reply, comment) is kept before it is set to NULL; 1 <= this <=
+      FEEDBACK_RETENTION_DAYS (BITB-329)
     default: "30"
 
   FEEDBACK_RETENTION_DAYS:
@@ -313,16 +333,16 @@ variables:
   CORS_ALLOW_LOCALHOST:
     required_in: none
     description: >-
-      Allow http://localhost and http://127.0.0.1 on ports 3000/3001 as CORS origins
-      (BITB-307). Dev/CI only; also implied by DEBUG=true. Never set in production.
+      Allow http://localhost and http://127.0.0.1 on ports 3000/3001 as CORS origins (BITB-307). Dev/CI only; also
+      implied by DEBUG=true. Never set in production.
     default: "false"
 
   TRUSTED_PROXY_CIDRS:
     required_in: none
     description: >-
-      Comma-separated CIDRs of trusted reverse proxies used to resolve the real client IP
-      from X-Forwarded-For (BITB-297). Overriding it replaces the default list
-      (loopback, RFC1918, 100.64.0.0/10, fc00::/7 and Cloudflare's ranges).
+      Comma-separated CIDRs of trusted reverse proxies used to resolve the real client IP from X-Forwarded-For
+      (BITB-297). Overriding it replaces the default list (loopback, RFC1918, 100.64.0.0/10, fc00::/7 and Cloudflare's
+      ranges).
     default: built-in list in api/config.py
 
   # ---------------------------------------------------------------------------
