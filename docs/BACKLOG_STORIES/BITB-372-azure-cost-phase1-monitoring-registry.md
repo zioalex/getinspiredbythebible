@@ -4,6 +4,7 @@ status: in-progress
 priority: P1
 size: S
 created: 2026-11-26
+prs: [1348, 1353]
 depends_on: [BITB-224]
 ---
 
@@ -57,6 +58,8 @@ projected, against a $50/month budget. Projected to 30 days (USD/month):
 - Tests: `api/tests/test_monitoring_alert_cadence.py` (new), `test_acr_purge_workflow.py` (new),
   `test_webtests_enabled_guard.py`, `test_monitoring_content_safety_slo.py`.
 - Docs: `deployment/README.md`, `docs/CONTRIBUTING.md`, `docs/TROUBLESHOOTING.md`, BITB-224 and BITB-150 amendments.
+
+**2026-11-28 purge fix (#1353):** the first live ACR purge run failed at *Registry usage before* because `az acr show-usage` was called with `--registry` (it takes `--name`; only `az acr run` takes `--registry`). Nothing was locked or purged. Fixed in #1353 with a regression test; a dry run of the fix succeeded (67.97 GB stored vs 10.74 GB included; 604 tags / 1,749 manifests to delete; deployed tags protected). A CI linter for all `az` commands follows in its own story.
 
 ## Expected effect
 
