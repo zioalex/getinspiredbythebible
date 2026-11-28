@@ -679,6 +679,8 @@ The repository includes a GitHub Actions workflow (`.github/workflows/azure-depl
 | Push to main | Plan + Apply (with approval) |
 | Manual dispatch | Plan, Apply, or Destroy |
 
+Plan, apply and destroy pass `-lock-timeout=10m`, so a run that meets a concurrent run holding the Terraform state lease waits up to 10 minutes instead of failing immediately (BITB-330).
+
 **Configuration in CI/CD:**
 
 The workflow uses a split configuration approach:
