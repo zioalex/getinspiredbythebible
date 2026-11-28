@@ -11,6 +11,24 @@ export const SITE_URL = "https://voxquieta.org";
 export const SITE_NAME = "Vox Quieta";
 
 /**
+ * Region-qualified Open Graph locales. `og:locale` expects `language_TERRITORY`
+ * (e.g. `en_US`); a bare language code is not valid per the OG spec.
+ */
+export const OG_LOCALE: Record<string, string> = {
+  en: "en_US",
+  it: "it_IT",
+  de: "de_DE",
+  es: "es_ES",
+  fr: "fr_FR",
+  pt: "pt_BR",
+  ar: "ar_AR",
+  ru: "ru_RU",
+  zh: "zh_CN",
+  hi: "hi_IN",
+  ko: "ko_KR",
+};
+
+/**
  * Build per-page alternates (canonical + hreflang) for a locale-prefixed route.
  *
  * `path` is the route *below* the locale segment, with a leading slash and no
@@ -63,6 +81,7 @@ export function pageMetadata({
   ogImageAlt: string;
 }): Metadata {
   const url = `/${locale}${path}`;
+  const ogLocale = OG_LOCALE[locale] ?? locale;
   const images = [
     { url: ogImagePath(locale), width: 1200, height: 630, alt: ogImageAlt },
   ];
@@ -76,7 +95,10 @@ export function pageMetadata({
       title,
       description,
       url,
-      locale,
+      locale: ogLocale,
+      alternateLocale: Object.entries(OG_LOCALE)
+        .filter(([l]) => l !== locale)
+        .map(([, value]) => value),
       images,
     },
     twitter: {
@@ -111,7 +133,7 @@ export function buildJsonLd({
     "@type": "Organization",
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/icon.svg`,
+    logo: `${SITE_URL}/icons/icon-512.png`,
   };
   return JSON.stringify({
     "@context": "https://schema.org",

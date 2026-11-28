@@ -33,7 +33,7 @@ export async function generateMetadata({
       locale,
       path: "",
       title: homeTitle,
-      description: t("description"),
+      description: t("homeDescription"),
       ogImageAlt: await getOgImageAlt(locale),
     }),
     // Child pages set a plain title string and inherit this template, e.g.
@@ -99,7 +99,7 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   const t = await getTranslations({ locale, namespace: "Metadata" });
-  const jsonLd = buildJsonLd({ locale, description: t("description") });
+  const jsonLd = buildJsonLd({ locale, description: t("homeDescription") });
 
   // When the Turnstile site key is baked into the build, kick off the script
   // fetch from <head> so it races with the HTML download and the dynamic

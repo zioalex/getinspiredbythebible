@@ -78,6 +78,10 @@ headcheck() {
   printf "  description  (%s) : %s\n" "${#desc}" "${desc:-<none>}"
   [ "${#desc}" -gt 160 ] && echo -e "    ${YELLOW}^ description > 160 chars${NC}"
   [ -z "$desc" ] && echo -e "    ${RED}^ missing meta description${NC}"
+  local h1_count
+  h1_count=$(grep -oiE "<h1[ >]" <<< "$html" | wc -l | tr -d ' ')
+  printf "  <h1> count       : %s\n" "$h1_count"
+  [ "$h1_count" != "1" ] && echo -e "    ${YELLOW}^ expected exactly one <h1>${NC}"
   printf "  canonical        : %s\n" "${canon:-<none>}"
 
   echo "  open graph:"; attr "$html" "og:" "content" | sed "s/^/    /" | head -8

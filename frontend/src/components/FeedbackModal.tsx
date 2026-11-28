@@ -49,7 +49,7 @@ export default function FeedbackModal({
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-4 end-4 text-gray-400 hover:text-gray-600"
           aria-label={t("close")}
         >
           <X className="w-5 h-5" />

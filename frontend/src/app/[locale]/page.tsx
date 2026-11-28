@@ -12,9 +12,9 @@ export default async function Home({
 
   const heroContent = (
     <>
-      <h2 className="text-2xl font-serif text-gray-700 mb-2">
+      <h1 className="text-2xl font-serif text-gray-700 mb-2">
         {tWelcome("heading")}
-      </h2>
+      </h1>
       <p className="text-gray-500 max-w-md mb-8">{tWelcome("description")}</p>
     </>
   );
