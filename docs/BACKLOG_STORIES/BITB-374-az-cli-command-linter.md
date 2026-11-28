@@ -52,19 +52,20 @@ Owner decision (2026-11-28): add a CI linter that checks every `az` invocation a
 - [x] Validation fixtures: unknown flag, short flag, global flags, group vs command, extension
       missing, allowlist match / missing reason / stale entry.
 - [x] A run over the whole repo with azure-cli 2.93.0 reports the acr-purge `--registry` finding
-      (allowlisted as "fixed in #1353" so CI is green) and nothing else that is unexplained.
+      (allowlisted until #1353 merged, now removed) and nothing else that is unexplained.
 - [x] The allowlist entry for acr-purge fails the run as stale once #1353 merges.
 - [x] `make az-lint`, `az-lint.yml`, pre-push hook, `docs/CONTRIBUTING.md`, AGENTS.md updated.
-- [ ] Owner step: after #1353 merges, delete the `acr-purge.yml` entry from
-      `scripts/az-lint-allowlist.txt` (the linter fails the run until you do).
-- [ ] Owner step: confirm the first CI run of `az-lint.yml` installs `log-analytics==0.2.2` (the
-      extension download host was unreachable from the build sandbox, so that pin and the two
-      `az monitor log-analytics query` calls were verified only through the skip path).
+- [x] #1353 merged; the `acr-purge.yml` allowlist entry was deleted (it would have failed as stale).
+- [x] `log-analytics==0.2.2` verified in CI (job 140960600783): installed as Preview=True with the
+      warning "No stable version... Preview versions allowed", and the lint ran clean with 125
+      invocations checked and 0 skipped.
+- [x] Python wrapper calls (`_az([...])` in `scripts/monitor/check_webtests_enabled.py`) and Terraform
+      `local-exec` commands (`deployment/main.tf`, 12 commands) are extracted and validated.
 
 ## Out of scope
 
 - Validating flag *values* (`--output` choices, resource names), or `--cmd` task strings.
-- `az` calls inside Dockerfiles, docs, `echo`ed hints and Terraform `local-exec`.
+- `az` calls inside Dockerfiles, docs and `echo`ed hints.
 - Wrappers such as `xargs az ...`, `bash -c "az ..."` or `retry az ...` (not in command position).
 - Extension-aware help for Python strings (`shell=True`): only argv list literals are read.
 
@@ -72,8 +73,9 @@ Owner decision (2026-11-28): add a CI linter that checks every `az` invocation a
 
 | Where | Finding | Disposition |
 | ----- | ------- | ----------- |
-| `.github/workflows/acr-purge.yml:83,175` | `--registry` is not a flag of `az acr show-usage` | The BITB-372 incident. Fixed in #1353; allowlisted here until it merges |
+| `.github/workflows/acr-purge.yml:83,175` | `--registry` is not a flag of `az acr show-usage` | The BITB-372 incident. Fixed in #1353 (merged); the temporary allowlist entry is removed |
 | `.github/workflows/prod-monitor.yml:402`, `scripts/az-logs.sh:67` | `az monitor log-analytics query` is not in the core CLI (extension `log-analytics`) | Pinned in `scripts/az-extensions.txt`; making the callers install it is BITB-375 |
+| `deployment/main.tf` local-exec (12 commands), `scripts/monitor/check_webtests_enabled.py` wrapper calls | Extracted after review; all valid | none |
 | `make test-makefile` | 3 failures on `main` that predate this story | BITB-376 |
 
 ## Follow-ups

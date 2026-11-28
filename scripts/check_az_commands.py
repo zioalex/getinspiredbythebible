@@ -502,26 +502,138 @@ def extract_from_yaml(text: str, file: str) -> list[Invocation]:
 # ---------------------------------------------------------------------------
 # Python (subprocess argv literals)
 # ---------------------------------------------------------------------------
+def _argv_words(elts: list[ast.expr]) -> tuple[Word, ...]:
+    words = []
+    for elt in elts:
+        if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+            words.append(Word(elt.value, 0))
+        else:
+            words.append(Word("$EXPR", 0))
+    return tuple(words)
+
+
+def _is_az_head(node: ast.AST) -> bool:
+    return (
+        isinstance(node, (ast.List, ast.Tuple))
+        and bool(node.elts)
+        and isinstance(node.elts[0], ast.Constant)
+        and node.elts[0].value == "az"
+    )
+
+
+def _wrapper_param(func: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[int, str] | None:
+    """(positional index, name) of the parameter a wrapper splices into ``["az", *param]``."""
+    params = [a.arg for a in func.args.args]
+    for node in ast.walk(func):
+        name = None
+        if isinstance(node, (ast.List, ast.Tuple)) and _is_az_head(node):
+            rest = node.elts[1:]  # bare ["az", *param] only: literal words make it a real call
+            if len(rest) == 1 and isinstance(rest[0], ast.Starred):
+                if isinstance(rest[0].value, ast.Name):
+                    name = rest[0].value.id
+        elif (
+            isinstance(node, ast.BinOp)
+            and isinstance(node.op, ast.Add)
+            and _is_az_head(node.left)
+            and isinstance(node.right, ast.Name)
+        ):
+            name = node.right.id
+        if name in params:
+            return params.index(name), name
+    return None
+
+
+def _find_wrappers(tree: ast.AST) -> tuple[dict[str, tuple[int, str]], set[int]]:
+    """Wrapper functions (name -> (arg index, param name)) and the ids of their internal argv lists."""
+    wrappers: dict[str, tuple[int, str]] = {}
+    internal: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        found_param = _wrapper_param(node)
+        if found_param:
+            idx, pname = found_param
+            if node.args.args and node.args.args[0].arg in ("self", "cls"):
+                idx -= 1
+            wrappers[node.name] = (idx, pname)
+            internal.update(id(n) for n in ast.walk(node) if _is_az_head(n))
+    return wrappers, internal
+
+
+def _call_site_argv(node: ast.Call, wrappers: dict[str, tuple[int, str]]) -> list[ast.expr] | None:
+    """The argv list literal a wrapper call passes, if it is one."""
+    fn = node.func
+    name = fn.id if isinstance(fn, ast.Name) else getattr(fn, "attr", "")
+    if name not in wrappers:
+        return None
+    idx, pname = wrappers[name]
+    arg = node.args[idx] if 0 <= idx < len(node.args) else None
+    for kw in node.keywords:
+        if kw.arg == pname:
+            arg = kw.value
+    return arg.elts if isinstance(arg, (ast.List, ast.Tuple)) else None
+
+
 def extract_from_python(text: str, file: str) -> list[Invocation]:
-    """List/tuple literals whose first element is the string ``"az"`` (non-literals -> ``$EXPR``)."""
+    """argv list/tuple literals starting with ``"az"``, plus wrapper call sites.
+
+    A function whose body builds ``["az", *param]`` (or ``["az"] + param``) is a wrapper: the list
+    literal passed as that parameter at each call site in the module is an argv list too. Other
+    non-literal elements become ``$EXPR``.
+    """
     try:
         tree = ast.parse(text)
     except SyntaxError:
         return []
+    wrappers, internal = _find_wrappers(tree)
     found = []
     for node in ast.walk(tree):
-        if not isinstance(node, (ast.List, ast.Tuple)) or not node.elts:
-            continue
-        head = node.elts[0]
-        if not (isinstance(head, ast.Constant) and head.value == "az"):
-            continue
-        words = []
-        for elt in node.elts[1:]:
-            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
-                words.append(Word(elt.value, 0))
-            else:
-                words.append(Word("$EXPR", 0))
-        found.append(Invocation(file, node.lineno, tuple(words)))
+        if isinstance(node, (ast.List, ast.Tuple)) and _is_az_head(node):
+            if id(node) not in internal:
+                found.append(Invocation(file, node.lineno, _argv_words(node.elts[1:])))
+        elif isinstance(node, ast.Call) and wrappers:
+            elts = _call_site_argv(node, wrappers)
+            if elts is not None:
+                found.append(Invocation(file, node.lineno, _argv_words(elts)))
+    return sorted(found, key=lambda inv: inv.line)
+
+
+def unresolved_invocations(invocations: Iterable[Invocation]) -> list[Invocation]:
+    """Python ``az`` calls with no literal command path (cannot be validated)."""
+    return [i for i in invocations if i.file.endswith(".py") and not command_path(i.args)]
+
+
+# ---------------------------------------------------------------------------
+# Terraform local-exec
+# ---------------------------------------------------------------------------
+TF_HEREDOC_RE = re.compile(r"^\s*command\s*=\s*<<-?\s*([A-Za-z_]\w*)\s*$")
+TF_INLINE_RE = re.compile(r'^\s*command\s*=\s*"((?:[^"\\]|\\.)*)"\s*$')
+
+
+def extract_from_terraform(text: str, file: str) -> list[Invocation]:
+    """``command = <<-EOT ... EOT`` bodies and single-line ``command = "..."`` as shell.
+
+    Terraform ``${...}`` interpolations read as shell variables; ``$${`` is a literal ``${``.
+    """
+    lines = text.split("\n")
+    found: list[Invocation] = []
+    i = 0
+    while i < len(lines):
+        m = TF_HEREDOC_RE.match(lines[i])
+        inline = TF_INLINE_RE.match(lines[i])
+        if m:
+            start = i + 2  # 1-based line of the first body line
+            body: list[str] = []
+            i += 1
+            while i < len(lines) and lines[i].strip() != m.group(1):
+                body.append(lines[i])
+                i += 1
+            script = "\n".join(body).replace("$${", "${")
+            found.extend(extract_from_shell(script, file, base_line=start))
+        elif inline:
+            script = inline.group(1).replace('\\"', '"').replace("$${", "${")
+            found.extend(extract_from_shell(script, file, base_line=i + 1))
+        i += 1
     return sorted(found, key=lambda inv: inv.line)
 
 
@@ -557,6 +669,9 @@ def discover_files(root: Path) -> list[tuple[str, str]]:
         files += [("shell", p.relative_to(root).as_posix()) for p in _walk(root, sub, ".sh")]
     if (root / "Makefile").is_file():
         files.append(("make", "Makefile"))
+    files += [
+        ("terraform", p.relative_to(root).as_posix()) for p in _walk(root, "deployment", ".tf")
+    ]
     for sub in ("scripts", "api"):
         files += [("python", p.relative_to(root).as_posix()) for p in _walk(root, sub, ".py")]
     return files
@@ -567,6 +682,8 @@ def extract_all(root: Path, only: list[str] | None = None) -> list[Invocation]:
     for kind, rel in discover_files(root):
         if only and not any(rel == o or rel.startswith(o.rstrip("/") + "/") for o in only):
             continue
+        if rel == "scripts/check_az_commands.py":
+            continue  # its ["az", *path] lists format messages, they are not subprocess calls
         text = (root / rel).read_text(encoding="utf-8", errors="replace")
         if kind == "yaml":
             found.extend(extract_from_yaml(text, rel))
@@ -574,6 +691,8 @@ def extract_all(root: Path, only: list[str] | None = None) -> list[Invocation]:
             found.extend(extract_from_shell(text, rel))
         elif kind == "make":
             found.extend(extract_from_makefile(text, rel))
+        elif kind == "terraform":
+            found.extend(extract_from_terraform(text, rel))
         else:
             found.extend(extract_from_python(text, rel))
     return found
@@ -813,6 +932,7 @@ def run_lint(
     allowlist_text: str = "",
     skip_missing_extensions: bool = False,
     jobs: int = 1,
+    only_paths: list[str] | None = None,
 ) -> list[Finding]:
     """Validate every invocation; returns all findings (allowlisted ones flagged, not removed)."""
     helps = HelpCache(provider)
@@ -828,6 +948,8 @@ def run_lint(
                 f.message = "skipped: extension not installed (" + f.message + ")"
             findings.append(f)
     entries, problems = parse_allowlist(allowlist_text)
+    if only_paths:  # a partial run cannot judge staleness of entries for files it did not read
+        entries = [e for e in entries if any(e.path.startswith(p) for p in only_paths)]
     return apply_allowlist(findings, entries) + problems
 
 
@@ -895,6 +1017,16 @@ def main(argv: list[str] | None = None, provider: HelpProvider | None = None) ->
 
     root = args.root.resolve()
     invocations = extract_all(root, args.paths or None)
+    if not invocations:
+        print("check_az_commands: nothing extracted - misconfigured root?", file=sys.stderr)
+        return EXIT_ENV
+    unresolved = unresolved_invocations(invocations)
+    if unresolved:
+        print(
+            f"note: {len(unresolved)} Python az call(s) have no literal command path and cannot "
+            "be validated: " + ", ".join(f"{i.file}:{i.line}" for i in unresolved),
+            file=sys.stderr,
+        )
     if args.list:
         for inv in invocations:
             print(f"{inv.file}:{inv.line}: {inv.command_line}")
@@ -903,12 +1035,6 @@ def main(argv: list[str] | None = None, provider: HelpProvider | None = None) ->
 
     allow_file = root / args.allowlist
     allow_text = allow_file.read_text(encoding="utf-8") if allow_file.is_file() else ""
-    if args.paths:  # a partial run cannot judge staleness of entries for files it did not read
-        entries, _ = parse_allowlist(allow_text)
-        keep = {e.path for e in entries if any(e.path.startswith(p) for p in args.paths)}
-        allow_text = "\n".join(
-            ln for ln in allow_text.splitlines() if ln.split(":", 1)[0].strip() in keep
-        )
     try:
         findings = run_lint(
             invocations,
@@ -916,6 +1042,7 @@ def main(argv: list[str] | None = None, provider: HelpProvider | None = None) ->
             allow_text,
             skip_missing_extensions=args.skip_missing_extensions,
             jobs=args.jobs,
+            only_paths=args.paths or None,
         )
     except EnvError as exc:
         print(f"check_az_commands: environment error: {exc}", file=sys.stderr)

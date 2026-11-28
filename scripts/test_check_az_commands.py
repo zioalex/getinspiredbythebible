@@ -692,6 +692,108 @@ def test_repo_extensions_file_is_pinned() -> None:
 
 def test_repo_allowlist_entries_have_reasons() -> None:
     path = Path(__file__).resolve().parent / "az-lint-allowlist.txt"
-    entries, problems = lint.parse_allowlist(path.read_text())
+    _, problems = lint.parse_allowlist(path.read_text())
     assert problems == []
-    assert entries
+
+
+def test_main_zero_invocations_is_environment_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert lint.main(["--root", str(tmp_path)], provider=provider) == lint.EXIT_ENV
+    assert "nothing extracted" in capsys.readouterr().err
+
+
+def test_partial_run_reports_real_allowlist_line_numbers(tmp_path: Path) -> None:
+    allow = "# c\nscripts/other.sh:az x y  # r\nscripts/t.sh:az nothing  # stale one\n"
+    root = _repo(tmp_path, 'az acr show-usage --name "$A"\n', allow)
+    findings = lint.run_lint(
+        lint.extract_all(root, ["scripts/t.sh"]),
+        provider,
+        allow,
+        only_paths=["scripts/t.sh"],
+    )
+    stale = [f for f in findings if f.kind == "stale-allowlist"]
+    assert [f.line for f in stale] == [3]
+
+
+WRAPPER_SRC = """\
+import subprocess
+
+def _az(args):
+    return subprocess.run(["az", *args])
+
+def _az2(cmd, extra=None):
+    return subprocess.run(["az"] + cmd)
+
+class C:
+    def go(self, argv):
+        return subprocess.run(("az", *argv))
+
+def use(x):
+    _az(["resource", "list", "-g", x])
+    _az2(cmd=["account", "show"])
+    _az(some_variable)
+    C().go(["acr", "login"])
+"""
+
+
+def test_python_wrapper_call_sites_become_invocations() -> None:
+    inv = lint.extract_from_python(WRAPPER_SRC, "w.py")
+    assert [(i.line, i.command_line) for i in inv] == [
+        (14, "az resource list -g $EXPR"),
+        (15, "az account show"),
+        (17, "az acr login"),
+    ]
+
+
+def test_python_wrapper_internal_list_is_not_unresolved() -> None:
+    inv = lint.extract_from_python(WRAPPER_SRC, "w.py")
+    assert lint.unresolved_invocations(inv) == []
+
+
+def test_unresolved_python_az_is_reported_not_failed(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts/u.py").write_text("import subprocess\nsubprocess.run(['az', *argv])\n")
+    (tmp_path / "scripts/t.sh").write_text('az acr show-usage --name "$A"\n')
+    assert lint.main(["--root", str(tmp_path)], provider=provider) == lint.EXIT_OK
+    assert "scripts/u.py:2" in capsys.readouterr().err
+
+
+TF_SRC = """\
+resource "null_resource" "x" {
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
+      set -euo pipefail
+      APP="${azurerm_container_app.frontend.name}"
+      echo "az not a command: $${HOME}"
+      az acr show-usage --registry "${var.acr}" -o table
+    EOT
+  }
+  provisioner "local-exec" {
+    command = "az acr login --name ${var.acr}"
+  }
+  provisioner "local-exec" {
+    command = "echo \\"az acr bogus\\" && az account show"
+  }
+}
+"""
+
+
+def test_terraform_local_exec_commands() -> None:
+    inv = lint.extract_from_terraform(TF_SRC, "m.tf")
+    assert [(i.line, i.command_line) for i in inv] == [
+        (8, "az acr show-usage --registry ${var.acr} -o table"),
+        (12, "az acr login --name ${var.acr}"),
+        (15, "az account show"),
+    ]
+
+
+def test_terraform_findings_flow_through_the_linter(tmp_path: Path) -> None:
+    (tmp_path / "deployment").mkdir()
+    (tmp_path / "deployment/m.tf").write_text(TF_SRC)
+    findings = lint.run_lint(lint.extract_all(tmp_path), provider)
+    bad = [f for f in findings if lint.is_failure(f)]
+    assert ("deployment/m.tf", 8, "unknown-flag") in [(f.file, f.line, f.kind) for f in bad]

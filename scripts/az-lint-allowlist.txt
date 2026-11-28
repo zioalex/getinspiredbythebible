@@ -5,4 +5,3 @@
 #   reason   REQUIRED, say why and where the real fix is tracked
 # An entry that matches no finding is stale and fails the run: delete it when the command is fixed.
 
-.github/workflows/acr-purge.yml:az acr show-usage --registry  # fixed in #1353 (--registry is not a flag of show-usage; use --name); delete this entry when #1353 merges

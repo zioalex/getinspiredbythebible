@@ -2,9 +2,10 @@ name: Azure CLI Lint
 
 # BITB-374: every `az ...` command in the repo is checked against the real Azure CLI.
 # scripts/check_az_commands.py extracts the invocations (workflow `run:` scripts, composite actions,
-# shell scripts, the Makefile, Python argv lists) and asks `az <command> --help` whether the command
-# and each flag exist. BITB-372's acr-purge.yml shipped `az acr show-usage --registry` (the command only
-# takes --name/-n) and failed in production; this job catches that class before merge.
+# shell scripts, Terraform local-exec, the Makefile, Python argv lists)
+# and asks `az <command> --help` whether the command and each flag exist. BITB-372's acr-purge.yml
+# shipped `az acr show-usage --registry` (the command only takes --name/-n) and failed in production;
+# this job catches that class before merge.
 #
 # No Azure login and no secrets: `az --help` is offline. Extensions come from scripts/az-extensions.txt.
 # Allowlist: scripts/az-lint-allowlist.txt (a reason is required; an entry that matches nothing fails).
@@ -16,6 +17,8 @@ name: Azure CLI Lint
       - ".github/actions/**"
       - "scripts/**"
       - "deployment/**/*.sh"
+      - "deployment/**/*.tf"
+      - ".python-version"
       - "Makefile"
       - "api/**/*.py"
   push:
@@ -26,6 +29,8 @@ name: Azure CLI Lint
       - ".github/actions/**"
       - "scripts/**"
       - "deployment/**/*.sh"
+      - "deployment/**/*.tf"
+      - ".python-version"
       - "Makefile"
       - "api/**/*.py"
 
@@ -57,6 +62,13 @@ jobs:
 
       - name: Install pinned Azure CLI and test tools
         run: pip install "azure-cli==${AZ_CLI_VERSION}" pytest
+
+      - name: Show Azure CLI version
+        run: |
+          command -v az
+          az version
+          # The runner image preinstalls this extension unpinned; the lint must not depend on it.
+          az extension remove --name azure-devops || true
 
       - name: Install pinned Azure CLI extensions
         run: |

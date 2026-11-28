@@ -13,7 +13,7 @@ Most workflows are path-filtered so they only run when relevant files change:
 | `commitlint.yml`     | every PR (lints commit messages)                                                  |
 | `story-id-check.yml` | `docs/BACKLOG_STORIES/**`, `scripts/check_story_ids.py`, the workflow file        |
 | `parity-ci.yml`      | `api/**`, `docs/parity/**`, `scripts/export_openapi.py` + its test, the workflow file |
-| `az-lint.yml`        | `.github/workflows/**`, `.github/actions/**`, `scripts/**`, `deployment/**/*.sh`, `Makefile`, `api/**/*.py` |
+| `az-lint.yml`        | `.github/workflows/**`, `.github/actions/**`, `scripts/**`, `deployment/**/*.sh`, `deployment/**/*.tf`, `.python-version`, `Makefile`, `api/**/*.py` |
 
 A PR that changes **only** files under `docs/` (e.g. a backlog story) will skip
 `android-ci.yml`, `azure-deploy.yml`, and `test_update.yml`. Only `pre-commit.yml`,
@@ -41,8 +41,10 @@ the Claude check) or `python3 scripts/report_dependency_majors.py`. Their tests 
 `az-lint.yml` checks every `az ...` command in the repo against the real Azure CLI, so a wrong flag
 fails the PR instead of failing in production (BITB-372's `az acr show-usage --registry` was the
 trigger). `scripts/check_az_commands.py` reads the `run:` scripts of the workflows and composite
-actions, `scripts/**/*.sh`, `deployment/**/*.sh`, the `Makefile` recipes and `["az", ...]` argv lists in
-`scripts/**/*.py` and `api/**/*.py`, then asks `az <command> --help` whether the command and each flag
+actions, `scripts/**/*.sh`, `deployment/**/*.sh`, Terraform `local-exec` `command` strings and heredocs in
+`deployment/**/*.tf` (`${...}` read as variables), the `Makefile` recipes and `["az", ...]` argv lists in
+`scripts/**/*.py` and `api/**/*.py` (including the list passed to a module-local wrapper such as
+`_az([...])` whose body is `["az", *args]`; a call with no literal command path is listed as a notice), then asks `az <command> --help` whether the command and each flag
 exists. It needs no Azure login and no secrets. `az` inside `echo`, comments, heredocs and other prose
 is ignored, and so is the content of `az acr run --cmd "..."`.
 

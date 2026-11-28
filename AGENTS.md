@@ -401,7 +401,11 @@ Format commands: `make format` (auto-fix Python + frontend)
 | `frontend-tests` | npm lint, tsc, vitest, build (Node 22.x + 26.x matrix) |
 | `integration-tests` | Docker Compose: health check, scripture search, chat, streaming, frontend |
 | `security-check` | Python + npm dependency vulnerability scans |
-| `az-lint` (`az-lint.yml`) | `az` commands are linted against the real Azure CLI (`make az-lint`, `az-lint.yml`, BITB-374): check every new az command with it before proposing it. |
+
+### Azure CLI lint (`az-lint.yml`, BITB-374)
+
+`az` commands are linted against the real Azure CLI (`make az-lint`, `az-lint.yml`, BITB-374): check
+every new az command with it before proposing it. Path-filtered; no Azure login or secrets.
 
 ### Android CI (`android-ci.yml`)
 
