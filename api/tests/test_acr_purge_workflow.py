@@ -118,3 +118,41 @@ def test_acr_name_matches_deploy_workflow() -> None:
 def test_usage_reported_before_and_after() -> None:
     assert "az acr show-usage" in _STEPS[_index("usage before")]["run"]
     assert "az acr show-usage" in _STEPS[_index("usage after")]["run"]
+
+
+# Registry-name flag per `az acr` subcommand, as accepted by the real Azure CLI. The 2026-11-27
+# first live run failed because `az acr show-usage --registry X` was used (show-usage only takes
+# --name/-n; only `az acr run` takes --registry/-r).
+_REGISTRY_FLAG = {
+    "show-usage": ("--name", "-n"),
+    "repository show": ("--name", "-n"),
+    "repository update": ("--name", "-n"),
+    "repository show-tags": ("--name", "-n"),
+    "run": ("--registry", "-r"),
+}
+
+
+def _az_acr_invocations() -> list[tuple[str, str]]:
+    """Every `az acr <subcommand> ...` in the steps' run scripts as (subcommand, rest)."""
+    scripts = "\n".join(step.get("run", "") for step in _STEPS)
+    code = "\n".join(ln for ln in scripts.splitlines() if not ln.lstrip().startswith("#"))
+    text = re.sub(r"\\\n\s*", " ", code)  # join `\` line continuations
+    found = []
+    for match in re.finditer(r"\baz acr ((?:repository )?[a-z-]+)([^\n|;&)]*)", text):
+        found.append((match.group(1), match.group(2)))
+    return found
+
+
+def test_az_acr_registry_flags_match_cli() -> None:
+    invocations = _az_acr_invocations()
+    assert {sub for sub, _ in invocations} <= set(_REGISTRY_FLAG), invocations
+    for sub, rest in invocations:
+        ok_flags = _REGISTRY_FLAG[sub]
+        wrong = {"--name", "-n", "--registry", "-r"} - set(ok_flags)
+        used = set(re.findall(r"(?<!\S)(--name|-n|--registry|-r)(?=[\s=])", rest))
+        assert used & set(ok_flags), f"az acr {sub} must pass the registry via {ok_flags}: {rest!r}"
+        assert not used & wrong, f"az acr {sub} does not accept {used & wrong}: {rest!r}"
+
+
+def test_usage_before_never_blocks_the_purge() -> None:
+    assert "|| true" in _STEPS[_index("usage before")]["run"]
