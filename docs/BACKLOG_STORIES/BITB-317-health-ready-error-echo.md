@@ -1,6 +1,6 @@
 ---
 id: BITB-317
-status: in-review
+status: done
 priority: P2
 kind: nfr
 milestone: R1
