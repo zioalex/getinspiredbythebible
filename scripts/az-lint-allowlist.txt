@@ -4,4 +4,3 @@
 #   pattern  substring of the normalised command line (`az acr show-usage --registry ...`)
 #   reason   REQUIRED, say why and where the real fix is tracked
 # An entry that matches no finding is stale and fails the run: delete it when the command is fixed.
-
