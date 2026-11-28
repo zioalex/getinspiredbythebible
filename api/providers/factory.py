@@ -26,13 +26,22 @@ class ProviderError(Exception):
     pass
 
 
+def _ollama_model(config: Settings) -> str:
+    """Ollama model: explicit LLM_MODEL, else OLLAMA_LLM_MODEL, else the LLM_MODEL default."""
+    if "llm_model" in config.model_fields_set:
+        return config.llm_model
+    return config.ollama_llm_model or config.llm_model
+
+
 def effective_llm_model(config: Settings) -> str:
     """Model ID the configured LLM provider actually uses (for logs and ``/config``)."""
     if config.llm_provider == "openrouter":
         return config.openrouter_model
-    if config.llm_provider == "claude" and "llm_model" not in config.model_fields_set:
-        return DEFAULT_CLAUDE_MODEL
-    return config.llm_model
+    if config.llm_provider == "claude":
+        if "llm_model" not in config.model_fields_set:
+            return DEFAULT_CLAUDE_MODEL
+        return config.llm_model
+    return _ollama_model(config)
 
 
 def create_llm_provider(config: Settings) -> LLMProvider:
@@ -50,7 +59,7 @@ def create_llm_provider(config: Settings) -> LLMProvider:
     """
     match config.llm_provider:
         case "ollama":
-            return OllamaProvider(host=config.ollama_host, model=config.llm_model)
+            return OllamaProvider(host=config.ollama_host, model=_ollama_model(config))
         case "claude":
             if not config.anthropic_api_key:
                 raise ProviderError(

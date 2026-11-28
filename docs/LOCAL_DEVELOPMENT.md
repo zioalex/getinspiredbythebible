@@ -34,6 +34,8 @@ make docker-down        # stop
 First-run behavior:
 
 - Ollama pulls its models (`mistral:7b`, `mxbai-embed-large`) — 5–10 min.
+  The API container leaves `LLM_MODEL` empty unless you set it (so `LLM_PROVIDER=claude`
+  keeps its own default model) and gets `mistral:7b` for Ollama via `OLLAMA_LLM_MODEL` (BITB-311).
 - The `db-init` one-shot container runs `alembic upgrade head` and loads the
   KJV Bible and embeddings (`docker compose logs -f db-init` to follow). It
   exits and skips itself on subsequent starts. Schema comes only from

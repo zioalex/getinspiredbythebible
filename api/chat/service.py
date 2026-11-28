@@ -35,6 +35,7 @@ from feedback.retrieval_misses import (
 )
 from providers import ChatMessage, EmbeddingProvider, LLMProvider
 from providers.embedding_resilience import CircuitOpenError as EmbeddingCircuitOpenError
+from providers.factory import effective_llm_model
 from scripture import ScriptureSearchService, SearchResults
 from utils.content_safety import get_content_safety_service
 from utils.crisis_resources import (
@@ -842,7 +843,7 @@ Keep it under 120 words."""
                 + self._crisis_fallback_suffix(crisis, effective_language, request),
                 scripture_context=None,
                 provider=settings.llm_provider,
-                model=settings.llm_model,
+                model=effective_llm_model(settings),
                 detected_translation=translation,
                 translation_info=translation_info,
                 language_suggestion=language_suggestion,
@@ -893,7 +894,7 @@ Keep it under 120 words."""
                     "error": str(e),
                     "error_type": type(e).__name__,
                     "provider": settings.llm_provider,
-                    "model": settings.llm_model,
+                    "model": effective_llm_model(settings),
                 },
             )
             raise
@@ -1970,7 +1971,7 @@ Keep it under 120 words."""
                     "message_id": message_id,
                     "scripture_context": None,
                     "provider": settings.llm_provider,
-                    "model": settings.llm_model,
+                    "model": effective_llm_model(settings),
                     "detected_translation": translation,
                     "translation_info": translation_info,
                     "language_suggestion": language_suggestion,
@@ -2016,7 +2017,7 @@ Keep it under 120 words."""
                 "message_id": message_id,
                 "scripture_context": None,
                 "provider": settings.llm_provider,
-                "model": settings.llm_model,
+                "model": effective_llm_model(settings),
                 "detected_translation": translation,
                 "translation_info": translation_info,
                 "language_suggestion": language_suggestion,
@@ -2060,7 +2061,7 @@ Keep it under 120 words."""
             "message_id": message_id,
             "scripture_context": scripture_context.model_dump() if scripture_context else None,
             "provider": settings.llm_provider,
-            "model": settings.llm_model,
+            "model": effective_llm_model(settings),
             "detected_translation": translation,
             "translation_info": translation_info,
             "language_suggestion": language_suggestion,

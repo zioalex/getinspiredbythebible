@@ -1,11 +1,12 @@
 ---
 id: BITB-311
-status: todo
+status: in-review
 priority: P2
 kind: chore
 size: XS
 rank: 10
 created: 2026-11-13
+prs: [1337]
 ---
 
 # BITB-311: Docker Compose Always Sets LLM_MODEL, So `LLM_PROVIDER=claude` Gets an Ollama Model Name
@@ -43,5 +44,25 @@ Env, `.env` and Azure/k8s deployments are not affected.
 
 ## Acceptance criteria
 
-- [ ] `LLM_PROVIDER=claude` under `make docker-up` uses the Claude default model
-- [ ] The local Ollama stack still starts with its existing default model
+- [x] `LLM_PROVIDER=claude` under `make docker-up` uses the Claude default model
+- [x] The local Ollama stack still starts with its existing default model
+
+## Implementation
+
+- `Settings` drops a blank/whitespace `LLM_MODEL` / `OLLAMA_LLM_MODEL` (before-validator), so it is
+  not in `model_fields_set`. New optional `ollama_llm_model` (`OLLAMA_LLM_MODEL`).
+- `providers/factory.py::_ollama_model` (shared by `create_llm_provider` and `effective_llm_model`):
+  explicit `LLM_MODEL`, else `OLLAMA_LLM_MODEL`, else `llama3:8b`. Claude unchanged.
+- Compose `api` services: `LLM_MODEL=${LLM_MODEL:-}`; `docker-compose.yml` / `.dev.yml` add
+  `OLLAMA_LLM_MODEL` defaulting to `mistral:7b`. local-prod files just drop the OpenRouter slug default.
+- Tests: `tests/test_runtime_alignment.py` (blank/Claude/Ollama resolution),
+  `tests/test_compose_llm_model_default.py` (compose files).
+- `chat/service.py` reports `effective_llm_model(settings)` (response `model`, stream metadata, error
+  log) instead of the raw `settings.llm_model`, so feedback `model_used` names the model really
+  running (`tests/test_chat_effective_model.py`). Verifier finding.
+- `docker-compose.yml`: api `OLLAMA_LLM_MODEL` and the ollama container's pull both use
+  `${OLLAMA_LLM_MODEL:-${LLM_MODEL:-mistral:7b}}`, so they always agree and an old `LLM_MODEL=phi3`
+  override still works.
+- Checked, no follow-up needed: `docker-compose.yml`'s Ollama container still reads
+  `${LLM_MODEL:-mistral:7b}`, but `scripts/init-ollama.sh` only pulls it when `LLM_PROVIDER=ollama`,
+  so a Claude model ID is never pulled.

@@ -20,7 +20,7 @@ services:
       # BITB-307: localhost CORS origins are opt-in (browser on localhost -> local API)
       - CORS_ALLOW_LOCALHOST=true
       - LLM_PROVIDER=${LLM_PROVIDER:-openrouter}
-      - LLM_MODEL=${LLM_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
+      - LLM_MODEL=${LLM_MODEL:-}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-azure_openai}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
       - EMBEDDING_DIMENSIONS=${EMBEDDING_DIMENSIONS:-1536}
