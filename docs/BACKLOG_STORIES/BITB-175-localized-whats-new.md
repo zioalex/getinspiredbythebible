@@ -5,6 +5,7 @@ priority: P3
 kind: feature
 size: M
 created: 2026-10-04
+prs: [1354]
 ---
 
 # BITB-175: Localized What's New / Changelog Entries (Web + Android)
