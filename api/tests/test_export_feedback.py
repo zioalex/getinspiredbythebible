@@ -327,16 +327,44 @@ def sync_url(request):
 
 
 class TestSslRootCert:
+    @pytest.fixture(autouse=True)
+    def _no_user_root_crt(self, tmp_path, monkeypatch):
+        """Fresh machine: no ~/.postgresql/root.crt."""
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
+
+    @staticmethod
+    def _root_of(url):
+        from urllib.parse import parse_qs, urlsplit
+
+        return parse_qs(urlsplit(url).query)["sslrootcert"][0]
+
     @pytest.mark.parametrize("mode", ["verify-full", "verify-ca"])
-    def test_verify_modes_default_to_system_trust_store(self, sync_url, monkeypatch, mode):
+    def test_verify_modes_default_to_azure_ca_bundle(self, sync_url, monkeypatch, mode):
+        """Regression: sslrootcert=system -> "certificate verify failed" against Azure
+        (OS store lacks the Microsoft RSA root; psycopg2's bundled OpenSSL may not read it)."""
         monkeypatch.delenv("PGSSLROOTCERT", raising=False)
         out = sync_url(f"postgresql://u:p@h/db?sslmode={mode}")
-        assert out == f"postgresql+psycopg2://u:p@h/db?sslmode={mode}&sslrootcert=system"
+        root = self._root_of(out)
+        assert root != "system"
+        pem = Path(root).read_text()
+        ms = (_SCRIPT.parent / "certs" / "microsoft-rsa-root-2017.pem").read_text().strip()
+        assert ms in pem  # Microsoft RSA Root CA 2017 (new Azure chain)
+        import certifi
+
+        assert Path(certifi.where()).read_text().strip()[:200] in pem  # DigiCert G2 via certifi
+
+    def test_existing_user_root_crt_is_left_to_libpq(self, sync_url, monkeypatch, tmp_path):
+        monkeypatch.delenv("PGSSLROOTCERT", raising=False)
+        (tmp_path / ".postgresql").mkdir()
+        (tmp_path / ".postgresql" / "root.crt").write_text("x")
+        out = sync_url("postgresql://u:p@h/db?sslmode=verify-full")
+        assert out == "postgresql+psycopg2://u:p@h/db?sslmode=verify-full"
 
     def test_asyncpg_style_ssl_param_also_gets_it(self, sync_url, monkeypatch):
         monkeypatch.delenv("PGSSLROOTCERT", raising=False)
         out = sync_url("postgresql+asyncpg://u:p@h/db?ssl=verify-full")
-        assert "sslmode=verify-full" in out and "sslrootcert=system" in out
+        assert "sslmode=verify-full" in out and "sslrootcert=" in out
 
     def test_explicit_sslrootcert_is_kept(self, sync_url, monkeypatch):
         monkeypatch.delenv("PGSSLROOTCERT", raising=False)

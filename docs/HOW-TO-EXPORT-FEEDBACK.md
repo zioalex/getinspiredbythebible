@@ -34,7 +34,7 @@ make az-pg-remove-ip RULE=bible-app-db-mb0172
 - `make` and the Python environment: `make setup-dev`, or just run `make export-feedback`, whose
   `install-deps` step creates the venv.
 - The database admin password (`PGPASSWORD`).
-- Certificates: the exporter adds `sslrootcert=system` itself (OS trust store). For `pg_dump`/`psql`
+- Certificates: the exporter adds `sslrootcert=<bundle>` itself: certifi (DigiCert G2) + the vendored Microsoft RSA Root 2017 in `scripts/certs/` (`scripts/pg_tls.py`). An existing `~/.postgresql/root.crt` is used instead. For `pg_dump`/`psql`
   (`make db-backup`) the script sets `PGSSLROOTCERT=system` automatically on libpq >= 16 when
   `~/.postgresql/root.crt` is absent.
 
