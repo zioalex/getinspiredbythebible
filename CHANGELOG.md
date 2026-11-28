@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.63.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.62.0...v1.63.0) (2026-11-28)
+
+
+### Features
+
+* **kubeopencode:** allow agent egress to the llama.cpp server + pre-merge verify target (BITB-362) ([#1342](https://github.com/zioalex/getinspiredbythebible/issues/1342)) ([b4d4be3](https://github.com/zioalex/getinspiredbythebible/commit/b4d4be31b89f603e842a206d58b83088c8e149a0))
+* **opencode:** add the llama.cpp server as an opt-in provider (BITB-363) ([#1343](https://github.com/zioalex/getinspiredbythebible/issues/1343)) ([4ec33b2](https://github.com/zioalex/getinspiredbythebible/commit/4ec33b24cff174795fedb0a0a685f00fcfd3aad3))
+* **opencode:** run the mechanical lanes on the local llama.cpp server (BITB-365) ([#1344](https://github.com/zioalex/getinspiredbythebible/issues/1344)) ([4a68536](https://github.com/zioalex/getinspiredbythebible/commit/4a68536e6d39725c774a9d3980c95f332ad0ec2d))
+
+
+### Bug Fixes
+
+* **api:** diagnose and tolerate null Llama Guard primary content (BITB-321) ([#1313](https://github.com/zioalex/getinspiredbythebible/issues/1313)) ([86be0da](https://github.com/zioalex/getinspiredbythebible/commit/86be0da675aae950d98128c3a1655a1a1ed62279))
+* **api:** give telemetry endpoints their own IP rate limit (BITB-310) ([#1320](https://github.com/zioalex/getinspiredbythebible/issues/1320)) ([8dc4b1b](https://github.com/zioalex/getinspiredbythebible/commit/8dc4b1b68027fff140de81795c4d21379f082cba))
+* **api:** stop echoing raw exception text from public routes (BITB-317) ([#1321](https://github.com/zioalex/getinspiredbythebible/issues/1321)) ([b92c272](https://github.com/zioalex/getinspiredbythebible/commit/b92c272dd47120d9c1603d630d81b93e9fd459aa))
+* **api:** trim public config, generic upstream errors, bounded metric labels (BITB-307) ([#1297](https://github.com/zioalex/getinspiredbythebible/issues/1297)) ([7caa36f](https://github.com/zioalex/getinspiredbythebible/commit/7caa36ffde979fee151c20d7fdfdb61d337f02ec))
+* **ci:** use --name for az acr show-usage in the ACR purge workflow (BITB-372) ([#1353](https://github.com/zioalex/getinspiredbythebible/issues/1353)) ([43b1e86](https://github.com/zioalex/getinspiredbythebible/commit/43b1e86fa5126efded301796055fcb1ab5c6a849))
+* **frontend:** allowlist picomatch ReDoS advisory with no patched release (BITB-339) ([#1315](https://github.com/zioalex/getinspiredbythebible/issues/1315)) ([2f2b587](https://github.com/zioalex/getinspiredbythebible/commit/2f2b5874d855357974991dfb0df4ec7012644ff7))
+* **frontend:** pre-rendered share images for all 11 locales (BITB-299) ([#1293](https://github.com/zioalex/getinspiredbythebible/issues/1293)) ([3f1419d](https://github.com/zioalex/getinspiredbythebible/commit/3f1419dcda7aa47286405307b6e6808e9cebf641))
+* **opencode:** codify delegation-hygiene lessons from the llama.cpp arc (BITB-369) ([#1346](https://github.com/zioalex/getinspiredbythebible/issues/1346)) ([e12dd98](https://github.com/zioalex/getinspiredbythebible/commit/e12dd9873b96eccb0d55119b122fbd326e9e85f8))
+
+
+### Performance Improvements
+
+* **infra:** turn off unread PostgreSQL connection and checkpoint logs (BITB-233) ([#1341](https://github.com/zioalex/getinspiredbythebible/issues/1341)) ([8ae7cd2](https://github.com/zioalex/getinspiredbythebible/commit/8ae7cd2a2430c7d011e5ec2445207f8f1e8d3a50))
+
 ## [1.62.0](https://github.com/zioalex/getinspiredbythebible/compare/v1.61.0...v1.62.0) (2026-11-16)
 
 
