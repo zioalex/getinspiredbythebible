@@ -145,3 +145,82 @@ def test_real_backlog_r1_is_open() -> None:
     ok, report = release_notes.gate(stories, "R1")
     assert not ok and "BITB-321" in report
     assert release_notes.render_notes(stories, "R1").startswith("## R1\n")
+
+
+# ---------------------------------------------------------------- end-user What's New (BITB-175)
+
+GOOD_NOTE = (
+    "- Reading aloud keeps going with the screen off\n- Switching language starts a new chat\n"
+)
+
+
+def _write_notes(root: Path, version: str, locales=release_notes.LOCALES, text: str = GOOD_NOTE):
+    folder = root / release_notes.USER_NOTES_DIR / version
+    folder.mkdir(parents=True, exist_ok=True)
+    for locale in locales:
+        (folder / f"{locale}.md").write_text(text, encoding="utf-8")
+    return folder
+
+
+def test_draft_user_notes_lists_done_features_then_fixes(stories) -> None:
+    assert release_notes.draft_user_notes(stories, "R1") == (
+        "- Read the answer aloud\n- Crisis card shows for S11\n"
+    )
+    assert release_notes.draft_user_notes(stories, "R2") == ""
+
+
+def test_check_user_notes_valid_and_required_version(tmp_path: Path) -> None:
+    assert release_notes.check_user_notes(tmp_path) == []
+    assert "release-notes/1.63.0/: missing" in release_notes.check_user_notes(tmp_path, "1.63.0")[0]
+    _write_notes(tmp_path, "1.63.0")
+    assert release_notes.check_user_notes(tmp_path, "1.63.0") == []
+
+
+@pytest.mark.parametrize(
+    ("text", "needle"),
+    [
+        ("", "empty"),
+        ("- " + "x" * 518, "520 characters, the Play Store allows 500"),
+        ("Plain sentence, no bullet", "every line must be a '- ' bullet"),
+        ("- Fixed chips (BITB-254)", "contains a story id"),
+        ("- Uses `openai_moderation`", "contains code formatting"),
+        ("- Faster replies (#1313)", "contains a PR reference"),
+    ],
+)
+def test_check_user_notes_content_rules(tmp_path: Path, text: str, needle: str) -> None:
+    _write_notes(tmp_path, "1.63.0")
+    (tmp_path / "release-notes/1.63.0/it.md").write_text(text, encoding="utf-8")
+    errors = release_notes.check_user_notes(tmp_path)
+    assert any(e.startswith("release-notes/1.63.0/it.md: ") and needle in e for e in errors), errors
+
+
+def test_check_user_notes_missing_extra_and_bad_folder(tmp_path: Path) -> None:
+    _write_notes(tmp_path, "1.63.0", locales=("en", "it"))
+    folder = _write_notes(tmp_path, "1.64.0")
+    (folder / "jp.md").write_text(GOOD_NOTE, encoding="utf-8")
+    (tmp_path / "release-notes/next").mkdir()
+    errors = release_notes.check_user_notes(tmp_path)
+    assert "release-notes/1.63.0/ko.md: missing (every release needs all 11 languages)" in errors
+    assert any(
+        e.startswith("release-notes/1.64.0/jp.md: not one of the app's locales") for e in errors
+    )
+    assert "release-notes/next/: folder name must be a release version like 1.63.0" in errors
+    assert not any(e.startswith("release-notes/1.64.0/en.md") for e in errors)
+
+
+def test_cli_user_and_check(stories, tmp_path: Path, capsys) -> None:
+    assert release_notes.main(["--root", str(tmp_path), "user", "--milestone", "R1"]) == 0
+    assert capsys.readouterr().out.startswith("- Read the answer aloud\n")
+    assert release_notes.main(["--root", str(tmp_path), "check", "--version", "9.9.9"]) == 1
+    assert "::error::release-notes/9.9.9/: missing" in capsys.readouterr().out
+    _write_notes(tmp_path, "9.9.9")
+    assert release_notes.main(["--root", str(tmp_path), "check", "--version", "9.9.9"]) == 0
+
+
+def test_locales_match_the_frontend_messages() -> None:
+    messages = _SCRIPTS_DIR.parent / "frontend" / "messages"
+    assert sorted(p.stem for p in messages.glob("*.json")) == sorted(release_notes.LOCALES)
+
+
+def test_real_release_notes_folder_is_valid() -> None:
+    assert release_notes.check_user_notes(_SCRIPTS_DIR.parent) == []

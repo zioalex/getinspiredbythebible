@@ -363,6 +363,30 @@ tag + Play upload (unchanged) ──► product-notes job: notes appended to the
 
 ---
 
+## Writing the user What's New
+
+Users never see the developer `CHANGELOG.md`. After an update they see the curated notes in
+`release-notes/<version>/<locale>.md` (BITB-175): the web popup, the Android sheet and the Play
+Store "What's new" all read them, each in the user's language with English as the fallback.
+Rules: `release-notes/README.md`.
+
+1. **When:** once the milestone's stories are done, before merging the Release PR. The Release
+   Gate preview comment names the version the Release PR ships and says whether
+   `release-notes/<version>/` is ready.
+2. **Draft:** `python3 scripts/release_notes.py user --milestone R1` prints one English bullet per
+   done `feature`/`fix` story. Rewrite them in plain words, keep 3–5, and save as `en.md`.
+3. **Translate** into it, de, es, fr, pt, ar, ru, zh, hi and ko (the agent drafts them; a person
+   spot-checks at least two before merging), then run `python3 scripts/release_notes.py check`.
+4. **Open one PR** (`docs(release): user notes for vX.Y.Z (BITB-NNN)`) and merge it before the
+   Release PR. The tag build bakes the notes into the web image and the Android asset
+   (`assets/whats_new.json`) and stages them for Play.
+
+No folder for a release (a hotfix, say) means no popup and no sheet, and Play gets "Bug fixes and
+improvements." Play only accepts notes for languages that have a store listing: today en-US.
+Add the other listings in Play Console; their files then flow automatically.
+
+---
+
 ## Reviewing a Release PR before merging
 
 The Release PR is the manual review surface — you are not expected to merge

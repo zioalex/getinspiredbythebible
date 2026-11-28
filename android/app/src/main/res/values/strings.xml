@@ -180,7 +180,6 @@
     <string name="whats_new_title">What\'s New</string>
     <string name="whats_new_dismiss">Got it</string>
     <string name="whats_new_see_all">See all</string>
-    <string name="whats_new_support_note">You can now support Vox Quieta from the menu, if you\'d like. It\'s entirely optional — the app stays free for everyone.</string>
 
     <!-- About intro bottom sheet (BITB-082) — condensed from the web About.intro* copy -->
     <string name="about_intro_title">Why Vox Quieta</string>

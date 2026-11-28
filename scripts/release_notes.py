@@ -9,6 +9,8 @@ Release PR whether the milestone is done:
     python3 scripts/release_notes.py notes --milestone R1 [--title "R1: ..."] [--outcome TEXT]
     python3 scripts/release_notes.py gate --milestone R1
     python3 scripts/release_notes.py current
+    python3 scripts/release_notes.py user --milestone R1
+    python3 scripts/release_notes.py check [--version 1.63.0]
     gh api repos/OWNER/REPO/milestones | python3 scripts/release_notes.py github-milestone
 
 * ``notes``: the outcome, then "New features", "Quality & reliability" (nfr) and "Fixes" — one
@@ -18,6 +20,11 @@ Release PR whether the milestone is done:
 * ``current``: the lowest ``R<n>`` that still has open stories (empty when none).
 * ``github-milestone``: from the GitHub milestones JSON on stdin, the lowest open ``R<n>: ...``
   as JSON ``{"number", "key", "title", "outcome"}`` (``{}`` when there is none).
+* ``user``: a first English draft of the end-user What's New for a milestone (BITB-175) — one
+  plain bullet per done feature/fix story — to edit, translate and save as
+  ``release-notes/<version>/<locale>.md``.
+* ``check``: validate every ``release-notes/<version>/`` folder (all 11 locales, at most 500
+  characters, bullets only, no story ids or code); ``--version X.Y.Z`` also requires that folder.
 
 The developer CHANGELOG.md stays as release-please writes it. Stdlib only.
 Tests: python -m pytest scripts/test_release_notes.py -v
@@ -44,6 +51,20 @@ SECTIONS: tuple[tuple[str, str], ...] = (
 )
 _GITHUB_TITLE_RE = re.compile(r"^(R[1-9]\d*):\s*(.+)$")
 _OUTCOME_RE = re.compile(r"^\s*Outcome:\s*(.+?)\s*$", re.IGNORECASE)
+
+# End-user What's New (BITB-175): one file per release and locale, shown in the web modal, the
+# Android sheet and the Play Store "What's new" field. The locales are the app's UI languages
+# (frontend/messages/*.json). 500 characters is the Play Store limit per language.
+USER_NOTES_DIR = "release-notes"
+LOCALES: tuple[str, ...] = ("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko")
+MAX_USER_NOTE_CHARS = 500
+_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
+_TITLE_ID_RE = re.compile(r"\s*\(?BITB-\d+(?:/\d+)*\)?")
+_FORBIDDEN_IN_USER_NOTES = (
+    (re.compile(r"BITB-\d+", re.IGNORECASE), "a story id"),
+    (re.compile(r"`"), "code formatting"),
+    (re.compile(r"\(#\d+\)|https?://github\.com", re.IGNORECASE), "a PR reference"),
+)
 
 
 def in_milestone(stories: list[backlog.Story], milestone: str) -> list[backlog.Story]:
@@ -112,6 +133,57 @@ def gate(stories: list[backlog.Story], milestone: str) -> tuple[bool, str]:
     return False, "\n".join(lines) + "\n"
 
 
+def draft_user_notes(stories: list[backlog.Story], milestone: str) -> str:
+    """English draft: one bullet per done feature, then fix, story in the milestone."""
+    done = [s for s in in_milestone(stories, milestone) if s.status == "done"]
+    picked = [s for kind in ("feature", "fix") for s in done if s.kind == kind]
+    if not picked:
+        return ""
+    return "".join(f"- {_TITLE_ID_RE.sub('', s.title).strip()}\n" for s in picked)
+
+
+def _check_note_file(path: Path, rel: str) -> list[str]:
+    """Problems with one ``release-notes/<version>/<locale>.md`` file."""
+    if not path.is_file():
+        return [f"{rel}: missing (every release needs all 11 languages)"]
+    text = path.read_text(encoding="utf-8").strip()
+    if not text:
+        return [f"{rel}: empty"]
+    errors = []
+    if len(text) > MAX_USER_NOTE_CHARS:
+        errors.append(f"{rel}: {len(text)} characters, the Play Store allows {MAX_USER_NOTE_CHARS}")
+    bad = next((ln for ln in text.splitlines() if ln.strip() and not ln.startswith("- ")), None)
+    if bad is not None:
+        errors.append(f"{rel}: every line must be a '- ' bullet: {bad!r}")
+    for pattern, what in _FORBIDDEN_IN_USER_NOTES:
+        if pattern.search(text):
+            errors.append(f"{rel}: contains {what}; users never see those")
+    return errors
+
+
+def check_user_notes(root: Path, required_version: str = "") -> list[str]:
+    """Problems with ``release-notes/<version>/<locale>.md``, as ``path: problem`` lines."""
+    base = root / USER_NOTES_DIR
+    errors: list[str] = []
+    versions = sorted(p for p in base.iterdir() if p.is_dir()) if base.is_dir() else []
+    if required_version and not (base / required_version).is_dir():
+        errors.append(
+            f"{USER_NOTES_DIR}/{required_version}/: missing — write the user What's New for "
+            "this release (docs/RELEASE_PROCESS.md, 'Writing the user What's New')"
+        )
+    for folder in versions:
+        rel = f"{USER_NOTES_DIR}/{folder.name}"
+        if not _VERSION_RE.match(folder.name):
+            errors.append(f"{rel}/: folder name must be a release version like 1.63.0")
+            continue
+        for locale in LOCALES:
+            errors += _check_note_file(folder / f"{locale}.md", f"{rel}/{locale}.md")
+        extra = sorted(p.name for p in folder.glob("*.md") if p.stem not in LOCALES)
+        for name in extra:
+            errors.append(f"{rel}/{name}: not one of the app's locales ({', '.join(LOCALES)})")
+    return errors
+
+
 def pick_github_milestone(milestones: list[dict]) -> dict:
     """The lowest open ``R<n>: ...`` milestone, with its outcome line, or ``{}``."""
     found = []
@@ -145,11 +217,22 @@ def main(argv: list[str] | None = None) -> int:
     p_gate.add_argument("--milestone", required=True)
     sub.add_parser("current", help="lowest milestone that still has open stories")
     sub.add_parser("github-milestone", help="pick the current milestone from GitHub JSON on stdin")
+    p_user = sub.add_parser("user", help="English draft of the end-user What's New")
+    p_user.add_argument("--milestone", required=True)
+    p_check = sub.add_parser("check", help="validate release-notes/<version>/<locale>.md")
+    p_check.add_argument("--version", default="", help="also require this release's folder")
     args = parser.parse_args(argv)
 
     if args.command == "github-milestone":
         print(json.dumps(pick_github_milestone(json.load(sys.stdin)), sort_keys=True))
         return 0
+    if args.command == "check":
+        problems = check_user_notes(args.root, args.version)
+        for problem in problems:
+            print(f"::error::{problem}")
+        if not problems:
+            print("OK: release-notes/ is valid.")
+        return 1 if problems else 0
     if getattr(args, "milestone", None) is not None and not re.fullmatch(
         r"R[1-9]\d*", args.milestone, re.IGNORECASE
     ):
@@ -157,6 +240,10 @@ def main(argv: list[str] | None = None) -> int:
     stories = backlog.load_all(args.root)
     if args.command == "notes":
         sys.stdout.write(render_notes(stories, args.milestone, args.title, args.outcome))
+        return 0
+    if args.command == "user":
+        draft = draft_user_notes(stories, args.milestone)
+        sys.stdout.write(draft or f"(no done feature or fix stories in {args.milestone.upper()})\n")
         return 0
     if args.command == "gate":
         ok, report = gate(stories, args.milestone)

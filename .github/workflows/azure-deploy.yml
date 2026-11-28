@@ -459,7 +459,7 @@ jobs:
           echo "web_enabled=$WEB_FOLLOW_UPS" >> "$GITHUB_OUTPUT"
           echo "Building frontend with NEXT_PUBLIC_FOLLOW_UPS_ENABLED=$WEB_FOLLOW_UPS"
 
-      - name: Stage CHANGELOG.md into frontend/ for docker build context
+      - name: Stage CHANGELOG.md and the user release notes into frontend/ for docker build context
         # The frontend Dockerfile uses `context: ./frontend`, so the repo-root
         # CHANGELOG.md is otherwise invisible to `next build` inside the
         # container. The prebuild script (extract-latest-changelog.mjs) looks
@@ -472,6 +472,13 @@ jobs:
             echo "Staged $(wc -l < CHANGELOG.md) lines from CHANGELOG.md into frontend/"
           else
             echo "::notice::No CHANGELOG.md at repo root — /changelog will render the empty state"
+          fi
+          # BITB-175: the "What's new" popup is built from the curated release-notes/<version>/
+          # for the version in .release-please-manifest.json; without them, no popup is shown.
+          cp .release-please-manifest.json frontend/.release-please-manifest.json
+          if [ -d release-notes ]; then
+            rm -rf frontend/release-notes
+            cp -R release-notes frontend/release-notes
           fi
 
       - name: Build and push frontend

@@ -39,6 +39,7 @@ import org.voxquieta.app.analytics.AnalyticsHelper
 import org.voxquieta.app.presentation.components.AboutIntroBottomSheet
 import org.voxquieta.app.presentation.components.TurnstileWebView
 import org.voxquieta.app.presentation.components.WhatsNewBottomSheet
+import org.voxquieta.app.presentation.components.loadWhatsNew
 import org.voxquieta.app.presentation.components.shouldShowWhatsNew
 import org.voxquieta.app.presentation.screens.ChangelogScreen
 import org.voxquieta.app.presentation.screens.ChatScreen
@@ -66,6 +67,9 @@ internal fun resolveLaunchModals(
     aboutIntroSeen: Boolean,
     storedVersionCode: Int,
     currentVersionCode: Int,
+    // BITB-175: false when this release has no curated notes (assets/whats_new.json is []);
+    // the version is still marked seen, so a later release with notes shows its sheet.
+    hasWhatsNewNotes: Boolean = true,
 ): LaunchModalDecision {
     if (!aboutIntroSeen) {
         return LaunchModalDecision(
@@ -76,7 +80,7 @@ internal fun resolveLaunchModals(
     }
     return LaunchModalDecision(
         showAboutIntro = false,
-        showWhatsNew = shouldShowWhatsNew(storedVersionCode, currentVersionCode),
+        showWhatsNew = hasWhatsNewNotes && shouldShowWhatsNew(storedVersionCode, currentVersionCode),
         shouldMarkVersionSeen = storedVersionCode != currentVersionCode,
     )
 }
@@ -141,6 +145,7 @@ class MainActivity : ComponentActivity() {
                 aboutIntroSeen = hasAboutIntroBeenSeen(),
                 storedVersionCode = lastSeenVersionCode(),
                 currentVersionCode = BuildConfig.VERSION_CODE,
+                hasWhatsNewNotes = loadWhatsNew(this) != null,
             )
             showAboutIntroOnLaunch = decision.showAboutIntro
             showWhatsNewOnLaunch = decision.showWhatsNew

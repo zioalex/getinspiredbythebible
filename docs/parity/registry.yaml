@@ -1023,7 +1023,10 @@ capabilities:
 
   - id: whats-new-sheet
     title: '"What''s New" spotlight sheet'
-    description: A dismissible what's-new presentation on update.
+    description: >-
+      A dismissible what's-new presentation on update, showing the release's curated end-user notes
+      (release-notes/<version>/<locale>.md) in the UI language with English as the fallback, and
+      nothing when a release has none (BITB-175).
     kind: capability
     tier: 2
     parity:
@@ -1033,6 +1036,7 @@ capabilities:
         status: synced
         evidence:
           - frontend/src/components/WhatsNewModal.tsx
+          - frontend/scripts/extract-latest-changelog.mjs
       android:
         status: synced
         evidence:

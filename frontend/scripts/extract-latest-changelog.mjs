@@ -1,37 +1,31 @@
 #!/usr/bin/env node
 /**
- * Reads the CHANGELOG.md and extracts the topmost release entry.
- * Writes frontend/public/changelog.json with:
- *   { "version": "X.Y.Z", "date": "YYYY-MM-DD", "body": "..." }
- * Also copies the full CHANGELOG.md verbatim to frontend/public/CHANGELOG.md
- * so /[locale]/changelog can read it at build time. The file is shipped via
- * the standalone Docker image's `public/` folder.
+ * Builds the two changelog artifacts the web app ships in public/:
  *
- * Looks first in the repo root (local dev), then in the frontend dir
- * (Docker build: CI is expected to stage CHANGELOG.md into ./frontend
- * before `docker build` because the build context is ./frontend and the
- * repo-root CHANGELOG.md is otherwise invisible inside the container).
+ *   public/CHANGELOG.md   the full developer CHANGELOG (release-please), rendered by
+ *                         /[locale]/changelog. Unchanged.
+ *   public/changelog.json what the "What's new" popup (WhatsNewModal) shows after an update.
  *
- * If CHANGELOG.md is missing or has no entries, writes { "version": null }
- * and does not create public/CHANGELOG.md (the page falls back to its
- * empty state).
+ * BITB-175: the popup no longer shows the raw CHANGELOG entry (English only, full of tooling
+ * scopes and BITB ids). It shows the curated end-user notes for the released version,
+ * release-notes/<version>/<locale>.md (docs/RELEASE_PROCESS.md, "Writing the user What's
+ * New"), as { "version", "date", "body": <en>, "notes": { "<locale>": "..." } }. When that
+ * release has no curated notes (a hotfix, say), it writes { "version": null } and no popup is
+ * shown. The released version is read from .release-please-manifest.json.
  *
- * Run via `prebuild` / `predev` in package.json so next build always has
- * fresh artifacts in public/.
+ * Inputs are looked up in the repo root (local dev) and then in the frontend dir (Docker build:
+ * azure-deploy.yml stages CHANGELOG.md, release-notes/ and the manifest into ./frontend because
+ * the build context is ./frontend).
+ *
+ * Run via `prebuild` / `predev` in package.json so next build always has fresh artifacts.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "../../");
-const candidatePaths = [
-  resolve(repoRoot, "CHANGELOG.md"),
-  resolve(__dirname, "../CHANGELOG.md"),
-];
-const changelogPath =
-  candidatePaths.find((p) => existsSync(p)) ?? candidatePaths[0];
 const outputDir = resolve(__dirname, "../public");
 const outputPath = resolve(outputDir, "changelog.json");
 const outputMarkdownPath = resolve(outputDir, "CHANGELOG.md");
@@ -62,40 +56,95 @@ export function parseLatestEntry(content) {
   return { version, date, body };
 }
 
+const LOCALES = [
+  "en",
+  "it",
+  "de",
+  "es",
+  "fr",
+  "pt",
+  "ar",
+  "ru",
+  "zh",
+  "hi",
+  "ko",
+];
+
+function firstExisting(relPath) {
+  const candidates = [
+    resolve(repoRoot, relPath),
+    resolve(__dirname, "..", relPath),
+  ];
+  return candidates.find((p) => existsSync(p)) ?? null;
+}
+
+/** The released version from a .release-please-manifest.json string, or null. */
+export function versionFromManifest(content) {
+  try {
+    const version = JSON.parse(content)["."];
+    return typeof version === "string" && /^\d+\.\d+\.\d+$/.test(version)
+      ? version
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Curated end-user notes for one release: { "<locale>": "<markdown>" } for every
+ * release-notes/<version>/<locale>.md that exists and is not empty, or null without English.
+ */
+export function readUserNotes(notesRoot, version) {
+  if (!notesRoot || !version) return null;
+  const folder = resolve(notesRoot, version);
+  if (!existsSync(folder)) return null;
+  const notes = {};
+  for (const locale of LOCALES) {
+    const file = resolve(folder, `${locale}.md`);
+    if (!existsSync(file)) continue;
+    const text = readFileSync(file, "utf8").trim();
+    if (text) notes[locale] = text;
+  }
+  return notes.en ? notes : null;
+}
+
+/** The popup payload for a release, or the { version: null } sentinel. */
+export function buildWhatsNew(version, notes, changelogContent) {
+  if (!version || !notes) return { version: null };
+  const entry = changelogContent ? parseLatestEntry(changelogContent) : null;
+  const date = entry && entry.version === version ? entry.date : null;
+  return { version, date, body: notes.en, notes };
+}
+
 function main() {
-  if (!existsSync(changelogPath)) {
-    console.log(
-      "[extract-latest-changelog] CHANGELOG.md not found — writing empty sentinel.",
-    );
-    mkdirSync(outputDir, { recursive: true });
-    writeFileSync(outputPath, JSON.stringify({ version: null }, null, 2));
-    return;
-  }
-
-  const content = readFileSync(changelogPath, "utf8");
-  const entry = parseLatestEntry(content);
-
-  if (!entry) {
-    console.log(
-      "[extract-latest-changelog] No versioned entries found — writing empty sentinel.",
-    );
-    mkdirSync(outputDir, { recursive: true });
-    writeFileSync(outputPath, JSON.stringify({ version: null }, null, 2));
-    return;
-  }
-
-  const payload = {
-    version: entry.version,
-    date: entry.date,
-    body: entry.body,
-  };
   mkdirSync(outputDir, { recursive: true });
+
+  const changelogPath = firstExisting("CHANGELOG.md");
+  const changelog = changelogPath ? readFileSync(changelogPath, "utf8") : null;
+  if (changelog) {
+    // The full developer CHANGELOG, for /[locale]/changelog.
+    writeFileSync(outputMarkdownPath, changelog);
+  } else {
+    console.log(
+      "[extract-latest-changelog] CHANGELOG.md not found — /changelog will render its empty state.",
+    );
+  }
+
+  const manifestPath = firstExisting(".release-please-manifest.json");
+  const version = manifestPath
+    ? versionFromManifest(readFileSync(manifestPath, "utf8"))
+    : null;
+  const notes = readUserNotes(firstExisting("release-notes"), version);
+  const payload = buildWhatsNew(version, notes, changelog);
   writeFileSync(outputPath, JSON.stringify(payload, null, 2));
-  // Also ship the full CHANGELOG.md so /[locale]/changelog can render it.
-  writeFileSync(outputMarkdownPath, content);
   console.log(
-    `[extract-latest-changelog] Wrote v${entry.version} to public/changelog.json + full CHANGELOG.md`,
+    payload.version
+      ? `[extract-latest-changelog] What's new for v${payload.version}: ${Object.keys(notes).join(", ")}`
+      : `[extract-latest-changelog] No curated notes for v${version ?? "?"} — no "What's new" popup.`,
   );
 }
 
-main();
+// Run only as a script (prebuild / predev), not when the tests import the helpers.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  main();
+}

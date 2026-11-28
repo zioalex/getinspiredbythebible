@@ -187,7 +187,6 @@
     <string name="whats_new_title">ما الجديد</string>
     <string name="whats_new_dismiss">حسناً</string>
     <string name="whats_new_see_all">عرض الكل</string>
-    <string name="whats_new_support_note">يمكنك الآن دعم Vox Quieta من القائمة إن رغبت. الأمر اختياري تماماً — يبقى التطبيق مجانياً للجميع.</string>
 
     <!-- About intro bottom sheet (BITB-082) -->
     <string name="about_intro_title">لماذا Vox Quieta</string>
