@@ -1,7 +1,7 @@
 # Every target except the two env-file rules (.env.local, .env.dev) is phony: none of them
 # produces a file of its own name, so a stray file called `test` or `lint` must never make
 # them silently "up to date". scripts/test_make_targets.py (make test-makefile) enforces this.
-.PHONY: backlog backlog-changelog backlog-check release-notes help venv install-hooks setup-dev lint format type-check security install-deps \
+.PHONY: backlog backlog-changelog backlog-check az-lint release-notes help venv install-hooks setup-dev lint format type-check security install-deps \
 	test-backend test-frontend test check-all pre-commit alembic-roundtrip db-upgrade \
 	android-test android-test-compose android-build android-build-prod android-lint android-clean \
 	android-security-check \
@@ -208,6 +208,9 @@ backlog-changelog: ## Changelog derived from git history (BITB-313): make backlo
 
 backlog-check: ## Validate every story file's front matter (BITB-313)
 	@$(SCRIPT_PYTHON) scripts/backlog.py check
+
+az-lint: ## Lint every az command against the real Azure CLI (BITB-374); needs az on PATH, ARGS="--skip-missing-extensions" to skip extension commands
+	@$(SCRIPT_PYTHON) scripts/check_az_commands.py $(ARGS)
 
 release-notes: ## Product release notes for a milestone (BITB-367): make release-notes ARGS="--milestone R1"
 	@$(SCRIPT_PYTHON) scripts/release_notes.py notes $(or $(ARGS),--milestone R1)
