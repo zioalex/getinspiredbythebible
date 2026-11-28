@@ -56,6 +56,14 @@ locals {
   # Use db_location if specified, otherwise use main location
   db_location = var.db_location != "" ? var.db_location : var.location
 
+  # BITB-294: effective ml_only failover chain. Empty variable = auto: add the `azure`
+  # hop only when the Content Safety account is provisioned. The default
+  # ("openai_moderation") equals the app default, so the OFF state changes nothing.
+  content_safety_ml_failover_chain = (
+    var.content_safety_ml_failover_chain != "" ? var.content_safety_ml_failover_chain :
+    var.enable_azure_content_safety ? "openai_moderation,azure" : "openai_moderation"
+  )
+
   tags = merge(var.tags, {
     "project"    = "voxquieta"
     "managed_by" = "terraform"
@@ -94,6 +102,10 @@ locals {
       }
       "CONTENT_SAFETY_MODE" = {
         value = var.content_safety_mode
+      }
+      # BITB-294: always set; the default equals the app default (openai_moderation).
+      "CONTENT_SAFETY_ML_FAILOVER_CHAIN" = {
+        value = local.content_safety_ml_failover_chain
       }
       "TTS_ENABLED" = {
         value = tostring(var.tts_enabled)
@@ -230,6 +242,23 @@ locals {
     var.openai_api_key != "" ? {
       "OPENAI_API_KEY" = {
         secret_name = "openai-api-key" # pragma: allowlist secret
+      }
+    } : {},
+
+    # Azure AI Content Safety failover hop (only when provisioned) — BITB-294.
+    # The key is an out-of-band ACA secret (see the secret block + azure-deploy.yml).
+    var.enable_azure_content_safety ? {
+      "AZURE_CONTENT_SAFETY_ENABLED" = {
+        value = "true"
+      }
+      "AZURE_CONTENT_SAFETY_ENDPOINT" = {
+        value = azurerm_cognitive_account.content_safety[0].endpoint
+      }
+      "AZURE_CONTENT_SAFETY_TIMEOUT" = {
+        value = tostring(var.azure_content_safety_timeout)
+      }
+      "AZURE_CONTENT_SAFETY_KEY" = {
+        secret_name = "azure-content-safety-key" # pragma: allowlist secret
       }
     } : {},
 
@@ -719,6 +748,20 @@ resource "azurerm_container_app" "backend" {
     }
   }
 
+  # Azure AI Content Safety key (only when enable_azure_content_safety) — BITB-294.
+  # Out-of-band like openai-api-key above, but the real value is not a GitHub
+  # secret: azure-deploy.yml reads it from the `azure_content_safety_key`
+  # terraform output after apply and sets it via `az containerapp secret set`.
+  # The existing app ignores new secret blocks (ignore_changes = [secret]), so the
+  # workflow also pre-seeds this secret BEFORE apply (only if absent).
+  dynamic "secret" {
+    for_each = var.enable_azure_content_safety ? [1] : []
+    content {
+      name  = "azure-content-safety-key"
+      value = "set-out-of-band-see-azure-deploy-yml" # pragma: allowlist secret
+    }
+  }
+
   # Browser smoke-test secret (only when set) — BITB-064. See the
   # monitor-probe-secret comment above: value is a bootstrap placeholder,
   # real value provisioned out-of-band (BITB-067 gap #6).
@@ -1121,6 +1164,29 @@ resource "azurerm_cognitive_account" "openai" {
   resource_group_name = azurerm_resource_group.main.name
   kind                = "OpenAI"
   sku_name            = "S0"
+
+  tags = local.tags
+}
+
+# -----------------------------------------------------------------------------
+# Azure AI Content Safety (optional failover hop, BITB-294)
+# -----------------------------------------------------------------------------
+# Provisions the account used by the `azure` hop of CONTENT_SAFETY_ML_FAILOVER_CHAIN
+# (BITB-292). Shipped OFF: the owner sets enable_azure_content_safety = true after
+# choosing the SKU and after the privacy policy discloses it (BITB-353). The key
+# follows the out-of-band secret pattern (BITB-288): placeholder ACA secret here,
+# pre-seed + populate steps in azure-deploy.yml. Not in backend_secret_trigger.
+
+resource "azurerm_cognitive_account" "content_safety" {
+  count = var.enable_azure_content_safety ? 1 : 0
+
+  name                  = "${local.name_prefix}-contentsafety-${local.resource_suffix}"
+  location              = coalesce(var.azure_content_safety_location, var.location)
+  resource_group_name   = azurerm_resource_group.main.name
+  kind                  = "ContentSafety"
+  sku_name              = var.azure_content_safety_sku
+  custom_subdomain_name = "${local.name_prefix}-contentsafety-${local.resource_suffix}"
+  local_auth_enabled    = true
 
   tags = local.tags
 }

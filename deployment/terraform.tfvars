@@ -114,6 +114,16 @@ chat_follow_ups_enabled = true
 web_follow_ups_enabled  = true
 
 # -----------------------------------------------------------------------------
+# Azure AI Content Safety (ml_only failover hop `azure`, BITB-294)
+# -----------------------------------------------------------------------------
+# OFF by default. Owner steps (docs/BACKLOG_STORIES/BITB-294-*.md): choose the SKU
+# (azure_content_safety_sku = "F0" free, one per subscription, or "S0"), confirm
+# availability in the region (else set azure_content_safety_location), and only
+# set this to true after the privacy policy discloses it (BITB-353).
+# azure_content_safety_sku = "F0"
+enable_azure_content_safety = false
+
+# -----------------------------------------------------------------------------
 # Azure OpenAI for Embeddings
 # -----------------------------------------------------------------------------
 

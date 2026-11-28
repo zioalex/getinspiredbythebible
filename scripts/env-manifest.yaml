@@ -222,6 +222,22 @@ variables:
       unknown entries fail at startup, empty = default (BITB-292)
     default: "openai_moderation"
 
+  AZURE_CONTENT_SAFETY_ENABLED:
+    required_in: none
+    description: Enable Azure AI Content Safety (hybrid Stage 3, or the azure ml_only failover hop) (BITB-294)
+    default: "false"
+
+  AZURE_CONTENT_SAFETY_ENDPOINT:
+    required_in: none
+    description: Azure AI Content Safety endpoint; in production from the Terraform account (BITB-294)
+    default: ""
+
+  AZURE_CONTENT_SAFETY_KEY:
+    required_in: none
+    description: Azure AI Content Safety key; in production an out-of-band ACA secret (BITB-294)
+    default: ""
+    sensitive: true
+
   AZURE_CONTENT_SAFETY_TIMEOUT:
     required_in: none
     description:
