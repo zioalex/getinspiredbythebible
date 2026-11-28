@@ -187,7 +187,6 @@
     <string name="whats_new_title">Was ist neu</string>
     <string name="whats_new_dismiss">Verstanden</string>
     <string name="whats_new_see_all">Alle anzeigen</string>
-    <string name="whats_new_support_note">Du kannst Vox Quieta jetzt über das Menü unterstützen, wenn du möchtest. Das ist völlig freiwillig — die App bleibt für alle kostenlos.</string>
 
     <!-- About intro bottom sheet (BITB-082) -->
     <string name="about_intro_title">Warum Vox Quieta</string>

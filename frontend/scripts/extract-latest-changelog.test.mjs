@@ -2,7 +2,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { writeFileSync, mkdirSync, rmSync } from "fs";
-import { parseLatestEntry } from "./extract-latest-changelog.mjs";
+import {
+  buildWhatsNew,
+  parseLatestEntry,
+  readUserNotes,
+  versionFromManifest,
+} from "./extract-latest-changelog.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,5 +57,68 @@ describe("parseLatestEntry", () => {
     const result = parseLatestEntry(changelog);
     expect(result?.version).toBe("0.1.0");
     expect(result?.body).toContain("initial release");
+  });
+});
+
+describe("curated What's new (BITB-175)", () => {
+  const root = path.join(__dirname, "__tmp_release_notes__");
+
+  beforeAll(() => {
+    mkdirSync(path.join(root, "1.63.0"), { recursive: true });
+    writeFileSync(
+      path.join(root, "1.63.0", "en.md"),
+      "- Read aloud keeps going\n",
+    );
+    writeFileSync(
+      path.join(root, "1.63.0", "it.md"),
+      "- La lettura continua\n",
+    );
+    writeFileSync(path.join(root, "1.63.0", "de.md"), "   \n");
+    mkdirSync(path.join(root, "1.64.0"), { recursive: true });
+    writeFileSync(path.join(root, "1.64.0", "it.md"), "- Solo italiano\n");
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("reads the released version from the release-please manifest", () => {
+    expect(versionFromManifest('{ ".": "1.63.0" }')).toBe("1.63.0");
+    expect(versionFromManifest('{ ".": "next" }')).toBeNull();
+    expect(versionFromManifest("not json")).toBeNull();
+  });
+
+  it("reads every non-empty locale file for the version", () => {
+    expect(readUserNotes(root, "1.63.0")).toEqual({
+      en: "- Read aloud keeps going",
+      it: "- La lettura continua",
+    });
+  });
+
+  it("returns null without English, without the folder, or without a version", () => {
+    expect(readUserNotes(root, "1.64.0")).toBeNull();
+    expect(readUserNotes(root, "9.9.9")).toBeNull();
+    expect(readUserNotes(root, null)).toBeNull();
+    expect(readUserNotes(null, "1.63.0")).toBeNull();
+  });
+
+  it("builds the popup payload with the English body and the CHANGELOG date", () => {
+    const notes = { en: "- A", it: "- B" };
+    const changelog =
+      "## [1.63.0](https://x) (2026-12-01)\n\n### Features\n\n* opencode stuff\n";
+    expect(buildWhatsNew("1.63.0", notes, changelog)).toEqual({
+      version: "1.63.0",
+      date: "2026-12-01",
+      body: "- A",
+      notes,
+    });
+    expect(buildWhatsNew("1.63.0", notes, null).date).toBeNull();
+  });
+
+  it("writes the no-popup sentinel when the release has no curated notes", () => {
+    expect(buildWhatsNew("1.63.0", null, "## [1.63.0] (2026-12-01)\n")).toEqual(
+      { version: null },
+    );
+    expect(buildWhatsNew(null, { en: "- A" }, null)).toEqual({ version: null });
   });
 });

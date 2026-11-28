@@ -79,6 +79,14 @@ jobs:
             --json number,title --jq ".[] | select(.number != $PR) | \"- #\(.number) \(.title)\"" > open_prs.txt
           python3 scripts/release_notes.py notes --milestone "$KEY" --title "$TITLE" \
             --outcome "$(cat outcome.txt)" > notes.md
+          # BITB-175: the curated end-user What's New for the version this Release PR ships.
+          version="$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["."])')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if python3 scripts/release_notes.py check --version "$version" > user_notes.txt; then
+            echo "user_notes=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "user_notes=missing" >> "$GITHUB_OUTPUT"
+          fi
           if [ "$stories_status" -eq 0 ] && [ ! -s open_prs.txt ]; then
             echo "complete=true" >> "$GITHUB_OUTPUT"
           else
@@ -94,6 +102,8 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           TITLE: ${{ steps.ms.outputs.title }}
           COMPLETE: ${{ steps.gate.outputs.complete }}
+          VERSION: ${{ steps.gate.outputs.version }}
+          USER_NOTES: ${{ steps.gate.outputs.user_notes }}
         run: |
           set -euo pipefail
           marker="<!-- release-gate-preview -->"
@@ -110,6 +120,16 @@ jobs:
               cat open_prs.txt
               echo
               echo "Urgent fix-only release? Add the \`release/hotfix\` label (docs/RELEASE_PROCESS.md)."
+            fi
+            echo
+            if [ "$USER_NOTES" = "ok" ]; then
+              echo "**User What's New:** ✅ \`release-notes/$VERSION/\` is ready in all 11 languages."
+            else
+              echo "**User What's New:** ⚠️ \`release-notes/$VERSION/\` is missing or incomplete, so users"
+              echo "will see no popup. Draft it with \`python3 scripts/release_notes.py user --milestone <R>\`"
+              echo "(docs/RELEASE_PROCESS.md, \"Writing the user What's New\")."
+              echo
+              sed 's/^::error:://; s/^/- /' user_notes.txt
             fi
             echo
             echo "<details><summary>Draft product release notes</summary>"
@@ -161,3 +181,6 @@ jobs:
       - run: pip install pytest
 
       - run: python -m pytest scripts/test_release_notes.py -v
+
+      # BITB-175: any release-notes/<version>/ a PR adds must be complete and plain-language.
+      - run: python3 scripts/release_notes.py check

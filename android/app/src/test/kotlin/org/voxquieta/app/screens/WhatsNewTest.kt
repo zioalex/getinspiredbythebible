@@ -1,9 +1,13 @@
 package org.voxquieta.app.screens
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.voxquieta.app.presentation.components.shouldShowSupportNote
+import org.voxquieta.app.presentation.components.WhatsNewEntry
+import org.voxquieta.app.presentation.components.parseWhatsNew
+import org.voxquieta.app.presentation.components.pickWhatsNewNotes
 import org.voxquieta.app.presentation.components.shouldShowWhatsNew
 
 /**
@@ -40,18 +44,30 @@ class WhatsNewTest {
         assertFalse(shouldShowWhatsNew(storedVersionCode = current + 1, currentVersionCode = current))
     }
 
+    // BITB-175: the sheet shows curated release-notes/<version>/<locale>.md, not the raw
+    // CHANGELOG; the BITB-168 support-note marker was retired with it.
+
+    private val notes = mapOf("en" to "- Read aloud keeps going", "it" to "- La lettura continua")
+
     @Test
-    fun `support note shows when latest body carries the BITB-168 marker`() {
-        assertTrue(shouldShowSupportNote("- Support Vox Quieta from the menu (BITB-168)"))
+    fun `parses the generated asset`() {
+        val raw = """[{"version":"1.63.0","date":"2026-12-01","body":"- Read aloud keeps going",""" +
+            """"notes":{"en":"- Read aloud keeps going","it":"- La lettura continua"},"extra":1}]"""
+        assertEquals(WhatsNewEntry("1.63.0", "2026-12-01", notes.getValue("en"), notes), parseWhatsNew(raw))
     }
 
     @Test
-    fun `support note hidden for unrelated body`() {
-        assertFalse(shouldShowSupportNote("- Fixed a crash (BITB-170)"))
+    fun `empty, malformed or text-less asset means no sheet`() {
+        assertNull(parseWhatsNew("[]"))
+        assertNull(parseWhatsNew("not json"))
+        assertNull(parseWhatsNew("""[{"version":"1.63.0","body":"  "}]"""))
     }
 
     @Test
-    fun `support note hidden for empty body`() {
-        assertFalse(shouldShowSupportNote(""))
+    fun `notes follow the UI language and fall back to English`() {
+        val entry = WhatsNewEntry("1.63.0", body = notes.getValue("en"), notes = notes)
+        assertEquals("- La lettura continua", pickWhatsNewNotes(entry, "it"))
+        assertEquals("- Read aloud keeps going", pickWhatsNewNotes(entry, "ko"))
+        assertEquals("- only body", pickWhatsNewNotes(WhatsNewEntry("1", body = "- only body"), "de"))
     }
 }

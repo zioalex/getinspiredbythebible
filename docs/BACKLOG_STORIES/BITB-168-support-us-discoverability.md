@@ -134,6 +134,8 @@ This story is bound by the following anti-nag rules (acceptance criteria enforce
   while the latest changelog entry contains `BITB-168`, so the note appears once per release
   (the sheet is already shown once per update) and vanishes when a later release is latest.
   The release commit/changelog must therefore carry the `(BITB-168)` reference.
+  **Retired 2026-11-28 (BITB-175):** the sheet now shows curated user notes, not the CHANGELOG
+  body, so the marker can never match; a later support mention goes in the curated text.
 - **Settings row moved** directly after the "Get in Touch" button; still a plain `TextButton`.
 - **About page uses a quiet inline link** (like the GitHub/Contact links), not a solid pill.
 - **Menu label reuses `Footer.supportUs`** — no new menu key.

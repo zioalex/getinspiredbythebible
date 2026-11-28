@@ -88,4 +88,16 @@ class AboutIntroTest {
         )
         assertFalse(decision.showWhatsNew)
     }
+
+    @Test
+    fun `update without curated notes shows no What's New but still marks the version seen`() {
+        val decision = resolveLaunchModals(
+            aboutIntroSeen = true,
+            storedVersionCode = current - 1,
+            currentVersionCode = current,
+            hasWhatsNewNotes = false,
+        )
+        assertFalse(decision.showWhatsNew)
+        assertTrue(decision.shouldMarkVersionSeen)
+    }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Link } from "@/i18n/navigation";
@@ -10,14 +10,24 @@ import { useAboutIntroGate } from "@/lib/aboutIntroGate";
 
 const STORAGE_KEY = "vq:lastSeenVersion";
 
+// public/changelog.json, built by scripts/extract-latest-changelog.mjs from the curated
+// release-notes/<version>/<locale>.md (BITB-175). `body` is the English text; `notes` holds
+// every translated locale. { version: null } means no popup for this release.
 interface ChangelogEntry {
   version: string | null;
   date?: string | null;
   body?: string;
+  notes?: Record<string, string>;
+}
+
+/** The notes in the UI language, else English; never the raw developer CHANGELOG. */
+export function pickNotes(entry: ChangelogEntry, locale: string): string {
+  return entry.notes?.[locale] ?? entry.notes?.en ?? entry.body ?? "";
 }
 
 export default function WhatsNewModal() {
   const t = useTranslations("WhatsNew");
+  const locale = useLocale();
   const [entry, setEntry] = useState<ChangelogEntry | null>(null);
   const introGate = useAboutIntroGate();
 
@@ -58,6 +68,7 @@ export default function WhatsNewModal() {
   }, [introGate]);
 
   if (!entry) return null;
+  const body = pickNotes(entry, locale);
 
   function handleDismiss() {
     if (entry?.version) {
@@ -92,11 +103,9 @@ export default function WhatsNewModal() {
           </button>
         </div>
 
-        {entry.body && (
+        {body && (
           <div className="overflow-y-auto flex-1 prose prose-sm prose-gray max-w-none mb-4">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {entry.body}
-            </ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
           </div>
         )}
 

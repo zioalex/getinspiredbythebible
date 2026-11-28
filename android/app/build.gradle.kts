@@ -378,7 +378,72 @@ val generateChangelogJson by tasks.registering {
     }
 }
 
-tasks.named("preBuild").configure { dependsOn(generateChangelogJson) }
+// ─────────────────────────────────────────────────────────────────────────────
+// BITB-175: assets/whats_new.json — the curated end-user notes the "What's New" sheet shows
+// after an update: release-notes/<version>/<locale>.md for the version in
+// .release-please-manifest.json, as [{"version","date","body":<en>,"notes":{locale:text}}].
+// Written as [] when that release has no curated English notes, and then no sheet is shown.
+// assets/changelog.json above stays the full developer log for the "See all" screen.
+// ─────────────────────────────────────────────────────────────────────────────
+val generateWhatsNewJson by tasks.registering {
+    val repoRoot = rootProject.projectDir.parentFile
+    val manifestFile = repoRoot.resolve(".release-please-manifest.json")
+    val notesDir = repoRoot.resolve("release-notes")
+    val changelogFile = repoRoot.resolve("CHANGELOG.md")
+    val outputFile = layout.projectDirectory.file("src/main/assets/whats_new.json").asFile
+    val locales = listOf("en", "it", "de", "es", "fr", "pt", "ar", "ru", "zh", "hi", "ko")
+
+    inputs.file(manifestFile).withPropertyName("manifest")
+        .withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE).optional()
+    inputs.dir(notesDir).withPropertyName("releaseNotes")
+        .withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE).optional()
+    inputs.file(changelogFile).withPropertyName("changelog")
+        .withPathSensitivity(org.gradle.api.tasks.PathSensitivity.RELATIVE).optional()
+    outputs.file(outputFile).withPropertyName("output")
+
+    doLast {
+        outputFile.parentFile.mkdirs()
+        val version = if (manifestFile.exists()) {
+            Regex(""""\."\s*:\s*"(\d+\.\d+\.\d+)"""").find(manifestFile.readText())?.groupValues?.get(1)
+        } else {
+            null
+        }
+        val folder = version?.let { notesDir.resolve(it) }
+        val notes = locales.mapNotNull { locale ->
+            folder?.resolve("$locale.md")?.takeIf { it.isFile }
+                ?.readText(Charsets.UTF_8)?.trim()?.takeIf { it.isNotEmpty() }
+                ?.let { locale to it }
+        }.toMap()
+        if (version == null || notes["en"] == null) {
+            outputFile.writeText("[]\n", Charsets.UTF_8)
+            return@doLast
+        }
+        val date = if (changelogFile.exists()) {
+            Regex("""^##\s+\[?${Regex.escape(version)}\]?(?:\([^)]*\))?\s+\((\d{4}-\d{2}-\d{2})\)""",
+                setOf(RegexOption.MULTILINE)).find(changelogFile.readText())?.groupValues?.get(1) ?: ""
+        } else {
+            ""
+        }
+        fun esc(s: String) = buildString {
+            for (c in s) when (c) {
+                '\\' -> append("\\\\")
+                '"'  -> append("\\\"")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> if (c.code < 0x20) append("\\u%04x".format(c.code)) else append(c)
+            }
+        }
+        val notesJson = notes.entries.joinToString(",") { (k, v) -> "\"${esc(k)}\":\"${esc(v)}\"" }
+        outputFile.writeText(
+            "[\n  {\"version\":\"${esc(version)}\",\"date\":\"${esc(date)}\"," +
+                "\"body\":\"${esc(notes.getValue("en"))}\",\"notes\":{$notesJson}}\n]\n",
+            Charsets.UTF_8,
+        )
+    }
+}
+
+tasks.named("preBuild").configure { dependsOn(generateChangelogJson, generateWhatsNewJson) }
 
 // BITB-034: Exclude *ComposeTest classes from the required unit-test check so Compose-UI
 // flakiness cannot block merges. The exclusion is skipped when -PcomposeTestsOnly is passed

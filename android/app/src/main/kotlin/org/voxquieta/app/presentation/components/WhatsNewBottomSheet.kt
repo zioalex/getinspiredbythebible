@@ -1,5 +1,6 @@
 package org.voxquieta.app.presentation.components
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -27,35 +29,58 @@ import androidx.compose.ui.unit.dp
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.voxquieta.app.R
-import org.voxquieta.app.presentation.screens.ChangelogEntry
 
 internal fun shouldShowWhatsNew(storedVersionCode: Int, currentVersionCode: Int): Boolean =
     storedVersionCode != -1 && storedVersionCode < currentVersionCode
 
 /**
- * One-time support mention (BITB-168): shown only while the latest changelog entry carries the
- * BITB-168 marker, so it disappears automatically once a later release becomes the latest.
+ * One release's curated end-user notes (BITB-175), from assets/whats_new.json, which the
+ * generateWhatsNewJson Gradle task builds from release-notes/<version>/<locale>.md. `body` is
+ * the English text; `notes` holds every translated locale.
  */
-internal fun shouldShowSupportNote(latestBody: String): Boolean = "BITB-168" in latestBody
+@Serializable
+data class WhatsNewEntry(
+    val version: String,
+    val date: String = "",
+    val body: String = "",
+    val notes: Map<String, String> = emptyMap(),
+)
+
+internal const val WHATS_NEW_ASSET = "whats_new.json"
+
+private val whatsNewJson = Json { ignoreUnknownKeys = true }
+
+/** The release's notes, or null when the asset is empty, malformed or has no text. */
+internal fun parseWhatsNew(raw: String): WhatsNewEntry? =
+    runCatching { whatsNewJson.decodeFromString<List<WhatsNewEntry>>(raw) }
+        .getOrDefault(emptyList())
+        .firstOrNull()
+        ?.takeIf { pickWhatsNewNotes(it, "en").isNotBlank() }
+
+/** The notes in the UI language, else English. Never the raw developer CHANGELOG. */
+internal fun pickWhatsNewNotes(entry: WhatsNewEntry, language: String): String =
+    entry.notes[language] ?: entry.notes["en"] ?: entry.body
+
+/** Reads assets/whats_new.json; null when this release has no curated notes. */
+fun loadWhatsNew(context: Context): WhatsNewEntry? =
+    runCatching { context.assets.open(WHATS_NEW_ASSET).bufferedReader().use { it.readText() } }
+        .getOrNull()
+        ?.let(::parseWhatsNew)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WhatsNewBottomSheet(onDismiss: () -> Unit, onSeeAll: () -> Unit) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    var entry by remember { mutableStateOf<ChangelogEntry?>(null) }
+    val language = LocalConfiguration.current.locales[0].language
+    var entry by remember { mutableStateOf<WhatsNewEntry?>(null) }
     var loaded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        entry = withContext(Dispatchers.IO) {
-            runCatching {
-                val raw = context.assets.open("changelog.json")
-                    .bufferedReader().use { it.readText() }
-                Json { ignoreUnknownKeys = true }.decodeFromString<List<ChangelogEntry>>(raw)
-            }.getOrDefault(emptyList()).firstOrNull()
-        }
+        entry = withContext(Dispatchers.IO) { loadWhatsNew(context) }
         loaded = true
     }
 
@@ -84,17 +109,11 @@ fun WhatsNewBottomSheet(onDismiss: () -> Unit, onSeeAll: () -> Unit) {
                     color = MaterialTheme.colorScheme.primary,
                 )
                 MarkdownText(
-                    markdown = currentEntry.body,
+                    markdown = pickWhatsNewNotes(currentEntry, language),
                     style = MaterialTheme.typography.bodyMedium,
                     linkColor = MaterialTheme.colorScheme.primary,
                     onLinkClicked = { url -> uriHandler.openUri(url) },
                 )
-                if (shouldShowSupportNote(currentEntry.body)) {
-                    Text(
-                        text = stringResource(R.string.whats_new_support_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
             } else if (loaded) {
                 Text(
                     text = stringResource(R.string.changelog_empty),

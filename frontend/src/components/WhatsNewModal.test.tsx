@@ -1,7 +1,7 @@
 import { screen, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import WhatsNewModal from "./WhatsNewModal";
-import { renderWithIntl } from "@/test/i18n-helpers";
+import WhatsNewModal, { pickNotes } from "./WhatsNewModal";
+import { renderWithIntl, renderWithIntlLocale } from "@/test/i18n-helpers";
 import { useAboutIntroGate } from "@/lib/aboutIntroGate";
 
 // Mock @/i18n/navigation Link
@@ -134,5 +134,33 @@ describe("WhatsNewModal — About intro modal gate", () => {
     await act(async () => {});
 
     expect(screen.getByRole("dialog")).toBeDefined();
+  });
+});
+
+describe("WhatsNewModal — curated notes per language (BITB-175)", () => {
+  const notes = { en: "- Read aloud keeps going", it: "- La lettura continua" };
+
+  it("shows the notes in the UI language", async () => {
+    localStorage.setItem(STORAGE_KEY, "1.62.0");
+    mockFetch({ version: "1.63.0", body: notes.en, notes });
+    renderWithIntlLocale(<WhatsNewModal />, "it");
+    await act(async () => {});
+    expect(screen.getByText(/La lettura continua/)).toBeDefined();
+    expect(screen.queryByText(/Read aloud keeps going/)).toBeNull();
+  });
+
+  it("falls back to English when the UI language has no translation", async () => {
+    localStorage.setItem(STORAGE_KEY, "1.62.0");
+    mockFetch({ version: "1.63.0", body: notes.en, notes });
+    renderWithIntlLocale(<WhatsNewModal />, "ko");
+    await act(async () => {});
+    expect(screen.getByText(/Read aloud keeps going/)).toBeDefined();
+  });
+
+  it("pickNotes prefers the locale, then English notes, then the body", () => {
+    expect(pickNotes({ version: "1", notes, body: "b" }, "it")).toBe(notes.it);
+    expect(pickNotes({ version: "1", notes, body: "b" }, "de")).toBe(notes.en);
+    expect(pickNotes({ version: "1", body: "b" }, "de")).toBe("b");
+    expect(pickNotes({ version: "1" }, "de")).toBe("");
   });
 });

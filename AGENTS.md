@@ -586,6 +586,12 @@ avoid stale entries accumulating in `.git/worktrees/`.
   story). Nothing else to update. Open the PR immediately (it is the id claim, see below).
 - **When completing a story:** edit its front matter only: `status: done` and `prs: [N]`. The
   file stays where it is; no index entry to update, no file to move.
+- **The PR that completes a story sets `status: done` in that same PR** (BITB-175). A story left
+  `in-review` after its PR merged looks open to the Release Gate and holds back its milestone's
+  release. A partial fix keeps the story open and says so in the PR description.
+- **A product release ships user notes:** before its Release PR merges, `release-notes/<version>/`
+  holds the plain-language What's New in all 11 languages (`release-notes/README.md`,
+  `docs/RELEASE_PROCESS.md` "Writing the user What's New").
 - **File follow-up stories when the PR is opened, not when it merges.** Before you open (or
   materially update) a story's PR, go through the story, the diff and the PR description: known
   gaps (xfails, pinned limitations), open questions, deferred decisions, "watch this" notes,
