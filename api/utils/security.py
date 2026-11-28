@@ -292,6 +292,24 @@ def require_ip_rate_limit(scope: str, per_minute: Callable[[], int] | int):
     return _dependency
 
 
+# First-person lead for English crisis idioms; "im" and curly apostrophes included (BITB-203).
+# Single-script self-harm tables: every match starts with a letter of that script, so a
+# one-character lookahead gate lets re reject other positions before trying ~20 branches
+# with lookbehinds (BITB-203 perf; tests/test_violence_keyword_fallback_languages.py budget).
+_SELF_HARM_SCRIPT_GATE = {
+    "ru": "(?=[а-яё])",
+    "zh": "(?=[\u3400-\u9fff\uf900-\ufaff])",
+    "ko": "(?=[\uac00-\ud7a3])",
+    "ar": "(?=[\u0600-\u06ff])",
+    "hi": "(?=[\u0900-\u097f])",
+}
+
+_EN_FP_LEAD = (
+    r"i(?:['’]?m|['’]?ll|\s+am|\s+will)?\s+(?:(?:just|really|keep|often)\s+)*"
+    r"(?:(?:want|wanna|need|going|gonna|might|could|think about|thinking about|thinking of|"
+    r"plan|planning|decided|have decided)\s+(?:to\s+)?)*"
+)
+
 # Cosmetic violations that must never pre-empt the crisis path (BITB-255).
 _CRISIS_BYPASS_VIOLATIONS = frozenset({ViolationType.PROFANITY, ViolationType.REPEATED_CHARS})
 
@@ -666,6 +684,8 @@ _MURDER_SUICIDE_PATTERNS: dict[str, list[str]] = {
         + _MS_DE_N
         + _ms_end("auch|mit|gleich|zuerst|umbringen|töten|mitnehmen|mit\\s+in\\s+den\\s+tod"),
         r"\balle(?:\s+anderen)?\s+mit\s+in\s+den\s+tod\b",
+        # BITB-203: "...und nehme alle mit" (verb between "und" and the target)
+        r"\b(?:nehme|nehm|reiße|reisse|ziehe)\s+" + _MS_DE_N + r"\s+(?:alle\s+)?mit\b",
         r"\b(?:mit\s+in\s+den\s+tod\s+nehmen|erweiterter\s+suizid)\b",
     ],
     "es": [
@@ -702,6 +722,8 @@ _MURDER_SUICIDE_PATTERNS: dict[str, list[str]] = {
         r"(?:想|要|打算|准备|準備)[^，。,.？?\n]{0,6}同归于尽",
         r"(?:想|要|打算|准备|準備)[^，。,.？?\n]{0,6}同歸於盡",
         r"[杀殺]了?" + _MS_ZH_N,
+        # BITB-203: "杀了自己和家人" (self first, family second)
+        r"自己(?:和|与|與|跟|及|还有|還有)" + _MS_ZH_N,
         r"一家人?(?:一起)?(?:去死|自[杀殺]|上路)",
     ],
     "hi": [
@@ -1754,6 +1776,20 @@ class MultiLanguageContentFilter:
             r"\bwant to die\b",
             r"\bwish i was dead\b",
             r"\bno reason to live\b",
+            # BITB-203: first-person suicidal phrasings that had no span (clean fallback)
+            r"\bsuicidal\b(?!\s+(?:friend|son|daughter|teen|teenager|people|person|patient|"
+            r"child|children|kids|brother|sister|wife|husband|mother|father|mom|dad|neighbor|neighbour|"
+            r"veteran|veterans)\b)",
+            # first-person lead + clause end ("end it all with a prayer" / "to end it all - sin" excluded)
+            r"\b" + _EN_FP_LEAD + r"end it all\b(?!\s+(?:with|on|for|in)\b)(?!\s*(?:—|–|-)\s)",
+            r"\bthinking (?:about|of) ending it all\b",
+            # first-person lead required: "He wants to take my life" is a threat, not self-harm
+            r"\b" + _EN_FP_LEAD + r"tak(?:e|ing) my (?:own )?life\b"
+            r"(?!\s+(?:back|in|into|to|more|seriously|savings)\b)",
+            r"\bkilling myself\b(?!\s+(?:at|over|trying|to|for|laughing|with)\b)",
+            r"\bwant to be dead\b",
+            r"\bi(?:['’]?d|\s+would|\s+am|['’]?m)?\s+(?:be\s+)?better off dead\b",
+            r"\beveryone would be better off if i (?:was|were) dead\b",
         ],
         "it": [
             r"\bsuicidio\b",
@@ -1762,6 +1798,15 @@ class MultiLanguageContentFilter:
             r"\bautolesionism",
             r"\btagliarmi\b",
             r"\bvoglio morire\b",
+            # BITB-203: first-person reflexive forms only (third-person "si è suicidato" excluded)
+            r"\bsuicidarmi\b",
+            r"\bmi (?:voglio )?suicid(?:o|are)\b",
+            r"\b(?:voglio|vorrei|devo|penso di|ho deciso di|sto pensando di)\s+"
+            r"(?:ammazzarmi|togliermi la vita)\b",
+            r"\bmi ammazzo\b",
+            r"\b(?:voglio(?:\s+solo)?|vorrei|devo|penso di|ho deciso di|sto pensando di|la faccio)\s+"
+            r"farla finita\b(?!\s+(?:con|col|coi|colla|cogli|coll['’]|qui|lì)\b)"
+            r"(?![^.!?\n]{0,30}\bcon\b)",
         ],
         "de": [
             r"\bselbstmord\b",
@@ -1769,6 +1814,13 @@ class MultiLanguageContentFilter:
             r"\bmich umbringen\b",
             r"\bselbstverletzung\b",
             r"\bich will sterben\b",
+            # BITB-203
+            r"\bsuizidal",
+            r"\bich\s+(?:(?:will|möchte|werde|kann|muss|würde|sollte)\s+)?mich\s+"
+            r"(?:selbst\s+)?(?:zu\s+)?töten\b",
+            r"\bbringe mich um\b",
+            r"\bich\s+(?:(?:will|möchte|werde|kann|muss|würde|sollte)\s+)?mir\s+das\s+leben\s+nehmen\b",
+            r"\bich\s+(?:will|möchte|mag|kann)\s+nicht\s+mehr\s+leben\b(?!\s+(?:wie|als|in|mit|ohne|so|für)\b)(?!\s*,)",
             # BITB-196: split verb, "mich und meine Familie umbringen"
             r"\bmich\s+und\s+(?:meine[rn]?|mein|alle|die)\b[^.!?\n]{0,40}?\b(?:umbringen|töten)\b",
         ],
@@ -1778,6 +1830,16 @@ class MultiLanguageContentFilter:
             r"\bterminar con mi vida\b",
             r"\bautolesion",
             r"\bquiero morir\b",
+            # BITB-203: first-person only (third-person "se suicidó" excluded)
+            r"\bsuicidarme\b",
+            r"\bme (?:quiero|voy a) suicidar\b",
+            r"\bme suicido\b",
+            r"\b(?:quiero|quisiera|voy a|pienso(?:\s+en)?|deseo|necesito|debo|decidí)\s+"
+            r"quitarme la vida\b",
+            r"\bme quiero morir\b",
+            r"\bquiero morirme\b",
+            r"\bquiero acabar con mi vida\b(?!\s+(?:sedentaria|pasada|vieja|anterior|de)\b)",
+            r"\bquiero acabar con todo\b(?=\s*(?:[.!?,;\n]|$|ya\b|de una vez\b))",
         ],
         "fr": [
             r"\bsuicide\b",
@@ -1785,6 +1847,16 @@ class MultiLanguageContentFilter:
             r"\bmettre fin à ma vie\b",
             r"\bauto.mutilation\b",
             r"\bje veux mourir\b",
+            # BITB-203
+            r"\bme suicider\b",
+            r"\bje me suicide\b",
+            r"\b(?:je veux|je voudrais|je vais|je dois|je pense à|j['’]ai envie de|envie de)\s+"
+            r"mettre fin à mes jours\b",
+            # Literal first so re can prefix-scan (BITB-203 perf); the guards look back over the word.
+            r"suicidaire\b(?<!\wsuicidaire)(?<!\bami suicidaire)(?<!\bamie suicidaire)"
+            r"(?<!\bun suicidaire)(?<!\bune suicidaire)",
+            r"\bje veux en finir\b(?!\s+(?:avec|rapidement|une fois pour toutes)\b)",
+            r"\ben finir avec (?:la vie|ma vie)\b",
         ],
         "pt": [
             r"\bsuicídio\b",
@@ -1793,6 +1865,13 @@ class MultiLanguageContentFilter:
             r"\bautomutilação\b",
             r"\bquero morrer\b",
             r"\bquero que eu morra\b",
+            # BITB-203: first-person only (third-person "se suicidou" excluded)
+            r"\bme suicidar\b",
+            r"\bsuicidar-me\b",
+            r"\bme suicido\b",
+            r"\b(?:quero|vou|penso em|preciso|pretendo|decidi)\s+tirar (?:a )?minha (?:própria )?vida\b",
+            r"\bquero acabar com minha vida\b(?!\s+(?:de|antiga|passada)\b)",
+            r"\bquero acabar com tudo\b(?=\s*(?:[.!?,;\n]|$|já\b|de uma vez\b))",
         ],
         "ar": [
             r"انتحار",
@@ -1800,6 +1879,10 @@ class MultiLanguageContentFilter:
             r"إنهاء حياتي",
             r"إيذاء النفس",
             r"أريد أن أموت",
+            # BITB-203: first-person imperfect "I commit suicide" (hamza); the hamza-less
+            # past "انتحر" is third-person ("why did Judas...") and stays unmatched.
+            r"(?<!\w)(?:س|و)?أنتحر(?!\w)",
+            r"أنهي حياتي(?!\s+(?:الجامعية|المهنية|القديمة|السابقة))",
         ],
         # BITB-183: ru uses \b (Cyrillic is word-char safe); zh/hi/ko use plain
         # substrings because there are no spaces (CJK) or \b is unreliable with
@@ -1811,6 +1894,8 @@ class MultiLanguageContentFilter:
             r"\bпокончить с собой\b",
             r"\bпокончу с собой\b",
             r"\bубить себя\b",
+            r"\bсебя убить\b",  # BITB-204 word-order variant
+            r"\b(?:я\s+(?:решил[а]?|хочу|думаю|собираюсь)|хочу|хочется|думаю|собираюсь)\s+покончить с жизнью\b",  # BITB-203
             # BITB-186 known limitation (accepted): the "не" guard is a fixed-width lookbehind,
             # so a double space ("не  хочу") or an intervening word ("не очень хочу умереть")
             # defeats it. Failing toward the compassionate path is the safe direction.
@@ -1836,6 +1921,9 @@ class MultiLanguageContentFilter:
             r"(?<!所罗门)(?<![他她])活[着著]没意思(?![吗嗎])",
             r"(?<!所羅門)(?<![他她])活[着著]沒意思(?![吗嗎])",
             r"自殺",
+            # BITB-204: "我想杀了(我)自己"; first-person/intent prefix required, never after 他/她
+            # and never "自己的" (possessive: "他杀了自己的儿子").
+            r"(?<![人他她它们們参孙參孫扫罗掃羅犹大猶大])(?:我(?:想要?|要|会|會|打算|准备|準備|真的)?|^想要?)[杀殺][了死掉]?(?:我)?自己(?![的之里裡心内內])",
             r"(?:没有|沒有|失去)[他她]活[着著][没沒]意思",
             # BITB-200: first-person question form ("我觉得这样活着没意思吗") is a plea, not exegesis.
             r"我(?:觉得|覺得)?(?:这样|這樣|真的|总是|總是|一直)?活[着著][没沒]意思",
@@ -1869,6 +1957,8 @@ class MultiLanguageContentFilter:
             r"मरना चाहती",
             r"अपनी जान ले(?!कर)",
             r"ख\u093c?ुद को (?:नुक\u093c?सान|चोट|मार)",
+            # BITB-203: "खुद को और अपने परिवार को मारना" (intervening target, <=40 chars)
+            r"ख\u093c?ुद को\s+और\s+[^.!?\n]{0,40}?\s+मार(?:ना|ने|डाल)(?!\s*से|\s+की\s+धमकी|[^.!?\n]{0,15}वाल)",
             r"ख\u093c?ुदकुशी",
             r"मर जाना चाहत",
             r"जीना नहीं चाहता",
@@ -1889,6 +1979,12 @@ class MultiLanguageContentFilter:
             r"죽어 ?버리고 ?싶",
             r"삶을 ?끝내",
             r"사라지고 ?싶(?!지 ?않)",
+            # BITB-204: first-person wish only; no other subject before 나를 (그가/아버지가 …), no 싶어해/한다,
+            # no 죽이겠/죽이려 (threats against the speaker are not self-harm)
+            # (?=[나날내]) first: a cheap one-char gate so the lookbehinds only run at candidates (perf).
+            r"(?=[나날내])(?:(?<![가-힣][이가은는] )|(?<=내가 )|(?<=나는 ))(?<!께서 )(?<!, )(?<!,)(?<!다들 )(?<!모두 )(?<!사람들 )"
+            r"(?:나를|날|나 ?자신을|내 ?자신을) ?죽이고 ?싶(?!어 ?[하한해])(?!은가|으신가|으냐|은지|으니)"
+            r"(?![가-힣]{0,4}\s*\?)[가-힣]{0,3}",
         ],
     }
 
@@ -1997,7 +2093,12 @@ class MultiLanguageContentFilter:
 
         # Compile self-harm patterns
         for lang, patterns in self.SELF_HARM_PATTERNS.items():
-            self._self_harm_regex[lang] = re.compile("|".join(patterns), re.IGNORECASE | re.UNICODE)
+            # No IGNORECASE: every caller passes normalize_text() output, which is already
+            # lower-cased, and the flag disables re's literal-prefix scan (BITB-203 perf).
+            gate = _SELF_HARM_SCRIPT_GATE.get(lang, "")
+            self._self_harm_regex[lang] = re.compile(
+                gate + "(?:" + "|".join(patterns) + ")", re.UNICODE
+            )
 
         # Compile hate speech patterns
         self._hate_speech_regex = re.compile(
