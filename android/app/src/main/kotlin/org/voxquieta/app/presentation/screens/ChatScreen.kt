@@ -43,6 +43,7 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -260,6 +261,14 @@ fun ChatScreen(
                 snackbarHostState.showSnackbar(error)
             }
             viewModel.clearError()
+        }
+    }
+
+    // BITB-252: the TTS engine accepted speak() but never started; the reading was stopped.
+    LaunchedEffect(uiState.speechNotice) {
+        uiState.speechNotice?.let { notice ->
+            snackbarHostState.showSnackbar(notice, duration = SnackbarDuration.Short)
+            viewModel.clearSpeechNotice()
         }
     }
 

@@ -348,6 +348,9 @@ class AndroidSpeechEngineTest {
 
         /** Runs the most recently scheduled block, as the timer would after the delay. */
         fun fireLast() = blocks.last().invoke()
+
+        /** Runs the block scheduled at [index] (0 = first), even if it was cancelled. */
+        fun fire(index: Int) = blocks[index].invoke()
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -434,9 +437,101 @@ class AndroidSpeechEngineTest {
         watchdog.fireLast()
 
         assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
-        // Telemetry must not change playback: still speaking, engine not stopped.
+        // StartFailed alone does not stop playback: still speaking, engine not stopped,
+        // and a grace timer (BITB-252) was scheduled.
         assertEquals("m1", h.engine.speakingId.value)
+        assertEquals(listOf(3_000L, AndroidSpeechEngine.START_GRACE_MS), watchdog.delays)
         verify(exactly = 1) { h.tts.stop() } // only the QUEUE_FLUSH pre-clear in speak()
+    }
+
+    @Test
+    fun `no callback through the grace period gives up, stops the reading and emits GaveUp`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        val id = h.idOf(0)
+
+        watchdog.fireLast() // StartFailed at 3 s
+        watchdog.fireLast() // grace expires at 6 s
+
+        assertNull(h.engine.speakingId.value)
+        assertNull(h.engine.pausedId.value)
+        assertEquals(
+            listOf<SpeechEvent>(SpeechEvent.StartFailed("m1"), SpeechEvent.GaveUp("m1")),
+            events,
+        )
+        verify(exactly = 2) { h.tts.stop() } // speak() pre-clear + give-up stop
+        verify(exactly = 1) { h.audio.abandonAudioFocusRequest(any()) }
+
+        // Stale callbacks from the abandoned call emit nothing.
+        h.progress.onStart(id)
+        h.progress.onDone(id)
+        assertEquals(2, events.size)
+    }
+
+    @Test
+    fun `a late start within the grace period keeps playing and the grace timer does nothing`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+        val id = h.idOf(0)
+
+        watchdog.fire(0) // StartFailed
+        assertEquals(0, watchdog.cancelCount)
+        h.progress.onStart(id) // late start inside the grace period
+        assertEquals(1, watchdog.cancelCount) // grace timer cancelled
+
+        watchdog.fire(1) // even if the cancel raced, the guards keep it inert
+        assertEquals("m1", h.engine.speakingId.value)
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
+
+        h.progress.onDone(id)
+        assertNull(h.engine.speakingId.value)
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
+    }
+
+    @Test
+    fun `pause during the grace period cancels the grace timer`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one"), "en")
+
+        watchdog.fire(0) // StartFailed, grace armed
+        h.engine.pause()
+        assertEquals(1, watchdog.cancelCount)
+
+        watchdog.fire(1)
+        assertNull(h.engine.speakingId.value)
+        assertEquals("m1", h.engine.pausedId.value) // still paused, not abandoned
+        assertEquals(listOf<SpeechEvent>(SpeechEvent.StartFailed("m1")), events)
+    }
+
+    @Test
+    fun `resume after a reported StartFailed that never starts gives up without a second StartFailed`() = runTest {
+        val h = harness(listOf(voice("en-US")))
+        val watchdog = ManualWatchdog()
+        h.engine.watchdogScheduler = watchdog.scheduler
+        val events = collectEvents(h.engine)
+        h.engine.speak("m1", listOf("one", "two"), "en")
+
+        watchdog.fireLast() // StartFailed
+        h.progress.onStart(h.idOf(0)) // late start
+        h.engine.pause()
+        assertTrue(h.engine.resume())
+        watchdog.fireLast() // resumed attempt silent: no second StartFailed, grace armed
+        watchdog.fireLast() // grace expires
+
+        assertNull(h.engine.speakingId.value)
+        assertEquals(
+            listOf<SpeechEvent>(SpeechEvent.StartFailed("m1"), SpeechEvent.GaveUp("m1")),
+            events,
+        )
     }
 
     @Test

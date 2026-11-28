@@ -38,7 +38,7 @@ class RealRegistryIntegrationTest(unittest.TestCase):
         facts = analyze.validate_registry(load_real_registry())
         # Strings cross-check ran against the real files.
         self.assertEqual(facts["missing"], {})
-        self.assertEqual(len(facts["default_keys"]), 294)
+        self.assertEqual(len(facts["default_keys"]), 295)
 
     def test_committed_graph_json_is_fresh(self):
         registry = load_real_registry()

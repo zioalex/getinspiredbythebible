@@ -133,6 +133,7 @@ class ChatViewModelTest {
             every { getString(R.string.error_generic) } returns "Something went wrong. Please try again."
             every { getString(R.string.error_session_limit, any()) } returns "You've had 10 messages..."
             every { getString(R.string.error_contact_email_invalid) } returns "Please enter a valid email so we can reply."
+            every { getString(R.string.tts_engine_no_response) } returns "Your device's speech engine didn't respond."
             every { getString(R.string.error_content_blocked) } returns "I wasn't able to respond to that one — please try rephrasing."
         }
         networkMonitor = mockk {
@@ -3418,6 +3419,31 @@ class ChatViewModelTest {
         }
         coVerify(exactly = 1) { bibleApiService.postClientEvent(postedEvent("tts_start_failed")) }
         assertNull(viewModel.uiState.value.speakingMessageId)
+    }
+
+    @Test
+    fun `GaveUp after StartFailed sets a speech notice and reports start_failed only once`() = runTest {
+        viewModel.telemetryDispatcher = testDispatcher
+        val message = viewModel.answer()
+        viewModel.toggleSpeak(message, noRegex, emptyMap())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        speechEngine.emitStartFailedKeepSpeaking(message.id)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.uiState.value.speechNotice)
+
+        speechEngine.emitGaveUp()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Your device's speech engine didn't respond.", viewModel.uiState.value.speechNotice)
+        assertNull(viewModel.uiState.value.speakingMessageId)
+        verify(exactly = 1) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_START_FAILED, any()) }
+        coVerify(exactly = 1) { bibleApiService.postClientEvent(postedEvent("tts_start_failed")) }
+        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_ERROR, any()) }
+        verify(exactly = 0) { analyticsHelper.logEvent(AnalyticsHelper.EVENT_TTS_COMPLETED, any()) }
+
+        viewModel.clearSpeechNotice()
+        assertNull(viewModel.uiState.value.speechNotice)
     }
 
     @Test

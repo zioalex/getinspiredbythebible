@@ -319,6 +319,7 @@
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">朗读回答</string>
     <string name="action_pause_listening">暂停朗读</string>
+    <string name="tts_engine_no_response">设备的语音引擎没有响应。</string>
     <string name="action_resume_listening">继续朗读</string>
     <string name="state_listening">正在朗读</string>
     <string name="state_not_listening">未在朗读</string>

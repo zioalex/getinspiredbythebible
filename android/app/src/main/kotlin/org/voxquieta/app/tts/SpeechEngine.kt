@@ -90,10 +90,19 @@ sealed interface SpeechEvent {
 
     /**
      * The engine produced no utterance callback within [AndroidSpeechEngine.START_TIMEOUT_MS].
-     * Telemetry only: playback is NOT stopped. If the engine starts late the reading keeps
-     * playing, and its Completed/Error is suppressed (one outcome per call).
+     * Playback is not stopped at that moment: if the engine starts late the reading keeps
+     * playing, and its Completed/Error is suppressed (one outcome per call). If no callback
+     * arrives within [AndroidSpeechEngine.START_GRACE_MS] more, the engine stops the reading
+     * and emits [GaveUp].
      */
     data class StartFailed(override val id: String) : SpeechEvent
+
+    /**
+     * The engine still produced no callback [AndroidSpeechEngine.START_GRACE_MS] after
+     * [StartFailed]; the reading was stopped. UI-only signal, NOT a telemetry outcome
+     * (tts_start_failed was already reported once by [StartFailed]).
+     */
+    data class GaveUp(override val id: String) : SpeechEvent
 }
 
 /**
@@ -152,6 +161,12 @@ class AndroidSpeechEngine @Inject constructor(
     companion object {
         /** No `onStart` within this long after speak() means the engine never started (BITB-247). */
         const val START_TIMEOUT_MS = 3_000L
+
+        /**
+         * After [SpeechEvent.StartFailed], how long a late start may still arrive before the
+         * reading is abandoned (total 6 s, matching the web's 2 x START_WATCHDOG_MS budget).
+         */
+        const val START_GRACE_MS = 3_000L
     }
 
     private val _isReady = MutableStateFlow(false)
@@ -220,9 +235,23 @@ class AndroidSpeechEngine @Inject constructor(
     private fun armWatchdog(callToken: Long, id: String) {
         disarmWatchdog()
         cancelWatchdog = watchdogScheduler(START_TIMEOUT_MS) {
-            if (token == callToken && !started && !startFailedReported && _speakingId.value == id) {
-                startFailedReported = true
-                _events.tryEmit(SpeechEvent.StartFailed(id))
+            if (token == callToken && !started && _speakingId.value == id) {
+                if (!startFailedReported) {
+                    startFailedReported = true
+                    _events.tryEmit(SpeechEvent.StartFailed(id))
+                }
+                armGrace(callToken, id)
+            }
+        }
+    }
+
+    /** Gives up on a reading whose engine still has not called back after the grace period. */
+    @Synchronized
+    private fun armGrace(callToken: Long, id: String) {
+        cancelWatchdog = watchdogScheduler(START_GRACE_MS) {
+            if (token == callToken && !started && _speakingId.value == id) {
+                stop()
+                _events.tryEmit(SpeechEvent.GaveUp(id))
             }
         }
     }

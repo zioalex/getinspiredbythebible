@@ -329,6 +329,7 @@
     <!-- Read aloud (BITB-119) -->
     <string name="action_listen">Listen to this answer</string>
     <string name="action_pause_listening">Pause reading</string>
+    <string name="tts_engine_no_response">Your device\'s speech engine didn\'t respond.</string>
     <string name="action_resume_listening">Resume reading</string>
     <string name="state_listening">Reading aloud</string>
     <string name="state_not_listening">Not reading aloud</string>
