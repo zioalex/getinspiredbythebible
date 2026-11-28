@@ -1,6 +1,6 @@
 ---
 id: BITB-298
-status: in-review
+status: done
 priority: P0
 kind: nfr
 size: S

@@ -1,6 +1,6 @@
 ---
 id: BITB-313
-status: in-review
+status: done
 priority: P1
 kind: chore
 size: L

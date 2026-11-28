@@ -1,6 +1,6 @@
 ---
 id: BITB-305
-status: in-review
+status: done
 priority: P1
 kind: nfr
 size: M
