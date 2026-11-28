@@ -80,7 +80,7 @@ jobs:
             }
 
       - name: Registry usage before
-        run: az acr show-usage --registry "$ACR_NAME" -o table
+        run: az acr show-usage --name "$ACR_NAME" -o table || true  # informational only; never blocks the purge
 
       - name: Lock currently deployed images
         id: protect
@@ -172,7 +172,7 @@ jobs:
 
       - name: Registry usage after
         if: always()
-        run: az acr show-usage --registry "$ACR_NAME" -o table || true
+        run: az acr show-usage --name "$ACR_NAME" -o table || true
 
       - name: Notify Telegram
         if: always()
