@@ -1,0 +1,84 @@
+name: Azure CLI Lint
+
+# BITB-374: every `az ...` command in the repo is checked against the real Azure CLI.
+# scripts/check_az_commands.py extracts the invocations (workflow `run:` scripts, composite actions,
+# shell scripts, Terraform local-exec, the Makefile, Python argv lists)
+# and asks `az <command> --help` whether the command and each flag exist. BITB-372's acr-purge.yml
+# shipped `az acr show-usage --registry` (the command only takes --name/-n) and failed in production;
+# this job catches that class before merge.
+#
+# No Azure login and no secrets: `az --help` is offline. Extensions come from scripts/az-extensions.txt.
+# Allowlist: scripts/az-lint-allowlist.txt (a reason is required; an entry that matches nothing fails).
+
+"on":
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - "scripts/**"
+      - "deployment/**/*.sh"
+      - "deployment/**/*.tf"
+      - ".python-version"
+      - "Makefile"
+      - "api/**/*.py"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - "scripts/**"
+      - "deployment/**/*.sh"
+      - "deployment/**/*.tf"
+      - ".python-version"
+      - "Makefile"
+      - "api/**/*.py"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: az-lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The one place the Azure CLI version is pinned. Bump it together with scripts/az-extensions.txt.
+  AZ_CLI_VERSION: "2.93.0"
+
+jobs:
+  az-lint:
+    name: Lint az commands
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+          cache: pip
+          cache-dependency-path: .github/workflows/az-lint.yml
+
+      - name: Install pinned Azure CLI and test tools
+        run: pip install "azure-cli==${AZ_CLI_VERSION}" pytest
+
+      - name: Show Azure CLI version
+        run: |
+          command -v az
+          az version
+          # The runner image preinstalls this extension unpinned; the lint must not depend on it.
+          az extension remove --name azure-devops || true
+
+      - name: Install pinned Azure CLI extensions
+        run: |
+          grep -vE '^[[:space:]]*(#|$)' scripts/az-extensions.txt | while IFS= read -r spec; do
+            az extension add --name "${spec%%==*}" --version "${spec#*==}" --yes
+          done
+          az extension list --output table
+
+      - name: Unit-test the linter
+        run: python -m pytest scripts/test_check_az_commands.py -q
+
+      - name: Lint az commands against the real CLI
+        run: python scripts/check_az_commands.py

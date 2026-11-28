@@ -1,0 +1,10 @@
+# Azure CLI extensions that scripts/check_az_commands.py (make az-lint, .github/workflows/az-lint.yml)
+# installs before linting, one `name==version` per line (BITB-374). Comments and blank lines are ignored.
+#
+# Add a line when the linter reports a missing extension for a command the repo really runs, and keep
+# KNOWN_EXTENSION_PREFIXES in the script in step (the CLI cannot tell a missing extension from a typo).
+# Pick a version from https://github.com/Azure/azure-cli-extensions/blob/main/src/index.json that supports
+# the pinned azure-cli (AZ_CLI_VERSION in az-lint.yml).
+#
+# prod-monitor.yml and scripts/az-logs.sh use `az monitor log-analytics query`, which is not in core.
+log-analytics==0.2.2

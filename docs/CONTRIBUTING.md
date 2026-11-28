@@ -13,6 +13,7 @@ Most workflows are path-filtered so they only run when relevant files change:
 | `commitlint.yml`     | every PR (lints commit messages)                                                  |
 | `story-id-check.yml` | `docs/BACKLOG_STORIES/**`, `scripts/check_story_ids.py`, the workflow file        |
 | `parity-ci.yml`      | `api/**`, `docs/parity/**`, `scripts/export_openapi.py` + its test, the workflow file |
+| `az-lint.yml`        | `.github/workflows/**`, `.github/actions/**`, `scripts/**`, `deployment/**/*.sh`, `deployment/**/*.tf`, `.python-version`, `Makefile`, `api/**/*.py` |
 
 A PR that changes **only** files under `docs/` (e.g. a backlog story) will skip
 `android-ci.yml`, `azure-deploy.yml`, and `test_update.yml`. Only `pre-commit.yml`,
@@ -34,6 +35,43 @@ Three workflows run on a schedule (and by hand via *Run workflow*), never on pul
 Run the first two locally: `python3 scripts/check_configured_models.py` (set `ANTHROPIC_API_KEY` to include
 the Claude check) or `python3 scripts/report_dependency_majors.py`. Their tests are
 `scripts/test_check_configured_models.py` and `scripts/test_report_dependency_majors.py`.
+
+### Azure CLI command lint (BITB-374)
+
+`az-lint.yml` checks every `az ...` command in the repo against the real Azure CLI, so a wrong flag
+fails the PR instead of failing in production (BITB-372's `az acr show-usage --registry` was the
+trigger). `scripts/check_az_commands.py` reads the `run:` scripts of the workflows and composite
+actions, `scripts/**/*.sh`, `deployment/**/*.sh`, Terraform `local-exec` `command` strings and heredocs in
+`deployment/**/*.tf` (`${...}` read as variables), the `Makefile` recipes and `["az", ...]` argv lists in
+`scripts/**/*.py` and `api/**/*.py` (including the list passed to a module-local wrapper such as
+`_az([...])` whose body is `["az", *args]`; a call with no literal command path is listed as a notice), then asks `az <command> --help` whether the command and each flag
+exists. It needs no Azure login and no secrets. `az` inside `echo`, comments, heredocs and other prose
+is ignored, and so is the content of `az acr run --cmd "..."`.
+
+```bash
+pip install azure-cli==2.93.0      # the version pinned in az-lint.yml (AZ_CLI_VERSION)
+make az-lint                       # lint everything (exit 0 clean, 1 findings, 2 no az binary)
+make az-lint ARGS="--list"         # print every extracted invocation, no az needed
+make az-lint ARGS="--skip-missing-extensions"   # local run without the extensions installed
+python3 scripts/check_az_commands.py .github/workflows/acr-purge.yml   # one file
+python3 -m pytest scripts/test_check_az_commands.py -q                  # the linter's own tests
+```
+
+The pre-push hook `az-lint` runs the same check when `az` is on your PATH and prints a skip notice
+otherwise; CI always runs it.
+
+- **Add an extension.** If a command lives in an Azure CLI extension (with dynamic install off the CLI
+  reports it as "misspelled", so the linter names the extension itself), add `name==version` to
+  `scripts/az-extensions.txt` (versions: `src/index.json` in `Azure/azure-cli-extensions`) and, for a
+  new extension command group, a prefix to `KNOWN_EXTENSION_PREFIXES` in the script. CI runs
+  `az extension add` for each line. The CLI version is pinned once, in `az-lint.yml`.
+- **Allowlist a finding.** Add `path:pattern  # reason` to `scripts/az-lint-allowlist.txt`: `path` is the
+  repo-relative file, `pattern` a substring of the normalised command (`az acr show-usage --registry`).
+  A reason is mandatory, and an entry that matches no finding fails the run as stale, so delete the
+  entry when the command is fixed. Prefer fixing the command; allowlist only what cannot be fixed in the
+  same PR, and file a story.
+- **Wrapper functions** (`retry az ...`, `xargs az ...`, `bash -c "az ..."`) are not in command position
+  and are not linted: call `az` directly where you can.
 
 ### Python version (BITB-304)
 

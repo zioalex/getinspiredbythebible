@@ -402,6 +402,11 @@ Format commands: `make format` (auto-fix Python + frontend)
 | `integration-tests` | Docker Compose: health check, scripture search, chat, streaming, frontend |
 | `security-check` | Python + npm dependency vulnerability scans |
 
+### Azure CLI lint (`az-lint.yml`, BITB-374)
+
+`az` commands are linted against the real Azure CLI (`make az-lint`, `az-lint.yml`, BITB-374): check
+every new az command with it before proposing it. Path-filtered; no Azure login or secrets.
+
 ### Android CI (`android-ci.yml`)
 
 | Job | What it does |
@@ -808,3 +813,8 @@ reference the parser misses, or a translation with no rows — it no-ops as
 8. **Android string validation** - CI checks that all strings in `values/strings.xml` exist in every locale directory
 9. **Never push to closed/merged PR branches** - Always create a fresh branch from `main` for new work
 10. **`chore:` hides from changelog** - Asset, graphic, and UI changes that users can see must use `feat:`, not `chore:`. Using `chore:` for user-visible work causes the change to be silently dropped from release notes by release-please (see Git Conventions → Choosing the right type)
+11. **Check every `az` command against the real CLI** - A wrong flag only fails when the
+    command finally runs (BITB-372: `az acr show-usage --registry` failed in production, the
+    flag is `--name`). Run `make az-lint` (needs `pip install azure-cli`) before proposing or
+    reviewing any new `az` command; `az-lint.yml` (BITB-374) enforces it in CI. Details in
+    `docs/CONTRIBUTING.md` -> *Azure CLI command lint*

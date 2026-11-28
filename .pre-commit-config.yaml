@@ -170,6 +170,16 @@ repos:
         files: ^frontend/src/.*\.[jt]sx?$
         types: [file]
 
+      # BITB-374: lint every az command against the real Azure CLI. Skips (exit 0) when az is not
+      # installed locally; CI (az-lint.yml) always runs it. Extension commands are skipped locally.
+      - id: az-lint
+        stages: [pre-push]
+        name: az-lint
+        entry: python3 scripts/check_az_commands.py --if-az-available --skip-missing-extensions
+        language: system
+        pass_filenames: false
+        files: ^(\.github/(workflows|actions)/|scripts/|deployment/.*\.(sh|tf)$|Makefile$|api/.*\.py$)
+
 # Default language version
 default_language_version:
   python: python3
