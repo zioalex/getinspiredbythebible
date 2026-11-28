@@ -276,6 +276,12 @@ describe("Home page responsive layout", () => {
       await waitFor(() => {
         expect(api.streamMessage).toHaveBeenCalled();
       });
+      // BITB-340: let the request settle (streamed reply rendered, loading
+      // cleared) so no submit is still in flight at teardown.
+      await waitFor(() => {
+        expect(screen.getByText("ok")).toBeInTheDocument();
+        expect(input).not.toBeDisabled();
+      });
       const call = vi.mocked(api.streamMessage).mock.calls[0];
       // streamMessage(userMessageContent, apiMessages, { preferredTranslation, ... })
       expect(call[2]?.preferredTranslation).toBeUndefined();
@@ -2230,5 +2236,74 @@ describe("session limit — continue vs start new session (BITB-118)", () => {
     expect(
       screen.queryByRole("button", { name: /start new session/i }),
     ).not.toBeInTheDocument();
+  });
+});
+
+// BITB-340: a submit still awaiting its stream when the island unmounts
+// (navigation away, or jsdom teardown in tests) must not touch state or log
+// "Failed to send message" when it resumes.
+describe("unmount mid-stream (BITB-340)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(api.getTranslations).mockResolvedValue([]);
+    vi.mocked(api.generateSessionId).mockReturnValue("test-session-id");
+    vi.mocked(turnstile.useTurnstile).mockReturnValue({
+      isReady: true,
+      isEnabled: false,
+      token: null,
+      configLoaded: true,
+      refreshToken: vi.fn(),
+      awaitToken: vi.fn().mockResolvedValue(null),
+    });
+  });
+
+  it("aborts the request and swallows a late stream failure after unmount", async () => {
+    let rejectStream!: (e: Error) => void;
+    const gate = new Promise<void>((_, reject) => {
+      rejectStream = reject;
+    });
+    let signal: AbortSignal | undefined;
+    vi.mocked(api.streamMessage).mockImplementation(
+      async function* (_content, _messages, opts) {
+        signal = opts?.signal;
+        await gate; // blocks until the test rejects it
+        yield { type: "content" as const, content: "unreachable" };
+      },
+    );
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const unhandled: unknown[] = [];
+    const onUnhandled = (e: unknown) => unhandled.push(e);
+    process.on("unhandledRejection", onUnhandled);
+
+    try {
+      const { container, unmount } = renderWithIntl(<Home />);
+      const input = screen.getByPlaceholderText(
+        "Share what's on your heart...",
+      );
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "hello" } });
+      });
+      await act(async () => {
+        fireEvent.click(container.querySelector('button[type="submit"]')!);
+      });
+      await waitFor(() => expect(signal).toBeDefined());
+      expect(signal!.aborted).toBe(false);
+
+      unmount();
+      expect(signal!.aborted).toBe(true);
+
+      // The stream fails only after the component is gone.
+      rejectStream(new Error("late network failure"));
+      await new Promise((r) => setTimeout(r, 20));
+
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        "Failed to send message:",
+        expect.anything(),
+      );
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onUnhandled);
+      errorSpy.mockRestore();
+    }
   });
 });
