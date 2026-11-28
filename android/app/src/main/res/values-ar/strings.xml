@@ -7,7 +7,7 @@
     <string name="chat_stop_button">إيقاف</string>
     <string name="action_clear_conversation">مسح المحادثة</string>
     <string name="welcome_title">استلهم يومياً من كلمة الله</string>
-    <string name="welcome_subtitle">أحضر أثقالك إلى كلمة الله. الكتاب المقدس يتكلم بالعزاء والقوة والأمل في كل موسم من مواسم الحياة.</string>
+    <string name="welcome_subtitle">أحضر أثقالك إلى كلمة الله. الكتاب المقدس يمنح العزاء والقوة والأمل في كل موسم من مواسم الحياة.</string>
 
     <!-- Suggested prompts on welcome screen -->
     <string name="prompt_suggestion_1">أنا أعاني وأحتاج إلى عزاء الله</string>

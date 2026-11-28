@@ -1779,10 +1779,9 @@ describe("language-switch suggestion", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Switch" }));
 
-    const stored = sessionStorage.getItem("preservedConversation");
-    expect(stored).not.toBeNull();
-    const parsed = JSON.parse(stored!);
-    expect(Array.isArray(parsed.messages)).toBe(true);
+    // BITB-331: no conversation is preserved; a fresh-chat flag is set instead.
+    expect(sessionStorage.getItem("preservedConversation")).toBeNull();
+    expect(sessionStorage.getItem("vq_fresh_chat")).toBe("1");
     expect(mockRouterReplace).toHaveBeenCalledWith("/", { locale: "it" });
   });
 });

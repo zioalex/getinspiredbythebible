@@ -27,6 +27,11 @@ export interface StoredConversation {
   title: string;
   createdAt: number;
   updatedAt: number;
+  /**
+   * BITB-331: UI language (locale) the chat was held in. Optional: legacy rows
+   * have none and are never auto-resumed (still listed in the history sidebar).
+   */
+  language?: string;
 }
 
 export interface StoredMessage {
@@ -367,6 +372,7 @@ export async function saveFullConversation(
     crisisResources?: CrisisResources;
     follow_ups?: string[];
   }>,
+  language?: string,
 ): Promise<void> {
   try {
     const db = await openDb();
@@ -386,6 +392,11 @@ export async function saveFullConversation(
       title,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
+      // Tag the language only when the row is first created; later saves keep
+      // it (and legacy rows stay legacy), so viewing a chat never re-tags it.
+      ...((existing ? existing.language : language)
+        ? { language: existing ? existing.language : language }
+        : {}),
     });
 
     // Replace this conversation's messages wholesale.
@@ -428,6 +439,40 @@ async function pruneOldConversations(): Promise<void> {
     }
   } catch {
     // ignore
+  }
+}
+
+/**
+ * BITB-331: the newest conversation held in `language`. Legacy rows without a
+ * language never match, so a reload only resumes a same-language chat.
+ */
+export async function latestConversationForLanguage(
+  language: string,
+): Promise<StoredConversation | null> {
+  const list = await listConversations();
+  return list.find((c) => c.language === language) ?? null;
+}
+
+/** sessionStorage flag: a language switch just happened, start a fresh chat. */
+export const FRESH_CHAT_FLAG = "vq_fresh_chat";
+
+/** Mark that the next mount must open a new chat (language switch). */
+export function markFreshChat(): void {
+  try {
+    sessionStorage.setItem(FRESH_CHAT_FLAG, "1");
+  } catch {
+    // Storage unavailable: the new locale simply resumes its own latest chat.
+  }
+}
+
+/** One-shot read of the flag set by markFreshChat(). */
+export function consumeFreshChat(): boolean {
+  try {
+    const v = sessionStorage.getItem(FRESH_CHAT_FLAG);
+    if (v) sessionStorage.removeItem(FRESH_CHAT_FLAG);
+    return !!v;
+  } catch {
+    return false;
   }
 }
 
