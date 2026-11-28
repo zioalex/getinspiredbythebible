@@ -182,6 +182,38 @@ PROVIDER = {
             "setCacheKey": True,
         }
     },
+    # BITB-286 (2026-11-27 OpenRouter degradation): every paid/openrouter/*
+    # model ran on opencode's defaults because only the "opencode" provider
+    # had explicit options. Verified against the opencode 1.18.31 binary
+    # (/tools/opencode): `V.chunkTimeout ?? 300000`, `V.headerTimeout ??
+    # 300000` — the "timeout" knob applies ONLY when set (AbortSignal.timeout
+    # is pushed only when V.timeout is defined, so there is NO overall cap by
+    # default). Observed failure profile (Nov 27 runtime log, 81/82 stream
+    # errors same-day): 24× "SSE read timed out" (mid-stream stalls during
+    # long reasoning phases) and 10× "ProviderHeaderTimeoutError: headers
+    # timed out after 300000ms" (first-byte delay hitting the 5-min default).
+    # Knob mapping:
+    #   - headerTimeout 180000 (3 min): healthy requests return headers in
+    #     seconds; a genuinely dead first byte now aborts ~2 min sooner than
+    #     the 300000 default, so the fallback chain engages that much faster.
+    #   - chunkTimeout 300000 (5 min): pins the default max silence between
+    #     SSE chunks — long silent reasoning phases survive; the value is
+    #     explicit so a future default change cannot silently reintroduce
+    #     the mid-stream kills.
+    #   - timeout 1800000 (30 min): adds the missing overall cap for big
+    #     turns without the 5-min header window misfiring on them.
+    # Interplay with the task-reliability plugin (STREAM_IDLE_SECONDS=180):
+    # the plugin only watches tracked CHILD sessions, so the raised
+    # chunkTimeout protects the parent/orchestrator session; child streams
+    # keep the tighter 180s watchdog as their effective idle bound (see
+    # .opencode/plugin/task-reliability.ts).
+    "openrouter": {
+        "options": {
+            "timeout": 1800000,  # 30 min overall request cap (big turns)
+            "headerTimeout": 180000,  # 3 min first-byte wait
+            "chunkTimeout": 300000,  # 5 min max silence between SSE chunks
+        }
+    },
     "llama-cpp": {
         "api": "openai-compatible",
         "name": "llama.cpp Server",

@@ -47,6 +47,13 @@
         "setCacheKey": true
       }
     },
+    "openrouter": {
+      "options": {
+        "timeout": 1800000,
+        "headerTimeout": 180000,
+        "chunkTimeout": 300000
+      }
+    },
     "llama-cpp": {
       "api": "openai-compatible",
       "name": "llama.cpp Server",

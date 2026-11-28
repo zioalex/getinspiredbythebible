@@ -341,6 +341,23 @@ def test_provider_timeouts_present(config):
     assert opts["setCacheKey"] is True
 
 
+def test_openrouter_provider_timeouts(config):
+    """BITB-286: the built-in openrouter provider must carry explicit
+    timeout options — it was running on opencode's defaults
+    (headerTimeout=300000ms, chunkTimeout=300000ms, NO overall cap),
+    which killed healthy-but-silent reasoning streams mid-flight and let
+    hung requests burn the full 5-min header window before the fallback
+    chain engaged (2026-11-27 degradation: 24× "SSE read timed out",
+    10× ProviderHeaderTimeoutError at 300000ms).
+    """
+    or_opts = config["provider"]["openrouter"]["options"]
+    assert or_opts["timeout"] == 1800000, "30-min overall cap for big turns"
+    assert or_opts["headerTimeout"] == 180000, "3-min first-byte wait"
+    assert or_opts["chunkTimeout"] == 300000, "5-min max inter-chunk silence"
+    # No stray keys: unknown options would be silently ignored by the SDK.
+    assert set(or_opts) == {"timeout", "headerTimeout", "chunkTimeout"}
+
+
 def test_llama_cpp_provider_v1_shape(config):
     """BITB-363: the self-hosted llama.cpp server is emitted with the exact
     V1 shape validated live on opencode 1.18.31 — singular top-level
